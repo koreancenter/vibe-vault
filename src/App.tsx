@@ -599,7 +599,7 @@ export function App() {
 
   // Visual Theme & Icon Helpers
   const currSymbol = getCurrencySymbol(currentCurrency);
-  const isLight = userPrefs.theme === 'light';
+  const isLight = false;
   const now = new Date();
 
   const getCategoryIcon = (category: string) => {
@@ -764,8 +764,6 @@ export function App() {
             currentCurrency={currentCurrency}
             fxRates={fxRates}
             isStealth={isStealth}
-            theme={userPrefs.theme || 'dark'}
-            chartPalette={userPrefs.chartPalette || 'default'}
             onOpenThemeSettings={() => handleOpenSettingsModal('preferences')}
             onNavigateToVault={() => setMainMode('vault')}
             onNavigateToLedger={() => setMainMode('ledger')}
@@ -1069,8 +1067,6 @@ export function App() {
               currentCurrency={currentCurrency}
               fxRates={fxRates}
               isStealth={isStealth}
-              theme={userPrefs.theme || 'dark'}
-              chartPalette={userPrefs.chartPalette || 'default'}
               onOpenThemeSettings={() => handleOpenSettingsModal('preferences')}
               onNavigateToVault={() => setMainMode('vault')}
               onNavigateToLedger={() => setMainMode('ledger')}

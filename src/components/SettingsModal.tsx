@@ -20,12 +20,8 @@ import {
   Plus,
   Minus,
   Trash2,
-  Sun,
-  Moon,
-  Monitor,
   Wallet,
   Sparkles,
-  Palette,
   ExternalLink
 } from 'lucide-react';
 import { 
@@ -57,9 +53,8 @@ import {
   resetAllDataToZero
 } from '../db';
 import { PWAInstallButton } from './PWAInstallButton';
-import { Transaction, ChartPaletteType, EncryptedBackupPayload, UnencryptedBackupPayloadV2, SupportedCurrency } from '../types';
+import { Transaction, EncryptedBackupPayload, UnencryptedBackupPayloadV2, SupportedCurrency } from '../types';
 import { SmartAssetSetup } from './SmartAssetSetup';
-import { CHART_PALETTES, applyThemeAccent } from '../themePalettes';
 import {
   encryptBackupData,
   decryptBackupData,
@@ -273,7 +268,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [currencySymbol, setCurrencySymbol] = useState<string>('KRW');
   const [stealthMode, setStealthMode] = useState<boolean>(false);
   const [theme, setTheme] = useState<ThemeMode>('dark');
-  const [chartPalette, setChartPalette] = useState<ChartPaletteType>('default');
   const [autoCategorization, setAutoCategorization] = useState<boolean>(true);
   const [defaultLaunchScreen, setDefaultLaunchScreen] = useState<'vault' | 'insights' | 'ledger'>('vault');
 
@@ -338,9 +332,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setBudgetStartDay(prefs.budgetStartDay ?? 1);
       setCurrencySymbol(prefs.currencySymbol || 'KRW');
       setStealthMode(prefs.stealthMode ?? false);
-      setTheme(prefs.theme || 'dark');
-      setChartPalette(prefs.chartPalette || 'default');
-      applyThemeAccent(prefs.chartPalette || 'default', getEffectiveTheme(prefs.theme || 'dark') === 'light');
+      setTheme('dark');
       setAutoCategorization(prefs.autoCategorization !== undefined ? !!prefs.autoCategorization : true);
       setDefaultLaunchScreen(prefs.defaultLaunchScreen || 'vault');
 
@@ -388,23 +380,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     } catch (err: any) {
       setPinError(err.message || 'PIN 처리 중 오류가 발생했습니다.');
     }
-  };
-
-  const handleThemeChange = (newTheme: ThemeMode) => {
-    setTheme(newTheme);
-    applyTheme(newTheme, chartPalette);
-    applyThemeAccent(chartPalette, getEffectiveTheme(newTheme) === 'light');
-    const prefs = getUserPreferences();
-    saveUserPreferences({ ...prefs, theme: newTheme, autoCategorization });
-    if (onDataChanged) onDataChanged();
-  };
-
-  const handleChartPaletteChange = (newPalette: ChartPaletteType) => {
-    setChartPalette(newPalette);
-    applyThemeAccent(newPalette, isLight);
-    const prefs = getUserPreferences();
-    saveUserPreferences({ ...prefs, chartPalette: newPalette });
-    if (onDataChanged) onDataChanged();
   };
 
   // Provider options
@@ -567,13 +542,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       budgetStartDay,
       currencySymbol,
       stealthMode,
-      theme,
-      chartPalette,
+      theme: 'dark',
       autoCategorization,
       defaultLaunchScreen
     };
     saveUserPreferences(userPrefs);
-    applyTheme(theme);
+    applyTheme('dark');
 
     if (onDataChanged) onDataChanged();
     setStatusMessage({ type: 'success', text: '모든 설정이 기기에 안전하게 저장되었습니다.' });
@@ -860,7 +834,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isLight = getEffectiveTheme(theme) === 'light';
+  const isLight = false;
 
   return (
     <div 
@@ -1265,31 +1239,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          {/* TAB 2: GENERAL PREFERENCES (Compact, Elegant, Non-scrolling iOS Grouped Style) */}
-          {/* TAB 2: GENERAL SETTINGS (일반 설정) - Flattened minimalist layout without box-in-box cards */}
+          {/* TAB 2: GENERAL SETTINGS (일반 설정) - Pure Dark Luxury Minimalist Layout */}
           {activeTab === 'preferences' && (
             <div className="space-y-5 animate-in fade-in duration-150">
               
-              {/* PWA Installation Trigger Banner */}
-              <PWAInstallButton variant="settings" theme={isLight ? 'light' : 'dark'} />
+              {/* PWA 설치 안내 카드 (미설치 상태인 경우) */}
+              <PWAInstallButton variant="settings" theme="dark" />
 
-              {/* Group 1: 화면 및 테마 (Display & Theme) */}
+              {/* Group 1: 화면 설정 (기본 시작 화면) */}
               <div className="space-y-3">
-                <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  isLight ? 'text-slate-400' : 'text-slate-500'
-                }`}>
-                  화면 및 테마
+                <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-500">
+                  화면 설정
                 </span>
                 
-                <div className={`space-y-3 pb-4 border-b ${isLight ? 'border-slate-200/80' : 'border-white/[0.06]'}`}>
-                  {/* Row 1: 기본 시작 화면 (자산 | 장부) */}
+                <div className="space-y-3 pb-4 border-b border-white/[0.06]">
+                  {/* Row 1: 기본 시작 화면 (자산 | 인사이트 | 장부) */}
                   <div className="flex items-center justify-between gap-3">
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+                    <span className="text-xs font-semibold text-slate-200">
                       기본 시작 화면
                     </span>
-                    <div className={`flex p-0.5 rounded-xl border ${
-                      isLight ? 'bg-slate-200/70 border-slate-300/60' : 'bg-black/40 border-white/5'
-                    }`}>
+                    <div className="flex p-0.5 rounded-xl border bg-black/40 border-white/5">
                       <button
                         type="button"
                         id="launch-screen-vault-btn"
@@ -1301,12 +1270,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
                           defaultLaunchScreen === 'vault'
-                            ? isLight
-                              ? 'bg-white text-slate-950 shadow-xs font-bold'
-                              : 'bg-white/15 text-white shadow-xs font-bold'
-                            : isLight
-                              ? 'text-slate-600 hover:text-slate-900'
-                              : 'text-slate-400 hover:text-slate-200'
+                            ? 'bg-white/15 text-white shadow-xs font-bold'
+                            : 'text-slate-400 hover:text-slate-200'
                         }`}
                       >
                         자산
@@ -1322,12 +1287,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
                           defaultLaunchScreen === 'insights'
-                            ? isLight
-                              ? 'bg-white text-slate-950 shadow-xs font-bold'
-                              : 'bg-white/15 text-white shadow-xs font-bold'
-                            : isLight
-                              ? 'text-slate-600 hover:text-slate-900'
-                              : 'text-slate-400 hover:text-slate-200'
+                            ? 'bg-white/15 text-white shadow-xs font-bold'
+                            : 'text-slate-400 hover:text-slate-200'
                         }`}
                       >
                         인사이트
@@ -1343,134 +1304,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
                           defaultLaunchScreen === 'ledger'
-                            ? isLight
-                              ? 'bg-white text-slate-950 shadow-xs font-bold'
-                              : 'bg-white/15 text-white shadow-xs font-bold'
-                            : isLight
-                              ? 'text-slate-600 hover:text-slate-900'
-                              : 'text-slate-400 hover:text-slate-200'
+                            ? 'bg-white/15 text-white shadow-xs font-bold'
+                            : 'text-slate-400 hover:text-slate-200'
                         }`}
                       >
                         장부
                       </button>
-                    </div>
-                  </div>
-
-                  {/* Row 2: 화면 테마 (다크 | 라이트 | 시스템) */}
-                  <div className={`flex items-center justify-between gap-3 pt-3 border-t ${
-                    isLight ? 'border-slate-100' : 'border-white/[0.04]'
-                  }`}>
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                      화면 테마
-                    </span>
-                    <div className={`flex p-0.5 rounded-xl border ${
-                      isLight ? 'bg-slate-200/70 border-slate-300/60' : 'bg-black/40 border-white/5'
-                    }`}>
-                      <button
-                        type="button"
-                        id="theme-dark-btn"
-                        onClick={() => handleThemeChange('dark')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
-                          theme === 'dark'
-                            ? isLight
-                              ? 'bg-white text-slate-950 shadow-xs font-bold'
-                              : 'bg-white/15 text-white shadow-xs font-bold'
-                            : isLight
-                              ? 'text-slate-600 hover:text-slate-900'
-                              : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        다크
-                      </button>
-                      <button
-                        type="button"
-                        id="theme-light-btn"
-                        onClick={() => handleThemeChange('light')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
-                          theme === 'light'
-                            ? isLight
-                              ? 'bg-white text-slate-950 shadow-xs font-bold'
-                              : 'bg-white/15 text-white shadow-xs font-bold'
-                            : isLight
-                              ? 'text-slate-600 hover:text-slate-900'
-                              : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        라이트
-                      </button>
-                      <button
-                        type="button"
-                        id="theme-system-btn"
-                        onClick={() => handleThemeChange('system')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
-                          theme === 'system'
-                            ? isLight
-                              ? 'bg-white text-slate-950 shadow-xs font-bold'
-                              : 'bg-white/15 text-white shadow-xs font-bold'
-                            : isLight
-                              ? 'text-slate-600 hover:text-slate-900'
-                              : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        시스템
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Row 3: 테마 악센트 컬러 (Theme Accent) */}
-                  <div className={`pt-3 border-t space-y-2.5 ${
-                    isLight ? 'border-slate-100' : 'border-white/[0.04]'
-                  }`}>
-                    <span className={`text-xs font-semibold block ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                      테마 악센트 컬러
-                    </span>
-                    <div className="grid grid-cols-4 gap-2">
-                      {Object.values(CHART_PALETTES).map((palette) => {
-                        const isSelected = chartPalette === palette.id;
-                        return (
-                          <button
-                            key={palette.id}
-                            type="button"
-                            id={`chart-palette-btn-${palette.id}`}
-                            onClick={() => handleChartPaletteChange(palette.id)}
-                            title={`${palette.name} (${palette.subtitle})`}
-                            style={isSelected ? {
-                              borderColor: 'var(--color-accent)',
-                              backgroundColor: 'var(--color-accent-subtle)',
-                              boxShadow: '0 0 0 1px var(--color-accent)'
-                            } : undefined}
-                            className={`py-2 px-1.5 rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 active:scale-95 ${
-                              isSelected
-                                ? isLight
-                                  ? 'border-[var(--color-accent)] ring-1 ring-[var(--color-accent)] shadow-2xs'
-                                  : 'border-[var(--color-accent)] ring-1 ring-[var(--color-accent)] text-white shadow-2xs'
-                                : isLight
-                                  ? 'bg-slate-100/70 border-slate-200/80 hover:bg-slate-100 text-slate-600'
-                                  : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200'
-                            }`}
-                          >
-                            <div className="flex items-center -space-x-1">
-                              {palette.swatches.slice(0, 3).map((color, i) => (
-                                <span
-                                  key={i}
-                                  className="w-2.5 h-2.5 rounded-full border border-black/15 dark:border-white/20 shadow-2xs"
-                                  style={{ backgroundColor: color }}
-                                />
-                              ))}
-                            </div>
-                            <span
-                              style={isSelected ? { color: 'var(--color-accent)' } : undefined}
-                              className={`text-[11px] truncate w-full text-center ${
-                                isSelected
-                                  ? 'font-bold'
-                                  : 'font-medium'
-                              }`}
-                            >
-                              {palette.name.split(' ')[0]}
-                            </span>
-                          </button>
-                        );
-                      })}
                     </div>
                   </div>
                 </div>
@@ -1478,16 +1317,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* Group 2: 표시 및 통화 (Display & Currency) */}
               <div className="space-y-3">
-                <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  isLight ? 'text-slate-400' : 'text-slate-500'
-                }`}>
+                <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-500">
                   표시 및 통화
                 </span>
                 
-                <div className={`space-y-3 pb-4 border-b ${isLight ? 'border-slate-200/80' : 'border-white/[0.06]'}`}>
+                <div className="space-y-3 pb-4 border-b border-white/[0.06]">
                   {/* Row 1: 기본 통화 */}
                   <div className="flex items-center justify-between gap-3">
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+                    <span className="text-xs font-semibold text-slate-200">
                       기본 통화
                     </span>
                     <div className="w-28">
@@ -1501,7 +1338,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           saveUserPreferences({ ...prefs, currencySymbol: val });
                           if (onDataChanged) onDataChanged();
                         }}
-                        theme={isLight ? 'light' : 'dark'}
+                        theme="dark"
                         size="sm"
                       />
                     </div>
@@ -1516,26 +1353,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       saveUserPreferences({ ...prefs, stealthMode: next });
                       if (onDataChanged) onDataChanged();
                     }}
-                    className={`flex items-center justify-between gap-3 pt-3 border-t cursor-pointer select-none group ${
-                      isLight ? 'border-slate-100' : 'border-white/[0.04]'
-                    }`}
+                    className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.04] cursor-pointer select-none group"
                   >
-                    <span className={`text-xs font-semibold group-hover:text-[var(--color-accent)] transition-colors ${
-                      isLight ? 'text-slate-800' : 'text-slate-200'
-                    }`}>
+                    <span className="text-xs font-semibold group-hover:text-emerald-400 transition-colors text-slate-200">
                       스텔스 모드 (금액 숨김)
                     </span>
                     <button
                       id="toggle-stealth-mode"
                       type="button"
                       aria-label="스텔스 모드 토글"
-                      style={stealthMode ? { backgroundColor: 'var(--color-accent)' } : undefined}
                       className={`w-9 h-5 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 pointer-events-none ${
-                        stealthMode
-                          ? 'bg-[var(--color-accent)]'
-                          : isLight
-                            ? 'bg-slate-300'
-                            : 'bg-slate-700'
+                        stealthMode ? 'bg-emerald-400' : 'bg-slate-700'
                       }`}
                     >
                       <span
@@ -1550,16 +1378,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* Group 3: 장부 설정 (Ledger Settings) */}
               <div className="space-y-3">
-                <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  isLight ? 'text-slate-400' : 'text-slate-500'
-                }`}>
+                <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-500">
                   장부 설정
                 </span>
                 
                 <div className="space-y-3">
                   {/* Row 1: 예산 시작일 */}
                   <div className="flex items-center justify-between gap-3">
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+                    <span className="text-xs font-semibold text-slate-200">
                       예산 시작일
                     </span>
                     <div className="w-24">
@@ -1574,49 +1400,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           saveUserPreferences({ ...prefs, budgetStartDay: num });
                           if (onDataChanged) onDataChanged();
                         }}
-                        theme={isLight ? 'light' : 'dark'}
+                        theme="dark"
                         size="sm"
                       />
                     </div>
-                  </div>
-
-                  {/* Row 2: 스마트 자동 분류 */}
-                  <div
-                    onClick={() => {
-                      const next = !autoCategorization;
-                      setAutoCategorization(next);
-                      const prefs = getUserPreferences();
-                      saveUserPreferences({ ...prefs, autoCategorization: next });
-                      if (onDataChanged) onDataChanged();
-                    }}
-                    className={`flex items-center justify-between gap-3 pt-3 border-t cursor-pointer select-none group ${
-                      isLight ? 'border-slate-100' : 'border-white/[0.04]'
-                    }`}
-                  >
-                    <span className={`text-xs font-semibold group-hover:text-[var(--color-accent)] transition-colors ${
-                      isLight ? 'text-slate-800' : 'text-slate-200'
-                    }`}>
-                      스마트 자동 분류
-                    </span>
-                    <button
-                      id="toggle-auto-categorization"
-                      type="button"
-                      aria-label="스마트 자동 분류 토글"
-                      style={autoCategorization ? { backgroundColor: 'var(--color-accent)' } : undefined}
-                      className={`w-9 h-5 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 pointer-events-none ${
-                        autoCategorization
-                          ? 'bg-[var(--color-accent)]'
-                          : isLight
-                            ? 'bg-slate-300'
-                            : 'bg-slate-700'
-                      }`}
-                    >
-                      <span
-                        className={`w-4 h-4 rounded-full bg-white shadow-xs transition-transform transform ${
-                          autoCategorization ? 'translate-x-4' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
                   </div>
                 </div>
               </div>

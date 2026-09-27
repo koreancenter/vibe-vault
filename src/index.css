@@ -1,40 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --surface-canvas-light: #F8FAFC;
-  --surface-raised-light: rgba(255, 255, 255, 0.85);
-  --surface-inset-light: #F1F5F9;
-  --surface-subtle-border-light: rgba(0, 0, 0, 0.06);
-  
-  --surface-canvas-dark: #07090E;
-  --surface-raised-dark: rgba(255, 255, 255, 0.02);
-  --surface-inset-dark: rgba(0, 0, 0, 0.35);
-  --surface-subtle-border-dark: rgba(255, 255, 255, 0.06);
+  --surface-canvas: #0B0F17;
+  --surface-raised: rgba(255, 255, 255, 0.025);
+  --surface-inset: rgba(0, 0, 0, 0.35);
+  --surface-subtle-border: rgba(255, 255, 255, 0.06);
 
-  /* Quiet Luxury Accent System (Soft Mint, Champagne Sage & Muted Rose) */
-  --color-accent: #34d399; /* soft mint */
-  --color-accent-hover: #6ee7b7;
+  /* Quiet Luxury Signature Accent System (Refined Muted Sage emerald-400 & Rose Coral) */
+  --color-accent: #34d399; /* refined muted sage */
+  --color-accent-hover: #10b981;
   --color-accent-subtle: rgba(52, 211, 153, 0.08);
-  --color-accent-border: rgba(52, 211, 153, 0.2);
-  --color-accent-glow: rgba(52, 211, 153, 0.12);
-  --color-accent-contrast: #07090E;
+  --color-accent-border: rgba(52, 211, 153, 0.18);
+  --color-accent-glow: rgba(52, 211, 153, 0.08);
+  --color-accent-contrast: #0B0F17;
 
-  --color-rose: #fb7185; /* soft muted rose */
+  --color-rose: #fb7185; /* refined rose coral */
   --color-rose-subtle: rgba(251, 113, 133, 0.08);
-  --color-rose-border: rgba(251, 113, 133, 0.2);
-}
-
-:root.light {
-  --color-accent: #059669;
-  --color-accent-hover: #047857;
-  --color-accent-subtle: rgba(5, 150, 105, 0.08);
-  --color-accent-border: rgba(5, 150, 105, 0.2);
-  --color-accent-glow: rgba(5, 150, 105, 0.1);
-  --color-accent-contrast: #FFFFFF;
-
-  --color-rose: #e11d48;
-  --color-rose-subtle: rgba(225, 29, 72, 0.06);
-  --color-rose-border: rgba(225, 29, 72, 0.18);
+  --color-rose-border: rgba(251, 113, 133, 0.18);
 }
 
 body {
@@ -42,6 +24,8 @@ body {
   letter-spacing: -0.015em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #0B0F17;
+  color: #f1f5f9;
 }
 
 /* Tabular figures for currency amounts, metrics, and timestamps */
@@ -49,23 +33,44 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Quiet luxury glass surface helper classes */
-.glass-card {
-  background-color: rgba(255, 255, 255, 0.02);
+/* Flat Quiet Luxury glass surface classes */
+.glass-card,
+.glass-surface {
+  background-color: rgba(255, 255, 255, 0.025);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
   border-radius: 1rem;
 }
 
-.glass-card-light {
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
-  border-radius: 1rem;
+/* Hairline dividers & luxury borders */
+.border-hairline {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.divide-hairline > * + * {
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Luxury Chip Controls */
+.luxury-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.875rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.025);
+  color: #e2e8f0;
+  transition: all 0.15s ease-in-out;
+}
+
+.luxury-chip:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
 }
 
 /* Subtle, quiet scrollbars */

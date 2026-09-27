@@ -3,7 +3,6 @@ import {
   Transaction, 
   SupportedCurrency, 
   FxRates, 
-  ChartPaletteType,
   AssetAccount,
   DebtItem,
   AssetCategoryType,
@@ -76,8 +75,7 @@ export interface InsightsSectionProps {
   currentCurrency: SupportedCurrency;
   fxRates: FxRates;
   isStealth?: boolean;
-  theme?: 'dark' | 'light' | 'system';
-  chartPalette?: ChartPaletteType;
+  theme?: string;
   onOpenThemeSettings?: () => void;
   onNavigateToVault?: () => void;
   onNavigateToLedger?: () => void;
@@ -88,13 +86,11 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
   currentCurrency,
   fxRates,
   isStealth = false,
-  theme = 'dark',
-  chartPalette = 'default',
   onOpenThemeSettings,
   onNavigateToVault,
   onNavigateToLedger
 }) => {
-  const isLight = theme === 'light';
+  const isLight = false;
   const currSymbol = getCurrencySymbol(currentCurrency);
 
   // 1. Period Control State (Defaults to current month)
@@ -691,8 +687,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           {/* Integrated AI CFO Diagnosis Card */}
           <div className={`p-5 sm:p-6 rounded-2xl transition-all border ${
             isLight 
-              ? 'bg-white/80 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
-              : 'bg-white/[0.02] backdrop-blur-xl border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
+              ? 'bg-white/85 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
+              : 'bg-white/[0.025] backdrop-blur-xl border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
           }`}>
             <div className="flex items-start gap-3.5">
               <div className={`p-2 rounded-xl shrink-0 ${
@@ -734,14 +730,14 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
             </div>
           </div>
 
-          {/* Core Integrated KPI Grid (자산 & 장부 핵심 지표 4선) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* Core Integrated KPI Grid (Single Flat Parent Card separated by Hairline Dividers) */}
+          <div className={`rounded-2xl border overflow-hidden grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-x transition-all backdrop-blur-xl ${
+            isLight 
+              ? 'bg-white/85 border-slate-200/80 divide-slate-200/60 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]' 
+              : 'bg-white/[0.025] border-white/[0.06] divide-white/[0.04] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
+          }`}>
             {/* 1. 총 순자산 */}
-            <div className={`p-4 sm:p-5 rounded-2xl transition-all ${
-              isLight 
-                ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]' 
-                : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-            }`}>
+            <div className="p-4 sm:p-5 flex flex-col justify-between">
               <div className="flex items-center justify-between mb-1.5">
                 <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   총 순자산
@@ -761,20 +757,16 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
             </div>
 
             {/* 2. 이번 달 저축률 */}
-            <div className={`p-4 sm:p-5 rounded-2xl transition-all ${
-              isLight 
-                ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]' 
-                : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-            }`}>
+            <div className="p-4 sm:p-5 flex flex-col justify-between">
               <div className="flex items-center justify-between mb-1.5">
                 <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   이번 달 저축률
                 </span>
-                <TrendingUp size={14} className="text-emerald-400" />
+                <TrendingUp size={14} className="text-emerald-400/90" />
               </div>
               <div className="flex items-baseline gap-1">
                 <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums ${
-                  savingsRate >= 30 ? 'text-emerald-300' : savingsRate >= 0 ? 'text-slate-200' : 'text-rose-400'
+                  savingsRate >= 30 ? (isLight ? 'text-emerald-700' : 'text-emerald-400/90') : savingsRate >= 0 ? (isLight ? 'text-slate-800' : 'text-slate-200') : 'text-rose-400/90'
                 }`}>
                   {savingsRate}%
                 </span>
@@ -788,11 +780,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
             </div>
 
             {/* 3. 자산 대비 월 소비율 */}
-            <div className={`p-4 sm:p-5 rounded-2xl transition-all ${
-              isLight 
-                ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]' 
-                : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-            }`}>
+            <div className="p-4 sm:p-5 flex flex-col justify-between">
               <div className="flex items-center justify-between mb-1.5">
                 <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   순자산 대비 소비
@@ -801,7 +789,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               </div>
               <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums block ${
                 parseFloat(String(burnRateToNetWorth)) < 3 
-                  ? 'text-emerald-300' 
+                  ? (isLight ? 'text-emerald-700' : 'text-emerald-400/90') 
                   : parseFloat(String(burnRateToNetWorth)) < 7 
                   ? isLight ? 'text-slate-900' : 'text-white' 
                   : 'text-amber-400'
@@ -814,11 +802,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
             </div>
 
             {/* 4. 비상금 유지력 (Runway) */}
-            <div className={`p-4 sm:p-5 rounded-2xl transition-all ${
-              isLight 
-                ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]' 
-                : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-            }`}>
+            <div className="p-4 sm:p-5 flex flex-col justify-between">
               <div className="flex items-center justify-between mb-1.5">
                 <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   비상 유동성 완충
@@ -827,7 +811,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               </div>
               <div className="flex items-baseline gap-1">
                 <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums ${
-                  parseFloat(runwayMonths) >= 6 ? 'text-emerald-300' : parseFloat(runwayMonths) >= 3 ? 'text-amber-400' : 'text-rose-400'
+                  parseFloat(runwayMonths) >= 6 ? (isLight ? 'text-emerald-700' : 'text-emerald-400/90') : parseFloat(runwayMonths) >= 3 ? 'text-amber-400' : 'text-rose-400/90'
                 }`}>
                   {parseFloat(runwayMonths) > 99 ? '99+' : runwayMonths}
                 </span>
@@ -844,8 +828,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           {/* Integrated Balance Sheet & Spending Harmony Card */}
           <div className={`p-5 sm:p-6 rounded-2xl transition-all ${
             isLight 
-              ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)]' 
-              : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
+              ? 'bg-white/85 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)]' 
+              : 'bg-white/[0.025] backdrop-blur-xl border border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
           }`}>
             <div className="flex items-center justify-between mb-3.5">
               <div>
@@ -995,8 +979,6 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 currencySymbol={currentCurrency}
                 isStealth={isStealth}
                 embedded={true}
-                theme={theme === 'system' ? 'dark' : theme}
-                chartPalette={chartPalette}
               />
             </div>
 
@@ -1056,19 +1038,22 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           {/* Asset Net Worth Summary */}
           <div className={`p-5 sm:p-6 rounded-2xl transition-all border ${
             isLight 
-              ? 'bg-white/80 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
-              : 'bg-white/[0.02] backdrop-blur-xl border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
+              ? 'bg-white/85 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
+              : 'bg-white/[0.025] backdrop-blur-xl border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
           }`}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   순자산 포트폴리오 총액
                 </span>
-                <h2 className={`text-3xl md:text-4xl font-light tracking-tight tabular-nums mt-1 ${
-                  isLight ? 'text-slate-900' : 'text-white'
-                } ${isStealth ? 'blur-sm select-none' : ''}`}>
-                  {formatMoney(netWorth)}
-                </h2>
+                <div className="flex items-baseline mt-1">
+                  <span className="text-xl font-light text-slate-400 mr-1">{getCurrencySymbol(currentCurrency)}</span>
+                  <h2 className={`text-3xl md:text-4xl font-light tracking-tight tabular-nums ${
+                    isLight ? 'text-slate-900' : 'text-white'
+                  } ${isStealth ? 'blur-sm select-none' : ''}`}>
+                    {Math.round(netWorth).toLocaleString()}
+                  </h2>
+                </div>
               </div>
               <div className="text-right">
                 <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -1235,30 +1220,20 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               currencySymbol={currentCurrency}
               isStealth={isStealth}
               embedded={true}
-              theme={theme === 'system' ? 'dark' : theme}
-              chartPalette={chartPalette}
             />
           </div>
 
           {/* Trend Deep Dive: 일별 추이 vs 연간 월별 비교 */}
-          <div className={`p-4 sm:p-6 rounded-2xl transition-all ${
-            isLight 
-              ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 text-slate-900 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)]' 
-              : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-          }`}>
+          <div className="p-4 sm:p-6 rounded-2xl transition-all bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]">
             <div className="flex items-center justify-between gap-2 mb-3">
-              <div className={`inline-flex items-center p-0.5 rounded-full gap-0.5 border ${
-                isLight ? 'bg-slate-100 border-slate-200/80' : 'bg-white/[0.03] border-white/[0.06]'
-              }`}>
+              <div className="inline-flex items-center p-0.5 rounded-full gap-0.5 border bg-white/[0.03] border-white/[0.06]">
                 <button
                   type="button"
                   onClick={() => setTrendSubTab('daily')}
                   className={`px-3 py-1 rounded-full text-xs transition-all ${
                     trendSubTab === 'daily'
-                      ? isLight
-                        ? 'bg-white text-slate-950 font-medium shadow-xs'
-                        : 'bg-white/10 text-white font-medium border border-white/20'
-                      : isLight ? 'text-slate-500 hover:text-slate-900 font-normal' : 'text-slate-400 hover:text-white font-normal'
+                      ? 'bg-white/10 text-white font-medium border border-white/20'
+                      : 'text-slate-400 hover:text-white font-normal'
                   }`}
                 >
                   일별 추이
@@ -1269,17 +1244,15 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                   onClick={() => setTrendSubTab('monthly')}
                   className={`px-3 py-1 rounded-full text-xs transition-all ${
                     trendSubTab === 'monthly'
-                      ? isLight
-                        ? 'bg-white text-slate-950 font-medium shadow-xs'
-                        : 'bg-white/10 text-white font-medium border border-white/20'
-                      : isLight ? 'text-slate-500 hover:text-slate-900 font-normal' : 'text-slate-400 hover:text-white font-normal'
+                      ? 'bg-white/10 text-white font-medium border border-white/20'
+                      : 'text-slate-400 hover:text-white font-normal'
                   }`}
                 >
                   월별 비교
                 </button>
               </div>
 
-              <span className={`text-[11px] font-light ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className="text-[11px] font-light text-slate-500">
                 {trendSubTab === 'daily' ? '일별 지출 분석' : '연간 12개월 추이'}
               </span>
             </div>
@@ -1290,8 +1263,6 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 currencySymbol={currentCurrency}
                 isStealth={isStealth}
                 embedded={true}
-                theme={theme === 'system' ? 'dark' : theme}
-                chartPalette={chartPalette}
               />
             ) : (
               <YearlyTrendsChart
@@ -1299,8 +1270,6 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 currencySymbol={currentCurrency}
                 isStealth={isStealth}
                 embedded={true}
-                theme={theme === 'system' ? 'dark' : theme}
-                chartPalette={chartPalette}
               />
             )}
           </div>

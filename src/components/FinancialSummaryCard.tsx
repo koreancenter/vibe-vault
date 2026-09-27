@@ -104,10 +104,10 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   return (
     <section 
       id="financial-summary-card"
-      className={`relative transition-all p-5 sm:p-6 rounded-2xl ${
+      className={`relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl ${
         isLight 
-          ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
-          : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)] text-white'
+          ? 'bg-white/85 border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
+          : 'bg-white/[0.025] border border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)] text-white'
       }`}
     >
       {/* Top Header: Title & Subtle Status Badge */}
@@ -119,7 +119,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             }`}>
               재무 요약
             </h3>
-            <span className="text-slate-500 font-light text-xs">·</span>
+            <span className="text-slate-600 font-light text-xs">·</span>
             <span className={`text-xs font-light ${
               isLight ? 'text-slate-500' : 'text-slate-400'
             }`}>
@@ -134,29 +134,29 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         {/* Quiet Luxury Status Indicator */}
         <div id="financial-status-indicator">
           {status === 'better' && (
-            <div className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-light border tabular-nums ${
+            <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-normal border tabular-nums ${
               isLight 
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                : 'bg-emerald-500/10 text-emerald-400/90 border-emerald-500/20'
             }`}>
               <span>절약</span>
-              <span className="text-[11px] opacity-80">(-{percentChange}%)</span>
+              <span className="text-[11px] opacity-75">(-{percentChange}%)</span>
             </div>
           )}
 
           {status === 'worse' && (
-            <div className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-light border tabular-nums ${
+            <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-normal border tabular-nums ${
               isLight 
                 ? 'bg-rose-50 text-rose-800 border-rose-200' 
-                : 'bg-rose-500/10 text-rose-300 border-rose-500/20'
+                : 'bg-rose-500/10 text-rose-400/90 border-rose-500/20'
             }`}>
               <span>초과</span>
-              <span className="text-[11px] opacity-80">(+{percentChange}%)</span>
+              <span className="text-[11px] opacity-75">(+{percentChange}%)</span>
             </div>
           )}
 
           {status === 'neutral' && (
-            <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-light border ${
+            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-normal border ${
               isLight 
                 ? 'bg-slate-100 text-slate-600 border-slate-200' 
                 : 'bg-white/[0.04] text-slate-400 border-white/[0.06]'
@@ -168,7 +168,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
       </div>
 
       {/* Clean hairline-divided comparison metrics */}
-      <div className={`grid grid-cols-2 sm:grid-cols-3 gap-4 pt-3 border-t ${
+      <div className={`grid grid-cols-2 sm:grid-cols-3 gap-4 pt-3.5 border-t ${
         isLight ? 'border-slate-200/60' : 'border-white/[0.04]'
       }`}>
         {/* Previous Month Spending */}
@@ -178,91 +178,67 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           }`}>
             지난달 ({prevMonthName})
           </span>
-          <span className={`text-base font-light mt-1.5 tabular-nums ${
-            isLight ? 'text-slate-700' : 'text-slate-300'
-          } ${isStealth ? 'blur-xs select-none' : ''}`}>
-            {currSymbol}{prevSpending.toLocaleString()}
-          </span>
+          <div className={`mt-1.5 flex items-baseline ${isStealth ? 'blur-xs select-none' : ''}`}>
+            <span className="text-base font-light text-slate-500 mr-0.5">{currSymbol}</span>
+            <span className={`text-lg sm:text-xl font-light tabular-nums ${
+              isLight ? 'text-slate-700' : 'text-slate-300'
+            }`}>
+              {prevSpending.toLocaleString()}
+            </span>
+          </div>
         </div>
 
-        {/* Current Month Spending */}
+        {/* Current Month Spending (Hero Number) */}
         <div className="flex flex-col justify-between">
           <span className={`text-xs font-light ${
             isLight ? 'text-slate-500' : 'text-slate-400'
           }`}>
             이번 달 ({currentMonthName})
           </span>
-          <span className={`text-base font-normal mt-1.5 tabular-nums ${
-            status === 'better'
-              ? isLight ? 'text-emerald-700' : 'text-emerald-300'
-              : status === 'worse'
-              ? isLight ? 'text-rose-700' : 'text-rose-300'
-              : isLight ? 'text-slate-900' : 'text-white'
-          } ${isStealth ? 'blur-xs select-none' : ''}`}>
-            {currSymbol}{currentSpending.toLocaleString()}
-          </span>
+          <div className={`mt-1.5 flex items-baseline ${isStealth ? 'blur-xs select-none' : ''}`}>
+            <span className="text-xl font-light text-slate-400 mr-1">{currSymbol}</span>
+            <span className={`text-3xl md:text-4xl font-light tracking-tight tabular-nums ${
+              status === 'better'
+                ? isLight ? 'text-emerald-700' : 'text-emerald-400/90'
+                : status === 'worse'
+                ? isLight ? 'text-rose-700' : 'text-rose-400/90'
+                : isLight ? 'text-slate-900' : 'text-white'
+            }`}>
+              {currentSpending.toLocaleString()}
+            </span>
+          </div>
         </div>
 
         {/* Difference Amount */}
         <div className="col-span-2 sm:col-span-1 flex flex-col justify-between">
           <span className={`text-xs font-light ${
             status === 'better'
-              ? isLight ? 'text-emerald-700' : 'text-emerald-400'
+              ? isLight ? 'text-emerald-700' : 'text-emerald-400/90'
               : status === 'worse'
-              ? isLight ? 'text-rose-700' : 'text-rose-400'
+              ? isLight ? 'text-rose-700' : 'text-rose-400/90'
               : isLight ? 'text-slate-500' : 'text-slate-400'
           }`}>
             전월 대비 변동
           </span>
-          <div className="flex items-baseline gap-1.5 mt-1.5">
-            <span className={`text-base font-medium tabular-nums ${
+          <div className={`flex items-baseline gap-1.5 mt-1.5 ${isStealth ? 'blur-xs select-none' : ''}`}>
+            <span className={`text-sm font-medium tracking-tight tabular-nums ${
               status === 'better'
-                ? isLight ? 'text-emerald-700' : 'text-emerald-300'
+                ? isLight ? 'text-emerald-700' : 'text-emerald-400/90'
                 : status === 'worse'
-                ? isLight ? 'text-rose-700' : 'text-rose-300'
+                ? isLight ? 'text-rose-700' : 'text-rose-400/90'
                 : isLight ? 'text-slate-800' : 'text-white'
-            } ${isStealth ? 'blur-xs select-none' : ''}`}>
+            }`}>
               {diff > 0 ? '+' : diff < 0 ? '-' : ''}{currSymbol}{Math.abs(diff).toLocaleString()}
             </span>
             {percentChange > 0 && (
               <span className={`text-xs font-light tabular-nums ${
-                status === 'better' ? (isLight ? 'text-emerald-700' : 'text-emerald-400') : 'text-slate-400'
+                status === 'better' ? (isLight ? 'text-emerald-700' : 'text-emerald-400/90') : (isLight ? 'text-rose-700' : 'text-rose-400/90')
               }`}>
                 ({diff < 0 ? '▼' : '▲'}{percentChange}%)
               </span>
             )}
           </div>
         </div>
-      </div>
-
-      {/* Insight Statement */}
-      <div className={`mt-3.5 pt-3 border-t flex items-center gap-2 text-xs font-light ${
-        isLight ? 'border-slate-200/60 text-slate-600' : 'border-white/[0.04] text-slate-400'
-      }`}>
-        <ArrowRight size={12} className={`shrink-0 ${
-          status === 'better' 
-            ? isLight ? 'text-emerald-600' : 'text-emerald-400' 
-            : status === 'worse'
-            ? isLight ? 'text-rose-600' : 'text-rose-400'
-            : 'text-slate-400'
-        }`} />
-        <p className="leading-relaxed">
-          {status === 'better' && (
-            <span>
-              지난달 대비 <span className="text-emerald-400 font-normal">{currSymbol}{Math.abs(diff).toLocaleString()}</span> 절약하여 안정적인 소비 기조를 유지하고 있습니다.
-            </span>
-          )}
-          {status === 'worse' && (
-            <span>
-              지난달 대비 <span className="text-rose-400 font-normal">{currSymbol}{Math.abs(diff).toLocaleString()}</span> 지출이 증가했습니다. 고정비 및 식비 내역을 확인해 보세요.
-            </span>
-          )}
-          {status === 'neutral' && (
-            <span>
-              지난달과 동일하거나 비교 데이터가 축적되는 중입니다.
-            </span>
-          )}
-        </p>
       </div>
     </section>
   );

@@ -1,8 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Asset, AssetType, AssetCategoryType, LaunchScreenMode, ChartPaletteType, SupportedCurrency, FxRates, Transaction, AssetAccount, DebtItem } from './types';
+import { Asset, AssetType, AssetCategoryType, LaunchScreenMode, SupportedCurrency, FxRates, Transaction, AssetAccount, DebtItem } from './types';
 import { getSecureGeminiApiKey, setSecureGeminiApiKey, sanitizeApiKey } from './geminiKeyManager';
-import { applyThemeAccent } from './themePalettes';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -16,16 +15,16 @@ export interface AIEngineConfig {
   apiKey: string;
 }
 
-export type ThemeMode = 'dark' | 'light' | 'system';
+export type ThemeMode = 'dark';
 
 export interface UserPreferences {
   budgetStartDay: number; // 1 to 31
   currencySymbol: string; // 'KRW', 'USD', 'EUR', 'JPY'
   stealthMode: boolean;   // blur financial amounts
-  theme: ThemeMode;       // 'dark' | 'light' | 'system'
-  chartPalette?: ChartPaletteType; // 'default' | 'sage' | 'clay' | 'burgundy'
+  theme?: string;         // locked to 'dark'
+  chartPalette?: string;  // deprecated
   autoCategorization: boolean; // toggle smart auto-categorization (default true)
-  defaultLaunchScreen?: LaunchScreenMode; // 'vault' | 'ledger'
+  defaultLaunchScreen?: LaunchScreenMode; // 'vault' | 'insights' | 'ledger'
 }
 
 export function getAIEngineConfig(): AIEngineConfig {
@@ -68,38 +67,22 @@ export function saveAIEngineConfig(config: AIEngineConfig) {
   }));
 }
 
-export function getEffectiveTheme(theme: ThemeMode): 'dark' | 'light' {
-  if (theme === 'system' && typeof window !== 'undefined') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  return theme === 'light' ? 'light' : 'dark';
+export function getEffectiveTheme(_theme?: string): 'dark' {
+  return 'dark';
 }
 
-export function applyTheme(theme: ThemeMode, paletteId?: ChartPaletteType | string | null) {
+export function applyTheme(_theme?: string, _paletteId?: string | null) {
   if (typeof document !== 'undefined') {
-    const effective = getEffectiveTheme(theme);
     const root = document.documentElement;
     const body = document.body;
-    if (effective === 'light') {
-      root.classList.add('light');
-      root.classList.remove('dark');
-      root.setAttribute('data-theme', 'light');
-      body.classList.remove('bg-gradient-to-b', 'from-[#0B0F17]', 'via-[#0E1524]', 'to-[#111827]', 'text-slate-100');
-      body.classList.add('bg-[#F8FAFC]', 'text-slate-900');
-      const themeMeta = document.querySelector('meta[name="theme-color"]');
-      if (themeMeta) themeMeta.setAttribute('content', '#FFFFFF');
-    } else {
-      root.classList.add('dark');
-      root.classList.remove('light');
-      root.setAttribute('data-theme', 'dark');
-      body.classList.remove('bg-[#F8FAFC]', 'text-slate-900');
-      body.classList.add('bg-gradient-to-b', 'from-[#0B0F17]', 'via-[#0E1524]', 'to-[#111827]', 'text-slate-100');
-      const themeMeta = document.querySelector('meta[name="theme-color"]');
-      if (themeMeta) themeMeta.setAttribute('content', '#020617');
-    }
-
-    const activePalette = paletteId || getUserPreferences().chartPalette || 'default';
-    applyThemeAccent(activePalette, effective === 'light');
+    root.classList.add('dark');
+    root.classList.remove('light');
+    root.setAttribute('data-theme', 'dark');
+    root.removeAttribute('data-accent');
+    body.classList.remove('bg-[#F8FAFC]', 'text-slate-900');
+    body.classList.add('bg-gradient-to-b', 'from-[#0B0F17]', 'via-[#0E1524]', 'to-[#111827]', 'text-slate-100');
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute('content', '#0B0F17');
   }
 }
 
@@ -108,17 +91,11 @@ export function getUserPreferences(): UserPreferences {
     const stored = localStorage.getItem('vibe_user_preferences');
     if (stored) {
       const parsed = JSON.parse(stored);
-      const themeVal: ThemeMode = (parsed.theme === 'light' || parsed.theme === 'system' || parsed.theme === 'dark')
-        ? parsed.theme
-        : 'dark';
       return {
         budgetStartDay: parsed.budgetStartDay ?? 1,
         currencySymbol: parsed.currencySymbol || 'KRW',
         stealthMode: !!parsed.stealthMode,
-        theme: themeVal,
-        chartPalette: (['default', 'sage', 'clay', 'burgundy'] as const).includes(parsed.chartPalette) 
-          ? parsed.chartPalette 
-          : 'default',
+        theme: 'dark',
         autoCategorization: parsed.autoCategorization !== undefined ? !!parsed.autoCategorization : true,
         defaultLaunchScreen: (['vault', 'insights', 'ledger'] as const).includes(parsed.defaultLaunchScreen) ? parsed.defaultLaunchScreen : 'vault',
       };
@@ -130,7 +107,6 @@ export function getUserPreferences(): UserPreferences {
     currencySymbol: 'KRW',
     stealthMode: false,
     theme: 'dark',
-    chartPalette: 'default',
     autoCategorization: true,
     defaultLaunchScreen: 'vault',
   };

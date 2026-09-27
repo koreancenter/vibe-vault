@@ -1100,19 +1100,20 @@ Extract the structured parameters:
       server: { middlewareMode: true, hmr: false },
       appType: 'spa',
     });
-    app.get('/', (req, res) => {
-      res.redirect('/vibevault/');
+    // Support legacy /vibevault path by redirecting cleanly to /
+    app.get(['/vibevault', '/vibevault/'], (req, res) => {
+      res.redirect('/');
     });
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use('/vibevault', express.static(distPath));
     app.use(express.static(distPath));
+    app.use('/vibevault', express.static(distPath));
     app.get(['/vibevault', '/vibevault/*'], (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
     app.get('*', (req, res) => {
-      res.redirect('/vibevault/');
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
