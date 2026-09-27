@@ -130,9 +130,21 @@ export function useTransactions(): UseTransactionsReturn {
     }
   }, []);
 
-  // Initial load on mount
+  // Initial load on mount & custom events
   useEffect(() => {
     loadTransactions();
+
+    const handleDataEvent = () => {
+      loadTransactions();
+    };
+
+    window.addEventListener('vibe-vault-data-changed', handleDataEvent);
+    window.addEventListener('vibe-vault-data-reset', handleDataEvent);
+
+    return () => {
+      window.removeEventListener('vibe-vault-data-changed', handleDataEvent);
+      window.removeEventListener('vibe-vault-data-reset', handleDataEvent);
+    };
   }, [loadTransactions]);
 
   /**

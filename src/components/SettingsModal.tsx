@@ -48,7 +48,15 @@ import {
   clearSecureGeminiApiKey,
   testGeminiApiKeyOnline
 } from '../geminiKeyManager';
-import { getAllTransactions, addTransactions, clearAllTransactions, replaceAllTransactions } from '../db';
+import { 
+  getAllTransactions, 
+  addTransactions, 
+  clearAllTransactions, 
+  replaceAllTransactions,
+  loadSampleData,
+  resetAllDataToZero
+} from '../db';
+import { PWAInstallButton } from './PWAInstallButton';
 import { Transaction, ChartPaletteType, EncryptedBackupPayload, UnencryptedBackupPayloadV2, SupportedCurrency } from '../types';
 import { SmartAssetSetup } from './SmartAssetSetup';
 import { CHART_PALETTES, applyThemeAccent } from '../themePalettes';
@@ -271,8 +279,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Tab 3: Data & Privacy state
   const [lastExportedDate, setLastExportedDate] = useState<string>('없음');
-  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  const [deleteConfirmationText, setDeleteConfirmationText] = useState<string>('');
   const [isClearingData, setIsClearingData] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -345,9 +351,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       // Load Vault Security & PIN state
       setIsPinSet(hasVaultPin());
       setAutoLockConfigState(getAutoLockConfig());
-
-      setShowDeleteModal(false);
-      setDeleteConfirmationText('');
       setStatusMessage(null);
     }
   }, [isOpen]);
@@ -796,40 +799,60 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  // Safety Confirmation Modal Delete Execution
-  const handleExecuteDelete = async () => {
-    const confirmation = deleteConfirmationText.trim();
-    if (confirmation !== '초기화' && confirmation.toUpperCase() !== 'DELETE') return;
-
+  // Data Utility Action 1: Load Sample Data
+  const handleLoadSampleData = async () => {
     setIsClearingData(true);
     try {
-      await clearAllTransactions();
+      const res = await loadSampleData();
+      setStatusMessage({ 
+        type: 'success', 
+        text: `샘플 데이터 로드 완료 (자산 ${res.accountsCount}개, 대출 ${res.debtsCount}건, 거래 ${res.transactionsCount}건)` 
+      });
+      if (onDataChanged) onDataChanged();
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: '샘플 데이터 로드 실패: ' + err.message });
+    } finally {
+      setIsClearingData(false);
+    }
+  };
+
+  // Data Utility Action 2: Consolidated Reset All Data
+  const handleResetAllData = async () => {
+    if (!window.confirm('모든 데이터(자산, 대출, 거래 내역, 보안 PIN, 설정)를 완전히 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      return;
+    }
+    setIsClearingData(true);
+    try {
+      await resetAllDataToZero();
+      await clearAllTransactions().catch(() => {});
+
+      // Clear all related storage
       localStorage.removeItem('vibe_engine_config');
       localStorage.removeItem('vibe_user_preferences');
       localStorage.removeItem('vibe_user_assets');
       localStorage.removeItem('vibe_last_export_date');
+      localStorage.removeItem('vibe_saved_subscriptions');
 
-      // Reset local states
+      // Reset local states in modal
       setApiKey('');
-      setEngineType('local');
-      setLocalModel('gemma-2b');
+      setEngineType('byok');
+      setProvider('gemini');
       setBudgetStartDay(1);
       setCurrencySymbol('KRW');
       setStealthMode(false);
       setTheme('dark');
       applyTheme('dark');
       setLastExportedDate('없음');
-      setShowDeleteModal(false);
-      setDeleteConfirmationText('');
+      setIsPinSet(false);
 
-      // Security Hardening Item #5: Evict all CacheStorage buckets upon full database reset
+      // Evict all service worker CacheStorage buckets upon full database reset
       await evictAllServiceWorkerCaches().catch(() => false);
 
-      setStatusMessage({ type: 'success', text: '모든 데이터와 API 키가 완전히 초기화되었습니다.' });
-      if (onDataChanged) onDataChanged();
+      setStatusMessage({ type: 'success', text: '전체 데이터와 설정이 성공적으로 초기화되었습니다.' });
       if (onDataReset) onDataReset();
+      if (onDataChanged) onDataChanged();
     } catch (err: any) {
-      setStatusMessage({ type: 'error', text: '데이터 초기화 오류: ' + err.message });
+      setStatusMessage({ type: 'error', text: '데이터 초기화 오류: ' + (err?.message || err) });
     } finally {
       setIsClearingData(false);
     }
@@ -979,365 +1002,264 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
 
           {/* TAB 1: AI ENGINE CONFIGURATION */}
-          {/* TAB 1: AI ENGINE CONFIGURATION (3-Tier Hybrid Strategy) */}
           {activeTab === 'engine' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              {/* Architecture Explanation Banner */}
-              <div className={`p-2.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2 ${
-                isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/10 text-slate-300'
+            <div className="space-y-3 animate-in fade-in duration-150">
+              {/* Clean Engine Toggle */}
+              <div className={`p-1 rounded-xl border grid grid-cols-2 gap-1 ${
+                isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/[0.04] border-white/10'
               }`}>
-                <Sparkles size={14} className="text-emerald-500 shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <div className="font-semibold text-[11px] text-emerald-500">3단계 하이브리드 AI 파이프라인</div>
-                  <p className="text-[11px] opacity-90">
-                    텍스트 SMS/영수증은 <strong>로컬 정규식(Tier 1)</strong>으로 즉시 처리되며, 사진 OCR은 <strong>클라우드 AI(Tier 2)</strong> 또는 <strong>온디바이스 WebLLM(Tier 3)</strong>으로 자동 분기됩니다.
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEngineType('byok');
+                    setProvider('gemini');
+                  }}
+                  className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-[0.99] ${
+                    engineType === 'byok'
+                      ? isLight
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'bg-white/15 text-white shadow-xs'
+                      : isLight
+                        ? 'text-slate-600 hover:text-slate-900'
+                        : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <KeyRound size={13} className={engineType === 'byok' ? (isLight ? 'text-emerald-600' : 'text-emerald-400') : ''} />
+                  <span className="truncate">클라우드 AI (Gemini, 권장)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setEngineType('local')}
+                  className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-[0.99] ${
+                    engineType === 'local'
+                      ? isLight
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'bg-white/15 text-white shadow-xs'
+                      : isLight
+                        ? 'text-slate-600 hover:text-slate-900'
+                        : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Cpu size={13} className={engineType === 'local' ? (isLight ? 'text-amber-600' : 'text-amber-400') : ''} />
+                  <span className="truncate">온디바이스 로컬 AI (오프라인/실험실)</span>
+                </button>
+              </div>
+
+              {/* Cloud AI (Gemini) Card */}
+              {engineType === 'byok' && (
+                <div className={`p-3.5 rounded-2xl border space-y-3 animate-in fade-in duration-150 ${
+                  isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-white/[0.02] border-white/10'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                      Gemini API 키
+                    </label>
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-medium text-emerald-500 hover:text-emerald-400 flex items-center gap-1 transition-colors"
+                    >
+                      <span>Google AI Studio에서 키 발급</span>
+                      <ExternalLink size={10} />
+                    </a>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type={showKey ? "text" : "password"}
+                        value={apiKey}
+                        onChange={(e) => { 
+                          const sanitized = sanitizeApiKey(e.target.value);
+                          setApiKey(sanitized); 
+                          setTestResult({ status: null, message: '' }); 
+                        }}
+                        placeholder="AIzaSy... (Gemini API 키)"
+                        autoComplete="off"
+                        spellCheck={false}
+                        className={`w-full rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border ${
+                          isLight 
+                            ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500' 
+                            : 'bg-slate-900/90 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-emerald-500'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowKey(!showKey)}
+                        title={showKey ? "API 키 마스킹" : "API 키 보기"}
+                        className={`absolute right-2.5 top-2.5 transition-colors ${
+                          isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+
+                    {apiKey.trim() && (
+                      <button
+                        type="button"
+                        onClick={handleClearKey}
+                        title="API 키 삭제 및 초기화"
+                        className={`p-2 rounded-xl text-xs font-medium border shrink-0 transition-all active:scale-95 ${
+                          isLight
+                            ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                            : 'bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border-rose-800/40'
+                        }`}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleTestKey}
+                      disabled={isTestingKey || !apiKey.trim()}
+                      className={`px-3 py-2 disabled:opacity-40 rounded-xl text-xs font-semibold border shrink-0 transition-all active:scale-95 ${
+                        isLight
+                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                          : 'bg-white/10 hover:bg-white/15 text-slate-100 border-white/10'
+                      }`}
+                    >
+                      {isTestingKey ? <Loader2 size={13} className="animate-spin" /> : '키 검증'}
+                    </button>
+                  </div>
+
+                  {/* Inline Validation Status Badge */}
+                  {testResult.status && (
+                    <div className={`text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 ${
+                      testResult.status === 'valid' 
+                        ? isLight ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium' 
+                        : isLight ? 'bg-rose-50 text-rose-800 border border-rose-200' : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                    }`}>
+                      {testResult.status === 'valid' ? <CheckCircle2 size={13} className="shrink-0" /> : <XCircle size={13} className="shrink-0" />}
+                      <span>{testResult.message}</span>
+                    </div>
+                  )}
+
+                  {/* 1-Line Clean Note */}
+                  <p className={`text-[11px] leading-tight flex items-center gap-1 ${
+                    isLight ? 'text-slate-500' : 'text-slate-400'
+                  }`}>
+                    <span>🔒 API 키는 브라우저 내부 암호화 스토리지에만 보관됩니다.</span>
                   </p>
                 </div>
-              </div>
+              )}
 
-              <div className="flex flex-col gap-2">
-                <span className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>AI 처리 방식 선택</span>
-                
-                {/* 2-Card Segment Selector: Cloud AI (Recommended) & On-Device AI (Beta / Labs) */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEngineType('byok')}
-                    className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 relative ${
-                      engineType === 'byok'
-                        ? isLight
-                          ? 'border-emerald-500 bg-emerald-50 text-slate-900 shadow-xs'
-                          : 'border-[#00F5A0]/70 bg-[#00F5A0]/10 text-white shadow-sm'
-                        : isLight
-                          ? 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                          : 'border-white/10 bg-white/[0.02] text-[#94A3B8] hover:border-white/20 hover:text-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className={`flex items-center gap-1.5 font-semibold text-xs ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                        <KeyRound size={14} className={engineType === 'byok' ? (isLight ? 'text-emerald-600' : 'text-[#00F5A0]') : (isLight ? 'text-slate-400' : 'text-[#94A3B8]')} />
-                        <span>클라우드 AI</span>
-                      </div>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                        기본 권장
-                      </span>
-                    </div>
-                    <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
-                      Gemini API 기반, 초고속 OCR 및 기기 발열·배터리 소모 없음
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setEngineType('local')}
-                    className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 relative ${
-                      engineType === 'local'
-                        ? isLight
-                          ? 'border-amber-500 bg-amber-50 text-slate-900 shadow-xs'
-                          : 'border-amber-400/70 bg-amber-400/10 text-white shadow-sm'
-                        : isLight
-                          ? 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                          : 'border-white/10 bg-white/[0.02] text-[#94A3B8] hover:border-white/20 hover:text-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className={`flex items-center gap-1.5 font-semibold text-xs ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                        <Cpu size={14} className={engineType === 'local' ? (isLight ? 'text-amber-600' : 'text-amber-400') : (isLight ? 'text-slate-400' : 'text-[#94A3B8]')} />
-                        <span>온디바이스 AI</span>
-                      </div>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400">
-                        Beta / Labs
-                      </span>
-                    </div>
-                    <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
-                      WebLLM 로컬 추론, 1.5GB+ 대용량 모델 다운로드 필요
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* On-Device Sub-Fields (Tier 3: Experimental Labs with Warning & Download Controls) */}
+              {/* On-Device AI Consolidated Compact Card */}
               {engineType === 'local' && (
-                <div className="pt-2 space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
-                  {/* Warning Banner for Mobile & Resource Usage */}
-                  <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-                    isLight ? 'bg-amber-50/90 border-amber-300 text-amber-900' : 'bg-amber-950/30 border-amber-500/30 text-amber-200'
-                  }`}>
-                    <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                    <div className="text-xs space-y-1">
-                      <div className="font-bold flex items-center gap-1.5">
-                        <span>온디바이스 WebLLM 주의 사항</span>
-                      </div>
-                      <p className="text-[11px] leading-relaxed opacity-90">
-                        모바일 브라우저 환경에서는 1.5GB 이상의 모델 가중치 다운로드로 인해 메모리 부족(OOM) 탭 크래시나 급격한 배터리 소모가 발생할 수 있습니다. 모바일 환경에서는 <strong>클라우드 AI (Gemini)</strong>를 권장합니다.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* WebGPU Status Check */}
-                  <div className={`flex items-center justify-between px-3 py-2 rounded-xl border ${
-                    isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/60 border-slate-800'
-                  }`}>
-                    <span className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>WebGPU 하드웨어 가속:</span>
-                    {webGpuStatus === null ? (
-                      <span className="text-xs text-slate-400 flex items-center gap-1">
-                        <Loader2 size={11} className="animate-spin" /> 상태 확인 중...
-                      </span>
-                    ) : webGpuStatus.supported ? (
-                      <span className={`text-xs font-medium flex items-center gap-1.5 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>
-                        <span className={`w-2 h-2 rounded-full animate-pulse ${isLight ? 'bg-emerald-500' : 'bg-emerald-400'}`} />
-                        하드웨어 가속 준비됨
-                      </span>
-                    ) : (
-                      <span className={`text-xs font-medium flex items-center gap-1 text-rose-500`}>
-                        <XCircle size={13} /> 미지원 ({webGpuStatus.reason || 'WebGPU 불가'})
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Local Model Selector */}
+                <div className={`p-3.5 rounded-2xl border space-y-3 animate-in fade-in duration-150 ${
+                  isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-white/[0.02] border-white/10'
+                }`}>
+                  {/* Model Selector & WebGPU status */}
                   <div className="space-y-1.5">
-                    <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                      온디바이스 로컬 모델 선택
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                        온디바이스 로컬 모델
+                      </label>
+                      {webGpuStatus === null ? (
+                        <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                          <Loader2 size={10} className="animate-spin" /> WebGPU 확인 중
+                        </span>
+                      ) : webGpuStatus.supported ? (
+                        <span className={`text-[10px] font-medium flex items-center gap-1 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          WebGPU 가속 지원
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-medium flex items-center gap-1 text-rose-400">
+                          <XCircle size={11} />
+                          WebGPU 미지원 ({webGpuStatus.reason || '가속 불가'})
+                        </span>
+                      )}
+                    </div>
                     <CustomDarkSelect
                       value={localModel}
                       options={localModelOptions}
                       onChange={(val) => setLocalModel(val as any)}
                       theme={theme}
+                      size="sm"
                     />
                   </div>
 
-                  {/* Model Weight Download / Purge Control Box */}
-                  <div className={`p-3 rounded-xl border space-y-2.5 ${
-                    isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-white/[0.02] border-white/10'
-                  }`}>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold">로컬 모델 가중치 상태</span>
-                      {isModelDownloaded ? (
-                        <span className="font-medium text-emerald-500 flex items-center gap-1 text-[11px]">
-                          <CheckCircle2 size={13} /> 다운로드 완료 (캐시됨)
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 text-[11px]">미다운로드 (약 {localModel === 'llama3-8b' ? '4.5GB' : '1.5GB'})</span>
-                      )}
-                    </div>
-
-                    {/* Progress Bar when downloading */}
-                    {isDownloadingModel && downloadProgress && (
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-[11px] text-slate-400">
-                          <span>{downloadProgress.text}</span>
-                          <span className="font-mono font-medium">{downloadProgress.progress}%</span>
-                        </div>
-                        <div className="w-full h-2 rounded-full bg-slate-700/30 overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-200"
-                            style={{ width: `${downloadProgress.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {downloadError && (
-                      <div className="text-[11px] text-rose-500 flex items-center gap-1">
-                        <AlertTriangle size={12} />
-                        <span>{downloadError}</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2 pt-1">
-                      {!isModelDownloaded ? (
-                        isDownloadingModel ? (
-                          <button
-                            type="button"
-                            onClick={handleCancelWebLLMDownload}
-                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold border flex items-center justify-center gap-1.5 transition-colors ${
-                              isLight ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100' : 'bg-rose-950/40 text-rose-300 border-rose-800/40 hover:bg-rose-900/60'
-                            }`}
-                          >
-                            <X size={13} />
-                            <span>다운로드 취소</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleStartWebLLMDownload}
-                            disabled={webGpuStatus?.supported === false}
-                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-98 ${
-                              webGpuStatus?.supported === false
-                                ? 'opacity-40 cursor-not-allowed bg-slate-700 text-slate-300'
-                                : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
-                            }`}
-                          >
-                            <Download size={13} />
-                            <span>모델 다운로드 ({localModel === 'llama3-8b' ? '4.5GB' : '1.5GB'})</span>
-                          </button>
-                        )
-                      ) : (
-                        <div className="flex items-center gap-2 w-full">
-                          <div className="flex-1 text-[11px] text-emerald-500 font-medium flex items-center gap-1">
-                            <Check size={13} />
-                            <span>오프라인 추론 사용 가능</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handlePurgeWebLLMCache}
-                            title="로컬 저장소 모델 가중치 삭제"
-                            className={`py-1.5 px-2.5 rounded-lg text-xs border font-medium flex items-center gap-1 transition-colors ${
-                              isLight ? 'border-slate-300 text-slate-600 hover:bg-slate-100' : 'border-slate-700 text-slate-300 hover:bg-white/10'
-                            }`}
-                          >
-                            <Trash2 size={12} />
-                            <span>캐시 삭제</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* BYOK Sub-Fields: Borderless row */}
-              {engineType === 'byok' && (
-                <div className="pt-2 space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
-                  {/* Provider & Model Tier Custom Selects */}
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Progress Bar when downloading */}
+                  {isDownloadingModel && downloadProgress && (
                     <div className="space-y-1">
-                      <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                        제공사 선택
-                      </label>
-                      <CustomDarkSelect
-                        value={provider}
-                        options={providerOptions}
-                        onChange={handleProviderChange}
-                        theme={theme}
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                        세부 모델
-                      </label>
-                      <CustomDarkSelect
-                        value={modelTier}
-                        options={getModelTierOptions()}
-                        onChange={(val) => setModelTier(val)}
-                        theme={theme}
-                      />
-                    </div>
-                  </div>
-
-                  {/* API Key Input + Show/Hide + [Clear] + [Test Key] */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                        API 키 입력 (BYOK)
-                      </label>
-                      {provider === 'gemini' && (
-                        <a
-                          href="https://aistudio.google.com/app/apikey"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] font-medium text-emerald-500 hover:text-emerald-400 flex items-center gap-1 transition-colors"
-                        >
-                          <span>Google AI Studio에서 키 발급</span>
-                          <ExternalLink size={10} />
-                        </a>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="relative flex-1">
-                        <input
-                          type={showKey ? "text" : "password"}
-                          value={apiKey}
-                          onChange={(e) => { 
-                            const sanitized = sanitizeApiKey(e.target.value);
-                            setApiKey(sanitized); 
-                            setTestResult({ status: null, message: '' }); 
-                          }}
-                          placeholder={provider === 'gemini' ? "AIzaSy... (Google Gemini API 키)" : "sk-... (API 키 입력)"}
-                          autoComplete="off"
-                          spellCheck={false}
-                          className={`w-full rounded-lg pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border ${
-                            isLight 
-                              ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500' 
-                              : 'bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-600 focus:border-emerald-500'
-                          }`}
+                      <div className="flex justify-between text-[11px] text-slate-400">
+                        <span>{downloadProgress.text}</span>
+                        <span className="font-mono font-medium">{downloadProgress.progress}%</span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-slate-700/30 overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-200"
+                          style={{ width: `${downloadProgress.progress}%` }}
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowKey(!showKey)}
-                          title={showKey ? "API 키 마스킹" : "API 키 보기"}
-                          className={`absolute right-2.5 top-2 transition-colors ${
-                            isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                        </button>
                       </div>
-
-                      {/* Clear Button */}
-                      {apiKey.trim() && (
-                        <button
-                          type="button"
-                          onClick={handleClearKey}
-                          title="API 키 삭제 및 초기화"
-                          className={`p-2 rounded-lg text-xs font-medium border shrink-0 transition-all active:scale-95 ${
-                            isLight
-                              ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
-                              : 'bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border-rose-800/40'
-                          }`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={handleTestKey}
-                        disabled={isTestingKey || !apiKey.trim()}
-                        className={`px-3 py-2 disabled:opacity-40 rounded-lg text-xs font-medium border shrink-0 transition-all active:scale-95 ${
-                          isLight
-                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
-                            : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
-                        }`}
-                      >
-                        {isTestingKey ? <Loader2 size={13} className="animate-spin" /> : '키 검사'}
-                      </button>
                     </div>
+                  )}
 
-                    {/* Masked Key Display Preview */}
-                    {apiKey.trim() && (
-                      <div className={`text-[11px] px-2.5 py-1 rounded-md flex items-center justify-between font-mono ${
-                        isLight ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-slate-900/60 text-slate-400 border border-slate-800'
-                      }`}>
-                        <span className="flex items-center gap-1.5">
-                          <Lock size={11} className="text-emerald-500 shrink-0" />
-                          <span>마스킹: {maskApiKey(apiKey)}</span>
-                        </span>
-                        <span className="text-[10px] text-emerald-500 font-sans font-medium">로컬 암호화 보관</span>
+                  {downloadError && (
+                    <div className="text-[11px] text-rose-500 flex items-center gap-1">
+                      <AlertTriangle size={12} />
+                      <span>{downloadError}</span>
+                    </div>
+                  )}
+
+                  {/* Action Button: Download / Cancel / Purge */}
+                  <div className="flex items-center gap-2">
+                    {!isModelDownloaded ? (
+                      isDownloadingModel ? (
+                        <button
+                          type="button"
+                          onClick={handleCancelWebLLMDownload}
+                          className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-colors ${
+                            isLight ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100' : 'bg-rose-950/40 text-rose-300 border-rose-800/40 hover:bg-rose-900/60'
+                          }`}
+                        >
+                          <X size={13} />
+                          <span>다운로드 취소</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleStartWebLLMDownload}
+                          disabled={webGpuStatus?.supported === false}
+                          className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-98 ${
+                            webGpuStatus?.supported === false
+                              ? 'opacity-40 cursor-not-allowed bg-slate-700 text-slate-300'
+                              : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
+                          }`}
+                        >
+                          <Download size={13} />
+                          <span>모델 다운로드 ({localModel === 'llama3-8b' ? '4.5GB' : '1.5GB'})</span>
+                        </button>
+                      )
+                    ) : (
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <div className="text-[11px] text-emerald-500 font-medium flex items-center gap-1">
+                          <CheckCircle2 size={13} />
+                          <span>오프라인 추론 사용 가능 (캐시 보관 중)</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handlePurgeWebLLMCache}
+                          title="로컬 저장소 모델 가중치 삭제"
+                          className={`py-1.5 px-2.5 rounded-lg text-xs border font-medium flex items-center gap-1 transition-colors ${
+                            isLight ? 'border-slate-300 text-slate-600 hover:bg-slate-100' : 'border-white/10 text-slate-300 hover:bg-white/10'
+                          }`}
+                        >
+                          <Trash2 size={12} />
+                          <span>캐시 삭제</span>
+                        </button>
                       </div>
                     )}
-
-                    {/* Inline Validation Status Badge */}
-                    {testResult.status && (
-                      <div className={`mt-1.5 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 ${
-                        testResult.status === 'valid' 
-                          ? isLight ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium' 
-                          : isLight ? 'bg-rose-50 text-rose-800 border border-rose-200' : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                      }`}>
-                        {testResult.status === 'valid' ? <CheckCircle2 size={13} className="shrink-0" /> : <XCircle size={13} className="shrink-0" />}
-                        <span>{testResult.message}</span>
-                      </div>
-                    )}
-
-                    {/* Security & CSP Guarantee Footer */}
-                    <p className={`text-[10px] pt-1 leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>
-                      🛡️ <strong>보안 보장:</strong> 등록된 API 키는 브라우저 내부 암호화 스토리지에만 저장되며, 원격 서버로 전송되거나 프로덕션 번들에 절대 포함되지 않습니다.
-                    </p>
                   </div>
+
+                  {/* Condensed Warning Caption below Download Button */}
+                  <p className={`text-[10px] leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    ⚠️ 모바일 브라우저 환경에서는 대용량 가중치 다운로드 시 메모리 부족(OOM)이나 급격한 배터리 소모가 발생할 수 있습니다.
+                  </p>
                 </div>
               )}
             </div>
@@ -1348,6 +1270,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {activeTab === 'preferences' && (
             <div className="space-y-5 animate-in fade-in duration-150">
               
+              {/* PWA Installation Trigger Banner */}
+              <PWAInstallButton variant="settings" theme={isLight ? 'light' : 'dark'} />
+
               {/* Group 1: 화면 및 테마 (Display & Theme) */}
               <div className="space-y-3">
                 <span className={`text-[11px] font-bold uppercase tracking-wider block ${
@@ -1699,47 +1624,53 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: DATA & PRIVACY (LOCAL-FIRST) - Flattened minimalist layout without box-in-box cards */}
+          {/* TAB 3: DATA & PRIVACY (LOCAL-FIRST) - Compact 3-Section Grouping */}
           {activeTab === 'privacy' && (
-            <div className="space-y-5 animate-in fade-in duration-150">
-              {/* Group 1: 금고 보안 및 암호화 */}
-              <div className="space-y-3">
-                <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  isLight ? 'text-slate-400' : 'text-slate-500'
-                }`}>
-                  금고 보안 및 암호화
-                </span>
-
-                <div className={`space-y-3 pb-4 border-b ${isLight ? 'border-slate-200/80' : 'border-white/[0.06]'}`}>
-                  {/* Row 1: 금고 보안 및 저장소 암호화 */}
-                  <div className="flex items-center justify-between gap-3">
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                      금고 보안 및 저장소 암호화
-                    </span>
+            <div className="space-y-3 animate-in fade-in duration-150">
+              {/* Group 1: 금고 보안 & 자동 잠금 */}
+              <div className={`p-3.5 rounded-2xl border space-y-2.5 ${
+                isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-white/[0.02] border-white/10'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-semibold text-xs">
+                    <Lock size={13} className={isLight ? 'text-slate-700' : 'text-slate-300'} />
+                    <span className={isLight ? 'text-slate-800' : 'text-slate-200'}>금고 보안 & 자동 잠금</span>
+                  </div>
+                  {isPinSet && (
                     <button
                       type="button"
                       onClick={() => {
                         onClose();
                         lockVault();
                       }}
-                      style={{
-                        borderColor: 'var(--color-accent-border)',
-                        backgroundColor: 'var(--color-accent-subtle)',
-                        color: 'var(--color-accent)'
-                      }}
-                      className="px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 hover:opacity-90"
+                      className={`text-[11px] px-2.5 py-1 rounded-lg font-medium transition-colors border ${
+                        isLight
+                          ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-700'
+                          : 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-300'
+                      }`}
                     >
-                      지금 금고 잠그기
+                      지금 잠그기
                     </button>
-                  </div>
+                  )}
+                </div>
 
-                  {/* Row 2: 금고 보안 PIN 번호 */}
-                  <div className={`flex items-center justify-between gap-3 pt-3 border-t ${
-                    isLight ? 'border-slate-100' : 'border-white/[0.04]'
-                  }`}>
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                      금고 보안 PIN 번호
-                    </span>
+                <div className="space-y-2 pt-0.5">
+                  {/* PIN 설정 상태 & 버튼 */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>보안 PIN</span>
+                      {isPinSet ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium bg-emerald-500/15 text-emerald-500 border border-emerald-500/20">
+                          설정됨
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
+                          isLight ? 'bg-slate-200 text-slate-600' : 'bg-white/10 text-slate-400'
+                        }`}>
+                          미설정
+                        </span>
+                      )}
+                    </div>
 
                     {isPinSet ? (
                       <div className="flex items-center gap-1.5">
@@ -1753,7 +1684,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             setShowPinModal(true);
                           }}
                           className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-colors ${
-                            isLight ? 'border-slate-300 hover:bg-slate-100 text-slate-700' : 'border-white/10 hover:bg-white/5 text-slate-300'
+                            isLight ? 'border-slate-300 hover:bg-white text-slate-700' : 'border-white/10 hover:bg-white/5 text-slate-300'
                           }`}
                         >
                           PIN 변경
@@ -1781,38 +1712,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           setPinError(null);
                           setShowPinModal(true);
                         }}
-                        style={{
-                          backgroundColor: 'var(--color-accent)',
-                          color: 'var(--color-accent-contrast)'
-                        }}
-                        className="text-xs px-3 py-1.5 rounded-lg font-bold hover:opacity-90 transition-all active:scale-95 shadow-xs"
+                        className={`text-xs px-3 py-1 rounded-lg font-semibold transition-all active:scale-95 ${
+                          isLight
+                            ? 'bg-slate-900 text-white hover:bg-slate-800'
+                            : 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
+                        }`}
                       >
-                        PIN 설정하기
+                        PIN 설정
                       </button>
                     )}
                   </div>
 
-                  {/* Row 3: 자동 금고 잠금 */}
-                  <div className={`flex items-center justify-between gap-3 pt-3 border-t ${
-                    isLight ? 'border-slate-100' : 'border-white/[0.04]'
+                  {/* 자동 잠금 드롭다운 */}
+                  <div className={`flex items-center justify-between gap-2 pt-2 border-t ${
+                    isLight ? 'border-slate-200/60' : 'border-white/[0.06]'
                   }`}>
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                      자동 금고 잠금
-                    </span>
-                    <div className="w-24">
+                    <span className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>자동 잠금</span>
+                    <div className="w-28">
                       <CustomDarkSelect
-                        value={String(autoLockConfigState.timeoutMinutes)}
+                        value={!autoLockConfigState.enabled ? 'disabled' : String(autoLockConfigState.timeoutMinutes)}
                         options={[
-                          { value: '1', label: '1분' },
+                          { value: '0', label: '즉시' },
                           { value: '5', label: '5분' },
                           { value: '15', label: '15분' },
                           { value: '30', label: '30분' },
                           { value: '60', label: '1시간' },
-                          { value: '0', label: '비활성화' },
+                          { value: 'disabled', label: '비활성화' },
                         ]}
                         onChange={(val) => {
-                          const mins = parseInt(val, 10);
-                          const updated = { ...autoLockConfigState, timeoutMinutes: mins, enabled: mins > 0 };
+                          const isDisabled = val === 'disabled';
+                          const mins = isDisabled ? 0 : parseInt(val, 10);
+                          const updated = { 
+                            ...autoLockConfigState, 
+                            timeoutMinutes: mins, 
+                            enabled: !isDisabled,
+                            lockOnVisibilityHidden: !isDisabled && mins === 0
+                          };
                           setAutoLockConfigState(updated);
                           saveAutoLockConfig(updated);
                         }}
@@ -1825,73 +1760,99 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Group 2: 데이터 백업 및 복원 */}
-              <div className="space-y-3">
+              <div className={`p-3.5 rounded-2xl border space-y-2.5 ${
+                isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-white/[0.02] border-white/10'
+              }`}>
                 <div className="flex items-center justify-between">
-                  <span className={`text-[11px] font-bold uppercase tracking-wider ${
-                    isLight ? 'text-slate-400' : 'text-slate-500'
-                  }`}>
-                    데이터 백업 및 복원
-                  </span>
-                  <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    마지막 백업: <span className={`font-medium ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>{lastExportedDate}</span>
+                  <div className="flex items-center gap-1.5 font-semibold text-xs">
+                    <Database size={13} className={isLight ? 'text-slate-700' : 'text-slate-300'} />
+                    <span className={isLight ? 'text-slate-800' : 'text-slate-200'}>데이터 백업 및 복원</span>
+                  </div>
+                  <span className={`text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    마지막 백업: <span className={`font-medium ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{lastExportedDate}</span>
                   </span>
                 </div>
-                
-                <div className={`pb-4 border-b ${isLight ? 'border-slate-200/80' : 'border-white/[0.06]'}`}>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={handleOpenExportModal}
-                      className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all active:scale-95 ${
-                        isLight 
-                          ? 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800' 
-                          : 'bg-slate-900 border-slate-800 hover:border-emerald-500/50 hover:bg-slate-850 text-slate-200'
-                      }`}
-                    >
-                      백업 내보내기
-                    </button>
 
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all active:scale-95 ${
-                        isLight 
-                          ? 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800' 
-                          : 'bg-slate-900 border-slate-800 hover:border-emerald-500/50 hover:bg-slate-850 text-slate-200'
-                      }`}
-                    >
-                      백업 복원 / 병합
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".json,.enc,.vibe.enc"
-                      className="hidden"
-                      onChange={handleRestoreFile}
-                    />
-                  </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleOpenExportModal}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-98 ${
+                      isLight 
+                        ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-800' 
+                        : 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-200'
+                    }`}
+                  >
+                    <Download size={13} className="shrink-0" />
+                    <span>백업 파일 내보내기</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-98 ${
+                      isLight 
+                        ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-800' 
+                        : 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-200'
+                    }`}
+                  >
+                    <Upload size={13} className="shrink-0" />
+                    <span>백업 파일 가져오기/복원</span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json,.enc,.vibe.enc"
+                    className="hidden"
+                    onChange={handleRestoreFile}
+                  />
                 </div>
               </div>
 
-              {/* Group 3: 데이터 초기화 */}
-              <div className="space-y-3">
-                <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  isLight ? 'text-rose-600' : 'text-rose-400'
-                }`}>
-                  데이터 초기화
-                </span>
+              {/* Group 3: 데이터 유틸리티 (Danger Zone) */}
+              <div className={`p-3.5 rounded-2xl border space-y-2.5 ${
+                isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-white/[0.02] border-white/10'
+              }`}>
+                <div className="flex items-center gap-1.5 font-semibold text-xs">
+                  <AlertTriangle size={13} className="text-amber-500 shrink-0" />
+                  <span className={isLight ? 'text-slate-800' : 'text-slate-200'}>데이터 유틸리티</span>
+                </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteModal(true)}
-                  className={`w-full py-2.5 px-3 rounded-lg border font-semibold text-xs transition-all active:scale-95 ${
-                    isLight
-                      ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700'
-                      : 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-400'
-                  }`}
-                >
-                  모든 거래 내역 삭제 및 설정 초기화
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    id="load-sample-data-btn"
+                    onClick={handleLoadSampleData}
+                    disabled={isClearingData}
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 ${
+                      isLight 
+                        ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200' 
+                        : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20'
+                    }`}
+                  >
+                    <Sparkles size={13} className="text-emerald-400 shrink-0" />
+                    <span>✦ 샘플 데이터 채우기</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="reset-all-data-btn"
+                    onClick={handleResetAllData}
+                    disabled={isClearingData}
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 ${
+                      isLight
+                        ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                        : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20'
+                    }`}
+                  >
+                    <Trash2 size={13} className="text-rose-400 shrink-0" />
+                    <span>🗑️ 전체 데이터 초기화</span>
+                  </button>
+                </div>
+
+                <p className={`text-[10px] leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  ⚠️ 전체 데이터 초기화 시 기기에 암호화되어 저장된 모든 자산, 거래 내역, PIN이 영구 삭제됩니다.
+                </p>
               </div>
             </div>
           )}
@@ -2167,73 +2128,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       )}
 
-      {/* Safety Confirmation Modal: Type "DELETE" */}
-      {showDeleteModal && (
-        <div 
-          className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-150"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className={`w-full max-w-xs border rounded-2xl p-4 space-y-3.5 shadow-2xl animate-in zoom-in-95 duration-150 ${
-            isLight ? 'bg-white border-rose-300 text-slate-900' : 'bg-slate-900 border-rose-500/40 text-slate-100'
-          }`}>
-            <div className="flex items-center gap-2 text-rose-500">
-              <AlertTriangle size={18} className="shrink-0" />
-              <h3 className="text-xs font-bold">데이터 완전 초기화 확인</h3>
-            </div>
-            
-            <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-              저장된 모든 거래 내역과 환경 설정, 등록된 API 키가 영구적으로 삭제되며 되돌릴 수 없습니다.
-            </p>
 
-            <div className="space-y-1.5">
-              <label className={`text-xs block ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                삭제를 확인하려면 아래에 <span className="text-rose-500 font-bold select-all">초기화</span>를 입력하세요:
-              </label>
-              <input
-                type="text"
-                value={deleteConfirmationText}
-                onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                placeholder="초기화"
-                autoFocus
-                className={`w-full rounded-xl px-3 py-2 text-xs font-bold tracking-widest outline-none border ${
-                  isLight 
-                    ? 'bg-slate-50 border-slate-300 text-rose-600 focus:border-rose-500' 
-                    : 'bg-slate-950 border-slate-800 text-rose-300 focus:border-rose-500'
-                }`}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeleteConfirmationText('');
-                }}
-                className={`py-2.5 px-3 rounded-xl text-xs font-medium transition-colors border ${
-                  isLight 
-                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' 
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                }`}
-              >
-                취소
-              </button>
-
-              <button
-                type="button"
-                disabled={
-                  (deleteConfirmationText.trim() !== '초기화' && deleteConfirmationText.trim().toUpperCase() !== 'DELETE') ||
-                  isClearingData
-                }
-                onClick={handleExecuteDelete}
-                className="py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all flex items-center justify-center gap-1 shadow-md"
-              >
-                {isClearingData ? <Loader2 size={14} className="animate-spin" /> : '완전 삭제'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Vault PIN Setup / Remove Modal */}
       {showPinModal && (

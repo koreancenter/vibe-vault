@@ -36,7 +36,7 @@ interface PinMetadata {
 
 // In-Memory volatile state (cleared immediately upon lock)
 let inMemoryCryptoKey: CryptoKey | null = null;
-let isLocked: boolean = false;
+let isLocked: boolean = typeof localStorage !== 'undefined' ? hasVaultPin() : false;
 let keystoreDbPromise: Promise<IDBPDatabase<any>> | null = null;
 let idleTimer: any = null;
 let lastActiveTimestamp: number = Date.now();
@@ -250,6 +250,18 @@ export async function removeVaultPin(currentPin: string): Promise<boolean> {
 }
 
 /**
+ * Resets all vault security parameters, PIN credentials, and in-memory keys
+ */
+export function resetVaultSecurity(): void {
+  localStorage.removeItem(PIN_STORAGE_KEY);
+  localStorage.removeItem(LOCK_CONFIG_KEY);
+  sessionStorage.removeItem('vibe_vault_setup_skipped');
+  inMemoryCryptoKey = null;
+  isLocked = false;
+  notifyLockState();
+}
+
+/**
  * Vault Lock & Memory Sanitization
  */
 export function isVaultLocked(): boolean {
@@ -351,7 +363,7 @@ export function initAutoLockWatcher(): () => void {
     } else if (document.visibilityState === 'visible' && hiddenTimestamp) {
       const elapsed = Date.now() - hiddenTimestamp;
       const timeoutMs = config.timeoutMinutes * 60 * 1000;
-      if (timeoutMs > 0 && elapsed >= timeoutMs) {
+      if (timeoutMs === 0 || (timeoutMs > 0 && elapsed >= timeoutMs)) {
         lockVault();
       }
       hiddenTimestamp = null;

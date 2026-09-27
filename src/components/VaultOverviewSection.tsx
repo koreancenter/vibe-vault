@@ -39,7 +39,8 @@ import {
   saveAssetAccount, 
   deleteAssetAccount, 
   updateAssetAccountBalance, 
-  executeAccountTransfer 
+  executeAccountTransfer,
+  loadSampleData
 } from '../db';
 import { 
   convertCurrency, 
@@ -185,7 +186,33 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
   useEffect(() => {
     loadAccounts();
+
+    const handleDataChange = () => {
+      loadAccounts();
+    };
+
+    window.addEventListener('vibe-vault-data-changed', handleDataChange);
+    window.addEventListener('vibe-vault-data-reset', handleDataChange);
+
+    return () => {
+      window.removeEventListener('vibe-vault-data-changed', handleDataChange);
+      window.removeEventListener('vibe-vault-data-reset', handleDataChange);
+    };
   }, []);
+
+  const handleLoadSampleDataFromVault = async () => {
+    try {
+      setIsLoading(true);
+      const res = await loadSampleData();
+      await loadAccounts();
+      if (onTransactionAdded) onTransactionAdded();
+      showToast(`샘플 자산(${res.accountsCount}개), 대출(${res.debtsCount}건), 거래(${res.transactionsCount}건)이 로드되었습니다.`, 'success');
+    } catch (err: any) {
+      showToast(err.message || '샘플 데이터 로드 실패', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Aggregated Net Worth Calculations
   const { totalAssets, totalLiabilities, netWorth, categoryTotals } = useMemo(() => {
@@ -801,7 +828,83 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           </div>
         </div>
 
-        {/* Cards Grid: Glassmorphic Surfaces & Light Typography */}
+        {/* Cards Grid / Empty State: Glassmorphic Surfaces & Light Typography */}
+        {accounts.length === 0 ? (
+          <div className={`p-8 sm:p-12 rounded-2xl border text-center space-y-5 transition-all ${
+            isLight 
+              ? 'bg-white/80 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
+              : 'bg-white/[0.02] backdrop-blur-xl border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)] text-white'
+          }`}>
+            <div className="relative mx-auto w-14 h-14 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-2xl bg-blue-500/20 blur-xl animate-pulse" />
+              <div className="relative w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                <Wallet size={26} />
+              </div>
+            </div>
+
+            <div className="space-y-1.5 max-w-md mx-auto">
+              <h3 className={`text-base font-normal tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                등록된 자산 계좌가 없습니다 (순자산 ₩0)
+              </h3>
+              <p className={`text-xs font-light leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                은행 입출금 통장, 증권사 주식, 가상자산, 현금을 등록하고 분산 포트폴리오를 한눈에 관리해보세요.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center flex-wrap gap-2.5 pt-2">
+              <button
+                type="button"
+                id="vault-empty-add-btn"
+                onClick={() => setShowAddModal(true)}
+                className="h-9 px-4 rounded-xl font-medium text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center gap-1.5 active:scale-95 transition-all shadow-md shadow-emerald-500/20"
+              >
+                <Plus size={14} />
+                <span>자산 계좌 직접 등록</span>
+              </button>
+
+              <button
+                type="button"
+                id="vault-empty-scan-btn"
+                onClick={() => setShowScanModal(true)}
+                className={`h-9 px-4 rounded-xl font-medium text-xs border flex items-center gap-1.5 active:scale-95 transition-all ${
+                  isLight 
+                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' 
+                    : 'bg-white/[0.05] hover:bg-white/10 text-slate-200 border-white/10'
+                }`}
+              >
+                <Camera size={14} className="text-blue-400" />
+                <span>증권/계좌 캡처 스캔 (AI OCR)</span>
+              </button>
+
+              <button
+                type="button"
+                id="vault-empty-sample-btn"
+                onClick={handleLoadSampleDataFromVault}
+                className={`h-9 px-4 rounded-xl font-medium text-xs border flex items-center gap-1.5 active:scale-95 transition-all ${
+                  isLight 
+                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' 
+                    : 'bg-white/[0.05] hover:bg-white/10 text-slate-200 border-white/10'
+                }`}
+              >
+                <Sparkles size={14} className="text-amber-400" />
+                <span>샘플 데이터 로드</span>
+              </button>
+            </div>
+          </div>
+        ) : filteredAccounts.length === 0 ? (
+          <div className={`p-8 rounded-2xl border text-center space-y-2.5 ${
+            isLight ? 'bg-slate-50/70 border-slate-200 text-slate-500' : 'bg-white/[0.015] border-white/[0.05] text-slate-400'
+          }`}>
+            <p className="text-xs font-light">선택한 분류에 해당하는 자산 계좌가 없습니다.</p>
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('ALL')}
+              className="text-xs text-emerald-400 hover:underline font-medium"
+            >
+              전체 계좌 보기
+            </button>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {filteredAccounts.map((acc) => {
             const converted = convertCurrency(
@@ -948,6 +1051,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             );
           })}
         </div>
+        )}
       </div>
 
       {/* QUICK BALANCE EDIT MODAL */}

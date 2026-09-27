@@ -6,15 +6,17 @@ import {
   encryptAssetAccount,
   decryptAssetAccount,
   encryptDebtItem,
-  decryptDebtItem
+  decryptDebtItem,
+  resetVaultSecurity
 } from './vaultSecurity';
+import { evictAllServiceWorkerCaches } from './usePWAInstall';
 import {
   sanitizeTransactionInput,
   sanitizeAssetAccountInput,
   sanitizeDebtItemInput
 } from './utils';
 
-export const INITIAL_DEBT_ITEMS: DebtItem[] = [
+export const SAMPLE_DEBT_ITEMS: DebtItem[] = [
   {
     id: 'debt-kakao-loan',
     name: '카카오뱅크 직장인 신용대출',
@@ -46,7 +48,7 @@ export const INITIAL_DEBT_ITEMS: DebtItem[] = [
   }
 ];
 
-export const INITIAL_ASSET_ACCOUNTS: AssetAccount[] = [
+export const SAMPLE_ASSET_ACCOUNTS: AssetAccount[] = [
   {
     id: 'account-toss-sec',
     institution: '토스증권',
@@ -101,6 +103,139 @@ export const INITIAL_ASSET_ACCOUNTS: AssetAccount[] = [
     note: '비상용 현금'
   }
 ];
+
+// Backwards compatibility aliases
+export const INITIAL_DEBT_ITEMS = SAMPLE_DEBT_ITEMS;
+export const INITIAL_ASSET_ACCOUNTS = SAMPLE_ASSET_ACCOUNTS;
+
+/**
+ * Rich realistic sample transactions for previewing charts and analytics
+ */
+export function generateSampleTransactions(): Transaction[] {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const getDate = (day: number, hour: number = 12): string => {
+    return new Date(year, month, Math.min(day, 28), hour, 30).toISOString();
+  };
+
+  return [
+    {
+      id: 'tx-sample-salary',
+      type: 'INCOME',
+      amount: 3600000,
+      currency: 'KRW',
+      category: 'Fixed',
+      subCategory: 'Salary',
+      description: '주거래 급여 입금',
+      date: getDate(5, 9),
+      paymentMethod: '통장'
+    },
+    {
+      id: 'tx-sample-dining-1',
+      type: 'EXPENSE',
+      amount: 48000,
+      currency: 'KRW',
+      category: 'Food',
+      subCategory: 'Dining',
+      description: '파스타 & 피자 외식',
+      date: getDate(6, 19),
+      paymentMethod: '현대카드'
+    },
+    {
+      id: 'tx-sample-starbucks',
+      type: 'EXPENSE',
+      amount: 5500,
+      currency: 'KRW',
+      category: 'Food',
+      subCategory: 'Coffee',
+      description: '스타벅스 아메리카노',
+      date: getDate(7, 14),
+      paymentMethod: '토스카드'
+    },
+    {
+      id: 'tx-sample-groceries',
+      type: 'EXPENSE',
+      amount: 67200,
+      currency: 'KRW',
+      category: 'Living',
+      subCategory: 'Groceries',
+      description: '이마트 주말 장보기',
+      date: getDate(10, 16),
+      paymentMethod: '현대카드'
+    },
+    {
+      id: 'tx-sample-sub-netflix',
+      type: 'EXPENSE',
+      amount: 17000,
+      currency: 'KRW',
+      category: 'Fixed',
+      subCategory: '구독',
+      description: '넷플릭스 프리미엄 월정액',
+      date: getDate(12, 10),
+      paymentMethod: '신용카드'
+    },
+    {
+      id: 'tx-sample-transit',
+      type: 'EXPENSE',
+      amount: 14500,
+      currency: 'KRW',
+      category: 'Living',
+      subCategory: 'Transit',
+      description: '카카오택시 심야 귀가',
+      date: getDate(14, 23),
+      paymentMethod: '카카오페이'
+    },
+    {
+      id: 'tx-sample-shopping',
+      type: 'EXPENSE',
+      amount: 32000,
+      currency: 'KRW',
+      category: 'Culture',
+      subCategory: 'Shopping',
+      description: '교보문고 재테크 서적',
+      date: getDate(16, 15),
+      paymentMethod: '체크카드'
+    },
+    {
+      id: 'tx-sample-dutch-settle',
+      type: 'SETTLEMENT',
+      amount: 24000,
+      currency: 'KRW',
+      category: 'Fixed',
+      subCategory: '더치페이',
+      description: '주말 저녁 모임 정산 입금',
+      date: getDate(18, 20),
+      paymentMethod: '카카오뱅크',
+      originalTotal: 48000,
+      isInternalTransfer: true
+    },
+    {
+      id: 'tx-sample-invest-transfer',
+      type: 'TRANSFER',
+      amount: 500000,
+      currency: 'KRW',
+      category: 'Fixed',
+      subCategory: '자산이체',
+      description: '카카오뱅크 ➔ 토스증권 주식 예수금 이체',
+      date: getDate(20, 11),
+      paymentMethod: '계좌이체',
+      isInternalTransfer: true
+    },
+    {
+      id: 'tx-sample-loan-interest',
+      type: 'EXPENSE',
+      amount: 98000,
+      currency: 'KRW',
+      category: 'Fixed',
+      subCategory: '대출이자',
+      description: '카카오뱅크 신용대출 정기 이자',
+      date: getDate(25, 9),
+      paymentMethod: '카카오뱅크'
+    }
+  ];
+}
 
 interface VibeVaultDB extends DBSchema {
   transactions: {
@@ -273,20 +408,14 @@ export async function getAllAssetAccounts(): Promise<AssetAccount[]> {
   const db = await getDB();
   const accounts = await db.getAll('assetAccounts');
   if (!accounts || accounts.length === 0) {
-    // Seed initial demo/default accounts with at-rest encryption
-    const encryptedInitial = await Promise.all(
-      INITIAL_ASSET_ACCOUNTS.map(item => 
-        encryptAssetAccount(sanitizeAssetAccountInput(item) as AssetAccount)
-      )
-    );
-    const tx = db.transaction('assetAccounts', 'readwrite');
-    for (const item of encryptedInitial) {
-      tx.store.put(item);
-    }
-    await tx.done;
-    return INITIAL_ASSET_ACCOUNTS;
+    return [];
   }
   return Promise.all(accounts.map(decryptAssetAccount));
+}
+
+export async function clearAllAssetAccounts(): Promise<void> {
+  const db = await getDB();
+  await db.clear('assetAccounts');
 }
 
 export async function saveAssetAccount(account: AssetAccount): Promise<void> {
@@ -396,20 +525,14 @@ export async function getAllDebts(): Promise<DebtItem[]> {
   const db = await getDB();
   const debts = await db.getAll('debts');
   if (!debts || debts.length === 0) {
-    // Seed initial demo loans & receivables with at-rest encryption
-    const encryptedInitial = await Promise.all(
-      INITIAL_DEBT_ITEMS.map(item =>
-        encryptDebtItem(sanitizeDebtItemInput(item) as DebtItem)
-      )
-    );
-    const tx = db.transaction('debts', 'readwrite');
-    for (const item of encryptedInitial) {
-      tx.store.put(item);
-    }
-    await tx.done;
-    return INITIAL_DEBT_ITEMS;
+    return [];
   }
   return Promise.all(debts.map(decryptDebtItem));
+}
+
+export async function clearAllDebts(): Promise<void> {
+  const db = await getDB();
+  await db.clear('debts');
 }
 
 export async function saveDebt(debt: DebtItem): Promise<void> {
@@ -570,6 +693,105 @@ export async function executeReceivableRecovery(
     settlementTransaction: settlementTx,
     updatedDebt: debt
   };
+}
+
+/**
+ * Loads realistic sample portfolio data (5 asset accounts, 2 debts, 10 transactions)
+ * into IndexedDB for previewing and testing dashboard charts.
+ */
+export async function loadSampleData(): Promise<{
+  transactionsCount: number;
+  accountsCount: number;
+  debtsCount: number;
+}> {
+  const db = await getDB();
+
+  // 1. Asset Accounts
+  const encryptedAccounts = await Promise.all(
+    SAMPLE_ASSET_ACCOUNTS.map(item =>
+      encryptAssetAccount(sanitizeAssetAccountInput(item) as AssetAccount)
+    )
+  );
+
+  // 2. Debt Items
+  const encryptedDebts = await Promise.all(
+    SAMPLE_DEBT_ITEMS.map(item =>
+      encryptDebtItem(sanitizeDebtItemInput(item) as DebtItem)
+    )
+  );
+
+  // 3. Transactions
+  const sampleTxs = generateSampleTransactions();
+  const encryptedTxs = await Promise.all(
+    sampleTxs.map(item =>
+      encryptTransaction(sanitizeTransactionInput(item) as Transaction)
+    )
+  );
+
+  // Write atomically across stores
+  const tx = db.transaction(['assetAccounts', 'debts', 'transactions'], 'readwrite');
+  for (const acc of encryptedAccounts) {
+    tx.objectStore('assetAccounts').put(acc);
+  }
+  for (const d of encryptedDebts) {
+    tx.objectStore('debts').put(d);
+  }
+  for (const t of encryptedTxs) {
+    tx.objectStore('transactions').put(t);
+  }
+  await tx.done;
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('vibe-vault-data-changed', {
+      detail: { source: 'sample_data_load' }
+    }));
+  }
+
+  return {
+    accountsCount: SAMPLE_ASSET_ACCOUNTS.length,
+    debtsCount: SAMPLE_DEBT_ITEMS.length,
+    transactionsCount: sampleTxs.length
+  };
+}
+
+/**
+ * Completely wipes all IndexedDB stores (transactions, accounts, debts),
+ * evicts browser CacheStorage, clears session/localStorage settings,
+ * and resets vault security state to an absolute clean zero slate (₩0).
+ */
+export async function resetAllDataToZero(): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction(['transactions', 'assetAccounts', 'debts'], 'readwrite');
+  await tx.objectStore('transactions').clear();
+  await tx.objectStore('assetAccounts').clear();
+  await tx.objectStore('debts').clear();
+  await tx.done;
+
+  // Clear related localStorage flags
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('vibe_user_assets');
+    localStorage.removeItem('vibe_saved_subscriptions');
+    localStorage.removeItem('vibe_last_export_date');
+    localStorage.removeItem('vibe_engine_config');
+    localStorage.removeItem('vibe_user_preferences');
+  }
+
+  // Clear session storage flags
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.clear();
+  }
+
+  // Reset vault security master keys and PIN challenge
+  resetVaultSecurity();
+
+  // Purge any caches stored in Service Worker CacheStorage
+  await evictAllServiceWorkerCaches().catch(() => false);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('vibe-vault-data-reset', {
+      detail: { timestamp: Date.now() }
+    }));
+  }
 }
 
 

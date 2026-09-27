@@ -46,7 +46,7 @@ import {
   getCurrencySymbol,
   SUPPORTED_CURRENCIES
 } from './utils';
-import { getAllDebts } from './db';
+import { getAllDebts, loadSampleData } from './db';
 import { commitAutonomousLoanSplit, commitAutonomousReceivableRecovery } from './autonomousFinance';
 
 // Architectural Domain Custom Hooks
@@ -61,7 +61,6 @@ import { SettingsModal } from './components/SettingsModal';
 import { InsightsSection } from './components/InsightsSection';
 import { ManualCategoryModal } from './components/ManualCategoryModal';
 import { FinancialSummaryCard } from './components/FinancialSummaryCard';
-import { ConsolidatedSpendingCard } from './components/ConsolidatedSpendingCard';
 import { CurrencySelectorModal } from './components/CurrencySelectorModal';
 import { ReceiptScannerModal } from './components/ReceiptScannerModal';
 import { SubscriptionManagerSection } from './components/SubscriptionManagerSection';
@@ -239,6 +238,18 @@ export function App() {
   const realtimePreview = useMemo(() => {
     return extractRealtimePreview(input);
   }, [input]);
+
+  const handleLoadSampleFromLedger = useCallback(async () => {
+    try {
+      setIsProcessing(true);
+      await loadSampleData();
+      await loadTransactions();
+    } catch (err: any) {
+      setError('샘플 데이터 로드 실패: ' + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [loadTransactions]);
 
   const recognitionRef = useRef<any>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -762,12 +773,9 @@ export function App() {
         ) : (
           /* PRIMARY LEDGER MODE: Daily Transaction & Budget Tracking */
           <>
-            {/* CONSOLIDATED MONTHLY SPENDING HERO CARD */}
-            <ConsolidatedSpendingCard
+            {/* FINANCIAL SUMMARY HERO CARD */}
+            <FinancialSummaryCard
               transactions={transactions}
-              totalIncome={totalIncome}
-              totalExpense={totalExpense}
-              netBalance={netBalance}
               currencySymbol={currentCurrency}
               fxRates={fxRates}
               isStealth={isStealth}
@@ -869,33 +877,70 @@ export function App() {
 
             {/* Empty State / Recommended Prompts */}
             {transactions.length === 0 ? (
-              <div className="py-8 px-4 text-center space-y-4">
-                <div>
-                  <h3 className={`text-sm font-medium ${isLight ? 'text-slate-900' : 'text-white'}`}>장부 준비 완료</h3>
-                  <p className={`text-xs mt-1 font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    아래 입력창에 평소 대화하듯 자유롭게 입력해 보세요.
+              <div className={`p-6 sm:p-8 rounded-2xl border text-center space-y-4 my-2 transition-all ${
+                isLight 
+                  ? 'bg-slate-50/80 border-slate-200/80 text-slate-800' 
+                  : 'bg-white/[0.02] border-white/[0.06] text-white'
+              }`}>
+                <div className="relative mx-auto w-12 h-12 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-2xl bg-emerald-500/20 blur-xl animate-pulse" />
+                  <div className="relative w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <Receipt size={24} />
+                  </div>
+                </div>
+
+                <div className="space-y-1 max-w-sm mx-auto">
+                  <h3 className={`text-base font-normal tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                    기록된 거래 내역이 없습니다 (₩0)
+                  </h3>
+                  <p className={`text-xs font-light leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    하단 자연어 입력창에 평소처럼 적거나, 영수증 사진을 찍어 즉시 기록해보세요.
                   </p>
+                </div>
+
+                <div className="flex items-center justify-center flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsReceiptModalOpen(true)}
+                    className="h-8 px-3.5 rounded-xl font-medium text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
+                  >
+                    <Camera size={13} />
+                    <span>영수증 촬영 스캔</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleLoadSampleFromLedger}
+                    className={`h-8 px-3.5 rounded-xl font-medium text-xs border flex items-center gap-1.5 active:scale-95 transition-all ${
+                      isLight 
+                        ? 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200' 
+                        : 'bg-white/[0.05] hover:bg-white/10 text-slate-200 border-white/10'
+                    }`}
+                  >
+                    <Sparkles size={13} className="text-amber-400" />
+                    <span>샘플 데이터 로드</span>
+                  </button>
                 </div>
                 
                 {/* Example prompts */}
-                <div className="pt-2 text-left space-y-1">
-                  <span className={`text-xs font-light block px-1 pb-0.5 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                    추천 입력 예시 (터치하여 실행):
+                <div className="pt-3 text-left space-y-1 border-t border-white/[0.05]">
+                  <span className={`text-[11px] font-medium block px-1 pb-0.5 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                    자연어 입력 추천 예시 (터치하여 실행):
                   </span>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     {EXAMPLE_PROMPTS.map((prompt, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => handleProcessInput(prompt.text)}
-                        className={`w-full text-left text-xs py-2 px-2 rounded-lg transition-colors flex items-center justify-between group ${
+                        className={`w-full text-left text-xs py-2 px-2.5 rounded-xl transition-colors flex items-center justify-between group ${
                           isLight 
-                            ? 'hover:bg-slate-100 text-slate-800' 
+                            ? 'hover:bg-slate-200/70 text-slate-800' 
                             : 'hover:bg-white/[0.04] text-slate-200'
                         }`}
                       >
                         <div className="truncate pr-2">
-                          <span className={`font-normal mr-1.5 ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`}>
+                          <span className={`font-medium mr-1.5 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>
                             [{prompt.category}]
                           </span>
                           <span className={`font-light ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>{prompt.text}</span>
@@ -1403,6 +1448,9 @@ export function App() {
         theme={userPrefs.theme || 'dark'}
         currentCurrency={currentCurrency}
       />
+
+      {/* Zero-Knowledge Privacy Vault PIN Lock Screen */}
+      <VaultLockScreen onUnlocked={() => loadTransactions()} />
 
       {/* Automatic In-App PWA Install Banner */}
       <PWAInstallBanner 

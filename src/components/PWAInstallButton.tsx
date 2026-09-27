@@ -15,6 +15,7 @@ import { usePWAInstall } from '../usePWAInstall';
 interface PWAInstallProps {
   theme?: 'light' | 'dark' | 'system';
   className?: string;
+  variant?: 'header' | 'settings' | 'compact';
   onInstalled?: () => void;
 }
 
@@ -137,16 +138,103 @@ export const IOSInstallModal: React.FC<{
 export const PWAInstallButton: React.FC<PWAInstallProps> = ({ 
   theme = 'dark', 
   className = '',
+  variant = 'header',
   onInstalled
 }) => {
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
   const [showIOSModal, setShowIOSModal] = useState(false);
 
+  const isLight = theme === 'light';
+
+  // In Settings Modal Variant
+  if (variant === 'settings') {
+    if (isInstalled) {
+      return (
+        <div className={`p-3 rounded-xl border flex items-center justify-between ${
+          isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+        } ${className}`}>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+            <div className="text-xs">
+              <span className="font-bold">PWA 독립 앱으로 설치되어 실행 중</span>
+              <p className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>오프라인 캐싱 및 전체화면 모드가 활성화되어 있습니다.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 ${
+          isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-white/[0.03] border-white/10 text-white'
+        } ${className}`}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <Download size={15} />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold block truncate">PWA 홈 화면 / 데스크톱 앱 설치</span>
+              <p className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                브라우저 주소창 없이 네이티브 앱처럼 실행하세요.
+              </p>
+            </div>
+          </div>
+
+          <div className="shrink-0">
+            {isInstallable ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  const success = await install();
+                  if (success && onInstalled) onInstalled();
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+              >
+                <Download size={13} />
+                <span>앱 설치</span>
+              </button>
+            ) : isIOS ? (
+              <button
+                type="button"
+                onClick={() => setShowIOSModal(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+              >
+                <Share2 size={13} />
+                <span>iOS 설치 안내</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={async () => {
+                  const success = await install();
+                  if (!success) {
+                    setShowIOSModal(true);
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
+                  isLight ? 'border-slate-300 text-slate-700 hover:bg-slate-100' : 'border-white/15 text-slate-200 hover:bg-white/10'
+                }`}
+              >
+                <span>설치 가이드</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <IOSInstallModal
+          isOpen={showIOSModal}
+          onClose={() => setShowIOSModal(false)}
+          theme={theme}
+        />
+      </>
+    );
+  }
+
+  // Header compact variant: hide if already running in standalone PWA
   if (isInstalled) {
     return null;
   }
-
-  const isLight = theme === 'light';
 
   // Desktop / Android flow with active deferred prompt
   if (isInstallable) {
@@ -248,12 +336,11 @@ export const PWAInstallBanner: React.FC<{
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-[#0E1524] flex items-center justify-center">
                 <img 
-                  src="/vibevault/icon.svg" 
-                  alt="Vibe Ledger" 
+                  src="/icon.svg" 
+                  alt="Vibe Vault" 
                   className="w-7 h-7 object-contain"
                   onError={(e) => {
-                    // Fallback to relative icon if needed
-                    (e.target as HTMLImageElement).src = '/icon.svg';
+                    (e.target as HTMLImageElement).src = '/apple-touch-icon.png';
                   }}
                 />
               </div>
