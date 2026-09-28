@@ -238,7 +238,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
   return (
     <div
       id="vault-lock-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/92 backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-y-auto"
     >
       <div
         className={`w-full max-w-sm rounded-3xl border border-white/10 bg-[#0B0F17]/95 p-6 sm:p-7 shadow-2xl text-center space-y-5 transition-transform ${
@@ -267,9 +267,12 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
               </h2>
               <p className="text-xs text-slate-400 leading-relaxed">
                 {setupStep === 'create'
-                  ? '금고 및 가계부 기록을 암호화할 4~6자리 마스터 PIN을 설정하세요.'
+                  ? '금고 및 가계부 기록을 영구 암호화 보관할 4~6자리 마스터 PIN을 설정하세요.'
                   : '확인을 위해 동일한 PIN 번호를 다시 입력해주세요.'}
               </p>
+              <div className="py-1 px-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 font-medium inline-block">
+                ⚠️ PIN 미설정 시 세션 종료와 함께 데이터가 초기화됩니다.
+              </div>
             </>
           ) : (
             <>
@@ -379,7 +382,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
                 onClick={handleSkipSetup}
                 className="w-full py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
               >
-                나중에 설정하기 (기본 보안 키 사용)
+                나중에 설정하기 (게스트 모드 · 세션 종료 시 초기화)
               </button>
             </div>
           ) : (

@@ -29,7 +29,7 @@ export interface AssetAccount {
 }
 
 export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'SETTLEMENT';
-export type SupportedCurrency = 'KRW' | 'USD' | 'EUR' | 'JPY' | 'GBP';
+export type SupportedCurrency = 'KRW' | 'USD' | 'EUR' | 'JPY' | 'GBP' | 'IDR' | 'CNY' | 'CAD' | 'AUD' | 'SGD' | 'HKD' | 'THB' | 'VND' | 'CHF' | 'TWD' | string;
 export type CurrencyCode = SupportedCurrency | string;
 
 export interface FxRates {

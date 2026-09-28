@@ -236,60 +236,47 @@ export const PWAInstallButton: React.FC<PWAInstallProps> = ({
     return null;
   }
 
-  // Desktop / Android flow with active deferred prompt
-  if (isInstallable) {
-    return (
+  // Handle header install click: try native prompt first; if not available (or iOS), show install guide modal
+  const handleHeaderInstallClick = async () => {
+    if (isInstallable) {
+      const success = await install();
+      if (success) {
+        if (onInstalled) onInstalled();
+        return;
+      }
+    }
+    // For iOS Safari or browsers without immediate prompt, open the elegant guide modal
+    setShowIOSModal(true);
+  };
+
+  return (
+    <>
       <button
         id="pwa-install-header-btn"
         type="button"
-        onClick={async () => {
-          const success = await install();
-          if (success && onInstalled) {
-            onInstalled();
-          }
-        }}
-        title="홈 화면 또는 PC 앱으로 설치"
-        className={`h-8 px-2.5 flex items-center gap-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm ${
+        onClick={handleHeaderInstallClick}
+        title="홈 화면 또는 기기 앱으로 설치 (PWA)"
+        className={`h-8 px-2.5 flex items-center gap-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-xs ${
           isLight
             ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
             : 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
         } ${className}`}
       >
-        <Download size={13} className="shrink-0" />
+        {isIOS ? (
+          <Share2 size={13} className="shrink-0 text-blue-400" />
+        ) : (
+          <Download size={13} className="shrink-0 text-emerald-400" />
+        )}
         <span>앱 설치</span>
       </button>
-    );
-  }
 
-  // iOS Safari flow
-  if (isIOS) {
-    return (
-      <>
-        <button
-          id="pwa-ios-install-header-btn"
-          type="button"
-          onClick={() => setShowIOSModal(true)}
-          title="iPhone / iPad 홈 화면에 추가"
-          className={`h-8 px-2.5 flex items-center gap-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm ${
-            isLight
-              ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-              : 'bg-white/[0.08] text-slate-200 hover:bg-white/15 border border-white/10'
-          } ${className}`}
-        >
-          <Share2 size={13} className="shrink-0 text-blue-400" />
-          <span>앱 설치</span>
-        </button>
-
-        <IOSInstallModal
-          isOpen={showIOSModal}
-          onClose={() => setShowIOSModal(false)}
-          theme={theme}
-        />
-      </>
-    );
-  }
-
-  return null;
+      <IOSInstallModal
+        isOpen={showIOSModal}
+        onClose={() => setShowIOSModal(false)}
+        theme={theme}
+      />
+    </>
+  );
 };
 
 /**

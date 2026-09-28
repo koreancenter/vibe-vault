@@ -224,7 +224,11 @@ async function startServer() {
   });
 
   // Cached FX rates provider (KRW base)
-  let cachedFxRates = {
+  let cachedFxRates: {
+    base: string;
+    rates: Record<string, number>;
+    updatedAt: string;
+  } = {
     base: 'KRW',
     rates: {
       KRW: 1,
@@ -232,12 +236,36 @@ async function startServer() {
       EUR: 0.00069,
       JPY: 0.113,
       GBP: 0.00058,
+      IDR: 11.63,     // 1 KRW ≈ 11.63 IDR (or 1 IDR ≈ 0.086 KRW)
+      CNY: 0.0054,    // 1 KRW ≈ 0.0054 CNY (or 1 CNY ≈ 185 KRW)
+      CAD: 0.00102,   // 1 KRW ≈ 0.00102 CAD
+      AUD: 0.00115,   // 1 KRW ≈ 0.00115 AUD
+      SGD: 0.00101,   // 1 KRW ≈ 0.00101 SGD
+      HKD: 0.00585,   // 1 KRW ≈ 0.00585 HKD
+      THB: 0.026,     // 1 KRW ≈ 0.026 THB
+      VND: 18.6,      // 1 KRW ≈ 18.6 VND
+      CHF: 0.00066,   // 1 KRW ≈ 0.00066 CHF
+      TWD: 0.024,     // 1 KRW ≈ 0.024 TWD
+      PHP: 0.043,     // 1 KRW ≈ 0.043 PHP
+      INR: 0.063,     // 1 KRW ≈ 0.063 INR
     },
     updatedAt: new Date().toISOString(),
   };
 
   app.get('/api/fx-rates', (req, res) => {
     res.json(cachedFxRates);
+  });
+
+  // Query or add single currency rate
+  app.get('/api/fx-rates/:code', (req, res) => {
+    const code = req.params.code.toUpperCase();
+    if (cachedFxRates.rates[code]) {
+      return res.json({ code, rate: cachedFxRates.rates[code], updatedAt: cachedFxRates.updatedAt });
+    }
+    // Return approximate estimated rate for common global currencies if not explicitly mapped
+    const fallbackRate = 0.001;
+    cachedFxRates.rates[code] = fallbackRate;
+    return res.json({ code, rate: fallbackRate, updatedAt: cachedFxRates.updatedAt });
   });
 
   // Multimodal Receipt Scanner (Gemini Vision with Strict Structured JSON Schema)

@@ -46,7 +46,7 @@ import {
   getCurrencySymbol,
   SUPPORTED_CURRENCIES
 } from './utils';
-import { getAllDebts, loadSampleData } from './db';
+import { getAllDebts, loadSampleData, ensureCleanSlateIfGuest } from './db';
 import { commitAutonomousLoanSplit, commitAutonomousReceivableRecovery } from './autonomousFinance';
 
 // Architectural Domain Custom Hooks
@@ -67,7 +67,7 @@ import { SubscriptionManagerSection } from './components/SubscriptionManagerSect
 import { PWAInstallButton, PWAInstallBanner } from './components/PWAInstallButton';
 import { VaultOverviewSection } from './components/VaultOverviewSection';
 import { VaultLockScreen } from './components/VaultLockScreen';
-import { initAutoLockWatcher, lockVault } from './vaultSecurity';
+import { initAutoLockWatcher, lockVault, isVaultLocked, subscribeVaultLock } from './vaultSecurity';
 
 /**
  * Online Connectivity Hook
@@ -216,12 +216,38 @@ export function App() {
     }
   }, [userPrefs.defaultLaunchScreen]);
 
-  // Zero-Knowledge Vault Auto-Lock Watcher
+  // Zero-Knowledge Vault Lock & Auto-Lock Watcher
+  const [isVaultLockedState, setIsVaultLockedState] = useState<boolean>(() => isVaultLocked());
+
   useEffect(() => {
     const cleanupWatcher = initAutoLockWatcher();
+    const unsub = subscribeVaultLock((locked) => {
+      setIsVaultLockedState(locked);
+    });
     return () => {
       cleanupWatcher();
+      unsub();
     };
+  }, []);
+
+  const handleLockVault = useCallback(() => {
+    setIsSettingsOpen(false);
+    setIsCurrencyModalOpen(false);
+    setIsReceiptModalOpen(false);
+    setEditingTransaction(null);
+    setSelectedActionTransaction(null);
+    lockVault();
+    setIsVaultLockedState(true);
+  }, []);
+
+  const handleUnlocked = useCallback(() => {
+    setIsVaultLockedState(false);
+    loadTransactions();
+  }, [loadTransactions]);
+
+  // Ephemeral Guest Mode Startup Check: wipe any stale un-persisted records if no Master PIN exists
+  useEffect(() => {
+    ensureCleanSlateIfGuest().catch(() => {});
   }, []);
 
   // Modal Visibility States
@@ -623,9 +649,6 @@ export function App() {
     <div className={`h-[100dvh] w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto flex flex-col font-sans antialiased relative overflow-hidden shadow-2xl transition-colors duration-200 ${
       isLight ? 'bg-[#F8FAFC] text-slate-900 shadow-slate-300/40' : 'bg-gradient-to-b from-[#0B0F17] via-[#0D1424] to-[#111827] text-slate-100'
     }`}>
-      {/* Zero-Knowledge Vault Lock Screen Overlay */}
-      <VaultLockScreen onUnlocked={loadTransactions} />
-      
       {/* Sleek ambient background lighting */}
       {!isLight && (
         <>
@@ -665,25 +688,6 @@ export function App() {
 
         {/* Right action controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* PWA In-App Install Button */}
-          <PWAInstallButton theme={userPrefs.theme || 'dark'} />
-
-          {/* Global Currency Switcher */}
-          <button
-            id="currency-selector-header-btn"
-            type="button"
-            onClick={handleOpenCurrencyModal}
-            title={`현재 기준 통화: ${currentCurrency} (${SUPPORTED_CURRENCIES.find(c => c.code === currentCurrency)?.nameKo || currentCurrency})`}
-            className={`h-8 px-2.5 flex items-center gap-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-              isLight 
-                ? 'bg-slate-100 hover:bg-slate-200 text-slate-800' 
-                : 'bg-white/[0.06] hover:bg-white/10 text-white'
-            }`}
-          >
-            <Globe size={14} className={isLight ? 'text-emerald-600' : 'text-[#00F5A0]'} />
-            <span>{currentCurrency}</span>
-          </button>
-
           {/* Stealth Mode Toggle */}
           <button
             type="button"
@@ -702,18 +706,14 @@ export function App() {
             {isStealth ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
 
-          {/* Quick Vault Lock Button */}
+          {/* Dedicated Lock Vault / Logout Button */}
           <button
             id="quick-vault-lock-btn"
             type="button"
-            onClick={() => lockVault()}
-            title="금고 즉시 잠금 (Lock Vault)"
-            className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all active:scale-95 ${
-              isLight
-                ? 'bg-slate-100 text-slate-600 hover:text-emerald-700 hover:bg-slate-200'
-                : 'bg-white/[0.06] text-[#94A3B8] hover:text-emerald-400 hover:bg-white/10'
-            }`}
-            aria-label="금고 즉시 잠금"
+            onClick={handleLockVault}
+            title="금고 잠그기 (로그아웃)"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06] active:scale-95 flex items-center justify-center"
+            aria-label="금고 잠그기 (로그아웃)"
           >
             <Lock size={15} />
           </button>
@@ -738,7 +738,9 @@ export function App() {
       {/* 2. SCROLLABLE MIDDLE VIEWPORT */}
       <main 
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 scrollbar-none"
+        className={`flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 scrollbar-none transition-all duration-300 ${
+          isVaultLockedState ? 'filter blur-xl opacity-20 pointer-events-none select-none' : ''
+        }`}
       >
         {/* Offline Warning Banner */}
         {!isOnline && (
@@ -779,40 +781,6 @@ export function App() {
               isStealth={isStealth}
               theme={userPrefs.theme || 'dark'}
             />
-
-        {/* Ledger Header & Quick Fixed Subscriptions Settings Link */}
-        <div className="flex items-center justify-between gap-2 px-1 py-1">
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-              장부 거래 내역
-            </span>
-            <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
-              isLight ? 'bg-slate-200/70 text-slate-700' : 'bg-white/10 text-slate-300'
-            }`}>
-              {transactionCount}건
-            </span>
-          </div>
-
-          <button
-            type="button"
-            id="manage-subscriptions-link-btn"
-            onClick={() => handleOpenSettingsModal('assets', 'subscriptions')}
-            className={`text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all active:scale-95 ${
-              isLight
-                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/70'
-                : 'bg-white/[0.05] hover:bg-white/10 text-slate-300 border border-white/10'
-            }`}
-          >
-            <span>고정 구독 관리</span>
-            {detectedSubsCount > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                isLight ? 'bg-emerald-100 text-emerald-800' : 'bg-[#00F5A0]/20 text-[#00F5A0]'
-              }`}>
-                {detectedSubsCount}
-              </span>
-            )}
-          </button>
-        </div>
 
         {/* VIEW: UNIFIED LEDGER WITH MOBILE SWIPE */}
         {activeView === 'ledger' && (
@@ -1432,7 +1400,8 @@ export function App() {
         currentCurrency={currentCurrency}
         onSelectCurrency={handleSelectCurrency}
         fxRates={fxRates}
-        theme={userPrefs.theme || 'dark'}
+        onFxRatesUpdated={setFxRates}
+        theme="dark"
       />
 
       {/* Multimodal Receipt AI Scanner Modal */}
@@ -1446,7 +1415,7 @@ export function App() {
       />
 
       {/* Zero-Knowledge Privacy Vault PIN Lock Screen */}
-      <VaultLockScreen onUnlocked={() => loadTransactions()} />
+      <VaultLockScreen onUnlocked={handleUnlocked} />
 
       {/* Automatic In-App PWA Install Banner */}
       <PWAInstallBanner 

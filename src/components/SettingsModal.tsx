@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   X, 
   Eye, 
@@ -33,7 +33,10 @@ import {
   applyTheme,
   getEffectiveTheme,
   ThemeMode,
-  UserPreferences 
+  UserPreferences,
+  getUserActiveCurrencies,
+  KNOWN_CURRENCY_NAMES,
+  getCurrencySymbol
 } from '../utils';
 import {
   sanitizeApiKey,
@@ -416,13 +419,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     { value: 'llama3-8b', label: 'Llama 3 8B', sublabel: '심층 처리 - 4.5GB' },
   ];
 
-  // Currency options
-  const currencyOptions: CustomSelectOption[] = [
-    { value: 'KRW', label: '원화 (₩)' },
-    { value: 'USD', label: '달러 ($)' },
-    { value: 'EUR', label: '유로 (€)' },
-    { value: 'JPY', label: '엔화 (¥)' },
-  ];
+  // Dynamic Currency options based on user active currencies list
+  const currencyOptions: CustomSelectOption[] = useMemo(() => {
+    const active = getUserActiveCurrencies();
+    const all = Array.from(new Set(['KRW', 'USD', 'IDR', ...active, currencySymbol])).filter(Boolean);
+    return all.map((c) => {
+      const info = KNOWN_CURRENCY_NAMES[c];
+      const sym = getCurrencySymbol(c);
+      const label = info ? `${info.nameKo} (${sym})` : `${c} (${sym})`;
+      return { value: c, label };
+    });
+  }, [currencySymbol]);
 
   const handleProviderChange = (newProvider: string) => {
     const prov = newProvider as 'gemini' | 'openai' | 'anthropic';
@@ -862,17 +869,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <Sliders className={`w-4 h-4 ${isLight ? 'text-slate-800' : 'text-slate-200'}`} />
             <span>환경 설정</span>
           </h2>
-          <button 
-            onClick={onClose} 
-            className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors ${
-              isLight
-                ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-                : 'text-slate-400 hover:text-white hover:bg-white/10'
-            }`}
-            aria-label="설정 창 닫기"
-          >
-            <X size={17} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                lockVault();
+              }}
+              title="금고 잠그기 (로그아웃)"
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors border flex items-center gap-1.5 active:scale-95 ${
+                isLight
+                  ? 'bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border-slate-200 hover:border-rose-200'
+                  : 'bg-white/[0.04] hover:bg-rose-500/10 text-slate-300 hover:text-rose-400 border-white/10 hover:border-rose-500/30'
+              }`}
+            >
+              <Lock size={12} className="shrink-0 text-rose-400" />
+              <span className="hidden xs:inline sm:inline">금고 잠그기</span>
+              <span className="text-[10px] text-slate-400 font-normal">(로그아웃)</span>
+            </button>
+            <button 
+              onClick={onClose} 
+              className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors ${
+                isLight
+                  ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                  : 'text-slate-400 hover:text-white hover:bg-white/10'
+              }`}
+              aria-label="설정 창 닫기"
+            >
+              <X size={17} />
+            </button>
+          </div>
         </div>
 
         {/* Tab Bar: Horizontal scrollable with touch-friendly spacing */}
@@ -1322,25 +1348,65 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </span>
                 
                 <div className="space-y-3 pb-4 border-b border-white/[0.06]">
-                  {/* Row 1: 기본 통화 */}
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-semibold text-slate-200">
-                      기본 통화
-                    </span>
-                    <div className="w-28">
-                      <CustomDarkSelect
-                        id="currency-select"
-                        value={currencySymbol}
-                        options={currencyOptions}
-                        onChange={(val) => {
-                          setCurrencySymbol(val);
-                          const prefs = getUserPreferences();
-                          saveUserPreferences({ ...prefs, currencySymbol: val });
-                          if (onDataChanged) onDataChanged();
-                        }}
-                        theme="dark"
-                        size="sm"
-                      />
+                  {/* Row 1: 기본 통화 & 내 활성 통화 매니저 */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-xs font-semibold text-slate-200 block">
+                          기본 기준 통화
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          대시보드 및 모든 자산 평가의 기준
+                        </span>
+                      </div>
+                      <div className="w-32">
+                        <CustomDarkSelect
+                          id="currency-select"
+                          value={currencySymbol}
+                          options={currencyOptions}
+                          onChange={(val) => {
+                            setCurrencySymbol(val);
+                            const prefs = getUserPreferences();
+                            saveUserPreferences({ ...prefs, currencySymbol: val });
+                            if (onDataChanged) onDataChanged();
+                          }}
+                          theme="dark"
+                          size="sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Active Currencies Fast-Switch Chips */}
+                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span className="font-medium">내 활성 통화 목록</span>
+                        <span className="text-[10px] text-slate-500">터치 시 기준 통화로 전환</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {currencyOptions.map((opt) => {
+                          const isSelected = currencySymbol === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                setCurrencySymbol(opt.value);
+                                const prefs = getUserPreferences();
+                                saveUserPreferences({ ...prefs, currencySymbol: opt.value });
+                                if (onDataChanged) onDataChanged();
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 active:scale-95 ${
+                                isSelected
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
+                                  : 'bg-white/[0.04] text-slate-400 hover:text-white border border-white/5'
+                              }`}
+                            >
+                              <span>{opt.value}</span>
+                              {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 
@@ -1618,7 +1684,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     }`}
                   >
                     <Sparkles size={13} className="text-emerald-400 shrink-0" />
-                    <span>✦ 샘플 데이터 채우기</span>
+                    <span>✦ 샘플 데이터 불러오기</span>
                   </button>
 
                   <button
@@ -1644,14 +1710,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          {/* Bottom Action Bar (Apply & Save) */}
-          <div className={`pt-3 border-t mt-2 shrink-0 flex items-center justify-between ${
+          {/* Bottom Action Bar (Apply & Save + Session Logout) */}
+          <div className={`pt-3 border-t mt-2 shrink-0 flex items-center justify-between gap-2 ${
             isLight ? 'border-slate-200' : 'border-white/10'
           }`}>
-            <div className={`flex items-center gap-1.5 text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              <ShieldCheck size={14} className={isLight ? 'text-slate-600' : 'text-slate-400'} />
-              <span>기기 로컬 저장</span>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                lockVault();
+              }}
+              title="금고 잠그기 (로그아웃)"
+              className={`h-9 px-3 sm:px-3.5 rounded-xl font-medium text-xs transition-all flex items-center gap-1.5 active:scale-95 border ${
+                isLight
+                  ? 'bg-slate-100 hover:bg-rose-50 hover:border-rose-200 text-slate-700 hover:text-rose-600 border-slate-200'
+                  : 'bg-white/[0.04] hover:bg-rose-500/10 hover:border-rose-500/30 text-slate-300 hover:text-rose-400 border-white/10'
+              }`}
+            >
+              <Lock size={13} className="shrink-0 text-rose-400/80" />
+              <span>금고 잠그기 (로그아웃)</span>
+            </button>
 
             <button
               type="button"

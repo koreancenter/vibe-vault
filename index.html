@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
+      // Early capture of PWA beforeinstallprompt to ensure it is never missed before React mounts
+      window.deferredPWAInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.deferredPWAInstallPrompt = e;
+        if (typeof window.dispatchPWAInstallEvent === 'function') {
+          window.dispatchPWAInstallEvent(e);
+        }
+      });
+    </script>
+    <script>
       // Filter out benign HMR WebSocket connection logs in preview iframe (HMR disabled in platform runtime)
       (function() {
         const origError = console.error;

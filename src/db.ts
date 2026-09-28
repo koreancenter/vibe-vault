@@ -7,7 +7,9 @@ import {
   decryptAssetAccount,
   encryptDebtItem,
   decryptDebtItem,
-  resetVaultSecurity
+  resetVaultSecurity,
+  hasVaultPin,
+  registerGuestWipeHandler
 } from './vaultSecurity';
 import { evictAllServiceWorkerCaches } from './usePWAInstall';
 import {
@@ -791,6 +793,43 @@ export async function resetAllDataToZero(): Promise<void> {
     window.dispatchEvent(new CustomEvent('vibe-vault-data-reset', {
       detail: { timestamp: Date.now() }
     }));
+  }
+}
+
+// Register guest session data wipe with vaultSecurity
+registerGuestWipeHandler(async () => {
+  try {
+    const db = await getDB();
+    const tx = db.transaction(['transactions', 'assetAccounts', 'debts'], 'readwrite');
+    await tx.objectStore('transactions').clear();
+    await tx.objectStore('assetAccounts').clear();
+    await tx.objectStore('debts').clear();
+    await tx.done;
+  } catch (err) {
+    console.warn('[Ephemeral Guest Mode] IndexedDB clear failed:', err);
+  }
+});
+
+/**
+ * Ensures absolute zero clean slate on startup if in Ephemeral Guest Mode (no PIN set)
+ * Guarantees that data is strictly volatile unless the user has established a Master Vault PIN.
+ */
+export async function ensureCleanSlateIfGuest(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  if (!hasVaultPin()) {
+    if (!sessionStorage.getItem('vibe_active_guest_session')) {
+      try {
+        const db = await getDB();
+        const tx = db.transaction(['transactions', 'assetAccounts', 'debts'], 'readwrite');
+        await tx.objectStore('transactions').clear();
+        await tx.objectStore('assetAccounts').clear();
+        await tx.objectStore('debts').clear();
+        await tx.done;
+      } catch (err) {
+        console.warn('[Ephemeral Guest Mode] Startup clear error:', err);
+      }
+      sessionStorage.setItem('vibe_active_guest_session', 'true');
+    }
   }
 }
 

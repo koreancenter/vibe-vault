@@ -279,18 +279,20 @@ export function getPaymentMethodKo(method?: string, transactionType?: string): s
   return trimmed;
 }
 
-export const DEFAULT_USER_ASSETS: Asset[] = [
+export const RECOMMENDED_USER_ASSETS: Asset[] = [
   { id: 'asset-default-1', name: '현대카드', type: 'CARD', billingDay: 14, enabled: true, note: '주요 신용카드' },
   { id: 'asset-default-2', name: '신한은행', type: 'BANK', enabled: true, note: '급여·생활비 계좌' },
   { id: 'asset-default-3', name: '비상금 현금', type: 'CASH', enabled: true, note: '지갑 현금' },
 ];
+
+export const DEFAULT_USER_ASSETS: Asset[] = [];
 
 export function getUserAssets(): Asset[] {
   try {
     const stored = localStorage.getItem('vibe_user_assets');
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
@@ -335,10 +337,67 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
   EUR: '€',
   JPY: '¥',
   GBP: '£',
+  IDR: 'Rp',
+  CNY: '¥',
+  CAD: 'C$',
+  AUD: 'A$',
+  SGD: 'S$',
+  HKD: 'HK$',
+  THB: '฿',
+  VND: '₫',
+  CHF: 'CHF',
+  TWD: 'NT$',
+  PHP: '₱',
+  INR: '₹',
 };
 
+// Known ISO 4217 Currency Names for previewing & validation
+export const KNOWN_CURRENCY_NAMES: Record<string, { nameKo: string; symbol: string; fallbackRateToKrw?: number }> = {
+  KRW: { nameKo: '대한민국 원', symbol: '₩', fallbackRateToKrw: 1 },
+  USD: { nameKo: '미국 달러', symbol: '$', fallbackRateToKrw: 1333 },
+  IDR: { nameKo: '인도네시아 루피아', symbol: 'Rp', fallbackRateToKrw: 0.086 },
+  EUR: { nameKo: '유럽 유로', symbol: '€', fallbackRateToKrw: 1450 },
+  JPY: { nameKo: '일본 엔', symbol: '¥', fallbackRateToKrw: 8.85 },
+  GBP: { nameKo: '영국 파운드', symbol: '£', fallbackRateToKrw: 1720 },
+  CNY: { nameKo: '중국 위안', symbol: '¥', fallbackRateToKrw: 185 },
+  CAD: { nameKo: '캐나다 달러', symbol: 'C$', fallbackRateToKrw: 980 },
+  AUD: { nameKo: '호주 달러', symbol: 'A$', fallbackRateToKrw: 870 },
+  SGD: { nameKo: '싱가포르 달러', symbol: 'S$', fallbackRateToKrw: 990 },
+  HKD: { nameKo: '홍콩 달러', symbol: 'HK$', fallbackRateToKrw: 171 },
+  THB: { nameKo: '태국 바트', symbol: '฿', fallbackRateToKrw: 38.5 },
+  VND: { nameKo: '베트남 동', symbol: '₫', fallbackRateToKrw: 0.054 },
+  CHF: { nameKo: '스위스 프랑', symbol: 'CHF', fallbackRateToKrw: 1515 },
+  TWD: { nameKo: '대만 달러', symbol: 'NT$', fallbackRateToKrw: 41.7 },
+  PHP: { nameKo: '필리핀 페소', symbol: '₱', fallbackRateToKrw: 23.2 },
+  INR: { nameKo: '인도 루피', symbol: '₹', fallbackRateToKrw: 15.8 },
+};
+
+// Default User Active Currencies list
+export const DEFAULT_ACTIVE_CURRENCIES: string[] = ['KRW', 'USD', 'IDR'];
+
+export function getUserActiveCurrencies(): string[] {
+  try {
+    const stored = localStorage.getItem('vibe_active_currencies');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((c) => String(c).toUpperCase());
+      }
+    }
+  } catch {}
+  return DEFAULT_ACTIVE_CURRENCIES;
+}
+
+export function saveUserActiveCurrencies(currencies: string[]): void {
+  try {
+    const sanitized = Array.from(new Set(currencies.map((c) => String(c).trim().toUpperCase()))).filter(Boolean);
+    localStorage.setItem('vibe_active_currencies', JSON.stringify(sanitized));
+  } catch {}
+}
+
 export function getCurrencySymbol(code: string): string {
-  return CURRENCY_SYMBOLS[code] || code;
+  const upper = String(code || '').toUpperCase();
+  return CURRENCY_SYMBOLS[upper] || KNOWN_CURRENCY_NAMES[upper]?.symbol || upper;
 }
 
 export function formatCurrency(amount: number, currency: string = 'KRW'): string {
@@ -360,6 +419,8 @@ export const DEFAULT_FX_RATES: FxRates = {
     EUR: 0.00069, // 1 KRW ≈ 0.00069 EUR (or 1 EUR ≈ 1,450 KRW)
     JPY: 0.113,   // 1 KRW ≈ 0.113 JPY (or 100 JPY ≈ 885 KRW)
     GBP: 0.00058, // 1 KRW ≈ 0.00058 GBP (or 1 GBP ≈ 1,720 KRW)
+    IDR: 11.63,   // 1 KRW ≈ 11.63 IDR (or 1 IDR ≈ 0.086 KRW)
+    CNY: 0.0054,  // 1 KRW ≈ 0.0054 CNY (or 1 CNY ≈ 185 KRW)
   },
   updatedAt: new Date().toISOString(),
 };
@@ -381,20 +442,22 @@ export function convertCurrency(
   const amountInBase = fromRate === 0 ? amount : amount / fromRate;
   const converted = amountInBase * toRate;
 
-  // Rounding: KRW and JPY integers, USD/EUR/GBP 2 decimals
-  if (toCurrency === 'KRW' || toCurrency === 'JPY') {
+  // Rounding: KRW, JPY, IDR, VND integers, others 2 decimals
+  if (toCurrency === 'KRW' || toCurrency === 'JPY' || toCurrency === 'IDR' || toCurrency === 'VND') {
     return Math.round(converted);
   }
   return Math.round(converted * 100) / 100;
 }
 
-export const DEFAULT_CATEGORY_BUDGETS: Record<string, number> = {
+export const RECOMMENDED_CATEGORY_BUDGETS: Record<string, number> = {
   Food: 600000,
   Living: 400000,
   Transport: 150000,
   Fixed: 500000,
   Leisure: 200000,
 };
+
+export const DEFAULT_CATEGORY_BUDGETS: Record<string, number> = {};
 
 export function getCategoryBudgets(): Record<string, number> {
   try {
