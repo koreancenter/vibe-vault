@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --surface-canvas: #0B0F17;
-  --surface-raised: rgba(255, 255, 255, 0.025);
+  --surface-canvas: #08090D;
+  --surface-raised: rgba(255, 255, 255, 0.03);
   --surface-inset: rgba(0, 0, 0, 0.35);
-  --surface-subtle-border: rgba(255, 255, 255, 0.06);
+  --surface-subtle-border: rgba(255, 255, 255, 0.08);
 
   /* Quiet Luxury Signature Accent System (Refined Muted Sage emerald-400 & Rose Coral) */
   --color-accent: #34d399; /* refined muted sage */
@@ -12,20 +12,25 @@
   --color-accent-subtle: rgba(52, 211, 153, 0.08);
   --color-accent-border: rgba(52, 211, 153, 0.18);
   --color-accent-glow: rgba(52, 211, 153, 0.08);
-  --color-accent-contrast: #0B0F17;
+  --color-accent-contrast: #08090D;
 
   --color-rose: #fb7185; /* refined rose coral */
   --color-rose-subtle: rgba(251, 113, 133, 0.08);
   --color-rose-border: rgba(251, 113, 133, 0.18);
 }
 
-body {
+body, #root {
+  background-color: #08090D !important;
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(16, 185, 129, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 30%, rgba(59, 130, 246, 0.05), transparent) !important;
+  background-attachment: fixed;
+  color: #F8FAFC;
+  min-height: 100vh;
   font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: -0.015em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #0B0F17;
-  color: #f1f5f9;
 }
 
 /* Tabular figures for currency amounts, metrics, and timestamps */
@@ -33,13 +38,14 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Flat Quiet Luxury glass surface classes */
+/* Universal high-end glass surface classes */
 .glass-card,
 .glass-surface {
-  background-color: rgba(255, 255, 255, 0.025);
+  background-color: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
 }
 

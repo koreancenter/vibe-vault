@@ -121,14 +121,14 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   return (
     <section 
       id="financial-summary-card"
-      className={`relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl ${
+      className={`relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-2xl ${
         isLight 
           ? 'bg-white/85 border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
-          : 'bg-white/[0.025] border border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)] text-white'
+          : 'bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
       }`}
     >
       {/* Top Header: Title & Subtle Status Badge */}
-      <div className="flex items-center justify-between pb-3">
+      <div className="flex items-center justify-between pb-3.5">
         <div>
           <div className="flex items-center gap-2">
             <h3 className={`text-xs font-normal tracking-wide ${
@@ -136,7 +136,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             }`}>
               재무 요약
             </h3>
-            <span className="text-slate-600 font-light text-xs">·</span>
+            <span className="text-white/20 font-light text-xs">·</span>
             <span className={`text-xs font-light ${
               isLight ? 'text-slate-500' : 'text-slate-400'
             }`}>
@@ -151,10 +151,10 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         {/* Quiet Luxury Status Indicator */}
         <div id="financial-status-indicator">
           {status === 'better' && (
-            <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-normal border tabular-nums ${
+            <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-medium border tabular-nums transition-all ${
               isLight 
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                : 'bg-emerald-500/10 text-emerald-400/90 border-emerald-500/20'
+                : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
             }`}>
               <span>절약</span>
               <span className="text-[11px] opacity-75">(-{percentChange}%)</span>
@@ -162,10 +162,10 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           )}
 
           {status === 'worse' && (
-            <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-normal border tabular-nums ${
+            <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-medium border tabular-nums transition-all ${
               isLight 
                 ? 'bg-rose-50 text-rose-800 border-rose-200' 
-                : 'bg-rose-500/10 text-rose-400/90 border-rose-500/20'
+                : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
             }`}>
               <span>초과</span>
               <span className="text-[11px] opacity-75">(+{percentChange}%)</span>
@@ -173,10 +173,10 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           )}
 
           {status === 'neutral' && (
-            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-normal border ${
+            <div className={`inline-flex items-center px-3 py-1 rounded-xl text-xs font-normal border ${
               isLight 
                 ? 'bg-slate-100 text-slate-600 border-slate-200' 
-                : 'bg-white/[0.04] text-slate-400 border-white/[0.06]'
+                : 'bg-white/[0.04] text-slate-400 border-white/[0.08]'
             }`}>
               <span>유지</span>
             </div>
@@ -188,7 +188,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           On mobile: "이번 달" takes the top full width (col-span-2) so high-denomination amounts never wrap.
           On desktop: sm:grid-cols-[1fr_1.45fr_1fr] gives "이번 달" ample 1.45fr horizontal space. */}
       <div className={`grid grid-cols-2 sm:grid-cols-[1fr_1.45fr_1fr] gap-4 pt-3.5 border-t ${
-        isLight ? 'border-slate-200/60' : 'border-white/[0.04]'
+        isLight ? 'border-slate-200/60' : 'border-t border-white/[0.05]'
       }`}>
         {/* Previous Month Spending */}
         <div className="order-2 sm:order-1 col-span-1 flex flex-col justify-between min-w-0">
@@ -219,7 +219,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
               <span className="text-lg md:text-xl font-light text-slate-400 mr-1 whitespace-nowrap">{currSymbol}</span>
               <span className={`${heroFontSizeClass} whitespace-nowrap tabular-nums ${
                 status === 'better'
-                  ? isLight ? 'text-emerald-700' : 'text-emerald-400/90'
+                  ? isLight ? 'text-emerald-700' : 'text-emerald-400 font-medium drop-shadow-[0_0_8px_rgba(52,211,153,0.25)]'
                   : status === 'worse'
                   ? isLight ? 'text-rose-700' : 'text-rose-400/90'
                   : isLight ? 'text-slate-900' : 'text-white'
@@ -243,7 +243,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         <div className="order-3 sm:order-3 col-span-1 sm:col-span-1 flex flex-col justify-between min-w-0">
           <span className={`text-xs font-light truncate ${
             status === 'better'
-              ? isLight ? 'text-emerald-700' : 'text-emerald-400/90'
+              ? isLight ? 'text-emerald-700' : 'text-emerald-400 font-medium drop-shadow-[0_0_8px_rgba(52,211,153,0.25)]'
               : status === 'worse'
               ? isLight ? 'text-rose-700' : 'text-rose-400/90'
               : isLight ? 'text-slate-500' : 'text-slate-400'
@@ -253,7 +253,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           <div className={`flex flex-wrap items-baseline gap-1 mt-1.5 whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
             <span className={`text-sm md:text-base font-medium tracking-tight tabular-nums whitespace-nowrap ${
               status === 'better'
-                ? isLight ? 'text-emerald-700' : 'text-emerald-400/90'
+                ? isLight ? 'text-emerald-700' : 'text-emerald-400 font-medium drop-shadow-[0_0_8px_rgba(52,211,153,0.25)]'
                 : status === 'worse'
                 ? isLight ? 'text-rose-700' : 'text-rose-400/90'
                 : isLight ? 'text-slate-800' : 'text-white'
@@ -262,7 +262,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             </span>
             {percentChange > 0 && (
               <span className={`text-xs font-light tabular-nums whitespace-nowrap ${
-                status === 'better' ? (isLight ? 'text-emerald-700' : 'text-emerald-400/90') : (isLight ? 'text-rose-700' : 'text-rose-400/90')
+                status === 'better' ? (isLight ? 'text-emerald-700' : 'text-emerald-400 font-medium drop-shadow-[0_0_8px_rgba(52,211,153,0.25)]') : (isLight ? 'text-rose-700' : 'text-rose-400/90')
               }`}>
                 ({diff < 0 ? '▼' : '▲'}{percentChange}%)
               </span>

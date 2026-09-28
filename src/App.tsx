@@ -845,19 +845,19 @@ export function App() {
 
   return (
     <div className={`h-[100dvh] w-full flex flex-col font-sans antialiased relative overflow-hidden transition-colors duration-200 ${
-      isLight ? 'bg-[#F8FAFC] text-slate-900 shadow-slate-300/40' : 'bg-gradient-to-b from-[#0B0F17] via-[#0D1424] to-[#111827] text-slate-100'
+      isLight ? 'bg-[#F8FAFC] text-slate-900 shadow-slate-300/40' : 'bg-transparent text-slate-100'
     }`}>
       {/* Sleek ambient background lighting */}
       {!isLight && (
         <>
-          <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-80 bg-[#00F5A0]/10 rounded-full blur-[110px] pointer-events-none" />
-          <div className="absolute top-1/3 -right-24 w-72 h-72 bg-[#6366F1]/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/[0.08] rounded-full blur-[110px] pointer-events-none" />
+          <div className="absolute top-1/3 -right-24 w-72 h-72 bg-blue-500/[0.04] rounded-full blur-[100px] pointer-events-none" />
         </>
       )}
 
       {/* 1. TOP HEADER */}
-      <header className={`flex-none h-16 border-b backdrop-blur-xl z-20 transition-colors ${
-        isLight ? 'bg-white/90 border-slate-200 text-slate-900' : 'bg-[#0B0F17]/80 border-white/5 text-white'
+      <header className={`flex-none h-16 border-b backdrop-blur-2xl z-20 transition-colors ${
+        isLight ? 'bg-white/90 border-slate-200 text-slate-900' : 'bg-white/[0.02] border-b border-white/[0.08] text-white'
       }`}>
         <div className="w-full max-w-md lg:max-w-7xl mx-auto h-full px-4 lg:px-8 flex items-center justify-between transition-all duration-300">
           {/* Left: Brand & Mode Subtitle */}
@@ -895,13 +895,13 @@ export function App() {
                 {/* Glassmorphic Popover Dropdown */}
                 {isSpacePopoverOpen && (
                   <div 
-                    className={`absolute left-0 top-full mt-2 w-72 rounded-2xl border shadow-2xl z-50 p-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl ${
+                    className={`absolute left-0 top-full mt-2 w-72 rounded-2xl border shadow-2xl z-50 p-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl ${
                       isLight
                         ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-300/60'
-                        : 'bg-[#0E1524]/95 border-white/10 text-white shadow-2xl'
+                        : 'bg-[#08090D]/95 border-white/[0.08] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
                     }`}
                   >
-                    <div className="px-3 py-1.5 flex items-center justify-between text-[11px] text-slate-400 font-medium border-b border-white/5 pb-2 mb-1">
+                    <div className="px-3 py-1.5 flex items-center justify-between text-[11px] text-slate-400 font-medium border-b border-white/[0.05] pb-2 mb-1">
                       <span>장부 공간 선택</span>
                       <span className="tabular-nums">{spaces.length}개</span>
                     </div>
@@ -915,11 +915,11 @@ export function App() {
                             className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer group ${
                               isCurrent
                                 ? isLight
-                                  ? 'bg-emerald-50 text-emerald-950 font-semibold border border-emerald-200'
-                                  : 'bg-[#00F5A0]/10 text-white font-semibold border border-[#00F5A0]/30'
+                                ? 'bg-emerald-50 text-emerald-950 font-semibold border border-emerald-200'
+                                : 'bg-emerald-500/15 text-emerald-300 font-semibold border border-emerald-500/30'
                                 : isLight
-                                  ? 'hover:bg-slate-100 text-slate-700'
-                                  : 'hover:bg-white/[0.05] text-slate-300'
+                                ? 'hover:bg-slate-100 text-slate-700'
+                                : 'hover:bg-white/[0.05] text-slate-300'
                             }`}
                             onClick={() => {
                               handleSelectSpace(sp);
@@ -928,7 +928,7 @@ export function App() {
                           >
                             <div className="flex items-center gap-2 min-w-0 flex-1">
                               {isCurrent ? (
-                                <Check size={14} className="text-[#00F5A0] shrink-0" />
+                                <Check size={14} className="text-emerald-400 shrink-0" />
                               ) : (
                                 <span className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0" />
                               )}
@@ -961,14 +961,14 @@ export function App() {
                     </div>
 
                     {/* Action Button: [+ 새 프로젝트/행사 장부 만들기] */}
-                    <div className="pt-2 mt-1 border-t border-white/5">
+                    <div className="pt-2 mt-1 border-t border-white/[0.05]">
                       <button
                         type="button"
                         onClick={() => {
                           setIsSpacePopoverOpen(false);
                           setIsNewSpaceModalOpen(true);
                         }}
-                        className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-[#00F5A0] to-[#00D9A5] hover:opacity-95 text-[#0B0F17] active:scale-95 transition-all shadow-sm shadow-[#00F5A0]/20"
+                        className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 active:scale-95 transition-all"
                       >
                         <span>+ 새 프로젝트/행사 장부 만들기</span>
                       </button>
@@ -1138,87 +1138,89 @@ export function App() {
           </div>
         )}
 
-        {/* Swipeable Carousel Track on Mobile / Direct Active View on Desktop */}
-        <div 
-          className="flex flex-1 h-full w-[300%] lg:w-full transition-transform duration-200 ease-out"
-          style={isDesktop ? undefined : { transform: `translateX(-${currentTabIndex * (100 / 3)}%)` }}
-        >
-          {/* TAB 0: VAULT (자산) */}
-          <div className={`w-1/3 lg:w-full h-full overflow-y-auto py-4 scrollbar-none transition-all ${
-            isDesktop && mainMode !== 'vault' ? 'hidden' : 'block'
-          }`}>
-            <VaultOverviewSection
-              currentCurrency={currentCurrency}
-              fxRates={fxRates}
-              stealthMode={isStealth}
-              theme={userPrefs.theme || 'dark'}
-              onTransactionAdded={() => loadTransactions()}
-              isMultiCurrencyMode={isMultiCurrencyMode}
-            />
-          </div>
+        {/* Swipe Carousel Dedicated Wrapper (Strict overflow-hidden w-full to prevent adjacent tab bleed) */}
+        <div className="w-full flex-1 overflow-hidden relative">
+          {/* Swipeable Carousel Track on Mobile / Direct Active View on Desktop */}
+          <div 
+            className="flex h-full w-[300%] lg:w-full transition-transform duration-200 ease-out"
+            style={isDesktop ? undefined : { transform: `translateX(-${currentTabIndex * (100 / 3)}%)` }}
+          >
+            {/* TAB 0: VAULT (자산) - Clean 100% Mobile Viewport Width */}
+            <div className={`w-1/3 lg:w-full h-full overflow-y-auto py-4 scrollbar-none transition-all ${
+              isDesktop && mainMode !== 'vault' ? 'hidden' : 'block'
+            }`}>
+              <VaultOverviewSection
+                currentCurrency={currentCurrency}
+                fxRates={fxRates}
+                stealthMode={isStealth}
+                theme={userPrefs.theme || 'dark'}
+                onTransactionAdded={() => loadTransactions()}
+                isMultiCurrencyMode={isMultiCurrencyMode}
+              />
+            </div>
 
-          {/* TAB 1: INSIGHTS (인사이트) */}
-          <div className={`w-1/3 lg:w-full h-full overflow-y-auto py-4 scrollbar-none transition-all ${
-            isDesktop && mainMode !== 'insights' ? 'hidden' : 'block'
-          }`}>
-            <InsightsSection
-              transactions={transactions}
-              currentCurrency={currentCurrency}
-              fxRates={fxRates}
-              isStealth={isStealth}
-              onOpenThemeSettings={() => handleOpenSettingsModal('preferences')}
-              onNavigateToVault={() => setMainMode('vault')}
-              onNavigateToLedger={() => setMainMode('ledger')}
-            />
-          </div>
+            {/* TAB 1: INSIGHTS (인사이트) - Clean 100% Mobile Viewport Width */}
+            <div className={`w-1/3 lg:w-full h-full overflow-y-auto py-4 scrollbar-none transition-all ${
+              isDesktop && mainMode !== 'insights' ? 'hidden' : 'block'
+            }`}>
+              <InsightsSection
+                transactions={transactions}
+                currentCurrency={currentCurrency}
+                fxRates={fxRates}
+                isStealth={isStealth}
+                onOpenThemeSettings={() => handleOpenSettingsModal('preferences')}
+                onNavigateToVault={() => setMainMode('vault')}
+                onNavigateToLedger={() => setMainMode('ledger')}
+              />
+            </div>
 
-          {/* TAB 2: LEDGER (장부) */}
-          <div className={`w-1/3 lg:w-full h-full overflow-y-auto py-4 scrollbar-none transition-all ${
-            isDesktop && mainMode !== 'ledger' ? 'hidden' : 'block'
-          }`}>
-            {/* Desktop 2-Column Responsive Dashboard for Ledger */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start pb-8">
-              {/* Left Column (lg:col-span-5): Financial Summary Card & Event Budget / Actions */}
-              <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-0">
-                {/* FINANCIAL SUMMARY HERO CARD */}
-                <FinancialSummaryCard
-                  transactions={currentSpaceTransactions}
-                  currencySymbol={activeSpace.currency || currentCurrency}
-                  fxRates={fxRates}
-                  isStealth={isStealth}
-                  theme={userPrefs.theme || 'dark'}
-                  isMultiCurrencyMode={isMultiCurrencyMode}
-                  secondaryCurrency={activeCurrencies.find(c => c.toUpperCase() !== (activeSpace.currency || currentCurrency).toUpperCase())}
-                />
+            {/* TAB 2: LEDGER (장부) - Clean 100% Mobile Viewport Width */}
+            <div className={`w-1/3 lg:w-full h-full overflow-y-auto py-4 scrollbar-none transition-all ${
+              isDesktop && mainMode !== 'ledger' ? 'hidden' : 'block'
+            }`}>
+              {/* Desktop 2-Column Responsive Dashboard for Ledger */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start pb-8">
+                {/* Left Column (lg:col-span-5): Financial Summary Card & Event Budget / Actions */}
+                <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-0">
+                  {/* FINANCIAL SUMMARY HERO CARD */}
+                  <FinancialSummaryCard
+                    transactions={currentSpaceTransactions}
+                    currencySymbol={activeSpace.currency || currentCurrency}
+                    fxRates={fxRates}
+                    isStealth={isStealth}
+                    theme={userPrefs.theme || 'dark'}
+                    isMultiCurrencyMode={isMultiCurrencyMode}
+                    secondaryCurrency={activeCurrencies.find(c => c.toUpperCase() !== (activeSpace.currency || currentCurrency).toUpperCase())}
+                  />
 
-                {/* In Event Ledger mode: Event Budget Summary & Korean Settlement Action Button */}
-                {activeSpace.id !== 'default' && (
-                  <div className="p-5 rounded-2xl border backdrop-blur-xl bg-white/[0.025] border-white/[0.06] space-y-3.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-                        <span>✦</span> 프로젝트·행사 정산 관리
-                      </span>
-                      <span className="text-xs text-slate-400 font-light tabular-nums">
-                        {activeSpace.memberCount ? `${activeSpace.memberCount}명 정산` : '참여자 미지정'}
-                      </span>
+                  {/* In Event Ledger mode: Event Budget Summary & Korean Settlement Action Button */}
+                  {activeSpace.id !== 'default' && (
+                    <div className="p-5 rounded-2xl border backdrop-blur-2xl bg-white/[0.03] border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] space-y-3.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                          <span>✦</span> 프로젝트·행사 정산 관리
+                        </span>
+                        <span className="text-xs text-slate-400 font-light tabular-nums">
+                          {activeSpace.memberCount ? `${activeSpace.memberCount}명 정산` : '참여자 미지정'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 font-light leading-relaxed">
+                        공동 회비 및 지출 영수증을 취합하여 대한민국 표준 정산 내역서(모임/행사/워크숍)를 생성합니다.
+                      </p>
+                      <button
+                        id="event-settlement-report-desktop-btn"
+                        type="button"
+                        onClick={() => setIsReportModalOpen(true)}
+                        className="w-full py-2.5 px-4 rounded-xl text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 flex items-center justify-center gap-2 active:scale-95 transition-all"
+                      >
+                        <span>📄</span>
+                        <span>공식 결산서 출력 / PDF</span>
+                      </button>
                     </div>
-                    <p className="text-xs text-slate-300 font-light leading-relaxed">
-                      공동 회비 및 지출 영수증을 취합하여 대한민국 표준 정산 내역서(모임/행사/워크숍)를 생성합니다.
-                    </p>
-                    <button
-                      id="event-settlement-report-desktop-btn"
-                      type="button"
-                      onClick={() => setIsReportModalOpen(true)}
-                      className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-slate-950 flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md shadow-emerald-500/20"
-                    >
-                      <span>📄</span>
-                      <span>공식 결산서 출력 / PDF</span>
-                    </button>
-                  </div>
-                )}
+                  )}
 
-                {/* Desktop Guidance & Quick Suggestions */}
-                <div className="hidden lg:block p-4 rounded-2xl border bg-white/[0.015] border-white/[0.05]">
+                  {/* Desktop Guidance & Quick Suggestions */}
+                  <div className="hidden lg:block p-4 rounded-2xl border bg-white/[0.03] backdrop-blur-2xl border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]">
                   <span className="text-xs font-medium text-slate-400 block mb-2.5">
                     💡 빠른 자연어 입력 추천
                   </span>
@@ -1331,7 +1333,7 @@ export function App() {
               <div className={`p-6 sm:p-8 rounded-2xl border text-center space-y-4 my-2 transition-all ${
                 isLight 
                   ? 'bg-slate-50/80 border-slate-200/80 text-slate-800' 
-                  : 'bg-white/[0.02] border-white/[0.06] text-white'
+                  : 'bg-white/[0.03] backdrop-blur-2xl border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
               }`}>
                 <div className="relative mx-auto w-12 h-12 flex items-center justify-center">
                   <div className="absolute inset-0 rounded-2xl bg-emerald-500/20 blur-xl animate-pulse" />
@@ -1553,13 +1555,14 @@ export function App() {
             </div>
           </div>
         </div>
+      </div>
       </main>
 
       {/* 3. FIXED BOTTOM DOCK (AI Omnibar & Mic/Camera Controls) */}
-      <footer className={`flex-none backdrop-blur-xl py-2 z-20 transition-colors border-t ${
+      <footer className={`flex-none backdrop-blur-2xl py-2 z-20 transition-colors border-t ${
         isLight 
           ? 'bg-white/95 border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]' 
-          : 'bg-[#0B0F17]/95 border-white/5 shadow-[0_-4px_20px_rgba(0,0,0,0.4)]'
+          : 'bg-[#08090D]/80 backdrop-blur-2xl border-white/[0.08]'
       }`}>
         <div className="w-full max-w-md lg:max-w-7xl mx-auto px-4 lg:px-8 transition-all duration-300">
         {mainMode === 'ledger' ? (
@@ -1669,14 +1672,14 @@ export function App() {
             isInputFocused 
               ? isLight
                 ? 'bg-gradient-to-r from-emerald-500 via-indigo-500 to-emerald-500 shadow-md'
-                : 'bg-gradient-to-r from-[#00F5A0] via-[#6366F1] to-[#00F5A0] shadow-[0_0_20px_rgba(0,245,160,0.2)]' 
+                : 'bg-gradient-to-r from-emerald-400 via-blue-500 to-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.15)]' 
               : isLight
                 ? 'bg-slate-200'
-                : 'bg-white/10'
+                : 'bg-white/[0.08]'
           }`}
         >
           <div className={`flex items-center gap-1.5 rounded-[15px] px-2.5 py-1 transition-colors ${
-            isLight ? 'bg-slate-50' : 'bg-[#0E1526]'
+            isLight ? 'bg-slate-50' : 'bg-[#08090D]/90 backdrop-blur-2xl'
           }`}>
             {/* Camera / Receipt Scanner Trigger */}
             <button
@@ -1687,7 +1690,7 @@ export function App() {
               className={`w-8 h-8 min-w-[32px] rounded-xl flex items-center justify-center transition-all ${
                 isLight
                   ? 'text-slate-500 hover:text-emerald-700 hover:bg-slate-200/70 active:scale-95'
-                  : 'text-[#94A3B8] hover:text-[#00F5A0] hover:bg-white/5 active:scale-95'
+                  : 'text-slate-400 hover:text-emerald-400 hover:bg-white/5 active:scale-95'
               }`}
             >
               <Camera size={16} />
@@ -1704,7 +1707,7 @@ export function App() {
                   ? 'bg-rose-500/20 text-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.5)] animate-pulse'
                   : isLight
                     ? 'text-slate-500 hover:text-emerald-700 hover:bg-slate-200/70 active:scale-95'
-                    : 'text-[#94A3B8] hover:text-[#00F5A0] hover:bg-white/5 active:scale-95'
+                    : 'text-slate-400 hover:text-emerald-400 hover:bg-white/5 active:scale-95'
               }`}
             >
               {isListening ? <MicOff size={16} /> : <Mic size={16} />}
@@ -1737,7 +1740,7 @@ export function App() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="예: 파스타 4만원 또는 $15 Starbucks"
               className={`w-full bg-transparent text-xs sm:text-sm outline-none transition-colors ${
-                isLight ? 'text-slate-950 placeholder:text-slate-400' : 'text-white placeholder:text-[#94A3B8]/60'
+                isLight ? 'text-slate-950 placeholder:text-slate-400' : 'text-white placeholder:text-slate-500'
               }`}
             />
 
@@ -1768,10 +1771,10 @@ export function App() {
               id="parse-submit-btn"
               type="submit"
               disabled={isProcessing || !input.trim() || !isOnline}
-              className="h-8 px-3 rounded-full bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-slate-950 font-medium text-xs transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1 shadow-sm shrink-0"
+              className="h-8 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-300 border border-emerald-500/30 font-medium text-xs transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1 shadow-sm shrink-0"
             >
               {isProcessing ? (
-                <Loader2 size={14} className="animate-spin text-slate-950" />
+                <Loader2 size={14} className="animate-spin text-emerald-300" />
               ) : (
                 <>
                   <Sparkles size={12} />

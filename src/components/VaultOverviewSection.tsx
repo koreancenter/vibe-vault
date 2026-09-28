@@ -593,14 +593,14 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         {/* Left Column (lg:col-span-5): Total Net Worth Hero Card & Account Allocation Chart */}
         <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-4">
           {/* TOP HERO CARD: Net Worth & Consolidated Asset Summary */}
-      <div className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 border backdrop-blur-xl transition-all ${
+      <div className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 border backdrop-blur-2xl transition-all ${
         isLight
           ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
-          : 'bg-white/[0.025] border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)] text-white'
+          : 'bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
       }`}>
         {/* Delicate Ambient Glow Accent */}
-        <div className="absolute -top-28 -right-28 w-80 h-80 bg-emerald-500/[0.03] rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-28 -left-28 w-80 h-80 bg-indigo-500/[0.03] rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-28 -right-28 w-80 h-80 bg-emerald-500/[0.04] rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-28 -left-28 w-80 h-80 bg-blue-500/[0.03] rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="space-y-1.5">
@@ -610,7 +610,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 <Lock size={12} className="text-emerald-400/90" />
                 <span>Private Vault</span>
               </span>
-              <span className="text-slate-600 font-light text-xs">·</span>
+              <span className="text-white/20 font-light text-xs">·</span>
               <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                 총 순자산
               </span>
@@ -622,7 +622,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 stealthMode ? 'blur-md select-none' : ''
               }`}>
                 <span className="text-xl font-light text-slate-400 mr-1 whitespace-nowrap">{getCurrencySymbol(currentCurrency)}</span>
-                <h1 className={`${netWorthFontSizeClass} whitespace-nowrap tabular-nums ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white tabular-nums whitespace-nowrap">
                   {Math.round(netWorth).toLocaleString()}
                 </h1>
               </div>
@@ -638,16 +638,16 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             </div>
           </div>
 
-          {/* Quick Action Buttons: Clean Pill Outlines */}
+          {/* Quick Action Buttons: Clean Outlines & Radiant Primary Accent */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               id="vault-scan-balance-btn"
               type="button"
               onClick={() => setShowScanModal(true)}
-              className={`h-8 px-3.5 rounded-full text-xs font-normal border transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
+              className={`h-9 px-3.5 rounded-xl text-xs font-medium border transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
                 isLight
                   ? 'bg-slate-900 text-white hover:bg-slate-800 border-slate-900'
-                  : 'bg-white/[0.08] hover:bg-white/[0.14] text-white border-white/15'
+                  : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30'
               }`}
             >
               <span>증권/계좌 캡처 스캔</span>
@@ -669,10 +669,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 });
                 setShowTransferModal(true);
               }}
-              className={`h-8 px-3.5 rounded-full text-xs font-normal border transition-all active:scale-95 flex items-center justify-center ${
+              className={`h-9 px-3.5 rounded-xl text-xs font-normal border transition-all active:scale-95 flex items-center justify-center ${
                 isLight
                   ? 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
-                  : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-300 border-white/10'
+                  : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 border-white/[0.08]'
               }`}
             >
               <span>계좌 간 이체</span>
@@ -682,10 +682,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               id="vault-add-account-btn"
               type="button"
               onClick={() => setShowAddModal(true)}
-              className={`h-8 px-3.5 rounded-full text-xs font-normal border transition-all active:scale-95 flex items-center justify-center ${
+              className={`h-9 px-3.5 rounded-xl text-xs font-normal border transition-all active:scale-95 flex items-center justify-center ${
                 isLight
                   ? 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
-                  : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-300 border-white/10'
+                  : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 border-white/[0.08]'
               }`}
             >
               <span>자산 추가</span>
@@ -695,13 +695,13 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
         {/* Sub-Metrics: Clean hairline columns without heavy box stacking */}
         <div className={`grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t ${
-          isLight ? 'border-slate-200/60' : 'border-white/[0.04]'
+          isLight ? 'border-slate-200/60' : 'border-t border-white/[0.05]'
         }`}>
           <div className="flex flex-col justify-between">
             <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               총 보유 자산
             </span>
-            <div className={`text-sm md:text-base font-normal text-emerald-400/90 mt-1 tabular-nums whitespace-nowrap ${stealthMode ? 'blur-sm' : ''}`}>
+            <div className={`text-sm md:text-base font-medium text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.25)] mt-1 tabular-nums whitespace-nowrap ${stealthMode ? 'blur-sm' : ''}`}>
               +{formatCurrency(totalAssets, currentCurrency)}
             </div>
           </div>
@@ -736,10 +736,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       </div>
 
       {/* ASSET ALLOCATION VISUALIZER & CLASS METRICS */}
-      <div className={`p-5 sm:p-6 rounded-2xl border backdrop-blur-xl transition-all ${
+      <div className={`p-5 sm:p-6 rounded-2xl border backdrop-blur-2xl transition-all ${
         isLight
           ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
-          : 'bg-white/[0.025] border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)] text-white'
+          : 'bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
       }`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -773,7 +773,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <div className={`rounded-xl border grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 divide-x overflow-hidden ${
               isLight 
                 ? 'bg-slate-50/70 border-slate-200/80 divide-slate-200/60' 
-                : 'bg-white/[0.015] border-white/[0.05] divide-white/[0.04]'
+                : 'bg-transparent border-white/[0.05] divide-white/[0.04]'
             }`}>
               {assetCategories.map((cat) => {
                 const amount = categoryTotals[cat.type] || 0;
@@ -863,12 +863,12 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         {accounts.length === 0 ? (
           <div className={`p-8 sm:p-12 rounded-2xl border text-center space-y-5 transition-all ${
             isLight 
-              ? 'bg-white/80 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
-              : 'bg-white/[0.02] backdrop-blur-xl border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)] text-white'
+              ? 'bg-white/80 backdrop-blur-2xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
+              : 'bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
           }`}>
             <div className="relative mx-auto w-14 h-14 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-2xl bg-blue-500/20 blur-xl animate-pulse" />
-              <div className="relative w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+              <div className="absolute inset-0 rounded-2xl bg-emerald-500/20 blur-xl animate-pulse" />
+              <div className="relative w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <Wallet size={26} />
               </div>
             </div>
@@ -887,7 +887,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 type="button"
                 id="vault-empty-add-btn"
                 onClick={() => setShowAddModal(true)}
-                className="h-8 px-4 rounded-full font-normal text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center gap-1.5 active:scale-95 transition-all shadow-md shadow-emerald-500/20"
+                className="h-9 px-4 rounded-xl font-medium text-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 active:scale-95 transition-all"
               >
                 <Plus size={14} />
                 <span>자산 계좌 직접 등록</span>
@@ -897,10 +897,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 type="button"
                 id="vault-empty-scan-btn"
                 onClick={() => setShowScanModal(true)}
-                className={`h-8 px-4 rounded-full font-normal text-xs border flex items-center gap-1.5 active:scale-95 transition-all ${
+                className={`h-9 px-4 rounded-xl font-normal text-xs border flex items-center gap-1.5 active:scale-95 transition-all ${
                   isLight 
                     ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' 
-                    : 'bg-white/[0.05] hover:bg-white/10 text-slate-200 border-white/10'
+                    : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 border-white/[0.08]'
                 }`}
               >
                 <Camera size={14} className="text-blue-400" />
@@ -911,10 +911,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 type="button"
                 id="vault-empty-sample-btn"
                 onClick={handleLoadSampleDataFromVault}
-                className={`h-8 px-4 rounded-full font-normal text-xs border flex items-center gap-1.5 active:scale-95 transition-all ${
+                className={`h-9 px-4 rounded-xl font-normal text-xs border flex items-center gap-1.5 active:scale-95 transition-all ${
                   isLight 
                     ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' 
-                    : 'bg-white/[0.05] hover:bg-white/10 text-slate-200 border-white/10'
+                    : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 border-white/[0.08]'
                 }`}
               >
                 <Sparkles size={14} className="text-amber-400" />
@@ -924,7 +924,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           </div>
         ) : filteredAccounts.length === 0 ? (
           <div className={`p-8 rounded-2xl border text-center space-y-2.5 ${
-            isLight ? 'bg-slate-50/70 border-slate-200 text-slate-500' : 'bg-white/[0.015] border-white/[0.05] text-slate-400'
+            isLight ? 'bg-slate-50/70 border-slate-200 text-slate-500' : 'bg-white/[0.03] backdrop-blur-2xl border-white/[0.08] text-slate-400'
           }`}>
             <p className="text-xs font-light">선택한 분류에 해당하는 자산 계좌가 없습니다.</p>
             <button
@@ -948,10 +948,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             return (
               <div
                 key={acc.id}
-                className={`group relative rounded-2xl p-5 border transition-all duration-150 backdrop-blur-xl ${
+                className={`group relative rounded-2xl p-5 border transition-all duration-150 backdrop-blur-2xl ${
                   isLight
                     ? 'bg-white/85 border-slate-200/80 hover:border-slate-300 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]'
-                    : 'bg-white/[0.025] border-white/[0.06] hover:border-white/[0.12] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
+                    : 'bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] hover:border-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
                 }`}
               >
                 {/* Header: Full width institution and account title */}
@@ -964,11 +964,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       >
                         {acc.institution}
                       </span>
-                      <span className="text-slate-600 font-light text-xs">·</span>
+                      <span className="text-white/20 font-light text-xs">·</span>
                       <span className={`text-xs font-light shrink-0 ${
                         acc.assetType === 'LIABILITY'
                           ? 'text-rose-400/90'
-                          : isLight ? 'text-slate-500' : 'text-slate-500'
+                          : isLight ? 'text-slate-500' : 'text-slate-400'
                       }`}>
                         {getAssetCategoryKo(acc.assetType)}
                       </span>
@@ -1009,10 +1009,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                   </div>
                 </div>
 
-                {/* Account Number / Note */}
+                {/* Account Number / Note without nested dark boxes */}
                 {(acc.accountNumberMasked || acc.note) && (
-                  <div className={`text-xs font-light mb-3 px-2.5 py-1 rounded-lg truncate ${
-                    isLight ? 'bg-slate-50 text-slate-600' : 'bg-white/[0.02] text-slate-400'
+                  <div className={`text-xs font-light mb-3 truncate pl-2 border-l ${
+                    isLight ? 'border-slate-300 text-slate-600' : 'border-white/10 text-slate-400'
                   }`}>
                     {acc.accountNumberMasked || acc.note}
                   </div>
@@ -1020,10 +1020,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
                 {/* Balance & Quick Update Prompt */}
                 <div className={`pt-3 border-t flex items-end justify-between ${
-                  isLight ? 'border-slate-200/60' : 'border-white/[0.04]'
+                  isLight ? 'border-slate-200/60' : 'border-t border-white/[0.05]'
                 }`}>
                   <div>
-                    <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>
+                    <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                       현재 잔고
                     </span>
                     <div className={`text-sm font-medium tracking-tight tabular-nums mt-0.5 ${
@@ -1039,10 +1039,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       setEditingBalanceAccount(acc);
                       setNewBalanceInput(acc.currentBalance.toString());
                     }}
-                    className={`px-3 py-1 rounded-full text-xs font-normal border transition-all active:scale-95 text-center ${
+                    className={`px-3 py-1 rounded-xl text-xs font-normal border transition-all active:scale-95 text-center ${
                       isLight
                         ? 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
-                        : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-300 border-white/10'
+                        : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border-white/[0.08]'
                     }`}
                   >
                     <span>수정</span>
@@ -1095,7 +1095,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               className={`relative w-full max-w-sm rounded-2xl p-6 shadow-2xl border ${
-                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#0B0F17]/95 text-white border-white/[0.08]'
+                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#08090D]/90 backdrop-blur-2xl text-white border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
               }`}
             >
               <div className="flex items-center justify-between mb-4">
@@ -1126,7 +1126,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     className={`w-full px-3.5 py-2.5 rounded-xl text-base font-normal tabular-nums outline-none border transition-all ${
                       isLight
                         ? 'bg-slate-50 border-slate-300 focus:border-slate-500 text-slate-900'
-                        : 'bg-white/[0.03] border-white/10 focus:border-white/25 text-white'
+                        : 'bg-white/[0.03] border-white/10 focus:border-emerald-500/40 text-white'
                     }`}
                     placeholder="0"
                     autoFocus
@@ -1161,14 +1161,14 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => setEditingBalanceAccount(null)}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-light bg-white/[0.04] hover:bg-white/[0.08] text-slate-300"
+                    className="flex-1 py-2.5 rounded-xl text-xs font-light bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]"
                   >
                     취소
                   </button>
                   <button
                     type="button"
                     onClick={handleSaveQuickBalance}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-normal bg-white/[0.12] hover:bg-white/[0.2] border border-white/20 text-white transition-all shadow-sm"
+                    className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition-all"
                   >
                     잔고 저장
                   </button>
@@ -1187,8 +1187,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className={`relative w-full max-w-md rounded-3xl p-6 shadow-2xl border ${
-                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#0F172A] text-white border-white/10'
+              className={`relative w-full max-w-md rounded-2xl p-6 shadow-2xl border ${
+                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#08090D]/90 backdrop-blur-2xl text-white border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
               }`}
             >
               <div className="flex items-center justify-between mb-4">
@@ -1365,12 +1365,12 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold outline-none border ${
                         isLight
                           ? 'bg-slate-50 border-slate-300 text-slate-900'
-                          : 'bg-black/40 border-white/15 text-white'
+                          : 'bg-white/[0.03] border-white/10 text-white'
                       }`}
                     >
                       <option value="new">+ 신규 계좌로 등록하기</option>
                       {accounts.map((acc) => (
-                        <option key={acc.id} value={acc.id}>
+                        <option key={acc.id} value={acc.id} className="bg-[#08090D] text-white">
                           {acc.institution} - {acc.accountName} (기존 ₩{acc.currentBalance.toLocaleString()})
                         </option>
                       ))}
@@ -1381,14 +1381,14 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     <button
                       type="button"
                       onClick={() => setScannedResult(null)}
-                      className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10"
+                      className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]"
                     >
                       다시 스캔
                     </button>
                     <button
                       type="button"
                       onClick={handleConfirmScannedAsset}
-                      className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"
+                      className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition-all"
                     >
                       잔고 반영 확정
                     </button>
@@ -1408,8 +1408,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className={`relative w-full max-w-sm rounded-3xl p-6 shadow-2xl border ${
-                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#0F172A] text-white border-white/10'
+              className={`relative w-full max-w-sm rounded-2xl p-6 shadow-2xl border ${
+                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#08090D]/90 backdrop-blur-2xl text-white border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
               }`}
             >
               <div className="flex items-center justify-between mb-4">
@@ -1418,7 +1418,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     <ArrowLeftRight size={18} />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold">계좌 간 자산 이체</h3>
+                    <h3 className="text-base font-medium">계좌 간 자산 이체</h3>
                     <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                       내 계좌 간 이체는 가계부 소비 지출에서 제외됩니다.
                     </p>
@@ -1439,11 +1439,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     value={transferForm.sourceId}
                     onChange={(e) => setTransferForm({ ...transferForm, sourceId: e.target.value })}
                     className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/30 border-white/15 text-white'
+                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white'
                     }`}
                   >
                     {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id}>
+                      <option key={acc.id} value={acc.id} className="bg-[#08090D] text-white">
                         {acc.institution} - {acc.accountName} (잔고 ₩{acc.currentBalance.toLocaleString()})
                       </option>
                     ))}
@@ -1456,11 +1456,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     value={transferForm.targetId}
                     onChange={(e) => setTransferForm({ ...transferForm, targetId: e.target.value })}
                     className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/30 border-white/15 text-white'
+                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white'
                     }`}
                   >
                     {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id}>
+                      <option key={acc.id} value={acc.id} className="bg-[#08090D] text-white">
                         {acc.institution} - {acc.accountName} (잔고 ₩{acc.currentBalance.toLocaleString()})
                       </option>
                     ))}
@@ -1476,8 +1476,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
                     placeholder="1000000"
                     required
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/30 border-white/15 text-white'
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-medium outline-none border ${
+                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/40'
                     }`}
                   />
                 </div>
@@ -1490,7 +1490,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     onChange={(e) => setTransferForm({ ...transferForm, note: e.target.value })}
                     placeholder="예: 미국주식 매수용 예수금 이체"
                     className={`w-full px-3 py-2 rounded-xl text-xs outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/30 border-white/15 text-white'
+                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white'
                     }`}
                   />
                 </div>
@@ -1499,13 +1499,13 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowTransferModal(false)}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10"
+                    className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]"
                   >
                     취소
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
+                    className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition-all"
                   >
                     이체 실행
                   </button>
@@ -1524,8 +1524,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className={`relative w-full max-w-sm rounded-3xl p-6 shadow-2xl border ${
-                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#0F172A] text-white border-white/10'
+              className={`relative w-full max-w-sm rounded-2xl p-6 shadow-2xl border ${
+                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#08090D]/90 backdrop-blur-2xl text-white border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
               }`}
             >
               <div className="flex items-center justify-between mb-4">
@@ -1555,11 +1555,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     value={newAccountForm.assetType}
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, assetType: e.target.value as AssetCategoryType })}
                     className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/30 border-white/15 text-white'
+                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white'
                     }`}
                   >
                     {assetCategories.map((c) => (
-                      <option key={c.type} value={c.type}>
+                      <option key={c.type} value={c.type} className="bg-[#08090D] text-white">
                         {c.label}
                       </option>
                     ))}
@@ -1575,7 +1575,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     placeholder="토스증권, 카카오페이증권, 업비트 등"
                     required
                     className={`w-full px-3 py-2 rounded-xl text-xs outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/30 border-white/15 text-white'
+                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/40'
                     }`}
                   />
                 </div>
@@ -1589,7 +1589,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     placeholder="해외주식 종합계좌, 비트코인 적립 등"
                     required
                     className={`w-full px-3 py-2 rounded-xl text-xs outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/30 border-white/15 text-white'
+                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/40'
                     }`}
                   />
                 </div>
@@ -1603,8 +1603,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, balance: e.target.value })}
                     placeholder="10000000"
                     required
-                    className={`w-full px-3 py-2 rounded-xl text-xs font-bold outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/30 border-white/15 text-white'
+                    className={`w-full px-3 py-2 rounded-xl text-xs font-medium outline-none border ${
+                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/40'
                     }`}
                   />
                 </div>
@@ -1617,7 +1617,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, note: e.target.value })}
                     placeholder="S&P 500, 배당주 위주"
                     className={`w-full px-3 py-2 rounded-xl text-xs outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/30 border-white/15 text-white'
+                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white'
                     }`}
                   />
                 </div>
@@ -1626,13 +1626,13 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10"
+                    className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]"
                   >
                     취소
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
+                    className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition-all"
                   >
                     계좌 추가
                   </button>
@@ -1650,7 +1650,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           >
             <div 
               className={`w-full max-w-xs rounded-2xl border p-4 shadow-2xl space-y-3 animate-in zoom-in-95 duration-150 ${
-                isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
+                isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#08090D]/90 backdrop-blur-2xl border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
               }`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -1676,7 +1676,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 <button
                   type="button"
                   onClick={handleConfirmDeleteAccount}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500 hover:bg-rose-400 text-white transition-all active:scale-95 shadow-sm shadow-rose-500/20"
+                  className="px-3 py-1.5 rounded-xl text-xs font-medium bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-all active:scale-95"
                 >
                   삭제하기
                 </button>

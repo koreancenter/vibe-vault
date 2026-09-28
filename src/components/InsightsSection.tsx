@@ -690,7 +690,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           <div className={`p-5 sm:p-6 rounded-2xl transition-all border ${
             isLight 
               ? 'bg-white/85 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
-              : 'bg-white/[0.025] backdrop-blur-xl border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
+              : 'bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
           }`}>
             <div className="flex items-start gap-3.5">
               <div className={`p-2 rounded-xl shrink-0 ${
@@ -722,8 +722,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 }`}>
                   {integratedDiagnosis.summary}
                 </p>
-                <div className={`mt-3 p-3.5 rounded-xl text-xs font-light flex items-start gap-2.5 ${
-                  isLight ? 'bg-slate-50 border border-slate-200/60 text-slate-700' : 'bg-white/[0.02] border border-white/[0.04] text-slate-300'
+                <div className={`mt-3 pt-3 border-t text-xs font-light flex items-start gap-2.5 ${
+                  isLight ? 'border-slate-200/60 text-slate-700' : 'border-white/[0.05] text-slate-300'
                 }`}>
                   <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
                   <span className="leading-relaxed">{integratedDiagnosis.recommendation}</span>
@@ -733,10 +733,10 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           </div>
 
           {/* Core Integrated KPI Grid (Single Flat Parent Card separated by Hairline Dividers) */}
-          <div className={`rounded-2xl border overflow-hidden grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-x transition-all backdrop-blur-xl ${
+          <div className={`rounded-2xl border overflow-hidden grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-x transition-all backdrop-blur-2xl ${
             isLight 
               ? 'bg-white/85 border-slate-200/80 divide-slate-200/60 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]' 
-              : 'bg-white/[0.025] border-white/[0.06] divide-white/[0.04] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
+              : 'bg-white/[0.03] border-white/[0.08] divide-white/[0.04] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
           }`}>
             {/* 1. 총 순자산 */}
             <div className="p-4 sm:p-5 flex flex-col justify-between">
@@ -1016,8 +1016,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
                           return (
-                            <div className={`p-2 rounded-xl border text-xs shadow-xl ${
-                              isLight ? 'bg-white/95 border-slate-200 text-slate-900' : 'bg-slate-900/95 border-white/10 text-white'
+                            <div className={`p-2 rounded-xl border text-xs shadow-xl backdrop-blur-2xl ${
+                              isLight ? 'bg-white/95 border-slate-200 text-slate-900' : 'bg-[#08090D]/90 border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
                             }`}>
                               <div className="font-normal">{data.day}일 {data.isPast ? '(실적)' : '(예측)'}</div>
                               <div className="text-emerald-400 font-normal tabular-nums">{formatMoney(data.actualBalance ?? data.projectedBalance)}</div>
@@ -1405,8 +1405,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
                           return (
-                            <div className={`p-2.5 rounded-xl border text-xs shadow-xl backdrop-blur-md ${
-                              isLight ? 'bg-white/95 border-slate-200 text-slate-900' : 'bg-slate-900/95 border-white/10 text-white'
+                            <div className={`p-2.5 rounded-xl border text-xs shadow-xl backdrop-blur-2xl ${
+                              isLight ? 'bg-white/95 border-slate-200 text-slate-900' : 'bg-[#08090D]/90 border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
                             }`}>
                               <div className="font-medium border-b border-black/5 pb-1 mb-1">
                                 {data.day}일 {data.isPast ? '(실제 실적)' : data.isToday ? '(오늘)' : '(예측)'}
