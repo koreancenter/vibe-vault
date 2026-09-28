@@ -1,31 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --surface-canvas: #08090D;
+  --surface-canvas: #090A0D;
   --surface-raised: rgba(255, 255, 255, 0.03);
   --surface-inset: rgba(0, 0, 0, 0.35);
-  --surface-subtle-border: rgba(255, 255, 255, 0.08);
+  --surface-subtle-border: rgba(255, 255, 255, 0.06);
 
-  /* Quiet Luxury Signature Accent System (Refined Muted Sage emerald-400 & Rose Coral) */
-  --color-accent: #34d399; /* refined muted sage */
+  /* Quiet Luxury Signature Accent System (Refined Muted Sage & Rose Coral) */
+  --color-accent: #34d399;
   --color-accent-hover: #10b981;
   --color-accent-subtle: rgba(52, 211, 153, 0.08);
   --color-accent-border: rgba(52, 211, 153, 0.18);
   --color-accent-glow: rgba(52, 211, 153, 0.08);
-  --color-accent-contrast: #08090D;
+  --color-accent-contrast: #090A0D;
 
-  --color-rose: #fb7185; /* refined rose coral */
+  --color-rose: #fb7185;
   --color-rose-subtle: rgba(251, 113, 133, 0.08);
   --color-rose-border: rgba(251, 113, 133, 0.18);
 }
 
 body, #root {
-  background-color: #08090D !important;
-  background-image: 
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(16, 185, 129, 0.12), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 30%, rgba(59, 130, 246, 0.05), transparent) !important;
-  background-attachment: fixed;
-  color: #F8FAFC;
+  background: #090A0D !important;
+  color: #EDEDED;
   min-height: 100vh;
   font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: -0.015em;
@@ -38,44 +34,46 @@ body, #root {
   font-variant-numeric: tabular-nums;
 }
 
-/* Universal high-end glass surface classes */
+/* Universal high-end obsidian smoky glass surface classes */
 .glass-card,
 .glass-surface {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(18, 19, 24, 0.9);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
   border-radius: 1rem;
 }
 
 /* Hairline dividers & luxury borders */
 .border-hairline {
-  border-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.04);
 }
 
 .divide-hairline > * + * {
   border-color: rgba(255, 255, 255, 0.04);
 }
 
-/* Luxury Chip Controls */
-.luxury-chip {
+/* Refined luxury pill buttons and chip controls */
+.luxury-chip,
+.pill-action-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.25rem 0.875rem;
+  padding: 0.375rem 0.875rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 400;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(255, 255, 255, 0.025);
-  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.04);
+  color: #d4d4d4;
   transition: all 0.15s ease-in-out;
 }
 
-.luxury-chip:hover {
-  background-color: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.18);
+.luxury-chip:hover,
+.pill-action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
   color: #ffffff;
 }
 
@@ -88,9 +86,9 @@ body, #root {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.15);
+  background: rgba(148, 163, 184, 0.12);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.25);
 }

@@ -847,161 +847,116 @@ export function App() {
     <div className={`h-[100dvh] w-full flex flex-col font-sans antialiased relative overflow-hidden transition-colors duration-200 ${
       isLight ? 'bg-[#F8FAFC] text-slate-900 shadow-slate-300/40' : 'bg-transparent text-slate-100'
     }`}>
-      {/* Sleek ambient background lighting */}
-      {!isLight && (
-        <>
-          <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/[0.08] rounded-full blur-[110px] pointer-events-none" />
-          <div className="absolute top-1/3 -right-24 w-72 h-72 bg-blue-500/[0.04] rounded-full blur-[100px] pointer-events-none" />
-        </>
-      )}
-
       {/* 1. TOP HEADER */}
-      <header className={`flex-none h-16 border-b backdrop-blur-2xl z-20 transition-colors ${
-        isLight ? 'bg-white/90 border-slate-200 text-slate-900' : 'bg-white/[0.02] border-b border-white/[0.08] text-white'
-      }`}>
+      <header className="flex-none h-16 border-b border-white/[0.06] bg-[#090A0D]/90 backdrop-blur-xl z-20 text-white">
         <div className="w-full max-w-md lg:max-w-7xl mx-auto h-full px-4 lg:px-8 flex items-center justify-between transition-all duration-300">
-          {/* Left: Brand & Mode Subtitle */}
-        <div className="flex items-center min-w-0">
-          <div className="flex flex-col truncate">
-            <div className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${
-                mainMode === 'vault' ? 'bg-blue-500' : mainMode === 'insights' ? 'bg-indigo-400' : 'bg-emerald-400'
-              } animate-pulse`} />
-              <h1 className={`text-base font-extrabold tracking-tight truncate ${
-                isLight ? 'text-slate-950' : 'text-white'
-              }`}>
-                Vibe Vault
-              </h1>
-            </div>
-            {mainMode === 'ledger' ? (
-              <div className="relative inline-block mt-0.5" ref={spacePopoverRef}>
-                <button
-                  id="space-switcher-btn"
-                  type="button"
-                  onClick={() => setIsSpacePopoverOpen(prev => !prev)}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all active:scale-95 ${
-                    isLight
-                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300/80 shadow-xs'
-                      : 'bg-white/[0.06] hover:bg-white/[0.1] text-white border-white/[0.12] shadow-sm backdrop-blur-md'
-                  }`}
-                  title="장부 공간 전환 (일상 장부 / 프로젝트·행사 장부)"
-                  aria-label="장부 공간 전환"
+          {/* Left: Brand & Space Switcher Pill Chip directly underneath */}
+          <div className="flex flex-col justify-center min-w-0">
+            <h1 className="text-base font-bold tracking-tight text-white leading-tight">
+              Vibe Vault
+            </h1>
+            <div className="relative inline-block mt-0.5" ref={spacePopoverRef}>
+              <button
+                id="space-switcher-btn"
+                type="button"
+                onClick={() => setIsSpacePopoverOpen(prev => !prev)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-normal bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] transition-all active:scale-95"
+                title="장부 공간 전환 (일상 장부 / 프로젝트·행사 장부)"
+                aria-label="장부 공간 전환"
+              >
+                <span className="text-emerald-400 text-xs">✦</span>
+                <span className="max-w-[120px] sm:max-w-[180px] truncate font-medium">{activeSpace.name}</span>
+                <ChevronDown size={11} className={`transition-transform text-neutral-400 opacity-70 ${isSpacePopoverOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Glassmorphic Popover Dropdown */}
+              {isSpacePopoverOpen && (
+                <div 
+                  className="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/[0.06] bg-[#121318]/95 text-white shadow-2xl z-50 p-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl"
                 >
-                  <span className="text-[#00F5A0] text-xs">✦</span>
-                  <span className="max-w-[130px] sm:max-w-[180px] truncate font-semibold">{activeSpace.name}</span>
-                  <ChevronDown size={12} className={`transition-transform opacity-70 ${isSpacePopoverOpen ? 'rotate-180' : ''}`} />
-                </button>
+                  <div className="px-3 py-1.5 flex items-center justify-between text-[11px] text-neutral-400 font-medium border-b border-white/[0.04] pb-2 mb-1">
+                    <span>장부 공간 선택</span>
+                    <span className="tabular-nums">{spaces.length}개</span>
+                  </div>
 
-                {/* Glassmorphic Popover Dropdown */}
-                {isSpacePopoverOpen && (
-                  <div 
-                    className={`absolute left-0 top-full mt-2 w-72 rounded-2xl border shadow-2xl z-50 p-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl ${
-                      isLight
-                        ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-300/60'
-                        : 'bg-[#08090D]/95 border-white/[0.08] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
-                    }`}
-                  >
-                    <div className="px-3 py-1.5 flex items-center justify-between text-[11px] text-slate-400 font-medium border-b border-white/[0.05] pb-2 mb-1">
-                      <span>장부 공간 선택</span>
-                      <span className="tabular-nums">{spaces.length}개</span>
-                    </div>
-
-                    <div className="max-h-60 overflow-y-auto space-y-1">
-                      {spaces.map((sp) => {
-                        const isCurrent = sp.id === activeSpaceId;
-                        return (
-                          <div
-                            key={sp.id}
-                            className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer group ${
-                              isCurrent
-                                ? isLight
-                                ? 'bg-emerald-50 text-emerald-950 font-semibold border border-emerald-200'
-                                : 'bg-emerald-500/15 text-emerald-300 font-semibold border border-emerald-500/30'
-                                : isLight
-                                ? 'hover:bg-slate-100 text-slate-700'
-                                : 'hover:bg-white/[0.05] text-slate-300'
-                            }`}
-                            onClick={() => {
-                              handleSelectSpace(sp);
-                              setIsSpacePopoverOpen(false);
-                            }}
-                          >
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              {isCurrent ? (
-                                <Check size={14} className="text-emerald-400 shrink-0" />
-                              ) : (
-                                <span className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0" />
-                              )}
-                              <div className="truncate flex-1">
-                                <div className="truncate font-medium">{sp.name}</div>
-                                <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1.5">
-                                  <span>{sp.currency}</span>
-                                  {sp.memberCount && <span>· {sp.memberCount}명 정산</span>}
-                                  {sp.id === 'default' && <span className="opacity-70">(기본)</span>}
-                                </div>
+                  <div className="max-h-60 overflow-y-auto space-y-1">
+                    {spaces.map((sp) => {
+                      const isCurrent = sp.id === activeSpaceId;
+                      return (
+                        <div
+                          key={sp.id}
+                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer group ${
+                            isCurrent
+                              ? 'bg-emerald-500/15 text-emerald-300 font-semibold border border-emerald-500/30'
+                              : 'hover:bg-white/[0.05] text-neutral-300'
+                          }`}
+                          onClick={() => {
+                            handleSelectSpace(sp);
+                            setIsSpacePopoverOpen(false);
+                          }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {isCurrent ? (
+                              <Check size={14} className="text-emerald-400 shrink-0" />
+                            ) : (
+                              <span className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0" />
+                            )}
+                            <div className="truncate flex-1">
+                              <div className="truncate font-medium">{sp.name}</div>
+                              <div className="text-[10px] text-neutral-400 font-normal flex items-center gap-1.5">
+                                <span>{sp.currency}</span>
+                                {sp.memberCount && <span>· {sp.memberCount}명 정산</span>}
+                                {sp.id === 'default' && <span className="opacity-70">(기본)</span>}
                               </div>
                             </div>
-
-                            {sp.id !== 'default' && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteSpace(sp.id);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-all shrink-0 ml-1"
-                                title="장부 삭제"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
                           </div>
-                        );
-                      })}
-                    </div>
 
-                    {/* Action Button: [+ 새 프로젝트/행사 장부 만들기] */}
-                    <div className="pt-2 mt-1 border-t border-white/[0.05]">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsSpacePopoverOpen(false);
-                          setIsNewSpaceModalOpen(true);
-                        }}
-                        className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 active:scale-95 transition-all"
-                      >
-                        <span>+ 새 프로젝트/행사 장부 만들기</span>
-                      </button>
-                    </div>
+                          {sp.id !== 'default' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSpace(sp.id);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition-all shrink-0 ml-1"
+                              title="장부 삭제"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-            ) : (
-              <span className={`text-xs font-medium truncate ${
-                isLight ? 'text-slate-500' : 'text-[#94A3B8]'
-              }`}>
-                {mainMode === 'vault' 
-                  ? '프라이빗 자산 금고 & 포트폴리오' 
-                  : '통합 자산 & 소비 인사이트'}
-              </span>
-            )}
+
+                  {/* Action Button: [+ 새 프로젝트/행사 장부 만들기] */}
+                  <div className="pt-2 mt-1 border-t border-white/[0.04]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSpacePopoverOpen(false);
+                        setIsNewSpaceModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] active:scale-95 transition-all"
+                    >
+                      <span>+ 새 프로젝트/행사 장부 만들기</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
           {/* Center: Desktop Segmented Tab Controls (hidden on mobile, visible on lg) */}
-          <nav className="hidden lg:flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md">
+          <nav className="hidden lg:flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06] backdrop-blur-md">
             <button
               id="desktop-nav-vault-btn"
               type="button"
               onClick={() => setMainMode('vault')}
               className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                 mainMode === 'vault'
-                  ? isLight
-                    ? 'bg-white text-slate-900 shadow-sm font-semibold'
-                    : 'bg-white/10 text-white shadow-sm font-semibold'
-                  : isLight
-                    ? 'text-slate-500 hover:text-slate-900'
-                    : 'text-slate-400 hover:text-white'
+                  ? 'bg-white/10 text-white shadow-xs font-semibold'
+                  : 'text-neutral-400 hover:text-white'
               }`}
             >
               <ShieldCheck size={14} className={mainMode === 'vault' ? 'text-blue-400' : ''} />
@@ -1013,12 +968,8 @@ export function App() {
               onClick={() => setMainMode('insights')}
               className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                 mainMode === 'insights'
-                  ? isLight
-                    ? 'bg-white text-slate-900 shadow-sm font-semibold'
-                    : 'bg-white/10 text-white shadow-sm font-semibold'
-                  : isLight
-                    ? 'text-slate-500 hover:text-slate-900'
-                    : 'text-slate-400 hover:text-white'
+                  ? 'bg-white/10 text-white shadow-xs font-semibold'
+                  : 'text-neutral-400 hover:text-white'
               }`}
             >
               <Sparkles size={14} className={mainMode === 'insights' ? 'text-indigo-400' : ''} />
@@ -1030,12 +981,8 @@ export function App() {
               onClick={() => setMainMode('ledger')}
               className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                 mainMode === 'ledger'
-                  ? isLight
-                    ? 'bg-white text-slate-900 shadow-sm font-semibold'
-                    : 'bg-white/10 text-white shadow-sm font-semibold'
-                  : isLight
-                    ? 'text-slate-500 hover:text-slate-900'
-                    : 'text-slate-400 hover:text-white'
+                  ? 'bg-white/10 text-white shadow-xs font-semibold'
+                  : 'text-neutral-400 hover:text-white'
               }`}
             >
               <Wallet size={14} className={mainMode === 'ledger' ? 'text-emerald-400' : ''} />
@@ -1043,8 +990,8 @@ export function App() {
             </button>
           </nav>
 
-          {/* Right action controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Right action controls: consolidated to prevent wrapping with flex items-center gap-2 */}
+          <div className="flex items-center gap-2 shrink-0">
             {/* Quick-Cycle Currency Chip: [ 🌐 IDR ] - Progressive multi-currency mode only */}
             {isMultiCurrencyMode && (
               <button
@@ -1056,66 +1003,40 @@ export function App() {
                   setIsCurrencyModalOpen(true);
                 }}
                 title={`클릭: 등록된 통화 빠른 순환 (${activeCurrencies.join(' → ')}) · 우클릭: 통화 관리`}
-                className={`h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-medium transition-all active:scale-95 group ${
-                  isLight
-                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                    : 'bg-white/[0.05] hover:bg-white/[0.1] text-slate-200 border-white/[0.08] hover:border-white/20'
-                }`}
+                className="h-8 px-2.5 rounded-full border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white flex items-center gap-1.5 text-xs transition-all active:scale-95 group"
                 aria-label="통화 빠른 전환"
               >
-                <Globe size={13} className="text-slate-400 group-hover:text-emerald-400 transition-colors" />
-                <span className="tabular-nums font-semibold tracking-tight whitespace-nowrap">{currentCurrency}</span>
+                <Globe size={13} className="text-neutral-400 group-hover:text-emerald-400 transition-colors" />
+                <span className="tabular-nums font-medium tracking-tight whitespace-nowrap">{currentCurrency}</span>
                 {activeCurrencies.length > 1 && (
-                  <span className="text-[10px] text-slate-400 font-normal opacity-60 tabular-nums">
+                  <span className="text-[10px] text-neutral-500 font-normal opacity-70 tabular-nums">
                     ({activeCurrencies.length})
                   </span>
                 )}
               </button>
             )}
 
-            {/* Stealth Mode Toggle */}
-            <button
-              type="button"
-              onClick={toggleStealthMode}
-              title={isStealth ? '금액 보이기' : '금액 숨기기 (스텔스 모드)'}
-              className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all active:scale-95 ${
-                isStealth 
-                  ? isLight 
-                    ? 'bg-emerald-100 text-emerald-800' 
-                    : 'bg-[#00F5A0]/20 text-[#00F5A0]'
-                  : isLight
-                    ? 'bg-slate-100 text-slate-600 hover:text-slate-950 hover:bg-slate-200'
-                    : 'bg-white/[0.06] text-[#94A3B8] hover:text-white hover:bg-white/10'
-              }`}
-            >
-              {isStealth ? <EyeOff size={15} /> : <Eye size={15} />}
-            </button>
-
-            {/* Dedicated Lock Vault / Logout Button */}
+            {/* Dedicated Lock Vault / Logout Button: [ 🔒 ] */}
             <button
               id="quick-vault-lock-btn"
               type="button"
               onClick={handleLockVault}
               title="금고 잠그기 (로그아웃)"
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06] active:scale-95 flex items-center justify-center"
+              className="w-8 h-8 rounded-full border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white transition-all active:scale-95 flex items-center justify-center"
               aria-label="금고 잠그기 (로그아웃)"
             >
-              <Lock size={15} />
+              <Lock size={14} />
             </button>
 
-            {/* Settings Gear */}
+            {/* Settings Gear: [ ⚙️ ] */}
             <button
               id="settings-gear-btn"
               type="button"
               onClick={() => handleOpenSettingsModal('assets')}
-              className={`w-8 h-8 flex items-center justify-center rounded-xl active:scale-95 transition-all ${
-                isLight
-                  ? 'bg-slate-100 text-slate-600 hover:text-slate-950 hover:bg-slate-200'
-                  : 'bg-white/[0.06] text-[#94A3B8] hover:text-white hover:bg-white/10'
-              }`}
+              className="w-8 h-8 rounded-full border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white transition-all active:scale-95 flex items-center justify-center"
               aria-label="설정"
             >
-              <Settings size={15} />
+              <Settings size={14} />
             </button>
           </div>
         </div>

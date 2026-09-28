@@ -1588,9 +1588,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     }}
                     className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.04] cursor-pointer select-none group"
                   >
-                    <span className="text-xs font-semibold group-hover:text-emerald-400 transition-colors text-slate-200">
-                      스텔스 모드 (금액 숨김)
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {stealthMode ? (
+                        <EyeOff size={15} className="text-emerald-400 shrink-0" />
+                      ) : (
+                        <Eye size={15} className="text-neutral-400 group-hover:text-white transition-colors shrink-0" />
+                      )}
+                      <div>
+                        <span className="text-xs font-semibold group-hover:text-emerald-400 transition-colors text-slate-200 block">
+                          스텔스 모드 (금액 숨김)
+                        </span>
+                        <span className="text-[11px] text-neutral-500 font-light block">
+                          {stealthMode ? '모든 잔고 및 금액이 마스킹되어 보호 중입니다' : '화면에 모든 금액이 표시됩니다'}
+                        </span>
+                      </div>
+                    </div>
                     <button
                       id="toggle-stealth-mode"
                       type="button"
