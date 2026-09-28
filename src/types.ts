@@ -45,6 +45,20 @@ export interface Asset {
   billingDay?: number; // 1 to 31 (e.g. credit card billing cycle day)
   enabled: boolean;
   note?: string;
+  currency?: SupportedCurrency;
+  balance?: number;
+}
+
+export interface LedgerSpace {
+  id: string; // 'default' for everyday living, UUID for custom projects/events
+  name: string; // e.g., "일상 장부", "동창회 유럽 여행"
+  currency: string; // e.g., 'KRW', 'EUR', 'IDR'
+  budget?: number; // target budget or collected dues
+  memberCount?: number; // number of participants for N-split calculations
+  startDate?: string;
+  endDate?: string;
+  isArchived?: boolean;
+  createdAt: string;
 }
 
 export interface Transaction {
@@ -63,6 +77,8 @@ export interface Transaction {
   sourceAccountId?: string; // Source account for account-to-account transfer
   targetAccountId?: string; // Destination account for account-to-account transfer
   isInternalTransfer?: boolean; // Transfer between user's own accounts
+  spaceId?: string; // defaults to 'default'
+  note?: string; // for settlement remarks, receipt info, or payer
 }
 
 export interface CategoryBudget {

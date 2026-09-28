@@ -568,7 +568,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
   ];
 
   return (
-    <div className="space-y-4 pb-8">
+    <div className="pb-8">
       {/* Toast Notification */}
       <AnimatePresence>
         {notification && (
@@ -588,7 +588,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         )}
       </AnimatePresence>
 
-      {/* TOP HERO CARD: Net Worth & Consolidated Asset Summary */}
+      {/* 2-Column Responsive Dashboard Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+        {/* Left Column (lg:col-span-5): Total Net Worth Hero Card & Account Allocation Chart */}
+        <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-4">
+          {/* TOP HERO CARD: Net Worth & Consolidated Asset Summary */}
       <div className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 border backdrop-blur-xl transition-all ${
         isLight
           ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
@@ -809,9 +813,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           </div>
         )}
       </div>
+        </div>
 
-      {/* FILTER TABS & ACCOUNT CARDS LIST */}
-      <div className="space-y-4 pt-1">
+        {/* Right Column (lg:col-span-7): Account List with Detailed Breakdowns */}
+        <div className="lg:col-span-7 space-y-4 pt-1">
         <div className="flex items-center justify-between flex-wrap gap-2">
           {/* Pill-shaped filter buttons with gentle active outlines */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
@@ -1078,6 +1083,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           })}
         </div>
         )}
+        </div>
       </div>
 
       {/* QUICK BALANCE EDIT MODAL */}

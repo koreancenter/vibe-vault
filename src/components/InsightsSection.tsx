@@ -683,8 +683,10 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
 
       {/* TAB A: 통합 요약 (Unified Integrated Briefing) */}
       {(activeTab === 'all') && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          {/* Integrated AI CFO Diagnosis Card */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start animate-in fade-in duration-150">
+          {/* Left Column (lg:col-span-5): CFO Executive Summary & Savings Rate / Runway gauges */}
+          <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-4">
+            {/* Integrated AI CFO Diagnosis Card */}
           <div className={`p-5 sm:p-6 rounded-2xl transition-all border ${
             isLight 
               ? 'bg-white/85 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
@@ -951,10 +953,13 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               )}
             </div>
           </div>
+        </div>
 
-          {/* Quick Embedded Donut Chart & Cashflow Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Spending Category Donut */}
+        {/* Right Column (lg:col-span-7): Category Donut Chart, Monthly Trends, and Cashflow projections */}
+        <div className="lg:col-span-7 space-y-4">
+            {/* Quick Embedded Donut Chart & Cashflow Summary Side-by-Side */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Spending Category Donut */}
             <div className={`p-5 rounded-2xl transition-all ${
               isLight 
                 ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 text-slate-900 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)]' 
@@ -1029,7 +1034,30 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Monthly Trends Chart Card */}
+          <div className={`p-4 sm:p-5 rounded-2xl transition-all ${
+            isLight 
+              ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 text-slate-900 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)]' 
+              : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className={`text-xs font-normal tracking-wide ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
+                일별 지출 추이
+              </h3>
+              <span className="text-[11px] font-light text-slate-400">
+                {format(selectedMonth, 'yyyy년 M월')}
+              </span>
+            </div>
+            <MonthlyTrendsChart
+              transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
+              currencySymbol={currentCurrency}
+              isStealth={isStealth}
+              embedded={true}
+            />
+          </div>
         </div>
+      </div>
       )}
 
       {/* TAB B: 자산 포트폴리오 분석 (Asset Allocation & Portfolio Deep Dive) */}

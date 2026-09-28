@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { Transaction, AssetAccount, DebtItem } from './types';
+import { Transaction, AssetAccount, DebtItem, LedgerSpace } from './types';
 import {
   encryptTransaction,
   decryptTransaction,
@@ -17,6 +17,13 @@ import {
   sanitizeAssetAccountInput,
   sanitizeDebtItemInput
 } from './utils';
+
+export const DEFAULT_SPACE: LedgerSpace = {
+  id: 'default',
+  name: '일상 장부',
+  currency: 'KRW',
+  createdAt: new Date().toISOString(),
+};
 
 export const SAMPLE_DEBT_ITEMS: DebtItem[] = [
   {
@@ -265,13 +272,20 @@ interface VibeVaultDB extends DBSchema {
       'by-counterparty': string;
     };
   };
+  spaces: {
+    key: string;
+    value: LedgerSpace;
+    indexes: {
+      'by-created': string;
+    };
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<VibeVaultDB>>;
 
 export function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<VibeVaultDB>('vibe-vault-db', 4, {
+    dbPromise = openDB<VibeVaultDB>('vibe-vault-db', 5, {
       upgrade(db, oldVersion, _newVersion, transaction) {
         let txStore;
         if (oldVersion < 1) {
@@ -312,6 +326,22 @@ export function getDB() {
             });
             debtStore.createIndex('by-type', 'type');
             debtStore.createIndex('by-counterparty', 'counterpartyOrBank');
+          }
+        }
+
+        // Migration to Schema v5: Multi-Ledger Spaces Store
+        if (oldVersion < 5) {
+          if (!db.objectStoreNames.contains('spaces')) {
+            const spaceStore = db.createObjectStore('spaces', {
+              keyPath: 'id',
+            });
+            spaceStore.createIndex('by-created', 'createdAt');
+            spaceStore.put({
+              id: 'default',
+              name: '일상 장부',
+              currency: 'KRW',
+              createdAt: new Date().toISOString(),
+            });
           }
         }
       },
@@ -698,6 +728,51 @@ export async function executeReceivableRecovery(
 }
 
 /**
+ * Multi-Ledger Space Persistence (프로젝트 / 행사 장부)
+ */
+export async function getSpaces(): Promise<LedgerSpace[]> {
+  const db = await getDB();
+  let spaces: LedgerSpace[] = [];
+  try {
+    spaces = await db.getAll('spaces');
+  } catch (err) {
+    console.warn('[db] Failed to getAll spaces:', err);
+  }
+  if (!spaces || spaces.length === 0) {
+    const defaultSpace = { ...DEFAULT_SPACE, createdAt: new Date().toISOString() };
+    await db.put('spaces', defaultSpace);
+    return [defaultSpace];
+  }
+  if (!spaces.some(s => s.id === 'default')) {
+    const defaultSpace = { ...DEFAULT_SPACE, createdAt: new Date().toISOString() };
+    await db.put('spaces', defaultSpace);
+    spaces.unshift(defaultSpace);
+  }
+  return spaces;
+}
+
+export async function createSpace(space: LedgerSpace): Promise<void> {
+  const db = await getDB();
+  await db.put('spaces', space);
+}
+
+export async function deleteSpace(id: string): Promise<void> {
+  if (id === 'default') return; // Cannot delete default space
+  const db = await getDB();
+  await db.delete('spaces', id);
+  // Clean up all transactions belonging to this space
+  try {
+    const allTxs = await getAllTransactions();
+    const spaceTxs = allTxs.filter(t => t.spaceId === id);
+    for (const t of spaceTxs) {
+      await deleteTransaction(t.id);
+    }
+  } catch (err) {
+    console.warn('[db] Error cleaning up transactions for space:', id, err);
+  }
+}
+
+/**
  * Loads realistic sample portfolio data (5 asset accounts, 2 debts, 10 transactions)
  * into IndexedDB for previewing and testing dashboard charts.
  */
@@ -757,16 +832,23 @@ export async function loadSampleData(): Promise<{
 }
 
 /**
- * Completely wipes all IndexedDB stores (transactions, accounts, debts),
+ * Completely wipes all IndexedDB stores (transactions, accounts, debts, spaces),
  * evicts browser CacheStorage, clears session/localStorage settings,
  * and resets vault security state to an absolute clean zero slate (₩0).
  */
 export async function resetAllDataToZero(): Promise<void> {
   const db = await getDB();
-  const tx = db.transaction(['transactions', 'assetAccounts', 'debts'], 'readwrite');
+  const tx = db.transaction(['transactions', 'assetAccounts', 'debts', 'spaces'], 'readwrite');
   await tx.objectStore('transactions').clear();
   await tx.objectStore('assetAccounts').clear();
   await tx.objectStore('debts').clear();
+  await tx.objectStore('spaces').clear();
+  await tx.objectStore('spaces').put({
+    id: 'default',
+    name: '일상 장부',
+    currency: 'KRW',
+    createdAt: new Date().toISOString(),
+  });
   await tx.done;
 
   // Clear related localStorage flags
@@ -776,6 +858,7 @@ export async function resetAllDataToZero(): Promise<void> {
     localStorage.removeItem('vibe_last_export_date');
     localStorage.removeItem('vibe_engine_config');
     localStorage.removeItem('vibe_user_preferences');
+    localStorage.removeItem('vibe_active_space_id');
   }
 
   // Clear session storage flags
@@ -800,10 +883,17 @@ export async function resetAllDataToZero(): Promise<void> {
 registerGuestWipeHandler(async () => {
   try {
     const db = await getDB();
-    const tx = db.transaction(['transactions', 'assetAccounts', 'debts'], 'readwrite');
+    const tx = db.transaction(['transactions', 'assetAccounts', 'debts', 'spaces'], 'readwrite');
     await tx.objectStore('transactions').clear();
     await tx.objectStore('assetAccounts').clear();
     await tx.objectStore('debts').clear();
+    await tx.objectStore('spaces').clear();
+    await tx.objectStore('spaces').put({
+      id: 'default',
+      name: '일상 장부',
+      currency: 'KRW',
+      createdAt: new Date().toISOString(),
+    });
     await tx.done;
   } catch (err) {
     console.warn('[Ephemeral Guest Mode] IndexedDB clear failed:', err);
@@ -820,10 +910,17 @@ export async function ensureCleanSlateIfGuest(): Promise<void> {
     if (!sessionStorage.getItem('vibe_active_guest_session')) {
       try {
         const db = await getDB();
-        const tx = db.transaction(['transactions', 'assetAccounts', 'debts'], 'readwrite');
+        const tx = db.transaction(['transactions', 'assetAccounts', 'debts', 'spaces'], 'readwrite');
         await tx.objectStore('transactions').clear();
         await tx.objectStore('assetAccounts').clear();
         await tx.objectStore('debts').clear();
+        await tx.objectStore('spaces').clear();
+        await tx.objectStore('spaces').put({
+          id: 'default',
+          name: '일상 장부',
+          currency: 'KRW',
+          createdAt: new Date().toISOString(),
+        });
         await tx.done;
       } catch (err) {
         console.warn('[Ephemeral Guest Mode] Startup clear error:', err);
