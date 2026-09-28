@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { Transaction, FxRates } from '../types';
 import { subMonths, isSameMonth, isSameYear, parseISO, format } from 'date-fns';
-import { ArrowRight } from 'lucide-react';
-import { convertCurrency, DEFAULT_FX_RATES, getCurrencySymbol } from '../utils';
+import { convertCurrency, DEFAULT_FX_RATES, getCurrencySymbol, getDualCurrencyComparison } from '../utils';
 
 interface FinancialSummaryCardProps {
   transactions: Transaction[];
@@ -10,6 +9,8 @@ interface FinancialSummaryCardProps {
   fxRates?: FxRates;
   isStealth?: boolean;
   theme?: 'light' | 'dark';
+  secondaryCurrency?: string;
+  isMultiCurrencyMode?: boolean;
 }
 
 export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
@@ -18,6 +19,8 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   fxRates = DEFAULT_FX_RATES,
   isStealth = false,
   theme = 'dark',
+  secondaryCurrency,
+  isMultiCurrencyMode = false,
 }) => {
   const isLight = theme === 'light';
   const currSymbol = getCurrencySymbol(currencySymbol);
@@ -101,6 +104,20 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   const currentMonthName = format(now, 'M월');
   const prevMonthName = format(prevMonthDate, 'M월');
 
+  // Dual Currency Comparison (Primary + Secondary e.g. IDR + KRW)
+  const dualCurrency = useMemo(() => {
+    return getDualCurrencyComparison(currentSpending, currencySymbol, fxRates, secondaryCurrency);
+  }, [currentSpending, currencySymbol, fxRates, secondaryCurrency]);
+
+  // Dynamic Font Scaling:
+  // If formatted value > 12 characters: reduce size to text-xl md:text-2xl font-light tracking-tight
+  // If formatted value <= 12 characters: retain text-2xl md:text-3xl font-light tracking-tight
+  const formattedHeroAmount = `${currSymbol} ${currentSpending.toLocaleString()}`;
+  const isLongAmount = formattedHeroAmount.length > 12;
+  const heroFontSizeClass = isLongAmount
+    ? 'text-xl md:text-2xl font-light tracking-tight'
+    : 'text-2xl md:text-3xl font-light tracking-tight';
+
   return (
     <section 
       id="financial-summary-card"
@@ -167,20 +184,22 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         </div>
       </div>
 
-      {/* Clean hairline-divided comparison metrics */}
-      <div className={`grid grid-cols-2 sm:grid-cols-3 gap-4 pt-3.5 border-t ${
+      {/* Re-balanced comparison metrics grid:
+          On mobile: "이번 달" takes the top full width (col-span-2) so high-denomination amounts never wrap.
+          On desktop: sm:grid-cols-[1fr_1.45fr_1fr] gives "이번 달" ample 1.45fr horizontal space. */}
+      <div className={`grid grid-cols-2 sm:grid-cols-[1fr_1.45fr_1fr] gap-4 pt-3.5 border-t ${
         isLight ? 'border-slate-200/60' : 'border-white/[0.04]'
       }`}>
         {/* Previous Month Spending */}
-        <div className="flex flex-col justify-between">
-          <span className={`text-xs font-light ${
+        <div className="order-2 sm:order-1 col-span-1 flex flex-col justify-between min-w-0">
+          <span className={`text-xs font-light truncate ${
             isLight ? 'text-slate-500' : 'text-slate-400'
           }`}>
             지난달 ({prevMonthName})
           </span>
-          <div className={`mt-1.5 flex items-baseline ${isStealth ? 'blur-xs select-none' : ''}`}>
-            <span className="text-base font-light text-slate-500 mr-0.5">{currSymbol}</span>
-            <span className={`text-lg sm:text-xl font-light tabular-nums ${
+          <div className={`mt-1.5 flex items-baseline whitespace-nowrap tabular-nums min-w-0 ${isStealth ? 'blur-xs select-none' : ''}`}>
+            <span className="text-base font-light text-slate-500 mr-1 whitespace-nowrap">{currSymbol}</span>
+            <span className={`text-base sm:text-lg md:text-xl font-light tabular-nums whitespace-nowrap ${
               isLight ? 'text-slate-700' : 'text-slate-300'
             }`}>
               {prevSpending.toLocaleString()}
@@ -188,30 +207,41 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           </div>
         </div>
 
-        {/* Current Month Spending (Hero Number) */}
-        <div className="flex flex-col justify-between">
-          <span className={`text-xs font-light ${
+        {/* Current Month Spending (Hero Number with ample horizontal space & dual-currency comparison) */}
+        <div className="order-1 sm:order-2 col-span-2 sm:col-span-1 flex flex-col justify-between min-w-0">
+          <span className={`text-xs font-light truncate ${
             isLight ? 'text-slate-500' : 'text-slate-400'
           }`}>
             이번 달 ({currentMonthName})
           </span>
-          <div className={`mt-1.5 flex items-baseline ${isStealth ? 'blur-xs select-none' : ''}`}>
-            <span className="text-xl font-light text-slate-400 mr-1">{currSymbol}</span>
-            <span className={`text-3xl md:text-4xl font-light tracking-tight tabular-nums ${
-              status === 'better'
-                ? isLight ? 'text-emerald-700' : 'text-emerald-400/90'
-                : status === 'worse'
-                ? isLight ? 'text-rose-700' : 'text-rose-400/90'
-                : isLight ? 'text-slate-900' : 'text-white'
-            }`}>
-              {currentSpending.toLocaleString()}
-            </span>
+          <div className="mt-1.5 flex flex-col justify-start min-w-0">
+            <div className={`flex items-baseline whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
+              <span className="text-lg md:text-xl font-light text-slate-400 mr-1 whitespace-nowrap">{currSymbol}</span>
+              <span className={`${heroFontSizeClass} whitespace-nowrap tabular-nums ${
+                status === 'better'
+                  ? isLight ? 'text-emerald-700' : 'text-emerald-400/90'
+                  : status === 'worse'
+                  ? isLight ? 'text-rose-700' : 'text-rose-400/90'
+                  : isLight ? 'text-slate-900' : 'text-white'
+              }`}>
+                {currentSpending.toLocaleString()}
+              </span>
+            </div>
+
+            {/* Native Dual-Currency Comparison Sub-line (Multi-currency mode only) */}
+            {isMultiCurrencyMode && dualCurrency && (
+              <div className={`mt-1 ${isStealth ? 'blur-xs select-none' : ''}`}>
+                <span className="text-xs text-slate-400 font-light whitespace-nowrap tabular-nums">
+                  ≈ {dualCurrency.secondaryFormatted} · 환율 {dualCurrency.rateText}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Difference Amount */}
-        <div className="col-span-2 sm:col-span-1 flex flex-col justify-between">
-          <span className={`text-xs font-light ${
+        <div className="order-3 sm:order-3 col-span-1 sm:col-span-1 flex flex-col justify-between min-w-0">
+          <span className={`text-xs font-light truncate ${
             status === 'better'
               ? isLight ? 'text-emerald-700' : 'text-emerald-400/90'
               : status === 'worse'
@@ -220,18 +250,18 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           }`}>
             전월 대비 변동
           </span>
-          <div className={`flex items-baseline gap-1.5 mt-1.5 ${isStealth ? 'blur-xs select-none' : ''}`}>
-            <span className={`text-sm font-medium tracking-tight tabular-nums ${
+          <div className={`flex flex-wrap items-baseline gap-1 mt-1.5 whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
+            <span className={`text-sm md:text-base font-medium tracking-tight tabular-nums whitespace-nowrap ${
               status === 'better'
                 ? isLight ? 'text-emerald-700' : 'text-emerald-400/90'
                 : status === 'worse'
                 ? isLight ? 'text-rose-700' : 'text-rose-400/90'
                 : isLight ? 'text-slate-800' : 'text-white'
             }`}>
-              {diff > 0 ? '+' : diff < 0 ? '-' : ''}{currSymbol}{Math.abs(diff).toLocaleString()}
+              {diff > 0 ? '+' : diff < 0 ? '-' : ''}{currSymbol} {Math.abs(diff).toLocaleString()}
             </span>
             {percentChange > 0 && (
-              <span className={`text-xs font-light tabular-nums ${
+              <span className={`text-xs font-light tabular-nums whitespace-nowrap ${
                 status === 'better' ? (isLight ? 'text-emerald-700' : 'text-emerald-400/90') : (isLight ? 'text-rose-700' : 'text-rose-400/90')
               }`}>
                 ({diff < 0 ? '▼' : '▲'}{percentChange}%)

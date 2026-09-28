@@ -34,11 +34,9 @@ export function useUserCurrencies(
 ): UseUserCurrenciesReturn {
   const [activeCurrencies, setActiveCurrencies] = useState<string[]>(() => {
     const list = getUserActiveCurrencies();
-    // Ensure currently selected currency is always in the active list
-    if (currentCurrency && !list.includes(currentCurrency.toUpperCase())) {
-      const merged = [currentCurrency.toUpperCase(), ...list];
-      saveUserActiveCurrencies(merged);
-      return merged;
+    const upper = currentCurrency?.toUpperCase();
+    if (upper && !list.includes(upper)) {
+      return [upper, ...list];
     }
     return list;
   });
@@ -60,6 +58,16 @@ export function useUserCurrencies(
       });
     }
   }, [currentCurrency]);
+
+  // Keep active currencies in sync with storage changes
+  useEffect(() => {
+    const handleStorage = () => {
+      const list = getUserActiveCurrencies();
+      setActiveCurrencies(list);
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const clearError = useCallback(() => {
     setActiveError(null);

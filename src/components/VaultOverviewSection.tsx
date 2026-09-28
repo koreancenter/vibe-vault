@@ -46,6 +46,7 @@ import {
   convertCurrency, 
   formatCurrency, 
   getCurrencySymbol,
+  getDualCurrencyComparison,
   getAssetCategoryKo, 
   ASSET_CATEGORY_NAMES_KO, 
   AIEngineConfig, 
@@ -65,6 +66,7 @@ interface VaultOverviewSectionProps {
   stealthMode?: boolean;
   theme?: 'light' | 'dark' | 'system';
   onTransactionAdded?: () => void;
+  isMultiCurrencyMode?: boolean;
 }
 
 const INSTITUTION_COLORS: Record<string, { bg: string; text: string; border: string; badge: string }> = {
@@ -112,7 +114,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
   fxRates,
   stealthMode = false,
   theme = 'dark',
-  onTransactionAdded
+  onTransactionAdded,
+  isMultiCurrencyMode = false,
 }) => {
   const isLight = theme === 'light';
   const [accounts, setAccounts] = useState<AssetAccount[]>([]);
@@ -254,6 +257,18 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       categoryTotals: catMap,
     };
   }, [accounts, currentCurrency, fxRates]);
+
+  // Dual Currency Comparison for Net Worth (Primary + Secondary e.g. IDR + KRW)
+  const dualCurrency = useMemo(() => {
+    return getDualCurrencyComparison(Math.round(netWorth), currentCurrency, fxRates);
+  }, [netWorth, currentCurrency, fxRates]);
+
+  // Dynamic Font Scaling for Net Worth
+  const formattedNetWorth = `${getCurrencySymbol(currentCurrency)} ${Math.round(netWorth).toLocaleString()}`;
+  const isLongNetWorth = formattedNetWorth.length > 12;
+  const netWorthFontSizeClass = isLongNetWorth
+    ? 'text-2xl md:text-3xl font-light tracking-tight'
+    : 'text-3xl md:text-4xl font-light tracking-tight';
 
   // Filtered Accounts
   const filteredAccounts = useMemo(() => {
@@ -597,14 +612,25 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               </span>
             </div>
 
-            {/* Net Worth Hero Number: Light, Sharp & Tabular */}
-            <div className="flex items-baseline pt-0.5">
-              <span className="text-xl font-light text-slate-400 mr-1">{getCurrencySymbol(currentCurrency)}</span>
-              <h1 className={`text-3xl md:text-4xl font-light tracking-tight tabular-nums ${
+            {/* Net Worth Hero Number: Light, Sharp, Tabular & No-Wrap */}
+            <div className="flex flex-col justify-start min-w-0">
+              <div className={`flex items-baseline pt-0.5 whitespace-nowrap tabular-nums ${
                 stealthMode ? 'blur-md select-none' : ''
-              } ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                {Math.round(netWorth).toLocaleString()}
-              </h1>
+              }`}>
+                <span className="text-xl font-light text-slate-400 mr-1 whitespace-nowrap">{getCurrencySymbol(currentCurrency)}</span>
+                <h1 className={`${netWorthFontSizeClass} whitespace-nowrap tabular-nums ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  {Math.round(netWorth).toLocaleString()}
+                </h1>
+              </div>
+
+              {/* Native Dual-Currency Comparison Sub-line (Multi-currency mode only) */}
+              {isMultiCurrencyMode && dualCurrency && (
+                <div className={`mt-1 ${stealthMode ? 'blur-xs select-none' : ''}`}>
+                  <span className="text-xs text-slate-400 font-light whitespace-nowrap tabular-nums">
+                    ≈ {dualCurrency.secondaryFormatted} · 환율 {dualCurrency.rateText}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -671,7 +697,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               총 보유 자산
             </span>
-            <div className={`text-sm md:text-base font-normal text-emerald-400/90 mt-1 tabular-nums ${stealthMode ? 'blur-sm' : ''}`}>
+            <div className={`text-sm md:text-base font-normal text-emerald-400/90 mt-1 tabular-nums whitespace-nowrap ${stealthMode ? 'blur-sm' : ''}`}>
               +{formatCurrency(totalAssets, currentCurrency)}
             </div>
           </div>
@@ -680,7 +706,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               총 부채/대출
             </span>
-            <div className={`text-sm md:text-base font-normal text-rose-400/90 mt-1 tabular-nums ${stealthMode ? 'blur-sm' : ''}`}>
+            <div className={`text-sm md:text-base font-normal text-rose-400/90 mt-1 tabular-nums whitespace-nowrap ${stealthMode ? 'blur-sm' : ''}`}>
               -{formatCurrency(totalLiabilities, currentCurrency)}
             </div>
           </div>
@@ -689,7 +715,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               증권/투자 평가액
             </span>
-            <div className={`text-sm md:text-base font-normal text-slate-300 mt-1 tabular-nums ${stealthMode ? 'blur-sm' : ''}`}>
+            <div className={`text-sm md:text-base font-normal text-slate-300 mt-1 tabular-nums whitespace-nowrap ${stealthMode ? 'blur-sm' : ''}`}>
               {formatCurrency(categoryTotals.BROKERAGE, currentCurrency)}
             </div>
           </div>
@@ -698,7 +724,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               은행 입출금/예적금
             </span>
-            <div className={`text-sm md:text-base font-normal text-slate-300 mt-1 tabular-nums ${stealthMode ? 'blur-sm' : ''}`}>
+            <div className={`text-sm md:text-base font-normal text-slate-300 mt-1 tabular-nums whitespace-nowrap ${stealthMode ? 'blur-sm' : ''}`}>
               {formatCurrency(categoryTotals.BANK, currentCurrency)}
             </div>
           </div>

@@ -372,8 +372,8 @@ export const KNOWN_CURRENCY_NAMES: Record<string, { nameKo: string; symbol: stri
   INR: { nameKo: '인도 루피', symbol: '₹', fallbackRateToKrw: 15.8 },
 };
 
-// Default User Active Currencies list
-export const DEFAULT_ACTIVE_CURRENCIES: string[] = ['KRW', 'USD', 'IDR'];
+// Default User Active Currencies list (Single-currency minimalist default)
+export const DEFAULT_ACTIVE_CURRENCIES: string[] = ['KRW'];
 
 export function getUserActiveCurrencies(): string[] {
   try {
@@ -392,6 +392,11 @@ export function saveUserActiveCurrencies(currencies: string[]): void {
   try {
     const sanitized = Array.from(new Set(currencies.map((c) => String(c).trim().toUpperCase()))).filter(Boolean);
     localStorage.setItem('vibe_active_currencies', JSON.stringify(sanitized));
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        window.dispatchEvent(new Event('storage'));
+      }, 0);
+    }
   } catch {}
 }
 
@@ -447,6 +452,70 @@ export function convertCurrency(
     return Math.round(converted);
   }
   return Math.round(converted * 100) / 100;
+}
+
+export interface DualCurrencyDisplay {
+  secondaryCurrency: string;
+  secondaryFormatted: string;
+  rateText: string;
+}
+
+/**
+ * Returns dual-currency comparison data for hero balances.
+ * Calculates secondary equivalent and human-readable FX rate sub-line.
+ * e.g., Primary: Rp 15,816,800 -> "≈ ₩1,360,000 · 환율 1 KRW = 11.63 IDR"
+ */
+export function getDualCurrencyComparison(
+  amount: number,
+  primaryCurrency: string,
+  fxRates: FxRates = DEFAULT_FX_RATES,
+  customSecondaryCurrency?: string
+): DualCurrencyDisplay | null {
+  const primary = (primaryCurrency || 'KRW').toUpperCase();
+
+  // Determine secondary currency
+  let secondary = customSecondaryCurrency?.toUpperCase();
+  if (!secondary) {
+    if (primary !== 'KRW') {
+      secondary = 'KRW';
+    } else {
+      const activeList = getUserActiveCurrencies();
+      secondary = activeList.find((c) => c !== primary) || 'USD';
+    }
+  }
+
+  if (primary === secondary) return null;
+
+  const secondaryAmount = convertCurrency(amount, primary, secondary, fxRates);
+  const secondarySym = getCurrencySymbol(secondary);
+
+  const isIntCurrency = secondary === 'KRW' || secondary === 'JPY' || secondary === 'IDR' || secondary === 'VND';
+  const secondaryFormatted = isIntCurrency
+    ? `${secondarySym}${Math.round(secondaryAmount).toLocaleString()}`
+    : `${secondarySym}${secondaryAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+  // Determine rate string (e.g. "1 KRW = 11.63 IDR" or "1 USD = 1,333 KRW")
+  const oneSecondaryInPrimary = convertCurrency(1, secondary, primary, fxRates);
+  const onePrimaryInSecondary = convertCurrency(1, primary, secondary, fxRates);
+
+  let rateText = '';
+  if (oneSecondaryInPrimary >= 1) {
+    const rateVal = oneSecondaryInPrimary >= 100
+      ? Number(oneSecondaryInPrimary.toFixed(2)).toLocaleString()
+      : Number(oneSecondaryInPrimary.toFixed(2)).toString();
+    rateText = `1 ${secondary} = ${rateVal} ${primary}`;
+  } else {
+    const rateVal = onePrimaryInSecondary >= 100
+      ? Number(onePrimaryInSecondary.toFixed(2)).toLocaleString()
+      : Number(onePrimaryInSecondary.toFixed(2)).toString();
+    rateText = `1 ${primary} = ${rateVal} ${secondary}`;
+  }
+
+  return {
+    secondaryCurrency: secondary,
+    secondaryFormatted,
+    rateText,
+  };
 }
 
 export const RECOMMENDED_CATEGORY_BUDGETS: Record<string, number> = {

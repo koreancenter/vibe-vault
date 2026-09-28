@@ -44,7 +44,9 @@ import {
   getPaymentMethodKo,
   DEFAULT_FX_RATES,
   getCurrencySymbol,
-  SUPPORTED_CURRENCIES
+  SUPPORTED_CURRENCIES,
+  getUserActiveCurrencies,
+  convertCurrency
 } from './utils';
 import { getAllDebts, loadSampleData, ensureCleanSlateIfGuest } from './db';
 import { commitAutonomousLoanSplit, commitAutonomousReceivableRecovery } from './autonomousFinance';
@@ -336,6 +338,53 @@ export function App() {
       return updated;
     });
   }, [setUserPrefs]);
+
+  // Active Currencies for Header Switcher & Progressive Multi-Currency Logic
+  const [activeCurrencies, setActiveCurrencies] = useState<string[]>(() => {
+    const list = getUserActiveCurrencies();
+    return list.length > 0 ? list : ['KRW'];
+  });
+
+  // Keep activeCurrencies list synchronized with localStorage
+  useEffect(() => {
+    const refreshList = () => {
+      const stored = getUserActiveCurrencies();
+      const list = stored.length > 0 ? stored : ['KRW'];
+      const upper = currentCurrency.toUpperCase();
+      if (!list.includes(upper)) {
+        setActiveCurrencies([upper, ...list]);
+      } else {
+        setActiveCurrencies(list);
+      }
+    };
+    refreshList();
+    window.addEventListener('storage', refreshList);
+    return () => window.removeEventListener('storage', refreshList);
+  }, [currentCurrency, isCurrencyModalOpen, isSettingsOpen]);
+
+  // Progressive Multi-Currency Logic:
+  // Determine isMultiCurrencyMode: userCurrencies.length > 1
+  const isMultiCurrencyMode = activeCurrencies.length > 1;
+
+  // Quick-cycle through registered currencies when tapping the header chip
+  const handleQuickCycleCurrency = useCallback(() => {
+    const stored = getUserActiveCurrencies();
+    const list = stored.length > 0 ? stored : [currentCurrency.toUpperCase()];
+    const upper = currentCurrency.toUpperCase();
+    if (!list.includes(upper)) {
+      list.unshift(upper);
+    }
+
+    if (list.length <= 1) {
+      setIsCurrencyModalOpen(true);
+      return;
+    }
+
+    const currentIndex = list.indexOf(upper);
+    const nextIndex = (currentIndex + 1) % list.length;
+    const nextCurrency = list[nextIndex] as SupportedCurrency;
+    handleSelectCurrency(nextCurrency);
+  }, [currentCurrency, handleSelectCurrency]);
 
   const handleOpenCurrencyModal = useCallback(() => setIsCurrencyModalOpen(true), []);
   const handleCloseCurrencyModal = useCallback(() => setIsCurrencyModalOpen(false), []);
@@ -688,6 +737,34 @@ export function App() {
 
         {/* Right action controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Quick-Cycle Currency Chip: [ 🌐 IDR ] - Progressive multi-currency mode only */}
+          {isMultiCurrencyMode && (
+            <button
+              id="header-currency-chip"
+              type="button"
+              onClick={handleQuickCycleCurrency}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setIsCurrencyModalOpen(true);
+              }}
+              title={`클릭: 등록된 통화 빠른 순환 (${activeCurrencies.join(' → ')}) · 우클릭: 통화 관리`}
+              className={`h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-medium transition-all active:scale-95 group ${
+                isLight
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                  : 'bg-white/[0.05] hover:bg-white/[0.1] text-slate-200 border-white/[0.08] hover:border-white/20'
+              }`}
+              aria-label="통화 빠른 전환"
+            >
+              <Globe size={13} className="text-slate-400 group-hover:text-emerald-400 transition-colors" />
+              <span className="tabular-nums font-semibold tracking-tight whitespace-nowrap">{currentCurrency}</span>
+              {activeCurrencies.length > 1 && (
+                <span className="text-[10px] text-slate-400 font-normal opacity-60 tabular-nums">
+                  ({activeCurrencies.length})
+                </span>
+              )}
+            </button>
+          )}
+
           {/* Stealth Mode Toggle */}
           <button
             type="button"
@@ -758,6 +835,7 @@ export function App() {
             stealthMode={isStealth}
             theme={userPrefs.theme || 'dark'}
             onTransactionAdded={() => loadTransactions()}
+            isMultiCurrencyMode={isMultiCurrencyMode}
           />
         ) : mainMode === 'insights' ? (
           /* PRIMARY INTEGRATED INSIGHTS MODE: Assets & Ledger Unified Insights */
@@ -780,6 +858,8 @@ export function App() {
               fxRates={fxRates}
               isStealth={isStealth}
               theme={userPrefs.theme || 'dark'}
+              isMultiCurrencyMode={isMultiCurrencyMode}
+              secondaryCurrency={activeCurrencies.find(c => c.toUpperCase() !== currentCurrency.toUpperCase())}
             />
 
         {/* VIEW: UNIFIED LEDGER WITH MOBILE SWIPE */}
@@ -987,7 +1067,7 @@ export function App() {
 
                         {/* Right: Amount */}
                         <div className="flex flex-col items-end shrink-0 pl-2">
-                          <span className={`text-sm font-medium tracking-tight tabular-nums transition-all ${isStealth ? 'blur-sm select-none' : ''} ${
+                          <span className={`text-sm font-medium tracking-tight tabular-nums whitespace-nowrap transition-all ${isStealth ? 'blur-sm select-none' : ''} ${
                             t.isInternalTransfer
                               ? isLight ? 'text-blue-600' : 'text-blue-400'
                               : isExpense 
@@ -996,13 +1076,33 @@ export function App() {
                                   ? isLight ? 'text-emerald-600' : 'text-emerald-400'
                                   : isLight ? 'text-blue-600' : 'text-blue-400'
                           }`}>
-                            {t.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+')}{getCurrencySymbol(t.currency || 'KRW')}{t.amount.toLocaleString()}
+                            {t.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+')}{getCurrencySymbol(t.currency || currentCurrency)}{t.amount.toLocaleString()}
                           </span>
-                          {(t.currency || 'KRW') !== currentCurrency && (
-                            <span className={`text-[11px] font-light mt-0.5 tabular-nums ${isLight ? 'text-slate-400' : 'text-slate-500'} ${isStealth ? 'blur-xs select-none' : ''}`}>
-                              ≈ {t.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+')}{currSymbol}{Math.round(getAmountInSelectedCurrency(t)).toLocaleString()}
-                            </span>
-                          )}
+
+                          {/* Progressive Multi-Currency Secondary Comparison */}
+                          {isMultiCurrencyMode && (() => {
+                            const txCurr = (t.currency || currentCurrency).toUpperCase();
+                            const baseCurr = currentCurrency.toUpperCase();
+                            const secondaryCode = txCurr === baseCurr
+                              ? (activeCurrencies.find(c => c.toUpperCase() !== baseCurr) || 'KRW')
+                              : baseCurr;
+
+                            if (secondaryCode === txCurr) return null;
+
+                            const convertedSecondary = convertCurrency(t.amount, txCurr, secondaryCode, fxRates);
+                            const secSym = getCurrencySymbol(secondaryCode);
+                            const isIntSec = secondaryCode === 'KRW' || secondaryCode === 'JPY' || secondaryCode === 'IDR' || secondaryCode === 'VND';
+                            const formattedSec = isIntSec
+                              ? Math.round(convertedSecondary).toLocaleString()
+                              : convertedSecondary.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                            const sign = t.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+');
+
+                            return (
+                              <span className={`text-[11px] font-light mt-0.5 tabular-nums whitespace-nowrap ${isLight ? 'text-slate-400' : 'text-slate-500'} ${isStealth ? 'blur-xs select-none' : ''}`}>
+                                ≈ {sign}{secSym}{formattedSec}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
 
@@ -1213,20 +1313,22 @@ export function App() {
               {isListening ? <MicOff size={16} /> : <Mic size={16} />}
             </button>
 
-            {/* Currency Pill inside Omnibar */}
-            <button
-              id="omnibar-currency-badge"
-              type="button"
-              onClick={handleOpenCurrencyModal}
-              title="클릭하여 통화 변경"
-              className={`px-2 py-0.5 rounded-lg text-[11px] font-bold shrink-0 transition-all ${
-                isLight
-                  ? 'bg-slate-200/70 hover:bg-slate-300 text-slate-800'
-                  : 'bg-white/[0.06] hover:bg-white/10 text-white'
-              }`}
-            >
-              {currentCurrency}
-            </button>
+            {/* Currency Pill inside Omnibar: only shown in multi-currency mode */}
+            {isMultiCurrencyMode && (
+              <button
+                id="omnibar-currency-badge"
+                type="button"
+                onClick={handleOpenCurrencyModal}
+                title="클릭하여 통화 변경"
+                className={`px-2 py-0.5 rounded-lg text-[11px] font-bold shrink-0 transition-all ${
+                  isLight
+                    ? 'bg-slate-200/70 hover:bg-slate-300 text-slate-800'
+                    : 'bg-white/[0.06] hover:bg-white/10 text-white'
+                }`}
+              >
+                {currentCurrency}
+              </button>
+            )}
 
             {/* Input field */}
             <input

@@ -17,20 +17,42 @@
     <script>
       // Filter out benign HMR WebSocket connection logs in preview iframe (HMR disabled in platform runtime)
       (function() {
+        function shouldSuppress(args) {
+          try {
+            for (let i = 0; i < args.length; i++) {
+              const arg = args[i];
+              const str = typeof arg === 'string' ? arg : (arg && (arg.message || arg.stack)) || '';
+              if (
+                str.includes('[vite]') ||
+                str.includes('WebSocket') ||
+                str.includes('websocket') ||
+                str.includes('vite-plugin-pwa')
+              ) {
+                return true;
+              }
+            }
+          } catch (e) {}
+          return false;
+        }
+
         const origError = console.error;
         console.error = function(...args) {
-          const first = args[0];
-          const str = typeof first === 'string' ? first : (first && first.message) || '';
-          if (
-            str.includes('[vite]') ||
-            str.includes('WebSocket') ||
-            str.includes('websocket') ||
-            str.includes('vite-plugin-pwa')
-          ) {
-            return;
-          }
+          if (shouldSuppress(args)) return;
           origError.apply(console, args);
         };
+
+        const origWarn = console.warn;
+        console.warn = function(...args) {
+          if (shouldSuppress(args)) return;
+          origWarn.apply(console, args);
+        };
+
+        window.addEventListener('error', function(event) {
+          if (event && event.message && (event.message.includes('[vite]') || event.message.includes('WebSocket') || event.message.includes('websocket'))) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
       })();
     </script>
     <title>Vibe Vault</title>

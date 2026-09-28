@@ -35,6 +35,7 @@ import {
   ThemeMode,
   UserPreferences,
   getUserActiveCurrencies,
+  saveUserActiveCurrencies,
   KNOWN_CURRENCY_NAMES,
   getCurrencySymbol
 } from '../utils';
@@ -273,6 +274,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [theme, setTheme] = useState<ThemeMode>('dark');
   const [autoCategorization, setAutoCategorization] = useState<boolean>(true);
   const [defaultLaunchScreen, setDefaultLaunchScreen] = useState<'vault' | 'insights' | 'ledger'>('vault');
+  const [activeCurrenciesList, setActiveCurrenciesList] = useState<string[]>(() => {
+    const list = getUserActiveCurrencies();
+    return list.length > 0 ? list : ['KRW'];
+  });
+  const [newCurrencyInput, setNewCurrencyInput] = useState('');
+  const [currencyError, setCurrencyError] = useState<string | null>(null);
+
+  // Sync active currencies if changed externally or in storage
+  useEffect(() => {
+    const syncCurrencies = () => {
+      const stored = getUserActiveCurrencies();
+      setActiveCurrenciesList(stored.length > 0 ? stored : ['KRW']);
+    };
+    window.addEventListener('storage', syncCurrencies);
+    return () => window.removeEventListener('storage', syncCurrencies);
+  }, []);
 
   // Tab 3: Data & Privacy state
   const [lastExportedDate, setLastExportedDate] = useState<string>('없음');
@@ -421,15 +438,53 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Dynamic Currency options based on user active currencies list
   const currencyOptions: CustomSelectOption[] = useMemo(() => {
-    const active = getUserActiveCurrencies();
-    const all = Array.from(new Set(['KRW', 'USD', 'IDR', ...active, currencySymbol])).filter(Boolean);
+    const all = Array.from(new Set([...activeCurrenciesList, currencySymbol])).filter(Boolean);
     return all.map((c) => {
       const info = KNOWN_CURRENCY_NAMES[c];
       const sym = getCurrencySymbol(c);
       const label = info ? `${info.nameKo} (${sym})` : `${c} (${sym})`;
       return { value: c, label };
     });
-  }, [currencySymbol]);
+  }, [activeCurrenciesList, currencySymbol]);
+
+  const handleAddActiveCurrency = (rawCode: string) => {
+    setCurrencyError(null);
+    const code = rawCode.trim().toUpperCase();
+    if (!code) {
+      setCurrencyError('통화 코드를 입력해주세요 (예: IDR, USD).');
+      return;
+    }
+    if (!/^[A-Z]{3}$/.test(code)) {
+      setCurrencyError('유효한 3자리 ISO 통화 코드를 입력해주세요.');
+      return;
+    }
+    if (activeCurrenciesList.includes(code)) {
+      setCurrencyError(`이미 등록된 통화입니다: ${code}`);
+      return;
+    }
+    const updated = [...activeCurrenciesList, code];
+    setActiveCurrenciesList(updated);
+    saveUserActiveCurrencies(updated);
+    setNewCurrencyInput('');
+    if (onDataChanged) onDataChanged();
+  };
+
+  const handleRemoveActiveCurrency = (codeToRemove: string) => {
+    const upper = codeToRemove.toUpperCase();
+    if (upper === currencySymbol.toUpperCase()) {
+      setCurrencyError('현재 기본 기준 통화는 목록에서 삭제할 수 없습니다.');
+      return;
+    }
+    if (activeCurrenciesList.length <= 1) {
+      setCurrencyError('최소 1개 이상의 통화가 유지되어야 합니다.');
+      return;
+    }
+    setCurrencyError(null);
+    const updated = activeCurrenciesList.filter((c) => c !== upper);
+    setActiveCurrenciesList(updated);
+    saveUserActiveCurrencies(updated);
+    if (onDataChanged) onDataChanged();
+  };
 
   const handleProviderChange = (newProvider: string) => {
     const prov = newProvider as 'gemini' | 'openai' | 'anthropic';
@@ -1349,7 +1404,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 
                 <div className="space-y-3 pb-4 border-b border-white/[0.06]">
                   {/* Row 1: 기본 통화 & 내 활성 통화 매니저 */}
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <span className="text-xs font-semibold text-slate-200 block">
@@ -1359,7 +1414,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           대시보드 및 모든 자산 평가의 기준
                         </span>
                       </div>
-                      <div className="w-32">
+                      <div className="w-36">
                         <CustomDarkSelect
                           id="currency-select"
                           value={currencySymbol}
@@ -1368,6 +1423,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             setCurrencySymbol(val);
                             const prefs = getUserPreferences();
                             saveUserPreferences({ ...prefs, currencySymbol: val });
+                            if (!activeCurrenciesList.includes(val)) {
+                              const updated = [val, ...activeCurrenciesList];
+                              setActiveCurrenciesList(updated);
+                              saveUserActiveCurrencies(updated);
+                            }
                             if (onDataChanged) onDataChanged();
                           }}
                           theme="dark"
@@ -1376,36 +1436,143 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Active Currencies Fast-Switch Chips */}
-                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
-                        <span className="font-medium">내 활성 통화 목록</span>
-                        <span className="text-[10px] text-slate-500">터치 시 기준 통화로 전환</span>
+                    {/* Active Currencies Box */}
+                    <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-slate-200">
+                            나의 활성 통화 (Active Currencies)
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            ({activeCurrenciesList.length})
+                          </span>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          activeCurrenciesList.length > 1
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                            : 'bg-slate-800 text-slate-400 border border-white/5'
+                        }`}>
+                          {activeCurrenciesList.length > 1 ? '다중 통화 모드' : '단일 통화 모드'}
+                        </span>
                       </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {currencyOptions.map((opt) => {
-                          const isSelected = currencySymbol === opt.value;
+
+                      {/* Active Currencies Chips with Delete / Select */}
+                      <div className="flex flex-wrap gap-2">
+                        {activeCurrenciesList.map((code) => {
+                          const isBase = code === currencySymbol;
+                          const info = KNOWN_CURRENCY_NAMES[code];
+                          const sym = getCurrencySymbol(code);
                           return (
-                            <button
-                              key={opt.value}
-                              type="button"
-                              onClick={() => {
-                                setCurrencySymbol(opt.value);
-                                const prefs = getUserPreferences();
-                                saveUserPreferences({ ...prefs, currencySymbol: opt.value });
-                                if (onDataChanged) onDataChanged();
-                              }}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 active:scale-95 ${
-                                isSelected
-                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
-                                  : 'bg-white/[0.04] text-slate-400 hover:text-white border border-white/5'
+                            <div
+                              key={code}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition-all ${
+                                isBase
+                                  ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300 font-semibold'
+                                  : 'bg-white/[0.04] border-white/5 text-slate-300 hover:border-white/10'
                               }`}
                             >
-                              <span>{opt.value}</span>
-                              {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCurrencySymbol(code);
+                                  const prefs = getUserPreferences();
+                                  saveUserPreferences({ ...prefs, currencySymbol: code });
+                                  if (onDataChanged) onDataChanged();
+                                }}
+                                className="flex items-center gap-1 hover:text-white"
+                                title={isBase ? '현재 기준 통화' : '클릭하여 기본 기준 통화로 설정'}
+                              >
+                                <span className="font-mono font-bold">{code}</span>
+                                <span className="text-[11px] opacity-80">({sym})</span>
+                                {info && (
+                                  <span className="text-[10px] text-slate-400 hidden sm:inline ml-0.5">
+                                    {info.nameKo}
+                                  </span>
+                                )}
+                                {isBase && (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-400/20 text-emerald-300 font-normal ml-0.5">
+                                    기준
+                                  </span>
+                                )}
+                              </button>
+
+                              {/* Remove button (disabled for base currency or when only 1 remains) */}
+                              {!isBase && activeCurrenciesList.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveActiveCurrency(code)}
+                                  className="text-slate-400 hover:text-rose-400 transition-colors p-0.5 ml-0.5 rounded"
+                                  title={`${code} 활성 통화에서 제거`}
+                                  aria-label={`${code} 활성 통화에서 제거`}
+                                >
+                                  <X size={12} />
+                                </button>
+                              )}
+                            </div>
                           );
                         })}
+                      </div>
+
+                      {/* Subtle Prompt when only 1 currency is present */}
+                      {activeCurrenciesList.length <= 1 && (
+                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15 text-[11px] text-slate-300 animate-in fade-in duration-150">
+                          <Sparkles size={13} className="text-emerald-400 shrink-0" />
+                          <span>새 통화를 추가하면 다중 통화 비교 모드가 자동으로 활성화됩니다.</span>
+                        </div>
+                      )}
+
+                      {/* Quick Add Presets + Custom Inline Input */}
+                      <div className="pt-2 border-t border-white/[0.04] space-y-2">
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <span>추천 통화 빠른 추가:</span>
+                          <div className="flex items-center gap-1">
+                            {['USD', 'IDR', 'JPY', 'EUR'].filter(c => !activeCurrenciesList.includes(c)).map(preset => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => handleAddActiveCurrency(preset)}
+                                className="px-2 py-0.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[10px] font-mono text-slate-300 border border-white/5 active:scale-95 transition-all"
+                              >
+                                +{preset}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={newCurrencyInput}
+                            onChange={(e) => {
+                              setNewCurrencyInput(e.target.value.toUpperCase());
+                              if (currencyError) setCurrencyError(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddActiveCurrency(newCurrencyInput);
+                              }
+                            }}
+                            maxLength={3}
+                            placeholder="3자리 통화 코드 (예: SGD, VND, AUD)..."
+                            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-hidden focus:border-emerald-400/50 transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddActiveCurrency(newCurrencyInput)}
+                            disabled={!newCurrencyInput.trim()}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
+                          >
+                            <Plus size={12} strokeWidth={2.5} />
+                            <span>추가</span>
+                          </button>
+                        </div>
+
+                        {currencyError && (
+                          <p className="text-[11px] text-rose-400 flex items-center gap-1 pt-0.5">
+                            <span>⚠️ {currencyError}</span>
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
