@@ -704,17 +704,17 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         )}
       </AnimatePresence>
 
-      {/* 2-Column Responsive Dashboard Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 xl:gap-10 items-start">
-        {/* Left Column: Total Net Worth Hero Card & Account Allocation Chart */}
-        <div className="lg:col-span-5 xl:col-span-4 space-y-4 lg:sticky lg:top-4">
+      {/* 2-Column / 3-Column Responsive Financial Command Center Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column (Col 1-4 on wide displays, Col 1-5 on standard desktop): Vault Summary, Allocation Donut, Quick Actions */}
+        <div className="lg:col-span-5 xl:col-span-4 2xl:col-span-4 space-y-4 lg:sticky lg:top-4">
           {/* TOP HERO CARD: Net Worth & Consolidated Asset Summary */}
       <div className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 border backdrop-blur-xl transition-all ${
         isLight
           ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
-          : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
+          : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl text-white'
       }`}>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="relative z-10 flex flex-col justify-between">
           <div className="space-y-1.5">
             {/* Subtle Quiet Indicator */}
             <div className="flex items-center gap-2">
@@ -750,15 +750,15 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             </div>
           </div>
 
-          {/* Quick Action Buttons: Refined Pill Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Quick Action Buttons: Neat 3-column grid with subtle ghost styling */}
+          <div className="grid grid-cols-3 gap-2 mt-4 w-full">
             <button
               id="vault-scan-balance-btn"
               type="button"
               onClick={() => setShowScanModal(true)}
-              className="bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] rounded-full px-3.5 py-1.5 text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5"
+              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal"
             >
-              <span>증권/계좌 캡처 스캔</span>
+              <span className="truncate">증권/계좌 캡처 스캔</span>
             </button>
 
             <button
@@ -777,18 +777,18 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 });
                 setShowTransferModal(true);
               }}
-              className="bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] rounded-full px-3.5 py-1.5 text-xs transition-all active:scale-95 flex items-center justify-center"
+              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal"
             >
-              <span>계좌 간 이체</span>
+              <span className="truncate">계좌 간 이체</span>
             </button>
 
             <button
               id="vault-add-account-btn"
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] rounded-full px-3.5 py-1.5 text-xs transition-all active:scale-95 flex items-center justify-center"
+              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal"
             >
-              <span>자산 추가</span>
+              <span className="truncate">자산 추가</span>
             </button>
           </div>
         </div>
@@ -839,7 +839,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       <div className={`p-5 sm:p-6 rounded-2xl border backdrop-blur-xl transition-all ${
         isLight
           ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
-          : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
+          : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl text-white'
       }`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -966,7 +966,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         </div>
 
         {/* Middle Column (Col 5-9 on wide displays, Col 6-12 on standard desktop): Account Feed & Ledger Entries */}
-        <div className="lg:col-span-7 xl:col-span-5 space-y-4 pt-1">
+        <div className="lg:col-span-7 xl:col-span-5 2xl:col-span-5 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           {/* Pill-shaped filter buttons with gentle active outlines */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
@@ -1014,7 +1014,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           <div className={`p-8 sm:p-12 rounded-2xl border text-center space-y-5 transition-all ${
             isLight 
               ? 'bg-white/80 backdrop-blur-2xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
-              : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
+              : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl text-white'
           }`}>
             <div className="relative mx-auto w-14 h-14 flex items-center justify-center">
               <div className="relative w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-emerald-400">
@@ -1092,7 +1092,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 className={`group relative rounded-2xl p-5 border transition-all duration-150 backdrop-blur-xl ${
                   isLight
                     ? 'bg-white/85 border-slate-200/80 hover:border-slate-300 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]'
-                    : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] hover:border-white/[0.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
+                    : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] hover:border-white/[0.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl'
                 }`}
               >
                 {/* Header: Full width institution and account title */}
@@ -1225,7 +1225,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
           isLight 
             ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
-            : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
+            : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl text-white'
         }`}>
           <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.04]">
             <div className="flex items-center gap-2">
@@ -1288,12 +1288,12 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         </div>
 
         {/* Right Column (Col 10-12 on wide displays >= 1440px): Multi-Currency FX Overview & Recent Activity Preview */}
-        <div className="hidden xl:block xl:col-span-3 space-y-4 xl:sticky xl:top-4">
+        <div className="hidden xl:block xl:col-span-3 2xl:col-span-3 space-y-4 xl:sticky xl:top-4">
           {/* Card 1: Multi-Currency FX Overview (KRW ⇄ IDR ⇄ USD) */}
           <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
             isLight 
               ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
-              : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
+              : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl text-white'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
               <div className="flex items-center gap-2">
@@ -1398,7 +1398,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
             isLight 
               ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
-              : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
+              : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl text-white'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
               <div className="flex items-center gap-2">

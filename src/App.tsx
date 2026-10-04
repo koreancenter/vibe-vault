@@ -1470,6 +1470,8 @@ export function App() {
 
       {/* 3. FIXED BOTTOM DOCK (AI Omnibar & Mic/Camera Controls) */}
       <footer className={`flex-none backdrop-blur-2xl py-2 z-20 transition-colors border-t ${
+        mainMode !== 'ledger' ? 'lg:hidden' : ''
+      } ${
         isLight 
           ? 'bg-white/95 border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]' 
           : 'bg-[#08090D]/80 backdrop-blur-2xl border-white/[0.08]'
@@ -1697,8 +1699,8 @@ export function App() {
           </>
         ) : null}
 
-        {/* Persistent Bottom Tab Navigation Switcher (Ergonomic Thumb Access) */}
-        <div className={`pt-1.5 flex items-center justify-around ${
+        {/* Persistent Bottom Tab Navigation Switcher (Ergonomic Thumb Access - Hidden on Desktop) */}
+        <div className={`lg:hidden pt-1.5 flex items-center justify-around ${
           mainMode === 'ledger' ? (isLight ? 'mt-1 border-t border-slate-200/80' : 'mt-1 border-t border-white/[0.04]') : ''
         }`}>
           <button
