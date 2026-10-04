@@ -204,6 +204,20 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               )}
             </div>
           </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>비고 (정산 비고 / 지출 메모)</label>
+            <input 
+              type="text" 
+              name="note" 
+              value={formData.note || ''} 
+              onChange={handleChange} 
+              placeholder="예: 정산 메모, 결제자, 영수증 번호 등"
+              className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#00F5A0] transition-colors ${
+                isLight ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400' : 'bg-black/40 border-white/10 text-white placeholder:text-[#94A3B8]/50'
+              }`} 
+            />
+          </div>
           
           <div className="flex justify-end pt-3">
             <button 

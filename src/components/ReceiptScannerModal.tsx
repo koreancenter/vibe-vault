@@ -19,7 +19,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { ParsedReceiptData, SupportedCurrency } from '../types';
-import { getAIEngineConfig, getCurrencySymbol } from '../utils';
+import { getAIEngineConfig, getCurrencySymbol, getPaymentMethodKo } from '../utils';
 import { parseReceiptWithResilience } from '../autonomousFinance';
 import { parseReceiptTextLocally } from '../financialParser';
 import { hasSecureGeminiApiKey, getSecureGeminiApiKey, maskApiKey } from '../geminiKeyManager';
@@ -636,7 +636,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       <span className={`px-2 py-0.5 rounded-lg border text-[11px] font-medium ${
                         isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-white/5 border-white/10 text-slate-300'
                       }`}>
-                        결제: {parsedResult.paymentMethod}
+                        결제: {getPaymentMethodKo(parsedResult.paymentMethod)}
                       </span>
                     )}
                   </div>

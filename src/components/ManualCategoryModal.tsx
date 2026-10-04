@@ -10,7 +10,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Transaction } from '../types';
-import { STANDARD_CATEGORIES, getCategoryKo } from '../utils';
+import { STANDARD_CATEGORIES, getCategoryKo, getPaymentMethodKo } from '../utils';
 
 interface ManualCategoryModalProps {
   isOpen: boolean;
@@ -204,9 +204,9 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
                 <h3 className={`text-base font-bold truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>
                   {currentTx.description || '내역 내용 없음'}
                 </h3>
-                {currentTx.paymentMethod && (
+                {(currentTx.paymentMethod || currentTx.type === 'INCOME') && (
                   <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    결제: {currentTx.paymentMethod}
+                    {currentTx.type === 'INCOME' ? '입금 수단' : '결제'}: {getPaymentMethodKo(currentTx.paymentMethod, currentTx.type)}
                   </p>
                 )}
               </div>

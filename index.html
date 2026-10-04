@@ -1,8 +1,10 @@
 <!doctype html>
 <html lang="ko">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
-      // Early capture of beforeinstallprompt event before framework loads
+      // Early capture of PWA beforeinstallprompt to ensure it is never missed before React mounts
       window.deferredPWAInstallPrompt = null;
       window.addEventListener('beforeinstallprompt', function(e) {
         e.preventDefault();
@@ -11,107 +13,48 @@
           window.dispatchPWAInstallEvent(e);
         }
       });
-
-      // Gracefully prevent [vite] websocket connection failure logs in sandboxed iframe environments
+    </script>
+    <script>
+      // Filter out benign HMR WebSocket connection logs in preview iframe (HMR disabled in platform runtime)
       (function() {
-        if (typeof window === 'undefined') return;
-
-        // 1. Mock vite-hmr WebSocket so @vite/client never fails or logs errors
-        try {
-          const OrigWebSocket = window.WebSocket;
-          if (OrigWebSocket) {
-            window.WebSocket = function(url, protocols) {
-              const urlStr = typeof url === 'string' ? url : (url && url.href ? url.href : String(url));
-              const isViteHmr = protocols === 'vite-hmr' || 
-                (Array.isArray(protocols) && protocols.includes('vite-hmr')) ||
-                (urlStr && (urlStr.includes('token=') || urlStr.includes('vite-hmr')));
-              
-              if (isViteHmr) {
-                const target = new EventTarget();
-                target.url = urlStr;
-                target.readyState = 1; // WebSocket.OPEN
-                target.send = function() {};
-                target.close = function() { target.readyState = 3; };
-                setTimeout(() => {
-                  if (typeof target.onopen === 'function') target.onopen(new Event('open'));
-                  target.dispatchEvent(new Event('open'));
-                }, 0);
-                return target;
+        function shouldSuppress(args) {
+          try {
+            for (let i = 0; i < args.length; i++) {
+              const arg = args[i];
+              const str = typeof arg === 'string' ? arg : (arg && (arg.message || arg.stack)) || '';
+              if (
+                str.includes('[vite]') ||
+                str.includes('WebSocket') ||
+                str.includes('websocket') ||
+                str.includes('vite-plugin-pwa')
+              ) {
+                return true;
               }
-              return new OrigWebSocket(url, protocols);
-            };
-            window.WebSocket.prototype = OrigWebSocket.prototype;
-            window.WebSocket.CONNECTING = 0;
-            window.WebSocket.OPEN = 1;
-            window.WebSocket.CLOSING = 2;
-            window.WebSocket.CLOSED = 3;
-          }
-        } catch (e) {}
-
-        // 2. Intercept console logs containing [vite]
-        const checkIsVite = function(args) {
-          for (let i = 0; i < args.length; i++) {
-            const a = args[i];
-            const str = typeof a === 'string' ? a : (a && a.message ? a.message : String(a));
-            if (/\[vite\]|websocket/i.test(str)) return true;
-          }
+            }
+          } catch (e) {}
           return false;
-        };
+        }
 
-        const originalWarn = console.warn;
-        const originalError = console.error;
-        const originalInfo = console.info;
-        const originalDebug = console.debug;
-
-        console.warn = function(...args) {
-          if (checkIsVite(args)) return;
-          return originalWarn.apply(console, args);
-        };
+        const origError = console.error;
         console.error = function(...args) {
-          if (checkIsVite(args)) return;
-          return originalError.apply(console, args);
+          if (shouldSuppress(args)) return;
+          origError.apply(console, args);
         };
-        if (originalInfo) {
-          console.info = function(...args) {
-            if (checkIsVite(args)) return;
-            return originalInfo.apply(console, args);
-          };
-        }
-        if (originalDebug) {
-          console.debug = function(...args) {
-            if (checkIsVite(args)) return;
-            return originalDebug.apply(console, args);
-          };
-        }
 
-        // 3. Catch window errors & unhandled promise rejections (Vite websocket & cross-origin iframe security errors)
-        const isIgnoredError = function(str) {
-          if (!str) return false;
-          return /\[vite\]|websocket|Blocked a frame with origin|cross-origin frame|SecurityError.*cross-origin/i.test(str);
+        const origWarn = console.warn;
+        console.warn = function(...args) {
+          if (shouldSuppress(args)) return;
+          origWarn.apply(console, args);
         };
 
         window.addEventListener('error', function(event) {
-          const msg = event.message || (event.error && event.error.message) || String(event);
-          if (isIgnoredError(msg)) {
-            event.preventDefault();
+          if (event && event.message && (event.message.includes('[vite]') || event.message.includes('WebSocket') || event.message.includes('websocket'))) {
             event.stopImmediatePropagation();
-            return true;
-          }
-        }, true);
-
-        window.addEventListener('unhandledrejection', function(event) {
-          const reason = event.reason;
-          const msg = typeof reason === 'string' ? reason : (reason && reason.message) ? reason.message : String(reason);
-          if (isIgnoredError(msg) || (reason && reason.type === 'error')) {
             event.preventDefault();
-            event.stopImmediatePropagation();
-            return true;
           }
         }, true);
       })();
     </script>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vibe Vault</title>
     <meta name="description" content="A privacy-first, local-encrypted asset vault and multi-brokerage portfolio dashboard (with built-in daily expense ledger)" />
     <meta property="og:title" content="Vibe Vault" />
@@ -123,10 +66,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="VibeVault" />
-    <link rel="manifest" href="/vibevault/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/vibevault/apple-touch-icon.png" />
-    <link rel="icon" type="image/svg+xml" href="/vibevault/icon.svg" />
-    <link rel="alternate icon" href="/vibevault/pwa-192x192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="alternate icon" href="/pwa-192x192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -136,4 +79,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

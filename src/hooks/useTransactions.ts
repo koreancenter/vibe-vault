@@ -24,7 +24,7 @@ export interface UseTransactionsReturn {
   selectedCategory: string | null;
   setSelectedCategory: (cat: string | null) => void;
   ledgerFilter: LedgerFilterType;
-  setLedgerFilter: (filter: LedgerFilterType) => void;
+  setLedgerFilter: React.Dispatch<React.SetStateAction<LedgerFilterType>>;
   filteredStreamTransactions: Transaction[];
   filteredLedgerTransactions: Transaction[];
 
@@ -70,22 +70,45 @@ export function useTransactions(): UseTransactionsReturn {
 
       // Auto-repair any erroneously categorized income transactions stored in DB
       const repaired = data.map((t) => {
-        const desc = t.description || '';
+        let changed = false;
+        let updated: Transaction = { ...t };
+
+        const desc = updated.description || '';
         const isIncomeText = /(?:월급|급여|보너스|상여금|수당|용돈|배당금|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|salary|paycheck|bonus|allowance)/i.test(desc);
         const isExpenseText = /(?:결제|지출|썼|사먹|구입|구매)/i.test(desc);
-        if (t.type === 'EXPENSE' && isIncomeText && !isExpenseText) {
+
+        if (updated.type === 'EXPENSE' && isIncomeText && !isExpenseText) {
           let cleanedDesc = desc.replace(/만\s*원\s*들어옴/i, '들어옴').replace(/\s+/g, ' ').trim();
           if (!cleanedDesc || cleanedDesc === '원') cleanedDesc = '급여 수입';
-          const updatedTx: Transaction = {
-            ...t,
-            type: 'INCOME',
-            category: 'Fixed',
-            subCategory: 'Salary',
-            description: cleanedDesc,
-            paymentMethod: t.paymentMethod === 'Card' ? '계좌이체' : (t.paymentMethod || '계좌이체')
-          };
-          updateTransaction(updatedTx).catch((e) => console.warn('Failed to persist transaction auto-repair:', e));
-          return updatedTx;
+          updated.type = 'INCOME';
+          updated.category = '급여';
+          updated.subCategory = '정기수입';
+          updated.description = cleanedDesc;
+          updated.paymentMethod = '통장';
+          changed = true;
+        }
+
+        // Repair income paymentMethod from Card/카드 to 통장
+        if (updated.type === 'INCOME' && (!updated.paymentMethod || /^(?:card|카드|check\s*card|체크카드)$/i.test(updated.paymentMethod))) {
+          updated.paymentMethod = '통장';
+          changed = true;
+        }
+
+        // Repair subCategory from Subscriptions to 구독
+        if (updated.subCategory === 'Subscriptions') {
+          updated.subCategory = '구독';
+          changed = true;
+        }
+
+        // Repair paymentMethod from Card to 카드 for expenses
+        if (updated.type !== 'INCOME' && updated.paymentMethod === 'Card') {
+          updated.paymentMethod = '카드';
+          changed = true;
+        }
+
+        if (changed) {
+          updateTransaction(updated).catch((e) => console.warn('Failed to persist transaction auto-repair:', e));
+          return updated;
         }
         return t;
       });
@@ -107,9 +130,21 @@ export function useTransactions(): UseTransactionsReturn {
     }
   }, []);
 
-  // Initial load on mount
+  // Initial load on mount & custom events
   useEffect(() => {
     loadTransactions();
+
+    const handleDataEvent = () => {
+      loadTransactions();
+    };
+
+    window.addEventListener('vibe-vault-data-changed', handleDataEvent);
+    window.addEventListener('vibe-vault-data-reset', handleDataEvent);
+
+    return () => {
+      window.removeEventListener('vibe-vault-data-changed', handleDataEvent);
+      window.removeEventListener('vibe-vault-data-reset', handleDataEvent);
+    };
   }, [loadTransactions]);
 
   /**
@@ -199,12 +234,18 @@ export function useTransactions(): UseTransactionsReturn {
   }, [transactions, selectedCategory]);
 
   /**
-   * Filtered ledger transactions based on ledgerFilter pill
+   * Filtered ledger transactions based on ledgerFilter pill and optional selected category
    */
   const filteredLedgerTransactions = useMemo(() => {
-    if (ledgerFilter === 'ALL') return transactions;
-    return transactions.filter(t => t.type === ledgerFilter);
-  }, [transactions, ledgerFilter]);
+    let result = transactions;
+    if (selectedCategory) {
+      result = result.filter(t => t.category === selectedCategory);
+    }
+    if (ledgerFilter !== 'ALL') {
+      result = result.filter(t => t.type === ledgerFilter);
+    }
+    return result;
+  }, [transactions, ledgerFilter, selectedCategory]);
 
   /**
    * Export all transactions to CSV with UTF-8 BOM encoding

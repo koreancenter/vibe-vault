@@ -36,7 +36,7 @@ interface PinMetadata {
 
 // In-Memory volatile state (cleared immediately upon lock)
 let inMemoryCryptoKey: CryptoKey | null = null;
-let isLocked: boolean = false;
+let isLocked: boolean = typeof localStorage !== 'undefined' ? hasVaultPin() : false;
 let keystoreDbPromise: Promise<IDBPDatabase<any>> | null = null;
 let idleTimer: any = null;
 let lastActiveTimestamp: number = Date.now();
@@ -250,16 +250,88 @@ export async function removeVaultPin(currentPin: string): Promise<boolean> {
 }
 
 /**
+ * Resets all vault security parameters, PIN credentials, and in-memory keys
+ */
+export function resetVaultSecurity(): void {
+  localStorage.removeItem(PIN_STORAGE_KEY);
+  localStorage.removeItem(LOCK_CONFIG_KEY);
+  sessionStorage.removeItem('vibe_vault_setup_skipped');
+  inMemoryCryptoKey = null;
+  isLocked = false;
+  notifyLockState();
+}
+
+/**
  * Vault Lock & Memory Sanitization
  */
 export function isVaultLocked(): boolean {
   return isLocked;
 }
 
+export type GuestWipeCallback = () => Promise<void>;
+let guestWipeCallback: GuestWipeCallback | null = null;
+
+export function registerGuestWipeHandler(cb: GuestWipeCallback): void {
+  guestWipeCallback = cb;
+}
+
+/**
+ * Ephemeral Guest Mode Wipe:
+ * If the user has NOT set a Master Vault PIN, session data is strictly volatile.
+ * Clears all stores in IndexedDB, removes session markers, and resets UI state.
+ */
+export async function wipeGuestSessionData(): Promise<void> {
+  if (guestWipeCallback) {
+    try {
+      await guestWipeCallback();
+    } catch (err) {
+      console.warn('[Ephemeral Guest Mode] Callback wipe error:', err);
+    }
+  } else if (typeof indexedDB !== 'undefined') {
+    try {
+      const db = await openDB('vibe-vault-db', 4);
+      const storeNames = ['transactions', 'assetAccounts', 'debts'].filter(name => db.objectStoreNames.contains(name));
+      if (storeNames.length > 0) {
+        const tx = db.transaction(storeNames as any, 'readwrite');
+        for (const store of storeNames) {
+          await tx.objectStore(store as any).clear();
+        }
+        await tx.done;
+      }
+    } catch (err) {
+      console.warn('[Ephemeral Guest Mode] Direct IDB wipe error:', err);
+    }
+  }
+
+  // Clear session markers
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem('vibe_vault_setup_skipped');
+    sessionStorage.removeItem('vibe_active_guest_session');
+  }
+
+  // Dispatch custom events to inform all components of zero clean slate
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('vibe-vault-data-reset', {
+      detail: { reason: 'ephemeral_guest_lock' }
+    }));
+    window.dispatchEvent(new CustomEvent('vibe-vault-data-changed', {
+      detail: { reason: 'ephemeral_guest_lock' }
+    }));
+  }
+}
+
 export function lockVault(): void {
   // Purge crypto key from memory
   inMemoryCryptoKey = null;
   isLocked = true;
+
+  // Ephemeral Guest Mode: If the user has NOT set a vault PIN, wipe volatile data back to zero
+  if (!hasVaultPin()) {
+    wipeGuestSessionData().catch((err) => {
+      console.error('[Ephemeral Guest Mode] Failed to wipe guest data on lock:', err);
+    });
+  }
+
   notifyLockState();
 
   // Security Hardening Item #5: Evict any non-static / accidental cache entries upon lock
@@ -351,7 +423,7 @@ export function initAutoLockWatcher(): () => void {
     } else if (document.visibilityState === 'visible' && hiddenTimestamp) {
       const elapsed = Date.now() - hiddenTimestamp;
       const timeoutMs = config.timeoutMinutes * 60 * 1000;
-      if (timeoutMs > 0 && elapsed >= timeoutMs) {
+      if (timeoutMs === 0 || (timeoutMs > 0 && elapsed >= timeoutMs)) {
         lockVault();
       }
       hiddenTimestamp = null;

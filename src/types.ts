@@ -3,7 +3,7 @@ export type AssetType = 'CARD' | 'BANK' | 'CASH' | 'OTHER';
 // Multi-Brokerage & Comprehensive Asset Classification
 export type AssetCategoryType = 'BROKERAGE' | 'BANK' | 'CRYPTO' | 'REAL_ESTATE' | 'CASH' | 'LIABILITY';
 
-export type LaunchScreenMode = 'vault' | 'ledger';
+export type LaunchScreenMode = 'vault' | 'insights' | 'ledger';
 
 export interface HoldingItem {
   name: string;
@@ -29,7 +29,7 @@ export interface AssetAccount {
 }
 
 export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'SETTLEMENT';
-export type SupportedCurrency = 'KRW' | 'USD' | 'EUR' | 'JPY' | 'GBP';
+export type SupportedCurrency = 'KRW' | 'USD' | 'EUR' | 'JPY' | 'GBP' | 'IDR' | 'CNY' | 'CAD' | 'AUD' | 'SGD' | 'HKD' | 'THB' | 'VND' | 'CHF' | 'TWD' | string;
 export type CurrencyCode = SupportedCurrency | string;
 
 export interface FxRates {
@@ -45,6 +45,20 @@ export interface Asset {
   billingDay?: number; // 1 to 31 (e.g. credit card billing cycle day)
   enabled: boolean;
   note?: string;
+  currency?: SupportedCurrency;
+  balance?: number;
+}
+
+export interface LedgerSpace {
+  id: string; // 'default' for everyday living, UUID for custom projects/events
+  name: string; // e.g., "일상 장부", "동창회 유럽 여행"
+  currency: string; // e.g., 'KRW', 'EUR', 'IDR'
+  budget?: number; // target budget or collected dues
+  memberCount?: number; // number of participants for N-split calculations
+  startDate?: string;
+  endDate?: string;
+  isArchived?: boolean;
+  createdAt: string;
 }
 
 export interface Transaction {
@@ -63,6 +77,8 @@ export interface Transaction {
   sourceAccountId?: string; // Source account for account-to-account transfer
   targetAccountId?: string; // Destination account for account-to-account transfer
   isInternalTransfer?: boolean; // Transfer between user's own accounts
+  spaceId?: string; // defaults to 'default'
+  note?: string; // for settlement remarks, receipt info, or payer
 }
 
 export interface CategoryBudget {
@@ -237,3 +253,46 @@ export interface UnencryptedBackupPayloadV2 {
   assetAccounts?: AssetAccount[];
   debts?: DebtItem[];
 }
+
+// Conversational Financial Query ("Ask AI Vault") Models
+export type FinancialQueryMetric = 
+  | 'fx_gain_loss'
+  | 'category_sum'
+  | 'weekend_expense'
+  | 'total_expense'
+  | 'total_income'
+  | 'net_savings'
+  | 'merchant_expense'
+  | 'general_financial';
+
+export interface FinancialQueryParameters {
+  metric: FinancialQueryMetric;
+  dateRange?: string; // e.g. "2026-09"
+  year?: number;
+  month?: number;
+  targetCurrency?: SupportedCurrency;
+  category?: string;
+  merchantKeyword?: string;
+  querySummary?: string;
+}
+
+export interface CalculationBreakdownPill {
+  label: string;
+  value: string;
+  highlight?: boolean;
+  color?: 'emerald' | 'blue' | 'amber' | 'purple' | 'slate';
+}
+
+export interface FinancialQueryResult {
+  query: string;
+  directAnswer: string;
+  summarySentence: string;
+  breakdownPills: CalculationBreakdownPill[];
+  metric: FinancialQueryMetric;
+  parameters: FinancialQueryParameters;
+  calculatedValue: number;
+  calculatedCurrency: SupportedCurrency;
+  details?: Record<string, any>;
+  timestamp: string;
+}
+

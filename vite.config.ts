@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
-    base: '/vibevault/',
+    base: '/',
     plugins: [
       react(), 
       tailwindcss(),
@@ -20,7 +20,7 @@ export default defineConfig(() => {
           'pwa-maskable-512x512.png',
         ],
         manifest: {
-          id: '/vibevault/',
+          id: '/',
           name: 'Vibe Vault',
           short_name: 'VibeVault',
           description: 'A privacy-first, local-encrypted asset vault and multi-brokerage portfolio dashboard (with built-in daily expense ledger)',
@@ -28,23 +28,23 @@ export default defineConfig(() => {
           background_color: '#0B0F17',
           display: 'standalone',
           orientation: 'portrait',
-          start_url: '/vibevault/',
-          scope: '/vibevault/',
+          start_url: '/',
+          scope: '/',
           icons: [
             {
-              src: '/vibevault/pwa-192x192.png',
+              src: '/pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/vibevault/pwa-512x512.png',
+              src: '/pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/vibevault/pwa-maskable-512x512.png',
+              src: '/pwa-maskable-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
@@ -60,7 +60,7 @@ export default defineConfig(() => {
           clientsClaim: true,
           skipWaiting: true,
           // Navigate fallback strictly points to the static entry shell without retaining sensitive query params
-          navigateFallback: '/vibevault/index.html',
+          navigateFallback: '/index.html',
           navigateFallbackDenylist: [
             /^\/api\/.*/i,
             /^\/vibevault\/api\/.*/i,
@@ -128,8 +128,7 @@ export default defineConfig(() => {
           ],
         },
         devOptions: {
-          enabled: true,
-          type: 'module',
+          enabled: false,
         },
       }),
     ],

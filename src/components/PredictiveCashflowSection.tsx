@@ -13,11 +13,7 @@ import { getCurrencySymbol } from '../utils';
 import { 
   TrendingDown, 
   TrendingUp, 
-  ShieldCheck, 
-  AlertTriangle, 
-  Flame, 
   Calendar, 
-  Compass,
   ArrowUpRight,
   Sparkles,
   Zap
@@ -67,30 +63,6 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
     return calculateCashflowForecast(transactions, subscriptions, currentCurrency, fxRates);
   }, [transactions, subscriptions, currentCurrency, fxRates]);
 
-  const statusConfig = {
-    HEALTHY: {
-      label: '안정',
-      badgeClass: isLight 
-        ? 'bg-emerald-50 text-emerald-800 border-emerald-300' 
-        : 'bg-[#00F5A0]/15 text-[#00F5A0] border-[#00F5A0]/30',
-      icon: <ShieldCheck size={12} className="text-emerald-500 shrink-0" />
-    },
-    MODERATE: {
-      label: '주의',
-      badgeClass: isLight 
-        ? 'bg-amber-50 text-amber-800 border-amber-300' 
-        : 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-      icon: <Compass size={12} className="text-amber-500 shrink-0" />
-    },
-    DEFICIT_WARNING: {
-      label: '초과 위험',
-      badgeClass: isLight 
-        ? 'bg-rose-50 text-rose-800 border-rose-300' 
-        : 'bg-rose-500/15 text-rose-400 border-rose-500/30',
-      icon: <AlertTriangle size={12} className="text-rose-500 shrink-0" />
-    }
-  }[forecast.status];
-
   return (
     <div className="space-y-3 animate-in fade-in duration-200">
       {/* Top Main Forecast Section: Flat Minimalist Surface without nested card boxes or dividing lines */}
@@ -99,40 +71,10 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
           ? 'bg-slate-50/70 text-slate-900' 
           : 'bg-white/[0.02] text-white'
       }`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-              isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/20 text-blue-400'
-            }`}>
-              <Compass size={16} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h3 className={`text-xs sm:text-sm font-bold truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                  예측 현금흐름
-                </h3>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0 whitespace-nowrap ${statusConfig.badgeClass.replace(/border\S*/g, '')}`}>
-                  {statusConfig.icon}
-                  <span>{statusConfig.label}</span>
-                </span>
-              </div>
-              <p className={`text-[11px] mt-0.5 truncate ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
-                현재 소비 속도 기준 월말 예상 잔액
-              </p>
-            </div>
-          </div>
-
-          <div className={`px-2.5 py-1 rounded-xl flex items-center gap-2 shrink-0 self-start sm:self-center ${
-            isLight ? 'bg-white/80' : 'bg-white/[0.04]'
-          }`}>
-            <Flame size={14} className="text-amber-500 shrink-0" />
-            <div className="text-left sm:text-right">
-              <span className={`text-[10px] block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>하루 평균 지출</span>
-              <strong className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'} ${isStealth ? 'blur-xs select-none' : ''}`}>
-                {currSymbol}{forecast.dailyAverageBurn.toLocaleString()}/일
-              </strong>
-            </div>
-          </div>
+        <div className="pb-3">
+          <h3 className={`text-xs sm:text-sm font-bold truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            예측 현금흐름
+          </h3>
         </div>
 
         {/* 3-Metric KPI Row: Clean Flat Surface (No divide-x lines) */}

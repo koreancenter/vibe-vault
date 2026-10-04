@@ -1,9 +1,21 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as d3 from 'd3';
-import { Transaction, ChartPaletteType } from '../types';
+import { Transaction } from '../types';
 import { PieChart, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { getCategoryKo } from '../utils';
-import { getChartPalette } from '../themePalettes';
+
+// Permanent Quiet Luxury Dark Palette Constants
+export const LUXURY_CATEGORY_COLORS: Record<string, string> = {
+  Food: '#34d399',          // Refined Muted Sage Emerald
+  Fixed: '#818cf8',         // Muted Indigo
+  Living: '#fbbf24',        // Warm Amber
+  Transport: '#38bdf8',     // Soft Sky Cyan
+  Health: '#f472b6',        // Muted Rose Pink
+  Leisure: '#c084fc',       // Soft Lavender
+  Uncategorized: '#94a3b8', // Refined Slate
+};
+
+const SIGNATURE_ACCENT = '#34d399';
 
 interface CategoryDonutChartProps {
   transactions: Transaction[];
@@ -12,8 +24,6 @@ interface CategoryDonutChartProps {
   currencySymbol?: string;
   isStealth?: boolean;
   embedded?: boolean;
-  theme?: 'light' | 'dark';
-  chartPalette?: ChartPaletteType;
 }
 
 export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
@@ -23,18 +33,14 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
   currencySymbol = 'KRW',
   isStealth = false,
   embedded = false,
-  theme = 'dark',
-  chartPalette = 'default',
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  const isLight = theme === 'light';
-  const palette = getChartPalette(chartPalette);
   const currPrefix = currencySymbol === 'KRW' ? '₩' : currencySymbol === 'USD' ? '$' : `${currencySymbol} `;
 
-  // Compute breakdown of expenses by category with dynamic palette colors
+  // Compute breakdown of expenses by category with consistent luxury palette colors
   const { categoryData, totalExpense } = useMemo(() => {
     const expenses = transactions.filter((t) => t.type === 'EXPENSE');
     const categoryTotals: Record<string, { total: number; count: number }> = {};
@@ -56,12 +62,12 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
         amount: info.total,
         count: info.count,
         percentage: sum > 0 ? (info.total / sum) * 100 : 0,
-        color: palette.categoryColors[category] || palette.categoryColors['Uncategorized'] || '#94a3b8',
+        color: LUXURY_CATEGORY_COLORS[category] || LUXURY_CATEGORY_COLORS['Uncategorized'] || '#94a3b8',
       }))
       .sort((a, b) => b.amount - a.amount);
 
     return { categoryData: data, totalExpense: sum };
-  }, [transactions, palette]);
+  }, [transactions]);
 
   // Render D3 Donut Chart
   useEffect(() => {
@@ -111,7 +117,7 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
       .attr('d', arc)
       .attr('fill', (d) => d.data.color)
       .attr('stroke', (d) => 
-        selectedCategory === d.data.category ? palette.primary : (isLight ? '#FFFFFF' : '#0B0F17')
+        selectedCategory === d.data.category ? SIGNATURE_ACCENT : '#0B0F17'
       )
       .attr('stroke-width', (d) => selectedCategory === d.data.category ? 3 : 2)
       .style('opacity', (d) => {
@@ -151,12 +157,12 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
   );
 
   return (
-    <div className={embedded ? "" : "bg-white/[0.03] border border-white/10 rounded-3xl p-4 shadow-xl backdrop-blur-xl transition-all"}>
+    <div className={embedded ? "" : "bg-white/[0.03] border border-white/[0.06] rounded-3xl p-4 shadow-xl backdrop-blur-xl transition-all"}>
       {/* Header (hidden if embedded in segmented controller) */}
       {!embedded && (
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+        <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-[#00F5A0]/10 border border-[#00F5A0]/20 flex items-center justify-center text-[#00F5A0] shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center text-emerald-400 shrink-0">
               <PieChart size={16} />
             </div>
             <div className="flex flex-col min-w-0">
@@ -174,7 +180,7 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectCategory(null)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#00F5A0]/15 border border-[#00F5A0]/30 text-[#00F5A0] text-xs font-semibold hover:bg-[#00F5A0]/25 active:scale-95 transition-all"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-400/15 border border-emerald-400/30 text-emerald-300 text-xs font-semibold hover:bg-emerald-400/25 active:scale-95 transition-all"
               >
                 <span>{getCategoryKo(selectedCategory)}</span>
                 <X size={12} />
@@ -184,7 +190,7 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/10 text-[#94A3B8] hover:text-white active:scale-95 transition-all"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white active:scale-95 transition-all"
               aria-label={isExpanded ? '접기' : '펼치기'}
             >
               {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -201,15 +207,15 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
             
             {/* Donut Center Label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-1">
-              <span className={`text-[10px] font-medium truncate max-w-[80px] ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
+              <span className="text-[10px] font-medium truncate max-w-[80px] text-[#94A3B8]">
                 {activeCategoryInfo ? getCategoryKo(activeCategoryInfo.category) : '총 지출'}
               </span>
-              <span className={`text-xs font-black truncate max-w-[90px] ${isLight ? 'text-slate-900' : 'text-white'} ${isStealth ? 'blur-xs select-none' : ''}`}>
+              <span className={`text-xs font-black truncate max-w-[90px] text-white ${isStealth ? 'blur-xs select-none' : ''}`}>
                 {currPrefix}{activeCategoryInfo
                   ? activeCategoryInfo.amount.toLocaleString()
                   : totalExpense.toLocaleString()}
               </span>
-              <span className="text-[10px] font-bold" style={{ color: palette.primary }}>
+              <span className="text-[10px] font-bold text-emerald-400">
                 {activeCategoryInfo
                   ? `${activeCategoryInfo.percentage.toFixed(0)}%`
                   : ''}
@@ -217,7 +223,7 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
             </div>
           </div>
 
-          {/* Interactive Legend Items Grid: Clean Flat Minimalist Buttons (No box-in-box borders) */}
+          {/* Interactive Legend Items Grid: Clean Flat Minimalist Buttons */}
           <div className="flex-1 w-full grid grid-cols-2 gap-1">
             {categoryData.map((item) => {
               const isSelected = selectedCategory === item.category;
@@ -230,12 +236,8 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
                   onMouseLeave={() => setHoveredCategory(null)}
                   className={`px-2.5 py-1.5 rounded-xl text-left transition-all flex items-center justify-between gap-2 ${
                     isSelected
-                      ? isLight
-                        ? 'bg-slate-200/80 text-slate-950 font-bold'
-                        : 'bg-white/15 text-white font-bold'
-                      : isLight
-                        ? 'text-slate-700 hover:bg-slate-100'
-                        : 'text-slate-300 hover:bg-white/[0.05]'
+                      ? 'bg-white/15 text-white font-bold'
+                      : 'text-slate-300 hover:bg-white/[0.05]'
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
@@ -247,10 +249,10 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
                   </div>
 
                   <div className="text-right shrink-0">
-                    <span className={`text-xs font-bold block leading-tight ${isLight ? 'text-slate-900' : 'text-white'} ${isStealth ? 'blur-xs select-none' : ''}`}>
+                    <span className={`text-xs font-bold block leading-tight text-white ${isStealth ? 'blur-xs select-none' : ''}`}>
                       {currPrefix}{item.amount.toLocaleString()}
                     </span>
-                    <span className={`text-[10px] block leading-tight ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
+                    <span className="text-[10px] block leading-tight text-[#94A3B8]">
                       {item.percentage.toFixed(0)}%
                     </span>
                   </div>

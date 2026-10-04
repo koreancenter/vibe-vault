@@ -21,6 +21,7 @@ import {
   getCategoryBudgets, 
   saveCategoryBudgets,
   DEFAULT_CATEGORY_BUDGETS,
+  RECOMMENDED_CATEGORY_BUDGETS,
   getUserPreferences
 } from '../utils';
 import { getAllTransactions } from '../db';
@@ -162,7 +163,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
 
   // Reset to defaults
   const handleResetDefaults = () => {
-    updateBudgetsState(DEFAULT_CATEGORY_BUDGETS);
+    updateBudgetsState(RECOMMENDED_CATEGORY_BUDGETS);
     setBanner({
       type: 'success',
       message: '카테고리 예산이 기본 권장값으로 초기화되었습니다.'

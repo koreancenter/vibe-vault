@@ -1,4 +1,5 @@
 import { TransactionType, CurrencyCode, ParsedReceiptData, ReceiptItem, DebtItem, LoanSplitSuggestion, ReceivableRecoverySuggestion } from './types';
+import { cleanMerchantTitle } from './merchantSanitizer';
 
 export interface ParsedTransactionResult {
   type: TransactionType;
@@ -148,12 +149,23 @@ export function detectCurrency(text: string): CurrencyCode {
 /**
  * Payment Instrument Detector
  */
-export function detectPaymentMethod(text: string): string {
-  if (/카카오\s*페이|카카오페이|kakaopay/i.test(text)) return 'Kakao Pay';
-  if (/토스\s*페이|토스뱅크|토스|toss/i.test(text)) return 'Toss';
-  if (/네이버\s*페이|네이버페이|naverpay/i.test(text)) return 'Naver Pay';
-  if (/쿠팡\s*페이|쿠페이|coupangpay/i.test(text)) return 'Coupang Pay';
-  if (/애플\s*페이|애플페이|applepay/i.test(text)) return 'Apple Pay';
+export function detectPaymentMethod(text: string, isIncome: boolean = false): string {
+  if (isIncome) {
+    if (/토스뱅크|토스|toss/i.test(text)) return '토스뱅크';
+    if (/기업은행|신한은행|국민은행|하나은행|우리은행|카카오뱅크|케이뱅크|농협은행|sc제일은행|씨티은행/i.test(text)) {
+      const match = text.match(/(기업은행|신한은행|국민은행|하나은행|우리은행|카카오뱅크|케이뱅크|농협은행|sc제일은행|씨티은행)/i);
+      return match ? match[1] : '통장';
+    }
+    if (/현금|지폐|동전|cash/i.test(text)) return '현금';
+    return '통장';
+  }
+
+  if (/카카오\s*페이|카카오페이|kakaopay/i.test(text)) return '카카오페이';
+  if (/토스\s*페이|toss\s*pay/i.test(text)) return '토스페이';
+  if (/토스뱅크|토스|toss/i.test(text)) return '토스';
+  if (/네이버\s*페이|네이버페이|naverpay/i.test(text)) return '네이버페이';
+  if (/쿠팡\s*페이|쿠페이|coupangpay/i.test(text)) return '쿠페이';
+  if (/애플\s*페이|애플페이|applepay/i.test(text)) return '애플페이';
   if (/현대\s*카드|현대카드|hyundai\s*card/i.test(text)) return '현대카드';
   if (/신한\s*카드|신한카드|shinhan\s*card/i.test(text)) return '신한카드';
   if (/국민\s*카드|kb\s*카드|kookmin\s*card/i.test(text)) return 'KB국민카드';
@@ -162,11 +174,11 @@ export function detectPaymentMethod(text: string): string {
   if (/우리\s*카드|woori\s*card/i.test(text)) return '우리카드';
   if (/하나\s*카드|hana\s*card/i.test(text)) return '하나카드';
   if (/농협\s*카드|nh\s*카드/i.test(text)) return 'NH농협카드';
-  if (/현금|지폐|동전|cash/i.test(text)) return 'Cash';
-  if (/계좌\s*이체|계좌이체|무통장|송금|자동이체|bank\s*transfer|wire/i.test(text)) return '계좌이체';
-  if (/체크\s*카드|체크카드/i.test(text)) return 'Check Card';
-  if (/신용\s*카드|신용카드|카드\s*결제|카드|card/i.test(text)) return 'Card';
-  return 'Card';
+  if (/현금|지폐|동전|cash/i.test(text)) return '현금';
+  if (/계좌\s*이체|계좌이체|무통장|송금|자동이체|bank\s*transfer|wire|기업은행|신한은행|국민은행|하나은행|우리은행|카카오뱅크|케이뱅크|농협은행|sc제일은행|씨티은행/i.test(text)) return '계좌이체';
+  if (/체크\s*카드|체크카드/i.test(text)) return '체크카드';
+  if (/신용\s*카드|신용카드|카드\s*결제|카드|card/i.test(text)) return '카드';
+  return '카드';
 }
 
 /**
@@ -282,7 +294,7 @@ const CATEGORY_LEXICON: CategoryRule[] = [
   // --- Fixed: Subscriptions ---
   {
     category: 'Fixed',
-    subCategory: 'Subscriptions',
+    subCategory: '구독',
     patterns: [
       /넷플릭스|netflix|유튜브|youtube|디즈니플러스|disney|티빙|tving|웨이브|wavve|왓챠|watcha|스포티파이|spotify|멜론|melon|지니|genie|벅스|플로|flo|밀리의서재|리디북스|리디|애플|apple|icloud|구글원|google\s*one|chatgpt|openai|claude|notion|노션|aws|클라우드|쿠팡와우|와우멤버십|네이버플러스|구독|subscription/i
     ],
@@ -297,10 +309,10 @@ const CATEGORY_LEXICON: CategoryRule[] = [
     ],
     confidence: 0.97
   },
-  // --- Fixed: Salary & Income ---
+  // --- Income: Salary & Regular Income ---
   {
-    category: 'Fixed',
-    subCategory: 'Salary',
+    category: '급여',
+    subCategory: '정기수입',
     patterns: [
       /월급|급여|보너스|상여금|수당|용돈|배당금|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|salary|paycheck|allowance/i
     ],
@@ -772,15 +784,18 @@ export function parseFinancialInputDeterministically(rawPrompt: string, debts: D
     else if (/알바/i.test(sanitized)) desc = '아르바이트 급여';
     else if (/들어옴|입금/i.test(sanitized)) desc = '수입 입금';
 
+    // Default to '계좌' (Bank/Account) or '현금' (Cash), NEVER Card for income unless explicit card refund
+    const incomePaymentMethod = detectPaymentMethod(sanitized, true);
+
     results.push({
       type: 'INCOME',
       amount,
       currency,
-      category: 'Fixed',
-      subCategory: 'Salary',
+      category: '급여',
+      subCategory: '정기수입',
       description: desc,
       date: now,
-      paymentMethod: /계좌|은행|bank/i.test(sanitized) ? '계좌이체' : paymentMethod,
+      paymentMethod: incomePaymentMethod,
       confidenceScore: 0.98,
       rawClause: sanitized
     });
@@ -830,9 +845,8 @@ export function parseFinancialInputDeterministically(rawPrompt: string, debts: D
       const amount = parseKoreanAmount(trimmed);
       if (amount && amount > 0) {
         const { category, subCategory, merchant, confidence } = inferCategoryAndMerchant(trimmed);
-        const cleanDesc = trimmed
-          .replace(/(?:에서|결제함|결제|사고|샀음|\d+(?:\.\d+)?\s*(?:만원|만|천원|천|원|k|m)|\$|€|¥|₩)/gi, '')
-          .trim() || merchant || '구매 항목';
+        const itemPaymentMethod = detectPaymentMethod(trimmed) !== '카드' ? detectPaymentMethod(trimmed) : paymentMethod;
+        const cleanDesc = cleanMerchantTitle(trimmed, merchant || '구매 항목');
 
         results.push({
           type: 'EXPENSE',
@@ -841,9 +855,9 @@ export function parseFinancialInputDeterministically(rawPrompt: string, debts: D
           category,
           subCategory,
           description: cleanDesc,
-          merchant,
+          merchant: cleanDesc,
           date: now,
-          paymentMethod: detectPaymentMethod(trimmed) || paymentMethod,
+          paymentMethod: itemPaymentMethod,
           confidenceScore: confidence,
           rawClause: trimmed
         });
@@ -857,24 +871,15 @@ export function parseFinancialInputDeterministically(rawPrompt: string, debts: D
   const isFallbackIncome = /월급|급여|보너스|상여금|수당|용돈|배당금|환급|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|벌었|salary|paycheck|bonus|allowance/i.test(sanitized) && !/결제|지출|썼|사먹|구입|구매/i.test(sanitized);
 
   const { category: inferredCategory, subCategory: inferredSubCategory, merchant, confidence } = inferCategoryAndMerchant(sanitized);
-  const category = isFallbackIncome ? 'Fixed' : inferredCategory;
-  const subCategory = isFallbackIncome ? 'Salary' : inferredSubCategory;
+  const category = isFallbackIncome ? '급여' : inferredCategory;
+  const subCategory = isFallbackIncome ? '정기수입' : inferredSubCategory;
   const type = isFallbackIncome ? 'INCOME' : 'EXPENSE';
 
-  let cleanDesc = sanitized
-    .replace(/(?:결제함|결제|카드결제|계좌이체|신용카드|체크카드|현대카드|신한카드|국민카드|삼성카드|하나카드|우리카드|농협카드|롯데카드|카카오페이|네이버페이|토스페이|토스|\$|€|¥|₩)/gi, ' ')
-    .replace(/(?:[\d,]+(?:\.\d+)?\s*(?:억원|억|만원|만|천원|천|원|k|m)?|[\d,]{2,}\s*원?)/gi, ' ')
-    .replace(/만\s*원\s*들어옴/i, '들어옴')
-    .replace(/^[\s,·\.\-원\d]+(?:\s*원)?/i, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  let cleanDesc = cleanMerchantTitle(sanitized, isFallbackIncome ? '급여 수입' : merchant || '지출 내역');
 
-  cleanDesc = cleanDesc.replace(/^원\s*/i, '').trim();
-  if (!cleanDesc || cleanDesc === '원' || cleanDesc === '현대카드') {
-    cleanDesc = isFallbackIncome 
-      ? '급여 수입' 
-      : merchant || (paymentMethod ? `${paymentMethod} 지출` : '지출 내역');
-  }
+  const finalPaymentMethod = isFallbackIncome 
+    ? detectPaymentMethod(sanitized, true) 
+    : detectPaymentMethod(sanitized, false);
 
   results.push({
     type,
@@ -883,9 +888,9 @@ export function parseFinancialInputDeterministically(rawPrompt: string, debts: D
     category,
     subCategory,
     description: cleanDesc,
-    merchant,
+    merchant: cleanDesc,
     date: now,
-    paymentMethod: isFallbackIncome ? '계좌이체' : paymentMethod,
+    paymentMethod: finalPaymentMethod,
     confidenceScore: confidence,
     rawClause: sanitized
   });
@@ -912,16 +917,18 @@ export function extractRealtimePreview(text: string): RealtimePreviewData | null
   const amount = parseKoreanAmount(sanitized);
   const currency = detectCurrency(sanitized);
   const { category, merchant } = inferCategoryAndMerchant(sanitized);
-  const paymentMethod = detectPaymentMethod(sanitized);
+  const isIncome = /월급|급여|보너스|상여금|수당|용돈|배당금|환급|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|벌었/i.test(sanitized) && !/결제|지출|썼|사먹|구입|구매/i.test(sanitized);
+  const paymentMethod = detectPaymentMethod(sanitized, isIncome);
   const isDutch = /더치페이|더치|n빵|정산|반띵/i.test(sanitized);
+  const cleanedTitle = cleanMerchantTitle(sanitized, merchant);
 
   // Return preview if at least an amount, category or merchant was detected
   if (amount || merchant || (category && category !== 'Living')) {
     return {
-      merchant: merchant || (category ? undefined : undefined),
+      merchant: cleanedTitle !== '지출 내역' ? cleanedTitle : merchant,
       amount: amount || undefined,
       currency,
-      category,
+      category: isIncome ? '급여' : category,
       paymentMethod: paymentMethod || undefined,
       isDutch
     };

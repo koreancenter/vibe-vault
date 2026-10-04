@@ -12,7 +12,6 @@ import {
 } from '../autonomousFinance';
 import { getCurrencySymbol, getCategoryKo } from '../utils';
 import { 
-  CalendarClock, 
   Plus, 
   CheckCircle2, 
   PauseCircle, 
@@ -158,27 +157,10 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
           : 'bg-white/[0.02] text-white'
       }`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-              isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-[#00F5A0]/15 text-[#00F5A0]'
-            }`}>
-              <CalendarClock size={17} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                  정기 구독 & 고정 지출 레이더
-                </h3>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  isLight ? 'bg-emerald-50 text-emerald-700' : 'bg-[#00F5A0]/10 text-[#00F5A0]'
-                }`}>
-                  자율 감지 활성
-                </span>
-              </div>
-              <p className={`text-[11px] mt-0.5 ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
-                30일 주기 반복 결제 내역 자동 추적 및 D-Day 알림
-              </p>
-            </div>
+          <div>
+            <h3 className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+              정기 구독 & 고정 지출 레이더
+            </h3>
           </div>
 
           <button

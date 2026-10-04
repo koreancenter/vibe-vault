@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Asset, AssetType, AssetCategoryType, LaunchScreenMode, ChartPaletteType, SupportedCurrency, FxRates, Transaction, AssetAccount, DebtItem } from './types';
+import { Asset, AssetType, AssetCategoryType, LaunchScreenMode, SupportedCurrency, FxRates, Transaction, AssetAccount, DebtItem } from './types';
 import { getSecureGeminiApiKey, setSecureGeminiApiKey, sanitizeApiKey } from './geminiKeyManager';
 
 export function cn(...inputs: ClassValue[]) {
@@ -15,16 +15,16 @@ export interface AIEngineConfig {
   apiKey: string;
 }
 
-export type ThemeMode = 'dark' | 'light' | 'system';
+export type ThemeMode = 'dark';
 
 export interface UserPreferences {
   budgetStartDay: number; // 1 to 31
   currencySymbol: string; // 'KRW', 'USD', 'EUR', 'JPY'
   stealthMode: boolean;   // blur financial amounts
-  theme: ThemeMode;       // 'dark' | 'light' | 'system'
-  chartPalette?: ChartPaletteType; // 'default' | 'sage' | 'clay' | 'burgundy'
+  theme?: string;         // locked to 'dark'
+  chartPalette?: string;  // deprecated
   autoCategorization: boolean; // toggle smart auto-categorization (default true)
-  defaultLaunchScreen?: LaunchScreenMode; // 'vault' | 'ledger'
+  defaultLaunchScreen?: LaunchScreenMode; // 'vault' | 'insights' | 'ledger'
 }
 
 export function getAIEngineConfig(): AIEngineConfig {
@@ -36,7 +36,7 @@ export function getAIEngineConfig(): AIEngineConfig {
       const parsed = JSON.parse(stored);
       const effectiveKey = sanitizeApiKey(parsed.apiKey) || secureKey || '';
       return {
-        engineType: parsed.engineType || (effectiveKey ? 'byok' : 'local'),
+        engineType: parsed.engineType || 'byok',
         localModel: parsed.localModel || 'gemma-2b',
         provider: parsed.provider || 'gemini',
         modelTier: parsed.modelTier || 'gemini-3.8-flash',
@@ -46,7 +46,7 @@ export function getAIEngineConfig(): AIEngineConfig {
   } catch (e) {}
   
   return {
-    engineType: secureKey ? 'byok' : 'local',
+    engineType: 'byok',
     localModel: 'gemma-2b',
     provider: 'gemini',
     modelTier: 'gemini-3.8-flash',
@@ -67,35 +67,22 @@ export function saveAIEngineConfig(config: AIEngineConfig) {
   }));
 }
 
-export function getEffectiveTheme(theme: ThemeMode): 'dark' | 'light' {
-  if (theme === 'system' && typeof window !== 'undefined') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  return theme === 'light' ? 'light' : 'dark';
+export function getEffectiveTheme(_theme?: string): 'dark' {
+  return 'dark';
 }
 
-export function applyTheme(theme: ThemeMode) {
+export function applyTheme(_theme?: string, _paletteId?: string | null) {
   if (typeof document !== 'undefined') {
-    const effective = getEffectiveTheme(theme);
     const root = document.documentElement;
     const body = document.body;
-    if (effective === 'light') {
-      root.classList.add('light');
-      root.classList.remove('dark');
-      root.setAttribute('data-theme', 'light');
-      body.classList.remove('bg-gradient-to-b', 'from-[#0B0F17]', 'via-[#0E1524]', 'to-[#111827]', 'text-slate-100');
-      body.classList.add('bg-[#F8FAFC]', 'text-slate-900');
-      const themeMeta = document.querySelector('meta[name="theme-color"]');
-      if (themeMeta) themeMeta.setAttribute('content', '#FFFFFF');
-    } else {
-      root.classList.add('dark');
-      root.classList.remove('light');
-      root.setAttribute('data-theme', 'dark');
-      body.classList.remove('bg-[#F8FAFC]', 'text-slate-900');
-      body.classList.add('bg-gradient-to-b', 'from-[#0B0F17]', 'via-[#0E1524]', 'to-[#111827]', 'text-slate-100');
-      const themeMeta = document.querySelector('meta[name="theme-color"]');
-      if (themeMeta) themeMeta.setAttribute('content', '#020617');
-    }
+    root.classList.add('dark');
+    root.classList.remove('light');
+    root.setAttribute('data-theme', 'dark');
+    root.removeAttribute('data-accent');
+    body.classList.remove('bg-[#F8FAFC]', 'text-slate-900');
+    body.classList.add('bg-gradient-to-b', 'from-[#0B0F17]', 'via-[#0E1524]', 'to-[#111827]', 'text-slate-100');
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute('content', '#0B0F17');
   }
 }
 
@@ -104,19 +91,13 @@ export function getUserPreferences(): UserPreferences {
     const stored = localStorage.getItem('vibe_user_preferences');
     if (stored) {
       const parsed = JSON.parse(stored);
-      const themeVal: ThemeMode = (parsed.theme === 'light' || parsed.theme === 'system' || parsed.theme === 'dark')
-        ? parsed.theme
-        : 'dark';
       return {
         budgetStartDay: parsed.budgetStartDay ?? 1,
         currencySymbol: parsed.currencySymbol || 'KRW',
         stealthMode: !!parsed.stealthMode,
-        theme: themeVal,
-        chartPalette: (['default', 'sage', 'clay', 'burgundy'] as const).includes(parsed.chartPalette) 
-          ? parsed.chartPalette 
-          : 'default',
+        theme: 'dark',
         autoCategorization: parsed.autoCategorization !== undefined ? !!parsed.autoCategorization : true,
-        defaultLaunchScreen: (parsed.defaultLaunchScreen === 'ledger' ? 'ledger' : 'vault'),
+        defaultLaunchScreen: (['vault', 'insights', 'ledger'] as const).includes(parsed.defaultLaunchScreen) ? parsed.defaultLaunchScreen : 'vault',
       };
     }
   } catch (e) {}
@@ -126,7 +107,6 @@ export function getUserPreferences(): UserPreferences {
     currencySymbol: 'KRW',
     stealthMode: false,
     theme: 'dark',
-    chartPalette: 'default',
     autoCategorization: true,
     defaultLaunchScreen: 'vault',
   };
@@ -173,11 +153,83 @@ export const CATEGORY_NAMES_KO: Record<string, string> = {
   Transport: '교통',
   Health: '의료/건강',
   Leisure: '문화/여가',
+  Income: '급여/수입',
+  Salary: '급여',
   Uncategorized: '미분류',
 };
 
-export function getCategoryKo(category: string): string {
-  return CATEGORY_NAMES_KO[category] || category;
+// Clean Korean subcategory translations to eliminate redundant English labels
+export const SUBCATEGORY_NAMES_KO: Record<string, string> = {
+  // Food
+  Dining: '외식',
+  Cafe: '카페/디저트',
+  Delivery: '배달',
+  Grocery: '장보기/마트',
+  // Living
+  Shopping: '쇼핑',
+  'Daily Supplies': '생필품',
+  Fashion: '패션/뷰티',
+  Convenience: '편의점',
+  General: '생활',
+  // Transport
+  'Public Transport': '대중교통',
+  Taxi: '택시/모빌리티',
+  Vehicle: '차량/주유',
+  // Fixed
+  Salary: '급여',
+  Subscription: '구독',
+  Subscriptions: '구독',
+  Utilities: '공과금/관리비',
+  Finance: '금융/보험',
+  Savings: '적금/저축',
+  Rent: '월세',
+  // Health
+  Medical: '병원/약국',
+  Fitness: '운동/피트니스',
+  // Leisure
+  Entertainment: '문화/여가',
+  Travel: '여행/숙박',
+  Hobbies: '도서/취미',
+};
+
+export function getCategoryKo(category: string, subCategory?: string): string {
+  // If transaction category is income or salary, display clean Korean label
+  if (category === 'Income' || category === 'Salary' || subCategory === 'Salary') {
+    return '급여';
+  }
+
+  const baseKo = CATEGORY_NAMES_KO[category] || category;
+
+  if (!subCategory) {
+    return baseKo;
+  }
+
+  // If subCategory has a dedicated Korean translation, check if it duplicates base
+  const subKo = SUBCATEGORY_NAMES_KO[subCategory] || subCategory;
+
+  // Avoid repetitive combinations like "문화/여가 · 문화/여가" or "식비 · 식비"
+  if (subKo === baseKo || subCategory.toLowerCase() === category.toLowerCase()) {
+    return baseKo;
+  }
+
+  // Handle specific clean overrides
+  if (category === 'Leisure' && subCategory === 'Travel') {
+    return '여행/숙박';
+  }
+  if (category === 'Leisure' && subCategory === 'Entertainment') {
+    return '문화/여가';
+  }
+  if (category === 'Food' && subCategory === 'Dining') {
+    return '식비';
+  }
+  if (category === 'Living' && (subCategory === 'Shopping' || subCategory === 'General')) {
+    return '생활/쇼핑';
+  }
+  if (category === 'Transport' && subCategory === 'Public Transport') {
+    return '교통';
+  }
+
+  return `${baseKo} · ${subKo}`;
 }
 
 export const TRANSACTION_TYPE_KO: Record<string, string> = {
@@ -192,18 +244,55 @@ export function getTransactionTypeKo(type: string): string {
   return TRANSACTION_TYPE_KO[type] || type;
 }
 
-export const DEFAULT_USER_ASSETS: Asset[] = [
+export function getPaymentMethodKo(method?: string, transactionType?: string): string {
+  if (!method) {
+    return transactionType === 'INCOME' ? '통장' : '';
+  }
+  const trimmed = method.trim();
+  // Income payment methods should always reflect account/bank (통장/계좌), never card
+  if (transactionType === 'INCOME') {
+    if (/^(?:card|카드|check\s*card|체크카드|신용카드|credit\s*card)$/i.test(trimmed)) {
+      return '통장';
+    }
+    if (/^(?:계좌이체|계좌|통장|bank\s*transfer|무통장)$/i.test(trimmed)) {
+      return '통장';
+    }
+  }
+
+  // Payment method translations
+  if (/^(?:card|신용카드|카드결제)$/i.test(trimmed)) {
+    return '카드';
+  }
+  if (/^check\s*card$/i.test(trimmed)) {
+    return '체크카드';
+  }
+  if (/^credit\s*card$/i.test(trimmed)) {
+    return '신용카드';
+  }
+  if (/^bank\s*transfer$/i.test(trimmed)) {
+    return '계좌이체';
+  }
+  if (/^cash$/i.test(trimmed)) {
+    return '현금';
+  }
+
+  return trimmed;
+}
+
+export const RECOMMENDED_USER_ASSETS: Asset[] = [
   { id: 'asset-default-1', name: '현대카드', type: 'CARD', billingDay: 14, enabled: true, note: '주요 신용카드' },
   { id: 'asset-default-2', name: '신한은행', type: 'BANK', enabled: true, note: '급여·생활비 계좌' },
   { id: 'asset-default-3', name: '비상금 현금', type: 'CASH', enabled: true, note: '지갑 현금' },
 ];
+
+export const DEFAULT_USER_ASSETS: Asset[] = [];
 
 export function getUserAssets(): Asset[] {
   try {
     const stored = localStorage.getItem('vibe_user_assets');
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
@@ -248,10 +337,72 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
   EUR: '€',
   JPY: '¥',
   GBP: '£',
+  IDR: 'Rp',
+  CNY: '¥',
+  CAD: 'C$',
+  AUD: 'A$',
+  SGD: 'S$',
+  HKD: 'HK$',
+  THB: '฿',
+  VND: '₫',
+  CHF: 'CHF',
+  TWD: 'NT$',
+  PHP: '₱',
+  INR: '₹',
 };
 
+// Known ISO 4217 Currency Names for previewing & validation
+export const KNOWN_CURRENCY_NAMES: Record<string, { nameKo: string; symbol: string; fallbackRateToKrw?: number }> = {
+  KRW: { nameKo: '대한민국 원', symbol: '₩', fallbackRateToKrw: 1 },
+  USD: { nameKo: '미국 달러', symbol: '$', fallbackRateToKrw: 1333 },
+  IDR: { nameKo: '인도네시아 루피아', symbol: 'Rp', fallbackRateToKrw: 0.086 },
+  EUR: { nameKo: '유럽 유로', symbol: '€', fallbackRateToKrw: 1450 },
+  JPY: { nameKo: '일본 엔', symbol: '¥', fallbackRateToKrw: 8.85 },
+  GBP: { nameKo: '영국 파운드', symbol: '£', fallbackRateToKrw: 1720 },
+  CNY: { nameKo: '중국 위안', symbol: '¥', fallbackRateToKrw: 185 },
+  CAD: { nameKo: '캐나다 달러', symbol: 'C$', fallbackRateToKrw: 980 },
+  AUD: { nameKo: '호주 달러', symbol: 'A$', fallbackRateToKrw: 870 },
+  SGD: { nameKo: '싱가포르 달러', symbol: 'S$', fallbackRateToKrw: 990 },
+  HKD: { nameKo: '홍콩 달러', symbol: 'HK$', fallbackRateToKrw: 171 },
+  THB: { nameKo: '태국 바트', symbol: '฿', fallbackRateToKrw: 38.5 },
+  VND: { nameKo: '베트남 동', symbol: '₫', fallbackRateToKrw: 0.054 },
+  CHF: { nameKo: '스위스 프랑', symbol: 'CHF', fallbackRateToKrw: 1515 },
+  TWD: { nameKo: '대만 달러', symbol: 'NT$', fallbackRateToKrw: 41.7 },
+  PHP: { nameKo: '필리핀 페소', symbol: '₱', fallbackRateToKrw: 23.2 },
+  INR: { nameKo: '인도 루피', symbol: '₹', fallbackRateToKrw: 15.8 },
+};
+
+// Default User Active Currencies list (Single-currency minimalist default)
+export const DEFAULT_ACTIVE_CURRENCIES: string[] = ['KRW'];
+
+export function getUserActiveCurrencies(): string[] {
+  try {
+    const stored = localStorage.getItem('vibe_active_currencies');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((c) => String(c).toUpperCase());
+      }
+    }
+  } catch {}
+  return DEFAULT_ACTIVE_CURRENCIES;
+}
+
+export function saveUserActiveCurrencies(currencies: string[]): void {
+  try {
+    const sanitized = Array.from(new Set(currencies.map((c) => String(c).trim().toUpperCase()))).filter(Boolean);
+    localStorage.setItem('vibe_active_currencies', JSON.stringify(sanitized));
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        window.dispatchEvent(new Event('storage'));
+      }, 0);
+    }
+  } catch {}
+}
+
 export function getCurrencySymbol(code: string): string {
-  return CURRENCY_SYMBOLS[code] || code;
+  const upper = String(code || '').toUpperCase();
+  return CURRENCY_SYMBOLS[upper] || KNOWN_CURRENCY_NAMES[upper]?.symbol || upper;
 }
 
 export function formatCurrency(amount: number, currency: string = 'KRW'): string {
@@ -273,6 +424,8 @@ export const DEFAULT_FX_RATES: FxRates = {
     EUR: 0.00069, // 1 KRW ≈ 0.00069 EUR (or 1 EUR ≈ 1,450 KRW)
     JPY: 0.113,   // 1 KRW ≈ 0.113 JPY (or 100 JPY ≈ 885 KRW)
     GBP: 0.00058, // 1 KRW ≈ 0.00058 GBP (or 1 GBP ≈ 1,720 KRW)
+    IDR: 11.63,   // 1 KRW ≈ 11.63 IDR (or 1 IDR ≈ 0.086 KRW)
+    CNY: 0.0054,  // 1 KRW ≈ 0.0054 CNY (or 1 CNY ≈ 185 KRW)
   },
   updatedAt: new Date().toISOString(),
 };
@@ -294,20 +447,86 @@ export function convertCurrency(
   const amountInBase = fromRate === 0 ? amount : amount / fromRate;
   const converted = amountInBase * toRate;
 
-  // Rounding: KRW and JPY integers, USD/EUR/GBP 2 decimals
-  if (toCurrency === 'KRW' || toCurrency === 'JPY') {
+  // Rounding: KRW, JPY, IDR, VND integers, others 2 decimals
+  if (toCurrency === 'KRW' || toCurrency === 'JPY' || toCurrency === 'IDR' || toCurrency === 'VND') {
     return Math.round(converted);
   }
   return Math.round(converted * 100) / 100;
 }
 
-export const DEFAULT_CATEGORY_BUDGETS: Record<string, number> = {
+export interface DualCurrencyDisplay {
+  secondaryCurrency: string;
+  secondaryFormatted: string;
+  rateText: string;
+}
+
+/**
+ * Returns dual-currency comparison data for hero balances.
+ * Calculates secondary equivalent and human-readable FX rate sub-line.
+ * e.g., Primary: Rp 15,816,800 -> "≈ ₩1,360,000 · 환율 1 KRW = 11.63 IDR"
+ */
+export function getDualCurrencyComparison(
+  amount: number,
+  primaryCurrency: string,
+  fxRates: FxRates = DEFAULT_FX_RATES,
+  customSecondaryCurrency?: string
+): DualCurrencyDisplay | null {
+  const primary = (primaryCurrency || 'KRW').toUpperCase();
+
+  // Determine secondary currency
+  let secondary = customSecondaryCurrency?.toUpperCase();
+  if (!secondary) {
+    if (primary !== 'KRW') {
+      secondary = 'KRW';
+    } else {
+      const activeList = getUserActiveCurrencies();
+      secondary = activeList.find((c) => c !== primary) || 'USD';
+    }
+  }
+
+  if (primary === secondary) return null;
+
+  const secondaryAmount = convertCurrency(amount, primary, secondary, fxRates);
+  const secondarySym = getCurrencySymbol(secondary);
+
+  const isIntCurrency = secondary === 'KRW' || secondary === 'JPY' || secondary === 'IDR' || secondary === 'VND';
+  const secondaryFormatted = isIntCurrency
+    ? `${secondarySym}${Math.round(secondaryAmount).toLocaleString()}`
+    : `${secondarySym}${secondaryAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+  // Determine rate string (e.g. "1 KRW = 11.63 IDR" or "1 USD = 1,333 KRW")
+  const oneSecondaryInPrimary = convertCurrency(1, secondary, primary, fxRates);
+  const onePrimaryInSecondary = convertCurrency(1, primary, secondary, fxRates);
+
+  let rateText = '';
+  if (oneSecondaryInPrimary >= 1) {
+    const rateVal = oneSecondaryInPrimary >= 100
+      ? Number(oneSecondaryInPrimary.toFixed(2)).toLocaleString()
+      : Number(oneSecondaryInPrimary.toFixed(2)).toString();
+    rateText = `1 ${secondary} = ${rateVal} ${primary}`;
+  } else {
+    const rateVal = onePrimaryInSecondary >= 100
+      ? Number(onePrimaryInSecondary.toFixed(2)).toLocaleString()
+      : Number(onePrimaryInSecondary.toFixed(2)).toString();
+    rateText = `1 ${primary} = ${rateVal} ${secondary}`;
+  }
+
+  return {
+    secondaryCurrency: secondary,
+    secondaryFormatted,
+    rateText,
+  };
+}
+
+export const RECOMMENDED_CATEGORY_BUDGETS: Record<string, number> = {
   Food: 600000,
   Living: 400000,
   Transport: 150000,
   Fixed: 500000,
   Leisure: 200000,
 };
+
+export const DEFAULT_CATEGORY_BUDGETS: Record<string, number> = {};
 
 export function getCategoryBudgets(): Record<string, number> {
   try {

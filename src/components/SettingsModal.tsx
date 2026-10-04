@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   X, 
   Eye, 
@@ -20,12 +20,8 @@ import {
   Plus,
   Minus,
   Trash2,
-  Sun,
-  Moon,
-  Monitor,
   Wallet,
   Sparkles,
-  Palette,
   ExternalLink
 } from 'lucide-react';
 import { 
@@ -37,7 +33,11 @@ import {
   applyTheme,
   getEffectiveTheme,
   ThemeMode,
-  UserPreferences 
+  UserPreferences,
+  getUserActiveCurrencies,
+  saveUserActiveCurrencies,
+  KNOWN_CURRENCY_NAMES,
+  getCurrencySymbol
 } from '../utils';
 import {
   sanitizeApiKey,
@@ -48,10 +48,20 @@ import {
   clearSecureGeminiApiKey,
   testGeminiApiKeyOnline
 } from '../geminiKeyManager';
-import { getAllTransactions, addTransactions, clearAllTransactions, replaceAllTransactions } from '../db';
-import { Transaction, ChartPaletteType, EncryptedBackupPayload, UnencryptedBackupPayloadV2 } from '../types';
+import { 
+  getAllTransactions, 
+  addTransactions, 
+  clearAllTransactions, 
+  replaceAllTransactions,
+  loadSampleData,
+  resetAllDataToZero,
+  getSpaces,
+  deleteSpace,
+  DEFAULT_SPACE
+} from '../db';
+import { PWAInstallButton } from './PWAInstallButton';
+import { Transaction, EncryptedBackupPayload, UnencryptedBackupPayloadV2, SupportedCurrency, LedgerSpace } from '../types';
 import { SmartAssetSetup } from './SmartAssetSetup';
-import { CHART_PALETTES } from '../themePalettes';
 import {
   encryptBackupData,
   decryptBackupData,
@@ -70,6 +80,15 @@ import {
   VaultLockConfig
 } from '../vaultSecurity';
 import { evictAllServiceWorkerCaches } from '../usePWAInstall';
+import {
+  checkWebGPUSupport,
+  isWebLLMModelCached,
+  isLocalLLMReady,
+  downloadAndInitWebLLM,
+  cancelWebLLMDownload,
+  purgeWebLLMCache,
+  ModelDownloadProgress
+} from '../webllmManager';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -77,6 +96,12 @@ interface SettingsModalProps {
   onDataChanged?: () => void;
   onDataReset?: () => void;
   initialTab?: 'assets' | 'engine' | 'preferences' | 'privacy';
+  initialSubTab?: 'assets' | 'budget' | 'subscriptions';
+  spaces?: LedgerSpace[];
+  activeSpaceId?: string;
+  onSelectSpace?: (space: LedgerSpace) => void;
+  onDeleteSpace?: (spaceId: string) => void;
+  onOpenNewSpace?: () => void;
 }
 
 // Custom Dark Dropdown Component (replaces browser native <select> to fix white scrollbars and OS styling)
@@ -212,15 +237,73 @@ const resolveSafeTab = (tab: unknown): 'assets' | 'engine' | 'preferences' | 'pr
     : 'assets';
 };
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onDataChanged, onDataReset, initialTab }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onDataChanged, 
+  onDataReset, 
+  initialTab,
+  initialSubTab,
+  spaces,
+  activeSpaceId,
+  onSelectSpace,
+  onDeleteSpace,
+  onOpenNewSpace
+}) => {
+  // Multi-Ledger Spaces State in Settings
+  const [internalSpaces, setInternalSpaces] = useState<LedgerSpace[]>(spaces || [DEFAULT_SPACE]);
+
+  useEffect(() => {
+    if (spaces) {
+      setInternalSpaces(spaces);
+    } else if (isOpen) {
+      getSpaces().then(s => setInternalSpaces(s)).catch(() => {});
+    }
+  }, [spaces, isOpen]);
+
+  const handleSelectSpaceItem = (sp: LedgerSpace) => {
+    if (onSelectSpace) {
+      onSelectSpace(sp);
+    } else if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('vibe_active_space_id', sp.id);
+    }
+    setStatusMessage({ type: 'success', text: `'${sp.name}' 장부로 전환되었습니다.` });
+  };
+
+  const handleDeleteSpaceItem = async (spId: string) => {
+    if (spId === 'default') return;
+    if (!window.confirm('이 프로젝트 장부와 관련 거래 내역을 삭제하시겠습니까?')) return;
+    if (onDeleteSpace) {
+      onDeleteSpace(spId);
+    } else {
+      await deleteSpace(spId);
+      const updated = await getSpaces();
+      setInternalSpaces(updated);
+    }
+    if (onDataChanged) onDataChanged();
+  };
+
+  const handleCreateNewSpace = () => {
+    if (onOpenNewSpace) {
+      onOpenNewSpace();
+    }
+  };
+
   // 4-Tab Segmented Control: [ 스마트 자산 | AI 엔진 | 일반 설정 | 데이터 관리 ]
   const [activeTab, setActiveTab] = useState<'assets' | 'engine' | 'preferences' | 'privacy'>(resolveSafeTab(initialTab));
+  const [subTab, setSubTab] = useState<'assets' | 'budget' | 'subscriptions'>(initialSubTab || 'assets');
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
 
   // Tab 1: AI Engine state
-  const [engineType, setEngineType] = useState<'local' | 'byok'>('local');
+  const [engineType, setEngineType] = useState<'local' | 'byok'>('byok');
   const [localModel, setLocalModel] = useState<'gemma-2b' | 'llama3-8b'>('gemma-2b');
   const [provider, setProvider] = useState<'gemini' | 'openai' | 'anthropic'>('gemini');
-  const [modelTier, setModelTier] = useState<string>('1.5-flash');
+  const [modelTier, setModelTier] = useState<string>('gemini-3.8-flash');
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [isTestingKey, setIsTestingKey] = useState(false);
@@ -229,19 +312,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     message: ''
   });
 
+  // WebLLM Tier 3 state
+  const [webGpuStatus, setWebGpuStatus] = useState<{ supported: boolean; reason?: string } | null>(null);
+  const [isModelDownloaded, setIsModelDownloaded] = useState<boolean>(false);
+  const [isDownloadingModel, setIsDownloadingModel] = useState<boolean>(false);
+  const [downloadProgress, setDownloadProgress] = useState<ModelDownloadProgress | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
   // Tab 2: Financial Preferences state
   const [budgetStartDay, setBudgetStartDay] = useState<number>(1);
   const [currencySymbol, setCurrencySymbol] = useState<string>('KRW');
   const [stealthMode, setStealthMode] = useState<boolean>(false);
   const [theme, setTheme] = useState<ThemeMode>('dark');
-  const [chartPalette, setChartPalette] = useState<ChartPaletteType>('default');
   const [autoCategorization, setAutoCategorization] = useState<boolean>(true);
-  const [defaultLaunchScreen, setDefaultLaunchScreen] = useState<'vault' | 'ledger'>('vault');
+  const [defaultLaunchScreen, setDefaultLaunchScreen] = useState<'vault' | 'insights' | 'ledger'>('vault');
+  const [activeCurrenciesList, setActiveCurrenciesList] = useState<string[]>(() => {
+    const list = getUserActiveCurrencies();
+    return list.length > 0 ? list : ['KRW'];
+  });
+  const [newCurrencyInput, setNewCurrencyInput] = useState('');
+  const [currencyError, setCurrencyError] = useState<string | null>(null);
+
+  // Sync active currencies if changed externally or in storage
+  useEffect(() => {
+    const syncCurrencies = () => {
+      const stored = getUserActiveCurrencies();
+      setActiveCurrenciesList(stored.length > 0 ? stored : ['KRW']);
+    };
+    window.addEventListener('storage', syncCurrencies);
+    return () => window.removeEventListener('storage', syncCurrencies);
+  }, []);
 
   // Tab 3: Data & Privacy state
   const [lastExportedDate, setLastExportedDate] = useState<string>('없음');
-  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  const [deleteConfirmationText, setDeleteConfirmationText] = useState<string>('');
   const [isClearingData, setIsClearingData] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -284,7 +387,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       }
       // Load current AI Engine config
       const engineCfg = getAIEngineConfig();
-      setEngineType(engineCfg.engineType || 'local');
+      setEngineType(engineCfg.engineType || 'byok');
       setLocalModel(engineCfg.localModel || 'gemma-2b');
       setProvider(engineCfg.provider || 'gemini');
       setModelTier(engineCfg.modelTier || (engineCfg.provider === 'openai' ? 'gpt-4o-mini' : 'gemini-3.8-flash'));
@@ -292,13 +395,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       setShowKey(false);
       setTestResult({ status: null, message: '' });
 
+      // Check WebGPU hardware & model cache state
+      checkWebGPUSupport().then(res => setWebGpuStatus(res));
+      setIsModelDownloaded(isWebLLMModelCached() || isLocalLLMReady());
+
       // Load User Preferences
       const prefs = getUserPreferences();
       setBudgetStartDay(prefs.budgetStartDay ?? 1);
       setCurrencySymbol(prefs.currencySymbol || 'KRW');
       setStealthMode(prefs.stealthMode ?? false);
-      setTheme(prefs.theme || 'dark');
-      setChartPalette(prefs.chartPalette || 'default');
+      setTheme('dark');
       setAutoCategorization(prefs.autoCategorization !== undefined ? !!prefs.autoCategorization : true);
       setDefaultLaunchScreen(prefs.defaultLaunchScreen || 'vault');
 
@@ -309,9 +415,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       // Load Vault Security & PIN state
       setIsPinSet(hasVaultPin());
       setAutoLockConfigState(getAutoLockConfig());
-
-      setShowDeleteModal(false);
-      setDeleteConfirmationText('');
       setStatusMessage(null);
     }
   }, [isOpen]);
@@ -351,21 +454,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     }
   };
 
-  const handleThemeChange = (newTheme: ThemeMode) => {
-    setTheme(newTheme);
-    applyTheme(newTheme);
-    const prefs = getUserPreferences();
-    saveUserPreferences({ ...prefs, theme: newTheme, autoCategorization });
-    if (onDataChanged) onDataChanged();
-  };
-
-  const handleChartPaletteChange = (newPalette: ChartPaletteType) => {
-    setChartPalette(newPalette);
-    const prefs = getUserPreferences();
-    saveUserPreferences({ ...prefs, chartPalette: newPalette });
-    if (onDataChanged) onDataChanged();
-  };
-
   // Provider options
   const providerOptions: CustomSelectOption[] = [
     { value: 'gemini', label: 'Google Gemini' },
@@ -400,13 +488,55 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     { value: 'llama3-8b', label: 'Llama 3 8B', sublabel: '심층 처리 - 4.5GB' },
   ];
 
-  // Currency options
-  const currencyOptions: CustomSelectOption[] = [
-    { value: 'KRW', label: '원화 (₩)' },
-    { value: 'USD', label: '달러 ($)' },
-    { value: 'EUR', label: '유로 (€)' },
-    { value: 'JPY', label: '엔화 (¥)' },
-  ];
+  // Dynamic Currency options based on user active currencies list
+  const currencyOptions: CustomSelectOption[] = useMemo(() => {
+    const all = Array.from(new Set([...activeCurrenciesList, currencySymbol])).filter(Boolean);
+    return all.map((c) => {
+      const info = KNOWN_CURRENCY_NAMES[c];
+      const sym = getCurrencySymbol(c);
+      const label = info ? `${info.nameKo} (${sym})` : `${c} (${sym})`;
+      return { value: c, label };
+    });
+  }, [activeCurrenciesList, currencySymbol]);
+
+  const handleAddActiveCurrency = (rawCode: string) => {
+    setCurrencyError(null);
+    const code = rawCode.trim().toUpperCase();
+    if (!code) {
+      setCurrencyError('통화 코드를 입력해주세요 (예: IDR, USD).');
+      return;
+    }
+    if (!/^[A-Z]{3}$/.test(code)) {
+      setCurrencyError('유효한 3자리 ISO 통화 코드를 입력해주세요.');
+      return;
+    }
+    if (activeCurrenciesList.includes(code)) {
+      setCurrencyError(`이미 등록된 통화입니다: ${code}`);
+      return;
+    }
+    const updated = [...activeCurrenciesList, code];
+    setActiveCurrenciesList(updated);
+    saveUserActiveCurrencies(updated);
+    setNewCurrencyInput('');
+    if (onDataChanged) onDataChanged();
+  };
+
+  const handleRemoveActiveCurrency = (codeToRemove: string) => {
+    const upper = codeToRemove.toUpperCase();
+    if (upper === currencySymbol.toUpperCase()) {
+      setCurrencyError('현재 기본 기준 통화는 목록에서 삭제할 수 없습니다.');
+      return;
+    }
+    if (activeCurrenciesList.length <= 1) {
+      setCurrencyError('최소 1개 이상의 통화가 유지되어야 합니다.');
+      return;
+    }
+    setCurrencyError(null);
+    const updated = activeCurrenciesList.filter((c) => c !== upper);
+    setActiveCurrenciesList(updated);
+    saveUserActiveCurrencies(updated);
+    if (onDataChanged) onDataChanged();
+  };
 
   const handleProviderChange = (newProvider: string) => {
     const prov = newProvider as 'gemini' | 'openai' | 'anthropic';
@@ -462,6 +592,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     }
   };
 
+  // WebLLM Tier 3 Download & Purge Actions
+  const handleStartWebLLMDownload = async () => {
+    setDownloadError(null);
+    setIsDownloadingModel(true);
+    setDownloadProgress({
+      progress: 0,
+      loadedMB: 0,
+      totalMB: localModel === 'llama3-8b' ? 4500 : 1520,
+      text: '다운로드 준비 중...'
+    });
+
+    try {
+      await downloadAndInitWebLLM(localModel, (prog) => {
+        setDownloadProgress(prog);
+      });
+      setIsModelDownloaded(true);
+      setStatusMessage({ type: 'success', text: '온디바이스 AI 모델 가중치가 안전하게 로컬에 준비되었습니다.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setDownloadError(msg);
+      setStatusMessage({ type: 'error', text: `다운로드 실패: ${msg}` });
+    } finally {
+      setIsDownloadingModel(false);
+    }
+  };
+
+  const handleCancelWebLLMDownload = () => {
+    cancelWebLLMDownload();
+    setIsDownloadingModel(false);
+    setDownloadProgress(null);
+    setStatusMessage({ type: 'error', text: '모델 다운로드가 취소되었습니다.' });
+  };
+
+  const handlePurgeWebLLMCache = async () => {
+    await purgeWebLLMCache();
+    setIsModelDownloaded(false);
+    setDownloadProgress(null);
+    setStatusMessage({ type: 'success', text: '온디바이스 모델 가중치(1.5GB+) 및 캐시가 완전히 삭제되었습니다.' });
+  };
+
   // Save Settings
   const handleSaveAll = () => {
     const cleanKey = sanitizeApiKey(apiKey);
@@ -486,13 +656,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       budgetStartDay,
       currencySymbol,
       stealthMode,
-      theme,
-      chartPalette,
+      theme: 'dark',
       autoCategorization,
       defaultLaunchScreen
     };
     saveUserPreferences(userPrefs);
-    applyTheme(theme);
+    applyTheme('dark');
 
     if (onDataChanged) onDataChanged();
     setStatusMessage({ type: 'success', text: '모든 설정이 기기에 안전하게 저장되었습니다.' });
@@ -718,40 +887,60 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     }
   };
 
-  // Safety Confirmation Modal Delete Execution
-  const handleExecuteDelete = async () => {
-    const confirmation = deleteConfirmationText.trim();
-    if (confirmation !== '초기화' && confirmation.toUpperCase() !== 'DELETE') return;
-
+  // Data Utility Action 1: Load Sample Data
+  const handleLoadSampleData = async () => {
     setIsClearingData(true);
     try {
-      await clearAllTransactions();
+      const res = await loadSampleData();
+      setStatusMessage({ 
+        type: 'success', 
+        text: `샘플 데이터 로드 완료 (자산 ${res.accountsCount}개, 대출 ${res.debtsCount}건, 거래 ${res.transactionsCount}건)` 
+      });
+      if (onDataChanged) onDataChanged();
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: '샘플 데이터 로드 실패: ' + err.message });
+    } finally {
+      setIsClearingData(false);
+    }
+  };
+
+  // Data Utility Action 2: Consolidated Reset All Data
+  const handleResetAllData = async () => {
+    if (!window.confirm('모든 데이터(자산, 대출, 거래 내역, 보안 PIN, 설정)를 완전히 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      return;
+    }
+    setIsClearingData(true);
+    try {
+      await resetAllDataToZero();
+      await clearAllTransactions().catch(() => {});
+
+      // Clear all related storage
       localStorage.removeItem('vibe_engine_config');
       localStorage.removeItem('vibe_user_preferences');
       localStorage.removeItem('vibe_user_assets');
       localStorage.removeItem('vibe_last_export_date');
+      localStorage.removeItem('vibe_saved_subscriptions');
 
-      // Reset local states
+      // Reset local states in modal
       setApiKey('');
-      setEngineType('local');
-      setLocalModel('gemma-2b');
+      setEngineType('byok');
+      setProvider('gemini');
       setBudgetStartDay(1);
       setCurrencySymbol('KRW');
       setStealthMode(false);
       setTheme('dark');
       applyTheme('dark');
       setLastExportedDate('없음');
-      setShowDeleteModal(false);
-      setDeleteConfirmationText('');
+      setIsPinSet(false);
 
-      // Security Hardening Item #5: Evict all CacheStorage buckets upon full database reset
+      // Evict all service worker CacheStorage buckets upon full database reset
       await evictAllServiceWorkerCaches().catch(() => false);
 
-      setStatusMessage({ type: 'success', text: '모든 데이터와 API 키가 완전히 초기화되었습니다.' });
-      if (onDataChanged) onDataChanged();
+      setStatusMessage({ type: 'success', text: '전체 데이터와 설정이 성공적으로 초기화되었습니다.' });
       if (onDataReset) onDataReset();
+      if (onDataChanged) onDataChanged();
     } catch (err: any) {
-      setStatusMessage({ type: 'error', text: '데이터 초기화 오류: ' + err.message });
+      setStatusMessage({ type: 'error', text: '데이터 초기화 오류: ' + (err?.message || err) });
     } finally {
       setIsClearingData(false);
     }
@@ -759,62 +948,44 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
   if (!isOpen) return null;
 
-  const isLight = getEffectiveTheme(theme) === 'light';
+  const isLight = false;
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
-        className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl backdrop-blur-2xl border shadow-2xl flex flex-col h-[84dvh] sm:h-[630px] overflow-hidden animate-in slide-in-from-bottom-6 duration-200 transition-colors ${
-          isLight
-            ? 'bg-white/98 border-slate-200 text-slate-900 shadow-slate-300/40'
-            : 'bg-[#0E1524]/95 border-white/10 text-slate-100 shadow-2xl'
-        }`}
+        className="bg-[#0B0C0E]/95 backdrop-blur-2xl border border-white/[0.08] shadow-2xl rounded-2xl max-w-lg w-full max-md:rounded-b-none max-md:fixed max-md:bottom-0 max-md:max-h-[90vh] text-neutral-100 flex flex-col h-[84dvh] sm:h-[640px] overflow-hidden animate-in slide-in-from-bottom-6 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile drag handle indicator */}
-        <div className={`w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 ${
-          isLight ? 'bg-slate-300' : 'bg-white/20'
-        }`} />
+        <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
         {/* Top Header */}
-        <div className={`flex justify-between items-center px-5 sm:px-6 py-3.5 border-b shrink-0 transition-colors ${
-          isLight ? 'border-slate-200 bg-slate-50/60' : 'border-white/10 bg-white/[0.02]'
-        }`}>
-          <h2 className={`text-sm sm:text-base font-bold flex items-center gap-2 ${isLight ? 'text-slate-950' : 'text-white'}`}>
-            <Sliders className={`w-4 h-4 ${isLight ? 'text-slate-800' : 'text-slate-200'}`} />
+        <div className="flex justify-between items-center px-5 sm:px-6 py-3.5 border-b border-white/[0.06] bg-transparent shrink-0">
+          <h2 className="text-sm sm:text-base font-semibold text-white flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-neutral-300" />
             <span>환경 설정</span>
           </h2>
           <button 
             onClick={onClose} 
-            className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors ${
-              isLight
-                ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-                : 'text-slate-400 hover:text-white hover:bg-white/10'
-            }`}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors"
             aria-label="설정 창 닫기"
           >
             <X size={17} />
           </button>
         </div>
 
-        {/* Tab Bar: Simple text links, NO background pills, NO horizontal overflow */}
-        <div className={`grid grid-cols-4 border-b shrink-0 px-4 sm:px-6 transition-colors ${
-          isLight ? 'border-slate-200' : 'border-white/10'
-        }`}>
+        {/* Tab Bar: Minimal text tabs with a subtle sage line */}
+        <div className="flex sm:grid sm:grid-cols-4 border-b border-white/[0.06] shrink-0 px-4 sm:px-6 overflow-x-auto no-scrollbar scrollbar-none pt-2.5 gap-2 sm:gap-0">
           <button
             id="tab-assets"
             onClick={() => setActiveTab('assets')}
-            className={`py-3 text-xs text-center transition-colors relative whitespace-nowrap ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'assets'
-                ? isLight
-                  ? 'text-slate-950 font-bold border-b-2 border-slate-950'
-                  : 'text-white font-bold border-b-2 border-white'
-                : isLight
-                  ? 'text-slate-500 hover:text-slate-900 font-medium'
-                  : 'text-slate-400 hover:text-white font-medium'
+                ? 'border-b border-emerald-400 text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
             자산 관리
@@ -823,14 +994,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           <button
             id="tab-ai-engine"
             onClick={() => setActiveTab('engine')}
-            className={`py-3 text-xs text-center transition-colors relative whitespace-nowrap ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'engine'
-                ? isLight
-                  ? 'text-slate-950 font-bold border-b-2 border-slate-950'
-                  : 'text-white font-bold border-b-2 border-white'
-                : isLight
-                  ? 'text-slate-500 hover:text-slate-900 font-medium'
-                  : 'text-slate-400 hover:text-white font-medium'
+                ? 'border-b border-emerald-400 text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
             AI 엔진
@@ -839,14 +1006,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           <button
             id="tab-prefs"
             onClick={() => setActiveTab('preferences')}
-            className={`py-3 text-xs text-center transition-colors relative whitespace-nowrap ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'preferences'
-                ? isLight
-                  ? 'text-slate-950 font-bold border-b-2 border-slate-950'
-                  : 'text-white font-bold border-b-2 border-white'
-                : isLight
-                  ? 'text-slate-500 hover:text-slate-900 font-medium'
-                  : 'text-slate-400 hover:text-white font-medium'
+                ? 'border-b border-emerald-400 text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
             일반 설정
@@ -855,14 +1018,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           <button
             id="tab-data"
             onClick={() => setActiveTab('privacy')}
-            className={`py-3 text-xs text-center transition-colors relative whitespace-nowrap ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'privacy'
-                ? isLight
-                  ? 'text-slate-950 font-bold border-b-2 border-slate-950'
-                  : 'text-white font-bold border-b-2 border-white'
-                : isLight
-                  ? 'text-slate-500 hover:text-slate-900 font-medium'
-                  : 'text-slate-400 hover:text-white font-medium'
+                ? 'border-b border-emerald-400 text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
             데이터 관리
@@ -871,8 +1030,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
         {/* Status Toast inside Modal */}
         {statusMessage && (
-          <div className={`mx-6 mt-1 px-3.5 py-2 rounded-2xl text-xs flex items-center justify-between shrink-0 ${
-            statusMessage.type === 'success' ? 'bg-[#00F5A0]/15 border border-[#00F5A0]/30 text-[#00F5A0]' : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'
+          <div className={`mx-6 mt-2 px-3.5 py-2 rounded-xl text-xs flex items-center justify-between shrink-0 ${
+            statusMessage.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/25 text-rose-400'
           }`}>
             <span className="truncate">{statusMessage.text}</span>
             <button onClick={() => setStatusMessage(null)} className="ml-1 text-sm font-bold">×</button>
@@ -880,13 +1039,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         )}
 
         {/* Tab Body */}
-        <div className="flex-1 px-5 py-3 overflow-y-auto text-sm flex flex-col justify-between scrollbar-none">
+        <div className="flex-1 px-5 py-4 overflow-y-auto text-sm flex flex-col justify-between scrollbar-none">
           
           {/* TAB 0: SMART ASSET SETUP */}
           {activeTab === 'assets' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <SmartAssetSetup 
                 theme={theme}
+                currentCurrency={(currencySymbol as SupportedCurrency) || 'KRW'}
+                initialSubTab={subTab}
                 onAssetsUpdated={() => {
                   if (onDataChanged) onDataChanged();
                 }} 
@@ -897,247 +1058,249 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           {/* TAB 1: AI ENGINE CONFIGURATION */}
           {activeTab === 'engine' && (
             <div className="space-y-4 animate-in fade-in duration-150">
-              <div className="flex flex-col gap-2">
-                <span className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>AI 처리 방식</span>
-                
-                {/* 2-Card Segment Selector */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEngineType('local')}
-                    className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 ${
-                      engineType === 'local'
-                        ? isLight
-                          ? 'border-emerald-500 bg-emerald-50 text-slate-900 shadow-xs'
-                          : 'border-[#00F5A0]/70 bg-[#00F5A0]/10 text-white shadow-sm'
-                        : isLight
-                          ? 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                          : 'border-white/10 bg-white/[0.02] text-[#94A3B8] hover:border-white/20 hover:text-slate-200'
-                    }`}
-                  >
-                    <div className={`flex items-center gap-1.5 font-semibold text-xs ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                      <Cpu size={14} className={engineType === 'local' ? (isLight ? 'text-emerald-600' : 'text-[#00F5A0]') : (isLight ? 'text-slate-400' : 'text-[#94A3B8]')} />
-                      <span>온디바이스 AI</span>
-                    </div>
-                    <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>100% 기기 내 처리, 오프라인 작동</span>
-                  </button>
+              {/* Clean Engine Toggle */}
+              <div className="p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] grid grid-cols-2 gap-1 mb-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEngineType('byok');
+                    setProvider('gemini');
+                  }}
+                  className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 active:scale-[0.99] ${
+                    engineType === 'byok'
+                      ? 'bg-white/10 text-white shadow-xs font-semibold'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  <KeyRound size={13} className={engineType === 'byok' ? 'text-emerald-400' : ''} />
+                  <span className="truncate">클라우드 AI (Gemini, 권장)</span>
+                </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setEngineType('byok')}
-                    className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 ${
-                      engineType === 'byok'
-                        ? isLight
-                          ? 'border-emerald-500 bg-emerald-50 text-slate-900 shadow-xs'
-                          : 'border-[#00F5A0]/70 bg-[#00F5A0]/10 text-white shadow-sm'
-                        : isLight
-                          ? 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                          : 'border-white/10 bg-white/[0.02] text-[#94A3B8] hover:border-white/20 hover:text-slate-200'
-                    }`}
-                  >
-                    <div className={`flex items-center gap-1.5 font-semibold text-xs ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                      <KeyRound size={14} className={engineType === 'byok' ? (isLight ? 'text-emerald-600' : 'text-[#00F5A0]') : (isLight ? 'text-slate-400' : 'text-[#94A3B8]')} />
-                      <span>클라우드 AI (API 키)</span>
-                    </div>
-                    <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>Gemini, OpenAI, Claude</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setEngineType('local')}
+                  className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 active:scale-[0.99] ${
+                    engineType === 'local'
+                      ? 'bg-white/10 text-white shadow-xs font-semibold'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  <Cpu size={13} className={engineType === 'local' ? 'text-amber-400' : ''} />
+                  <span className="truncate">온디바이스 로컬 AI (오프라인)</span>
+                </button>
               </div>
 
-              {/* On-Device Sub-Fields: Borderless row */}
-              {engineType === 'local' && (
-                <div className="pt-2 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${
-                    isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/60 border-slate-800'
-                  }`}>
-                    <span className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>하드웨어 가속:</span>
-                    <span className={`text-xs font-medium flex items-center gap-1.5 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>
-                      <span className={`w-2 h-2 rounded-full animate-pulse ${isLight ? 'bg-emerald-500' : 'bg-emerald-400'}`} />
-                      WebGPU 그래픽 가속 활성화됨
-                    </span>
+              {/* Cloud AI (Gemini) Flat Group */}
+              {engineType === 'byok' && (
+                <div className="space-y-3.5 pb-5 mb-5 border-b border-white/[0.06] animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-neutral-200">
+                      Gemini API 키
+                    </label>
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-normal text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                    >
+                      <span>Google AI Studio에서 키 발급</span>
+                      <ExternalLink size={10} />
+                    </a>
                   </div>
 
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type={showKey ? "text" : "password"}
+                        value={apiKey}
+                        onChange={(e) => { 
+                          const sanitized = sanitizeApiKey(e.target.value);
+                          setApiKey(sanitized); 
+                          setTestResult({ status: null, message: '' }); 
+                        }}
+                        placeholder="AIzaSy... (Gemini API 키)"
+                        autoComplete="off"
+                        spellCheck={false}
+                        className="w-full rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border bg-white/[0.03] border-white/10 text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-500/50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowKey(!showKey)}
+                        title={showKey ? "API 키 마스킹" : "API 키 보기"}
+                        className="absolute right-2.5 top-2.5 text-neutral-400 hover:text-neutral-200 transition-colors"
+                      >
+                        {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+
+                    {apiKey.trim() && (
+                      <button
+                        type="button"
+                        onClick={handleClearKey}
+                        title="API 키 삭제 및 초기화"
+                        className="p-2 rounded-xl text-xs font-medium border shrink-0 transition-all active:scale-95 bg-white/[0.04] hover:bg-rose-500/15 text-neutral-300 hover:text-rose-400 border-white/10"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleTestKey}
+                      disabled={isTestingKey || !apiKey.trim()}
+                      className="px-3 py-2 disabled:opacity-40 rounded-xl text-xs font-normal border shrink-0 transition-all active:scale-95 bg-white/[0.05] hover:bg-white/[0.09] text-white border-white/10"
+                    >
+                      {isTestingKey ? <Loader2 size={13} className="animate-spin" /> : '키 검증'}
+                    </button>
+                  </div>
+
+                  {/* Inline Validation Status Badge */}
+                  {testResult.status && (
+                    <div className={`text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 ${
+                      testResult.status === 'valid' 
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-normal' 
+                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}>
+                      {testResult.status === 'valid' ? <CheckCircle2 size={13} className="shrink-0" /> : <XCircle size={13} className="shrink-0" />}
+                      <span>{testResult.message}</span>
+                    </div>
+                  )}
+
+                  {/* 1-Line Clean Note */}
+                  <p className="text-[11px] leading-tight text-neutral-400 font-light flex items-center gap-1">
+                    <span>🔒 API 키는 브라우저 내부 암호화 스토리지에만 안전하게 보관됩니다.</span>
+                  </p>
+                </div>
+              )}
+
+              {/* On-Device AI Flat Group */}
+              {engineType === 'local' && (
+                <div className="space-y-3.5 pb-5 mb-5 border-b border-white/[0.06] animate-in fade-in duration-150">
+                  {/* Model Selector & WebGPU status */}
                   <div className="space-y-1.5">
-                    <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                      온디바이스 로컬 모델
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-neutral-200">
+                        온디바이스 로컬 모델
+                      </label>
+                      {webGpuStatus === null ? (
+                        <span className="text-[10px] text-neutral-400 flex items-center gap-1 font-light">
+                          <Loader2 size={10} className="animate-spin" /> WebGPU 확인 중
+                        </span>
+                      ) : webGpuStatus.supported ? (
+                        <span className="text-[10px] font-normal flex items-center gap-1 text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          WebGPU 가속 지원
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-normal flex items-center gap-1 text-rose-400">
+                          <XCircle size={11} />
+                          WebGPU 미지원 ({webGpuStatus.reason || '가속 불가'})
+                        </span>
+                      )}
+                    </div>
                     <CustomDarkSelect
                       value={localModel}
                       options={localModelOptions}
                       onChange={(val) => setLocalModel(val as any)}
                       theme={theme}
+                      size="sm"
                     />
                   </div>
-                </div>
-              )}
 
-              {/* BYOK Sub-Fields: Borderless row */}
-              {engineType === 'byok' && (
-                <div className="pt-2 space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
-                  {/* Provider & Model Tier Custom Selects */}
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Progress Bar when downloading */}
+                  {isDownloadingModel && downloadProgress && (
                     <div className="space-y-1">
-                      <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                        제공사 선택
-                      </label>
-                      <CustomDarkSelect
-                        value={provider}
-                        options={providerOptions}
-                        onChange={handleProviderChange}
-                        theme={theme}
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                        세부 모델
-                      </label>
-                      <CustomDarkSelect
-                        value={modelTier}
-                        options={getModelTierOptions()}
-                        onChange={(val) => setModelTier(val)}
-                        theme={theme}
-                      />
-                    </div>
-                  </div>
-
-                  {/* API Key Input + Show/Hide + [Clear] + [Test Key] */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                        API 키 입력 (BYOK)
-                      </label>
-                      {provider === 'gemini' && (
-                        <a
-                          href="https://aistudio.google.com/app/apikey"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] font-medium text-emerald-500 hover:text-emerald-400 flex items-center gap-1 transition-colors"
-                        >
-                          <span>Google AI Studio에서 키 발급</span>
-                          <ExternalLink size={10} />
-                        </a>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="relative flex-1">
-                        <input
-                          type={showKey ? "text" : "password"}
-                          value={apiKey}
-                          onChange={(e) => { 
-                            const sanitized = sanitizeApiKey(e.target.value);
-                            setApiKey(sanitized); 
-                            setTestResult({ status: null, message: '' }); 
-                          }}
-                          placeholder={provider === 'gemini' ? "AIzaSy... (Google Gemini API 키)" : "sk-... (API 키 입력)"}
-                          autoComplete="off"
-                          spellCheck={false}
-                          className={`w-full rounded-lg pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border ${
-                            isLight 
-                              ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500' 
-                              : 'bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-600 focus:border-emerald-500'
-                          }`}
+                      <div className="flex justify-between text-[11px] text-neutral-400">
+                        <span>{downloadProgress.text}</span>
+                        <span className="font-mono font-normal">{downloadProgress.progress}%</span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div 
+                          className="h-full bg-emerald-400 transition-all duration-200"
+                          style={{ width: `${downloadProgress.progress}%` }}
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowKey(!showKey)}
-                          title={showKey ? "API 키 마스킹" : "API 키 보기"}
-                          className={`absolute right-2.5 top-2 transition-colors ${
-                            isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                        </button>
                       </div>
-
-                      {/* Clear Button */}
-                      {apiKey.trim() && (
-                        <button
-                          type="button"
-                          onClick={handleClearKey}
-                          title="API 키 삭제 및 초기화"
-                          className={`p-2 rounded-lg text-xs font-medium border shrink-0 transition-all active:scale-95 ${
-                            isLight
-                              ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
-                              : 'bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border-rose-800/40'
-                          }`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={handleTestKey}
-                        disabled={isTestingKey || !apiKey.trim()}
-                        className={`px-3 py-2 disabled:opacity-40 rounded-lg text-xs font-medium border shrink-0 transition-all active:scale-95 ${
-                          isLight
-                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
-                            : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
-                        }`}
-                      >
-                        {isTestingKey ? <Loader2 size={13} className="animate-spin" /> : '키 검사'}
-                      </button>
                     </div>
+                  )}
 
-                    {/* Masked Key Display Preview */}
-                    {apiKey.trim() && (
-                      <div className={`text-[11px] px-2.5 py-1 rounded-md flex items-center justify-between font-mono ${
-                        isLight ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-slate-900/60 text-slate-400 border border-slate-800'
-                      }`}>
-                        <span className="flex items-center gap-1.5">
-                          <Lock size={11} className="text-emerald-500 shrink-0" />
-                          <span>마스킹: {maskApiKey(apiKey)}</span>
-                        </span>
-                        <span className="text-[10px] text-emerald-500 font-sans font-medium">로컬 암호화 보관</span>
+                  {downloadError && (
+                    <div className="text-[11px] text-rose-400 flex items-center gap-1">
+                      <AlertTriangle size={12} />
+                      <span>{downloadError}</span>
+                    </div>
+                  )}
+
+                  {/* Action Button: Download / Cancel / Purge - Luxury Ghost Button */}
+                  <div className="flex items-center gap-2">
+                    {!isModelDownloaded ? (
+                      isDownloadingModel ? (
+                        <button
+                          type="button"
+                          onClick={handleCancelWebLLMDownload}
+                          className="flex-1 py-2.5 px-3 rounded-xl text-xs font-normal border border-white/10 bg-white/[0.05] hover:bg-white/[0.09] text-rose-300 flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <X size={13} />
+                          <span>다운로드 취소</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleStartWebLLMDownload}
+                          disabled={webGpuStatus?.supported === false}
+                          className="w-full bg-white/[0.05] hover:bg-white/[0.09] text-white border border-white/10 rounded-xl py-2.5 flex items-center justify-center gap-1.5 transition-all active:scale-98 text-xs font-medium disabled:opacity-40"
+                        >
+                          <Download size={13} />
+                          <span>모델 다운로드 ({localModel === 'llama3-8b' ? '4.5GB' : '1.5GB'})</span>
+                        </button>
+                      )
+                    ) : (
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <div className="text-[11px] text-emerald-400 font-normal flex items-center gap-1">
+                          <CheckCircle2 size={13} />
+                          <span>오프라인 추론 사용 가능 (캐시 보관 중)</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handlePurgeWebLLMCache}
+                          title="로컬 저장소 모델 가중치 삭제"
+                          className="py-1.5 px-2.5 rounded-lg text-xs border border-white/10 bg-white/[0.04] text-neutral-300 hover:text-white hover:bg-white/[0.08] font-normal flex items-center gap-1 transition-colors"
+                        >
+                          <Trash2 size={12} />
+                          <span>캐시 삭제</span>
+                        </button>
                       </div>
                     )}
-
-                    {/* Inline Validation Status Badge */}
-                    {testResult.status && (
-                      <div className={`mt-1.5 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 ${
-                        testResult.status === 'valid' 
-                          ? isLight ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium' 
-                          : isLight ? 'bg-rose-50 text-rose-800 border border-rose-200' : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                      }`}>
-                        {testResult.status === 'valid' ? <CheckCircle2 size={13} className="shrink-0" /> : <XCircle size={13} className="shrink-0" />}
-                        <span>{testResult.message}</span>
-                      </div>
-                    )}
-
-                    {/* Security & CSP Guarantee Footer */}
-                    <p className={`text-[10px] pt-1 leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>
-                      🛡️ <strong>보안 보장:</strong> 등록된 API 키는 브라우저 내부 암호화 스토리지에만 저장되며, 원격 서버로 전송되거나 프로덕션 번들에 절대 포함되지 않습니다.
-                    </p>
                   </div>
+
+                  {/* Condensed Warning Caption below Download Button */}
+                  <p className="text-[10px] leading-relaxed text-neutral-500 font-light">
+                    ⚠️ 모바일 브라우저 환경에서는 대용량 가중치 다운로드 시 메모리 부족(OOM)이나 급격한 배터리 소모가 발생할 수 있습니다.
+                  </p>
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB 2: GENERAL PREFERENCES (Compact, Elegant, Non-scrolling iOS Grouped Style) */}
-          {/* TAB 2: GENERAL SETTINGS (일반 설정) - Flattened minimalist layout without box-in-box cards */}
+          {/* TAB 2: GENERAL SETTINGS (일반 설정) - Pure Dark Luxury Minimalist Layout */}
           {activeTab === 'preferences' && (
             <div className="space-y-5 animate-in fade-in duration-150">
               
-              {/* Group 1: 화면 및 테마 (Display & Theme) */}
+              {/* PWA 설치 안내 카드 (미설치 상태인 경우) */}
+              <PWAInstallButton variant="settings" theme="dark" />
+
+              {/* Group 1: 화면 설정 (기본 시작 화면) */}
               <div className="space-y-3">
-                <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  isLight ? 'text-slate-400' : 'text-slate-500'
-                }`}>
-                  화면 및 테마
+                <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-500">
+                  화면 설정
                 </span>
                 
-                <div className={`space-y-3 pb-4 border-b ${isLight ? 'border-slate-200/80' : 'border-white/[0.06]'}`}>
-                  {/* Row 1: 기본 시작 화면 (자산 | 장부) */}
+                <div className="space-y-3 pb-4 border-b border-white/[0.06]">
+                  {/* Row 1: 기본 시작 화면 (자산 | 인사이트 | 장부) */}
                   <div className="flex items-center justify-between gap-3">
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+                    <span className="text-xs font-semibold text-slate-200">
                       기본 시작 화면
                     </span>
-                    <div className={`flex p-0.5 rounded-xl border ${
-                      isLight ? 'bg-slate-200/70 border-slate-300/60' : 'bg-black/40 border-white/5'
-                    }`}>
+                    <div className="flex p-0.5 rounded-xl border bg-black/40 border-white/5">
                       <button
                         type="button"
                         id="launch-screen-vault-btn"
@@ -1149,15 +1312,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
                           defaultLaunchScreen === 'vault'
-                            ? isLight
-                              ? 'bg-white text-slate-950 shadow-xs font-bold'
-                              : 'bg-white/15 text-white shadow-xs font-bold'
-                            : isLight
-                              ? 'text-slate-600 hover:text-slate-900'
-                              : 'text-slate-400 hover:text-slate-200'
+                            ? 'bg-white/15 text-white shadow-xs font-bold'
+                            : 'text-slate-400 hover:text-slate-200'
                         }`}
                       >
                         자산
+                      </button>
+                      <button
+                        type="button"
+                        id="launch-screen-insights-btn"
+                        onClick={() => {
+                          setDefaultLaunchScreen('insights');
+                          const prefs = getUserPreferences();
+                          saveUserPreferences({ ...prefs, defaultLaunchScreen: 'insights' });
+                          if (onDataChanged) onDataChanged();
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
+                          defaultLaunchScreen === 'insights'
+                            ? 'bg-white/15 text-white shadow-xs font-bold'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        인사이트
                       </button>
                       <button
                         type="button"
@@ -1170,126 +1346,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
                           defaultLaunchScreen === 'ledger'
-                            ? isLight
-                              ? 'bg-white text-slate-950 shadow-xs font-bold'
-                              : 'bg-white/15 text-white shadow-xs font-bold'
-                            : isLight
-                              ? 'text-slate-600 hover:text-slate-900'
-                              : 'text-slate-400 hover:text-slate-200'
+                            ? 'bg-white/15 text-white shadow-xs font-bold'
+                            : 'text-slate-400 hover:text-slate-200'
                         }`}
                       >
                         장부
                       </button>
-                    </div>
-                  </div>
-
-                  {/* Row 2: 화면 테마 (다크 | 라이트 | 시스템) */}
-                  <div className={`flex items-center justify-between gap-3 pt-3 border-t ${
-                    isLight ? 'border-slate-100' : 'border-white/[0.04]'
-                  }`}>
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                      화면 테마
-                    </span>
-                    <div className={`flex p-0.5 rounded-xl border ${
-                      isLight ? 'bg-slate-200/70 border-slate-300/60' : 'bg-black/40 border-white/5'
-                    }`}>
-                      <button
-                        type="button"
-                        id="theme-dark-btn"
-                        onClick={() => handleThemeChange('dark')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
-                          theme === 'dark'
-                            ? isLight
-                              ? 'bg-white text-slate-950 shadow-xs font-bold'
-                              : 'bg-white/15 text-white shadow-xs font-bold'
-                            : isLight
-                              ? 'text-slate-600 hover:text-slate-900'
-                              : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        다크
-                      </button>
-                      <button
-                        type="button"
-                        id="theme-light-btn"
-                        onClick={() => handleThemeChange('light')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
-                          theme === 'light'
-                            ? isLight
-                              ? 'bg-white text-slate-950 shadow-xs font-bold'
-                              : 'bg-white/15 text-white shadow-xs font-bold'
-                            : isLight
-                              ? 'text-slate-600 hover:text-slate-900'
-                              : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        라이트
-                      </button>
-                      <button
-                        type="button"
-                        id="theme-system-btn"
-                        onClick={() => handleThemeChange('system')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
-                          theme === 'system'
-                            ? isLight
-                              ? 'bg-white text-slate-950 shadow-xs font-bold'
-                              : 'bg-white/15 text-white shadow-xs font-bold'
-                            : isLight
-                              ? 'text-slate-600 hover:text-slate-900'
-                              : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        시스템
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Row 3: 차트 컬러 */}
-                  <div className={`pt-3 border-t space-y-2.5 ${
-                    isLight ? 'border-slate-100' : 'border-white/[0.04]'
-                  }`}>
-                    <span className={`text-xs font-semibold block ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                      차트 컬러
-                    </span>
-                    <div className="grid grid-cols-4 gap-2">
-                      {Object.values(CHART_PALETTES).map((palette) => {
-                        const isSelected = chartPalette === palette.id;
-                        return (
-                          <button
-                            key={palette.id}
-                            type="button"
-                            id={`chart-palette-btn-${palette.id}`}
-                            onClick={() => handleChartPaletteChange(palette.id)}
-                            title={`${palette.name} (${palette.subtitle})`}
-                            className={`py-2 px-1.5 rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 active:scale-95 ${
-                              isSelected
-                                ? isLight
-                                  ? 'bg-emerald-50/80 border-emerald-500 ring-1 ring-emerald-500/20 text-emerald-800 shadow-2xs'
-                                  : 'bg-emerald-500/10 border-[#00F5A0] ring-1 ring-[#00F5A0]/20 text-white shadow-2xs'
-                                : isLight
-                                  ? 'bg-slate-100/70 border-slate-200/80 hover:bg-slate-100 text-slate-600'
-                                  : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200'
-                            }`}
-                          >
-                            <div className="flex items-center -space-x-1">
-                              {palette.swatches.slice(0, 3).map((color, i) => (
-                                <span
-                                  key={i}
-                                  className="w-2.5 h-2.5 rounded-full border border-black/15 dark:border-white/20 shadow-2xs"
-                                  style={{ backgroundColor: color }}
-                                />
-                              ))}
-                            </div>
-                            <span className={`text-[11px] truncate w-full text-center ${
-                              isSelected
-                                ? isLight ? 'text-emerald-700 font-bold' : 'text-[#00F5A0] font-bold'
-                                : 'font-medium'
-                            }`}>
-                              {palette.name.split(' ')[0]}
-                            </span>
-                          </button>
-                        );
-                      })}
                     </div>
                   </div>
                 </div>
@@ -1297,32 +1359,182 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
               {/* Group 2: 표시 및 통화 (Display & Currency) */}
               <div className="space-y-3">
-                <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  isLight ? 'text-slate-400' : 'text-slate-500'
-                }`}>
+                <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-500">
                   표시 및 통화
                 </span>
                 
-                <div className={`space-y-3 pb-4 border-b ${isLight ? 'border-slate-200/80' : 'border-white/[0.06]'}`}>
-                  {/* Row 1: 기본 통화 */}
-                  <div className="flex items-center justify-between gap-3">
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                      기본 통화
-                    </span>
-                    <div className="w-28">
-                      <CustomDarkSelect
-                        id="currency-select"
-                        value={currencySymbol}
-                        options={currencyOptions}
-                        onChange={(val) => {
-                          setCurrencySymbol(val);
-                          const prefs = getUserPreferences();
-                          saveUserPreferences({ ...prefs, currencySymbol: val });
-                          if (onDataChanged) onDataChanged();
-                        }}
-                        theme={isLight ? 'light' : 'dark'}
-                        size="sm"
-                      />
+                <div className="space-y-3 pb-4 border-b border-white/[0.06]">
+                  {/* Row 1: 기본 통화 & 내 활성 통화 매니저 */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-xs font-semibold text-slate-200 block">
+                          기본 기준 통화
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          대시보드 및 모든 자산 평가의 기준
+                        </span>
+                      </div>
+                      <div className="w-36">
+                        <CustomDarkSelect
+                          id="currency-select"
+                          value={currencySymbol}
+                          options={currencyOptions}
+                          onChange={(val) => {
+                            setCurrencySymbol(val);
+                            const prefs = getUserPreferences();
+                            saveUserPreferences({ ...prefs, currencySymbol: val });
+                            if (!activeCurrenciesList.includes(val)) {
+                              const updated = [val, ...activeCurrenciesList];
+                              setActiveCurrenciesList(updated);
+                              saveUserActiveCurrencies(updated);
+                            }
+                            if (onDataChanged) onDataChanged();
+                          }}
+                          theme="dark"
+                          size="sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Active Currencies */}
+                    <div className="pt-3 border-t border-white/[0.04] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-slate-200">
+                            나의 활성 통화 (Active Currencies)
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            ({activeCurrenciesList.length})
+                          </span>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          activeCurrenciesList.length > 1
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                            : 'bg-white/[0.04] text-neutral-400 border border-white/5'
+                        }`}>
+                          {activeCurrenciesList.length > 1 ? '다중 통화 모드' : '단일 통화 모드'}
+                        </span>
+                      </div>
+
+                      {/* Active Currencies Chips with Delete / Select */}
+                      <div className="flex flex-wrap gap-2">
+                        {activeCurrenciesList.map((code) => {
+                          const isBase = code === currencySymbol;
+                          const info = KNOWN_CURRENCY_NAMES[code];
+                          const sym = getCurrencySymbol(code);
+                          return (
+                            <div
+                              key={code}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition-all ${
+                                isBase
+                                  ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300 font-semibold'
+                                  : 'bg-white/[0.04] border-white/5 text-slate-300 hover:border-white/10'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCurrencySymbol(code);
+                                  const prefs = getUserPreferences();
+                                  saveUserPreferences({ ...prefs, currencySymbol: code });
+                                  if (onDataChanged) onDataChanged();
+                                }}
+                                className="flex items-center gap-1 hover:text-white"
+                                title={isBase ? '현재 기준 통화' : '클릭하여 기본 기준 통화로 설정'}
+                              >
+                                <span className="font-mono font-bold">{code}</span>
+                                <span className="text-[11px] opacity-80">({sym})</span>
+                                {info && (
+                                  <span className="text-[10px] text-slate-400 hidden sm:inline ml-0.5">
+                                    {info.nameKo}
+                                  </span>
+                                )}
+                                {isBase && (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-400/20 text-emerald-300 font-normal ml-0.5">
+                                    기준
+                                  </span>
+                                )}
+                              </button>
+
+                              {/* Remove button (disabled for base currency or when only 1 remains) */}
+                              {!isBase && activeCurrenciesList.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveActiveCurrency(code)}
+                                  className="text-slate-400 hover:text-rose-400 transition-colors p-0.5 ml-0.5 rounded"
+                                  title={`${code} 활성 통화에서 제거`}
+                                  aria-label={`${code} 활성 통화에서 제거`}
+                                >
+                                  <X size={12} />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Subtle Prompt when only 1 currency is present */}
+                      {activeCurrenciesList.length <= 1 && (
+                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15 text-[11px] text-slate-300 animate-in fade-in duration-150">
+                          <Sparkles size={13} className="text-emerald-400 shrink-0" />
+                          <span>새 통화를 추가하면 다중 통화 비교 모드가 자동으로 활성화됩니다.</span>
+                        </div>
+                      )}
+
+                      {/* Quick Add Presets + Custom Inline Input */}
+                      <div className="pt-2 border-t border-white/[0.04] space-y-2">
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <span>추천 통화 빠른 추가:</span>
+                          <div className="flex items-center gap-1">
+                            {['USD', 'IDR', 'JPY', 'EUR'].filter(c => !activeCurrenciesList.includes(c)).map(preset => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => handleAddActiveCurrency(preset)}
+                                className="px-2 py-0.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[10px] font-mono text-slate-300 border border-white/5 active:scale-95 transition-all"
+                              >
+                                +{preset}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={newCurrencyInput}
+                            onChange={(e) => {
+                              setNewCurrencyInput(e.target.value.toUpperCase());
+                              if (currencyError) setCurrencyError(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddActiveCurrency(newCurrencyInput);
+                              }
+                            }}
+                            maxLength={3}
+                            placeholder="3자리 통화 코드 (예: SGD, VND, AUD)..."
+                            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-hidden focus:border-emerald-400/50 transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddActiveCurrency(newCurrencyInput)}
+                            disabled={!newCurrencyInput.trim()}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
+                          >
+                            <Plus size={12} strokeWidth={2.5} />
+                            <span>추가</span>
+                          </button>
+                        </div>
+
+                        {currencyError && (
+                          <p className="text-[11px] text-rose-400 flex items-center gap-1 pt-0.5">
+                            <span>⚠️ {currencyError}</span>
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1335,25 +1547,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                       saveUserPreferences({ ...prefs, stealthMode: next });
                       if (onDataChanged) onDataChanged();
                     }}
-                    className={`flex items-center justify-between gap-3 pt-3 border-t cursor-pointer select-none group ${
-                      isLight ? 'border-slate-100' : 'border-white/[0.04]'
-                    }`}
+                    className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.04] cursor-pointer select-none group"
                   >
-                    <span className={`text-xs font-semibold group-hover:text-emerald-500 transition-colors ${
-                      isLight ? 'text-slate-800' : 'text-slate-200'
-                    }`}>
-                      스텔스 모드 (금액 숨김)
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {stealthMode ? (
+                        <EyeOff size={15} className="text-emerald-400 shrink-0" />
+                      ) : (
+                        <Eye size={15} className="text-neutral-400 group-hover:text-white transition-colors shrink-0" />
+                      )}
+                      <div>
+                        <span className="text-xs font-semibold group-hover:text-emerald-400 transition-colors text-slate-200 block">
+                          스텔스 모드 (금액 숨김)
+                        </span>
+                        <span className="text-[11px] text-neutral-500 font-light block">
+                          {stealthMode ? '모든 잔고 및 금액이 마스킹되어 보호 중입니다' : '화면에 모든 금액이 표시됩니다'}
+                        </span>
+                      </div>
+                    </div>
                     <button
                       id="toggle-stealth-mode"
                       type="button"
                       aria-label="스텔스 모드 토글"
                       className={`w-9 h-5 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 pointer-events-none ${
-                        stealthMode
-                          ? 'bg-emerald-500'
-                          : isLight
-                            ? 'bg-slate-300'
-                            : 'bg-slate-700'
+                        stealthMode ? 'bg-emerald-400' : 'bg-slate-700'
                       }`}
                     >
                       <span
@@ -1367,17 +1583,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               </div>
 
               {/* Group 3: 장부 설정 (Ledger Settings) */}
-              <div className="space-y-3">
-                <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  isLight ? 'text-slate-400' : 'text-slate-500'
-                }`}>
+              <div className="space-y-3 pt-3 border-t border-white/[0.04]">
+                <span className="text-[11px] font-bold uppercase tracking-wider block text-neutral-400">
                   장부 설정
                 </span>
                 
                 <div className="space-y-3">
                   {/* Row 1: 예산 시작일 */}
                   <div className="flex items-center justify-between gap-3">
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+                    <span className="text-xs font-semibold text-slate-200">
                       예산 시작일
                     </span>
                     <div className="w-24">
@@ -1392,91 +1606,150 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                           saveUserPreferences({ ...prefs, budgetStartDay: num });
                           if (onDataChanged) onDataChanged();
                         }}
-                        theme={isLight ? 'light' : 'dark'}
+                        theme="dark"
                         size="sm"
                       />
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Row 2: 스마트 자동 분류 */}
-                  <div
-                    onClick={() => {
-                      const next = !autoCategorization;
-                      setAutoCategorization(next);
-                      const prefs = getUserPreferences();
-                      saveUserPreferences({ ...prefs, autoCategorization: next });
-                      if (onDataChanged) onDataChanged();
-                    }}
-                    className={`flex items-center justify-between gap-3 pt-3 border-t cursor-pointer select-none group ${
-                      isLight ? 'border-slate-100' : 'border-white/[0.04]'
-                    }`}
-                  >
-                    <span className={`text-xs font-semibold group-hover:text-emerald-500 transition-colors ${
-                      isLight ? 'text-slate-800' : 'text-slate-200'
-                    }`}>
-                      스마트 자동 분류
+              {/* Group 4: 장부 관리 (Ledger Spaces) */}
+              <div className="space-y-3 pt-3 border-t border-white/[0.04]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-white block">
+                      장부 관리 (Ledger Spaces)
                     </span>
-                    <button
-                      id="toggle-auto-categorization"
-                      type="button"
-                      aria-label="스마트 자동 분류 토글"
-                      className={`w-9 h-5 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 pointer-events-none ${
-                        autoCategorization
-                          ? 'bg-emerald-500'
-                          : isLight
-                            ? 'bg-slate-300'
-                            : 'bg-slate-700'
-                      }`}
-                    >
-                      <span
-                        className={`w-4 h-4 rounded-full bg-white shadow-xs transition-transform transform ${
-                          autoCategorization ? 'translate-x-4' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
+                    <span className="text-[11px] text-neutral-400 font-light block">
+                      일상 가계부와 분리된 프로젝트·행사 전용 정산 장부
+                    </span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleCreateNewSpace}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-normal bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] transition-all active:scale-95 shrink-0"
+                  >
+                    <Plus size={12} />
+                    <span>새 장부 만들기</span>
+                  </button>
+                </div>
+
+                {/* Spaces List */}
+                <div className="space-y-1.5 pt-1">
+                  {internalSpaces.map((sp) => {
+                    const isCurrent = sp.id === (activeSpaceId || 'default');
+                    const isDefault = sp.id === 'default';
+                    const isEvent = sp.type === 'EVENT' || Boolean(sp.memberCount && sp.memberCount > 1);
+
+                    return (
+                      <div
+                        key={sp.id}
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
+                          isCurrent
+                            ? 'bg-emerald-500/10 border-emerald-500/25 text-white'
+                            : 'bg-white/[0.02] border-white/[0.06] text-neutral-300 hover:border-white/10'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="truncate">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-medium text-xs text-white truncate">{sp.name}</span>
+                              {isDefault && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-neutral-400 font-normal border border-white/[0.08]">
+                                  기본
+                                </span>
+                              )}
+                              {isEvent && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 font-normal border border-indigo-500/25">
+                                  행사/정산
+                                </span>
+                              )}
+                              {isCurrent && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-normal border border-emerald-500/25 flex items-center gap-1">
+                                  <Check size={10} />
+                                  <span>현재 활성</span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-neutral-400 font-light mt-0.5 flex items-center gap-2">
+                              <span>기준 통화: {sp.currency}</span>
+                              {sp.memberCount && <span>· 정산 인원: {sp.memberCount}명</span>}
+                              {sp.description && <span className="truncate">· {sp.description}</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          {!isCurrent && (
+                            <button
+                              type="button"
+                              onClick={() => handleSelectSpaceItem(sp)}
+                              className="px-2.5 py-1 rounded-full text-[11px] font-normal border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-neutral-300 hover:text-white transition-all active:scale-95"
+                            >
+                              전환
+                            </button>
+                          )}
+                          {!isDefault && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSpaceItem(sp.id)}
+                              className="p-1.5 rounded-full hover:bg-rose-500/15 text-neutral-400 hover:text-rose-400 border border-transparent hover:border-rose-500/20 transition-all"
+                              title="장부 삭제"
+                              aria-label={`${sp.name} 장부 삭제`}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
             </div>
           )}
 
-          {/* TAB 3: DATA & PRIVACY (LOCAL-FIRST) - Flattened minimalist layout without box-in-box cards */}
+          {/* TAB 3: DATA & PRIVACY (LOCAL-FIRST) */}
           {activeTab === 'privacy' && (
             <div className="space-y-5 animate-in fade-in duration-150">
-              {/* Group 1: 금고 보안 및 암호화 */}
-              <div className="space-y-3">
-                <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  isLight ? 'text-slate-400' : 'text-slate-500'
-                }`}>
-                  금고 보안 및 암호화
-                </span>
-
-                <div className={`space-y-3 pb-4 border-b ${isLight ? 'border-slate-200/80' : 'border-white/[0.06]'}`}>
-                  {/* Row 1: 금고 보안 및 저장소 암호화 */}
-                  <div className="flex items-center justify-between gap-3">
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                      금고 보안 및 저장소 암호화
-                    </span>
+              {/* Group 1: 금고 보안 & 자동 잠금 */}
+              <div className="space-y-3.5 border-b border-white/[0.06] pb-5 mb-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-white">
+                    <Lock size={13} className="text-neutral-400" />
+                    <span>금고 보안 & 자동 잠금</span>
+                  </div>
+                  {isPinSet && (
                     <button
                       type="button"
                       onClick={() => {
                         onClose();
                         lockVault();
                       }}
-                      className="px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold transition-all active:scale-95"
+                      className="text-[11px] px-2.5 py-1 rounded-full font-normal bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-neutral-300 transition-colors"
                     >
-                      지금 금고 잠그기
+                      지금 잠그기
                     </button>
-                  </div>
+                  )}
+                </div>
 
-                  {/* Row 2: 금고 보안 PIN 번호 */}
-                  <div className={`flex items-center justify-between gap-3 pt-3 border-t ${
-                    isLight ? 'border-slate-100' : 'border-white/[0.04]'
-                  }`}>
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                      금고 보안 PIN 번호
-                    </span>
+                <div className="space-y-3">
+                  {/* PIN 설정 상태 & 버튼 */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-neutral-400 font-light">보안 PIN</span>
+                      {isPinSet ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          설정됨
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-normal bg-white/[0.04] text-neutral-400 border border-white/[0.06]">
+                          미설정
+                        </span>
+                      )}
+                    </div>
 
                     {isPinSet ? (
                       <div className="flex items-center gap-1.5">
@@ -1489,9 +1762,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                             setPinError(null);
                             setShowPinModal(true);
                           }}
-                          className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-colors ${
-                            isLight ? 'border-slate-300 hover:bg-slate-100 text-slate-700' : 'border-white/10 hover:bg-white/5 text-slate-300'
-                          }`}
+                          className="bg-white/[0.05] hover:bg-white/[0.09] text-neutral-200 border border-white/10 rounded-lg px-3 py-1 text-xs font-normal transition-all active:scale-95"
                         >
                           PIN 변경
                         </button>
@@ -1503,7 +1774,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                             setPinError(null);
                             setShowPinModal(true);
                           }}
-                          className="text-xs px-2.5 py-1 rounded-lg border border-rose-500/20 text-rose-400 hover:bg-rose-500/10 font-medium transition-colors"
+                          className="bg-white/[0.05] hover:bg-rose-500/15 text-neutral-300 hover:text-rose-400 border border-white/10 rounded-lg px-3 py-1 text-xs font-normal transition-all active:scale-95"
                         >
                           PIN 해제
                         </button>
@@ -1518,38 +1789,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                           setPinError(null);
                           setShowPinModal(true);
                         }}
-                        className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-bold hover:bg-emerald-400 transition-all active:scale-95 shadow-sm"
+                        className="bg-white/[0.05] hover:bg-white/[0.09] text-neutral-200 border border-white/10 rounded-lg px-3 py-1 text-xs font-normal transition-all active:scale-95"
                       >
-                        PIN 설정하기
+                        PIN 설정
                       </button>
                     )}
                   </div>
 
-                  {/* Row 3: 자동 금고 잠금 */}
-                  <div className={`flex items-center justify-between gap-3 pt-3 border-t ${
-                    isLight ? 'border-slate-100' : 'border-white/[0.04]'
-                  }`}>
-                    <span className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                      자동 금고 잠금
-                    </span>
-                    <div className="w-24">
+                  {/* 자동 잠금 드롭다운 */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.04]">
+                    <span className="text-xs text-neutral-400 font-light">자동 잠금</span>
+                    <div className="w-28">
                       <CustomDarkSelect
-                        value={String(autoLockConfigState.timeoutMinutes)}
+                        value={!autoLockConfigState.enabled ? 'disabled' : String(autoLockConfigState.timeoutMinutes)}
                         options={[
-                          { value: '1', label: '1분' },
+                          { value: '0', label: '즉시' },
                           { value: '5', label: '5분' },
                           { value: '15', label: '15분' },
                           { value: '30', label: '30분' },
                           { value: '60', label: '1시간' },
-                          { value: '0', label: '비활성화' },
+                          { value: 'disabled', label: '비활성화' },
                         ]}
                         onChange={(val) => {
-                          const mins = parseInt(val, 10);
-                          const updated = { ...autoLockConfigState, timeoutMinutes: mins, enabled: mins > 0 };
+                          const isDisabled = val === 'disabled';
+                          const mins = isDisabled ? 0 : parseInt(val, 10);
+                          const updated = { 
+                            ...autoLockConfigState, 
+                            timeoutMinutes: mins, 
+                            enabled: !isDisabled,
+                            lockOnVisibilityHidden: !isDisabled && mins === 0
+                          };
                           setAutoLockConfigState(updated);
                           saveAutoLockConfig(updated);
                         }}
-                        theme={isLight ? 'light' : 'dark'}
+                        theme="dark"
                         size="sm"
                       />
                     </div>
@@ -1558,94 +1831,102 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               </div>
 
               {/* Group 2: 데이터 백업 및 복원 */}
-              <div className="space-y-3">
+              <div className="space-y-3.5 border-b border-white/[0.06] pb-5 mb-5">
                 <div className="flex items-center justify-between">
-                  <span className={`text-[11px] font-bold uppercase tracking-wider ${
-                    isLight ? 'text-slate-400' : 'text-slate-500'
-                  }`}>
-                    데이터 백업 및 복원
-                  </span>
-                  <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    마지막 백업: <span className={`font-medium ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>{lastExportedDate}</span>
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-white">
+                    <Database size={13} className="text-neutral-400" />
+                    <span>데이터 백업 및 복원</span>
+                  </div>
+                  <span className="text-[10px] text-neutral-400 font-light">
+                    마지막 백업: <span className="font-normal text-neutral-300">{lastExportedDate}</span>
                   </span>
                 </div>
-                
-                <div className={`pb-4 border-b ${isLight ? 'border-slate-200/80' : 'border-white/[0.06]'}`}>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={handleOpenExportModal}
-                      className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all active:scale-95 ${
-                        isLight 
-                          ? 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800' 
-                          : 'bg-slate-900 border-slate-800 hover:border-emerald-500/50 hover:bg-slate-850 text-slate-200'
-                      }`}
-                    >
-                      백업 내보내기
-                    </button>
 
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all active:scale-95 ${
-                        isLight 
-                          ? 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800' 
-                          : 'bg-slate-900 border-slate-800 hover:border-emerald-500/50 hover:bg-slate-850 text-slate-200'
-                      }`}
-                    >
-                      백업 복원 / 병합
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".json,.enc,.vibe.enc"
-                      className="hidden"
-                      onChange={handleRestoreFile}
-                    />
-                  </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleOpenExportModal}
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 text-neutral-200 hover:text-white flex items-center justify-center gap-2 transition-all active:scale-98"
+                  >
+                    <Download size={13} className="shrink-0 text-neutral-400" />
+                    <span>백업 파일 내보내기</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 text-neutral-200 hover:text-white flex items-center justify-center gap-2 transition-all active:scale-98"
+                  >
+                    <Upload size={13} className="shrink-0 text-neutral-400" />
+                    <span>백업 파일 가져오기/복원</span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json,.enc,.vibe.enc"
+                    className="hidden"
+                    onChange={handleRestoreFile}
+                  />
                 </div>
               </div>
 
-              {/* Group 3: 데이터 초기화 */}
+              {/* Group 3: 데이터 유틸리티 */}
               <div className="space-y-3">
-                <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  isLight ? 'text-rose-600' : 'text-rose-400'
-                }`}>
-                  데이터 초기화
-                </span>
+                <div className="flex items-center gap-1.5 text-xs font-medium text-white">
+                  <AlertTriangle size={13} className="text-amber-400/80 shrink-0" />
+                  <span>데이터 유틸리티</span>
+                </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteModal(true)}
-                  className={`w-full py-2.5 px-3 rounded-lg border font-semibold text-xs transition-all active:scale-95 ${
-                    isLight
-                      ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700'
-                      : 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-400'
-                  }`}
-                >
-                  모든 거래 내역 삭제 및 설정 초기화
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    id="load-sample-data-btn"
+                    onClick={handleLoadSampleData}
+                    disabled={isClearingData}
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 bg-white/[0.05] hover:bg-white/[0.09] text-neutral-200 hover:text-white border border-white/10"
+                  >
+                    <Sparkles size={13} className="text-neutral-400 shrink-0" />
+                    <span>✦ 샘플 데이터 불러오기</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="reset-all-data-btn"
+                    onClick={handleResetAllData}
+                    disabled={isClearingData}
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 bg-rose-500/10 hover:bg-rose-500/15 text-rose-400 border border-rose-500/20"
+                  >
+                    <Trash2 size={13} className="text-rose-400 shrink-0" />
+                    <span>전체 데이터 초기화</span>
+                  </button>
+                </div>
+
+                <p className="text-[10px] leading-relaxed text-neutral-500 font-light">
+                  ⚠️ 전체 데이터 초기화 시 기기에 암호화되어 저장된 모든 자산, 거래 내역, PIN이 영구 삭제됩니다.
+                </p>
               </div>
             </div>
           )}
 
-          {/* Bottom Action Bar (Apply & Save) */}
-          <div className={`pt-3 border-t mt-2 shrink-0 flex items-center justify-between ${
-            isLight ? 'border-slate-200' : 'border-white/10'
-          }`}>
-            <div className={`flex items-center gap-1.5 text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              <ShieldCheck size={14} className={isLight ? 'text-slate-600' : 'text-slate-400'} />
-              <span>기기 로컬 저장</span>
-            </div>
+          {/* Bottom Action Bar (Apply & Save + Session Logout) */}
+          <div className="pt-3.5 border-t border-white/[0.06] mt-auto shrink-0 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                lockVault();
+              }}
+              title="금고 잠그기 (로그아웃)"
+              className="h-10 px-3.5 rounded-xl font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white"
+            >
+              <Lock size={13} className="shrink-0 text-neutral-400" />
+              <span>금고 잠그기</span>
+            </button>
 
             <button
               type="button"
               onClick={handleSaveAll}
-              className={`h-9 px-4 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 active:scale-95 ${
-                isLight 
-                  ? 'bg-slate-900 text-white hover:bg-slate-800' 
-                  : 'bg-white text-slate-950 hover:bg-slate-200'
-              }`}
+              className="bg-white text-black hover:bg-neutral-200 font-medium rounded-xl px-5 py-2 text-sm transition-all active:scale-95 flex items-center gap-1.5"
             >
               <Check size={14} />
               <span>설정 저장</span>
@@ -1662,31 +1943,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           onClick={() => setIsExportModalOpen(false)}
         >
           <div 
-            className={`w-full max-w-sm border rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 ${
-              isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0E1526] border-white/10 text-white'
-            }`}
+            className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <div className={`p-2 rounded-xl ${isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-[#00F5A0]/15 text-[#00F5A0]'}`}>
+              <div className="p-2 rounded-xl bg-white/[0.05] text-emerald-400 border border-white/10">
                 <Download size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold">데이터 백업 내보내기 (v2.0)</h3>
-                <p className="text-[11px] text-slate-400">거래, 구독, 자산 설정 통합 저장</p>
+                <h3 className="text-sm font-semibold text-white">데이터 백업 내보내기 (v2.0)</h3>
+                <p className="text-[11px] text-neutral-400">거래, 구독, 자산 설정 통합 저장</p>
               </div>
             </div>
 
             {/* Password Protection Toggle */}
-            <div className={`p-3 rounded-2xl border flex items-center justify-between ${
-              isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/[0.02] border-white/10'
-            }`}>
+            <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold block flex items-center gap-1.5">
-                  <Lock size={12} className={isLight ? 'text-emerald-600' : 'text-[#00F5A0]'} />
+                <span className="text-xs font-medium text-white flex items-center gap-1.5">
+                  <Lock size={12} className="text-neutral-400" />
                   AES-256 비밀번호 암호화
                 </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">
+                <span className="text-[10px] text-neutral-400 block mt-0.5">
                   비밀번호 없이는 타인이 열람할 수 없도록 암호화합니다
                 </span>
               </div>
@@ -1694,7 +1971,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 type="button"
                 onClick={() => setEnablePasswordProtection(!enablePasswordProtection)}
                 className={`w-11 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 ${
-                  enablePasswordProtection ? 'bg-emerald-500' : isLight ? 'bg-slate-300' : 'bg-slate-800'
+                  enablePasswordProtection ? 'bg-emerald-400' : 'bg-white/10'
                 }`}
               >
                 <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform transform ${
@@ -1705,7 +1982,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
             {enablePasswordProtection && (
               <div className="space-y-1.5 animate-in fade-in duration-150">
-                <label className="text-[11px] font-semibold text-slate-400 block">
+                <label className="text-[11px] font-medium text-neutral-400 block">
                   암호화 비밀번호 설정
                 </label>
                 <input
@@ -1713,9 +1990,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                   value={exportPassphrase}
                   onChange={(e) => setExportPassphrase(e.target.value)}
                   placeholder="8자 이상의 안전한 비밀번호 입력"
-                  className={`w-full px-3 py-2 rounded-xl text-xs border outline-none ${
-                    isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
-                  }`}
+                  className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-emerald-500/50"
                 />
               </div>
             )}
@@ -1724,16 +1999,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               <button
                 type="button"
                 onClick={() => setIsExportModalOpen(false)}
-                className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold ${
-                  isLight ? 'border-slate-200 text-slate-600 hover:bg-slate-100' : 'border-white/10 text-slate-400 hover:bg-white/5'
-                }`}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-neutral-300 hover:text-white hover:bg-white/[0.06] text-xs font-normal transition-colors"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={handlePerformExport}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#00F5A0] to-[#00D9F5] text-slate-950 text-xs font-bold shadow-md shadow-[#00F5A0]/20"
+                className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-200 font-medium text-xs transition-all active:scale-95 shadow-sm"
               >
                 내보내기 실행
               </button>
@@ -1749,27 +2022,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           onClick={() => setIsDecryptModalOpen(false)}
         >
           <div 
-            className={`w-full max-w-sm border rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 ${
-              isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0E1526] border-white/10 text-white'
-            }`}
+            className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+              <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/20">
                 <Lock size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold">암호화된 백업 복호화</h3>
-                <p className="text-[11px] text-slate-400">AES-GCM 256 암호화 보호됨</p>
+                <h3 className="text-sm font-semibold text-white">암호화된 백업 복호화</h3>
+                <p className="text-[11px] text-neutral-400">AES-GCM 256 암호화 보호됨</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-neutral-400 leading-relaxed font-light">
               이 백업 파일은 비밀번호로 안전하게 암호화되어 있습니다. 백업 생성 시 설정한 복호화 비밀번호를 입력해주세요.
             </p>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-slate-400 block">
+              <label className="text-[11px] font-medium text-neutral-400 block">
                 복호화 비밀번호
               </label>
               <input
@@ -1778,9 +2049,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 onChange={(e) => setDecryptPassphrase(e.target.value)}
                 placeholder="비밀번호 입력"
                 autoFocus
-                className={`w-full px-3 py-2 rounded-xl text-xs border outline-none ${
-                  isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
-                }`}
+                className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-emerald-500/50"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handlePerformDecryption();
                 }}
@@ -1794,9 +2063,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                   setIsDecryptModalOpen(false);
                   setPendingEncryptedData(null);
                 }}
-                className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold ${
-                  isLight ? 'border-slate-200 text-slate-600 hover:bg-slate-100' : 'border-white/10 text-slate-400 hover:bg-white/5'
-                }`}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-neutral-300 hover:text-white hover:bg-white/[0.06] text-xs font-normal transition-colors"
               >
                 취소
               </button>
@@ -1804,7 +2071,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 type="button"
                 disabled={!decryptPassphrase.trim()}
                 onClick={handlePerformDecryption}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#00F5A0] to-[#00D9F5] disabled:opacity-40 text-slate-950 text-xs font-bold"
+                className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-200 disabled:opacity-40 font-medium text-xs transition-all active:scale-95 shadow-sm"
               >
                 복호화 및 계속
               </button>
@@ -1820,24 +2087,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           onClick={() => setIsMergeModalOpen(false)}
         >
           <div 
-            className={`w-full max-w-sm border rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 ${
-              isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0E1526] border-white/10 text-white'
-            }`}
+            className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <div className={`p-2 rounded-xl ${isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/20 text-blue-400'}`}>
+              <div className="p-2 rounded-xl bg-white/[0.05] text-neutral-300 border border-white/10">
                 <Database size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold">백업 데이터 복원 방식</h3>
-                <p className="text-[11px] text-slate-400">
+                <h3 className="text-sm font-semibold text-white">백업 데이터 복원 방식</h3>
+                <p className="text-[11px] text-neutral-400">
                   가져올 거래: {pendingRestorePayload.transactions?.length || 0}건
                 </p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-neutral-400 leading-relaxed font-light">
               기존에 기록된 거래 내역과 백업 파일을 어떻게 합칠지 선택해주세요.
             </p>
 
@@ -1845,17 +2110,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               <button
                 type="button"
                 onClick={() => handleExecuteRestore('merge')}
-                className={`w-full p-3 rounded-2xl border text-left transition-all flex flex-col gap-1 ${
-                  isLight 
-                    ? 'bg-emerald-50/80 border-emerald-300 hover:bg-emerald-100/80 text-slate-900' 
-                    : 'bg-[#00F5A0]/10 border-[#00F5A0]/30 hover:bg-[#00F5A0]/15 text-white'
-                }`}
+                className="w-full p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/15 text-white text-left transition-all flex flex-col gap-1"
               >
-                <div className="flex items-center gap-1.5 font-bold text-xs">
-                  <CheckCircle2 size={14} className={isLight ? 'text-emerald-700' : 'text-[#00F5A0]'} />
+                <div className="flex items-center gap-1.5 font-medium text-xs text-emerald-400">
+                  <CheckCircle2 size={14} />
                   <span>스마트 중복제거 병합 (권장)</span>
                 </div>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-neutral-400 font-light">
                   기존 데이터를 안전하게 유지하며, 중복 없는 신규 거래만 덧붙입니다.
                 </span>
               </button>
@@ -1863,17 +2124,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               <button
                 type="button"
                 onClick={() => handleExecuteRestore('overwrite')}
-                className={`w-full p-3 rounded-2xl border text-left transition-all flex flex-col gap-1 ${
-                  isLight 
-                    ? 'bg-slate-50 border-slate-300 hover:bg-slate-100 text-slate-900' 
-                    : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] text-white'
-                }`}
+                className="w-full p-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-white text-left transition-all flex flex-col gap-1"
               >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-amber-400">
+                <div className="flex items-center gap-1.5 font-medium text-xs text-amber-400">
                   <AlertTriangle size={14} />
                   <span>전체 덮어쓰기 (Overwrite)</span>
                 </div>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-neutral-400 font-light">
                   기존 가계부 내역을 모두 지우고 백업 데이터로 완전히 교체합니다.
                 </span>
               </button>
@@ -1885,78 +2142,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 setIsMergeModalOpen(false);
                 setPendingRestorePayload(null);
               }}
-              className={`w-full py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white`}
+              className="w-full py-2 rounded-xl text-xs font-normal text-neutral-400 hover:text-white transition-colors"
             >
               복원 취소
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Safety Confirmation Modal: Type "DELETE" */}
-      {showDeleteModal && (
-        <div 
-          className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-150"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className={`w-full max-w-xs border rounded-2xl p-4 space-y-3.5 shadow-2xl animate-in zoom-in-95 duration-150 ${
-            isLight ? 'bg-white border-rose-300 text-slate-900' : 'bg-slate-900 border-rose-500/40 text-slate-100'
-          }`}>
-            <div className="flex items-center gap-2 text-rose-500">
-              <AlertTriangle size={18} className="shrink-0" />
-              <h3 className="text-xs font-bold">데이터 완전 초기화 확인</h3>
-            </div>
-            
-            <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-              저장된 모든 거래 내역과 환경 설정, 등록된 API 키가 영구적으로 삭제되며 되돌릴 수 없습니다.
-            </p>
-
-            <div className="space-y-1.5">
-              <label className={`text-xs block ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                삭제를 확인하려면 아래에 <span className="text-rose-500 font-bold select-all">초기화</span>를 입력하세요:
-              </label>
-              <input
-                type="text"
-                value={deleteConfirmationText}
-                onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                placeholder="초기화"
-                autoFocus
-                className={`w-full rounded-xl px-3 py-2 text-xs font-bold tracking-widest outline-none border ${
-                  isLight 
-                    ? 'bg-slate-50 border-slate-300 text-rose-600 focus:border-rose-500' 
-                    : 'bg-slate-950 border-slate-800 text-rose-300 focus:border-rose-500'
-                }`}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeleteConfirmationText('');
-                }}
-                className={`py-2.5 px-3 rounded-xl text-xs font-medium transition-colors border ${
-                  isLight 
-                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' 
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                }`}
-              >
-                취소
-              </button>
-
-              <button
-                type="button"
-                disabled={
-                  (deleteConfirmationText.trim() !== '초기화' && deleteConfirmationText.trim().toUpperCase() !== 'DELETE') ||
-                  isClearingData
-                }
-                onClick={handleExecuteDelete}
-                className="py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all flex items-center justify-center gap-1 shadow-md"
-              >
-                {isClearingData ? <Loader2 size={14} className="animate-spin" /> : '완전 삭제'}
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -1968,20 +2157,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           onClick={() => setShowPinModal(false)}
         >
           <div 
-            className={`w-full max-w-xs border rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 ${
-              isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0E1526] border-white/10 text-white'
-            }`}
+            className="w-full max-w-xs border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <div className={`p-2 rounded-xl ${isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-[#00F5A0]/15 text-[#00F5A0]'}`}>
+              <div className="p-2 rounded-xl bg-white/[0.05] text-neutral-200 border border-white/10">
                 <KeyRound size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold">
+                <h3 className="text-sm font-semibold text-white">
                   {pinModalMode === 'set' ? '금고 보안 PIN 설정' : '금고 보안 PIN 해제'}
                 </h3>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-neutral-400 font-light">
                   {pinModalMode === 'set' ? '4자리 이상의 숫자 또는 비밀번호' : '현재 사용 중인 PIN 번호 확인'}
                 </p>
               </div>
@@ -1991,7 +2178,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               {pinModalMode === 'set' ? (
                 <>
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-400 block">
+                    <label className="text-[11px] font-medium text-neutral-400 block">
                       새 PIN 번호 입력
                     </label>
                     <input
@@ -2000,14 +2187,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                       value={pinInput}
                       onChange={(e) => setPinInput(e.target.value)}
                       placeholder="새 PIN 번호 입력"
-                      className={`w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center ${
-                        isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
-                      }`}
+                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/50"
                       autoFocus
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-400 block">
+                    <label className="text-[11px] font-medium text-neutral-400 block">
                       PIN 번호 재입력 확인
                     </label>
                     <input
@@ -2016,15 +2201,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                       value={pinConfirmInput}
                       onChange={(e) => setPinConfirmInput(e.target.value)}
                       placeholder="새 PIN 번호 다시 입력"
-                      className={`w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center ${
-                        isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
-                      }`}
+                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/50"
                     />
                   </div>
                 </>
               ) : (
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400 block">
+                  <label className="text-[11px] font-medium text-neutral-400 block">
                     현재 PIN 번호 입력
                   </label>
                   <input
@@ -2033,9 +2216,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                     value={currentPinInput}
                     onChange={(e) => setCurrentPinInput(e.target.value)}
                     placeholder="현재 PIN 번호 입력"
-                    className={`w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
-                    }`}
+                    className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/50"
                     autoFocus
                   />
                 </div>
@@ -2052,15 +2233,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 <button
                   type="button"
                   onClick={() => setShowPinModal(false)}
-                  className={`flex-1 py-2 rounded-xl border text-xs font-semibold ${
-                    isLight ? 'border-slate-200 text-slate-600 hover:bg-slate-100' : 'border-white/10 text-slate-400 hover:bg-white/5'
-                  }`}
+                  className="flex-1 py-2 rounded-xl border border-white/10 text-neutral-300 hover:text-white hover:bg-white/[0.06] text-xs font-normal transition-colors"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-[#00F5A0] to-[#00D9F5] text-slate-950 text-xs font-bold shadow-md shadow-[#00F5A0]/20 active:scale-95"
+                  className="flex-1 py-2 rounded-xl bg-white text-black hover:bg-neutral-200 font-medium text-xs transition-all active:scale-95 shadow-sm"
                 >
                   {pinModalMode === 'set' ? 'PIN 저장' : 'PIN 해제'}
                 </button>
