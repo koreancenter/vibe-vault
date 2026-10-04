@@ -150,7 +150,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
 
         {/* Quiet Luxury Status Indicator */}
         <div id="financial-status-indicator">
-          {status === 'better' && (
+          {diff !== 0 && status === 'better' && (
             <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-normal border tabular-nums transition-all ${
               isLight 
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
@@ -161,7 +161,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             </div>
           )}
 
-          {status === 'worse' && (
+          {diff !== 0 && status === 'worse' && (
             <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-normal border tabular-nums transition-all ${
               isLight 
                 ? 'bg-rose-50 text-rose-800 border-rose-200' 
@@ -172,7 +172,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             </div>
           )}
 
-          {status === 'neutral' && (
+          {(diff === 0 || status === 'neutral') && (
             <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-normal border ${
               isLight 
                 ? 'bg-slate-100 text-slate-600 border-slate-200' 
@@ -200,7 +200,9 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           <div className={`mt-1.5 flex items-baseline whitespace-nowrap tabular-nums min-w-0 ${isStealth ? 'blur-xs select-none' : ''}`}>
             <span className="text-base font-light text-neutral-400 mr-1 whitespace-nowrap">{currSymbol}</span>
             <span className={`text-base sm:text-lg md:text-xl font-light tabular-nums whitespace-nowrap ${
-              isLight ? 'text-slate-700' : 'text-neutral-300'
+              prevSpending === 0
+                ? 'text-neutral-500'
+                : isLight ? 'text-slate-700' : 'text-neutral-300'
             }`}>
               {prevSpending.toLocaleString()}
             </span>
@@ -217,7 +219,9 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           <div className="mt-1.5 flex flex-col justify-start min-w-0">
             <div className={`flex items-baseline whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
               <span className="text-fluid-heading font-light text-neutral-400 mr-1.5 whitespace-nowrap">{currSymbol}</span>
-              <span className="text-fluid-hero font-light tracking-tight text-white tabular-nums whitespace-nowrap">
+              <span className={`text-fluid-hero font-light tracking-tight tabular-nums whitespace-nowrap ${
+                currentSpending === 0 ? 'text-neutral-500' : 'text-white'
+              }`}>
                 {currentSpending.toLocaleString()}
               </span>
             </div>
@@ -236,25 +240,25 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         {/* Difference Amount */}
         <div className="order-3 sm:order-3 col-span-1 sm:col-span-1 flex flex-col justify-between min-w-0">
           <span className={`text-xs font-light truncate ${
-            status === 'better'
-              ? isLight ? 'text-emerald-700' : 'text-emerald-400'
-              : status === 'worse'
-              ? isLight ? 'text-rose-700' : 'text-rose-400/90'
-              : isLight ? 'text-slate-500' : 'text-neutral-400'
+            diff === 0
+              ? (isLight ? 'text-slate-500' : 'text-neutral-400')
+              : status === 'better'
+              ? (isLight ? 'text-emerald-700' : 'text-emerald-400')
+              : (isLight ? 'text-rose-700' : 'text-rose-400/90')
           }`}>
             전월 대비 변동
           </span>
           <div className={`flex flex-wrap items-baseline gap-1 mt-1.5 whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
-            <span className={`text-sm md:text-base font-normal tracking-tight tabular-nums whitespace-nowrap ${
-              status === 'better'
-                ? isLight ? 'text-emerald-700' : 'text-emerald-400'
-                : status === 'worse'
-                ? isLight ? 'text-rose-700' : 'text-rose-400/90'
-                : isLight ? 'text-slate-800' : 'text-neutral-200'
+            <span className={`text-sm md:text-base tracking-tight tabular-nums whitespace-nowrap ${
+              diff === 0
+                ? 'text-neutral-500 font-light'
+                : status === 'better'
+                ? (isLight ? 'text-emerald-700 font-normal' : 'text-emerald-400 font-normal')
+                : (isLight ? 'text-rose-700 font-normal' : 'text-rose-400/90 font-normal')
             }`}>
               {diff > 0 ? '+' : diff < 0 ? '-' : ''}{currSymbol} {Math.abs(diff).toLocaleString()}
             </span>
-            {percentChange > 0 && (
+            {diff !== 0 && percentChange > 0 && (
               <span className={`text-xs font-light tabular-nums whitespace-nowrap ${
                 status === 'better' ? (isLight ? 'text-emerald-700' : 'text-emerald-400') : (isLight ? 'text-rose-700' : 'text-rose-400/90')
               }`}>

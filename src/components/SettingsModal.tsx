@@ -952,17 +952,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-md rounded-t-3xl sm:rounded-3xl max-md:rounded-b-none max-md:fixed max-md:bottom-0 max-md:max-h-[90vh] backdrop-blur-xl border border-white/[0.06] bg-[#090A0D]/95 text-neutral-100 shadow-2xl flex flex-col h-[84dvh] sm:h-[640px] overflow-hidden animate-in slide-in-from-bottom-6 duration-200"
+        className="bg-[#0B0C0E]/95 backdrop-blur-2xl border border-white/[0.08] shadow-2xl rounded-2xl max-w-lg w-full max-md:rounded-b-none max-md:fixed max-md:bottom-0 max-md:max-h-[90vh] text-neutral-100 flex flex-col h-[84dvh] sm:h-[640px] overflow-hidden animate-in slide-in-from-bottom-6 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile drag handle indicator */}
         <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
-        {/* Top Header: De-cluttered without awkward logout pill */}
+        {/* Top Header */}
         <div className="flex justify-between items-center px-5 sm:px-6 py-3.5 border-b border-white/[0.06] bg-transparent shrink-0">
           <h2 className="text-sm sm:text-base font-semibold text-white flex items-center gap-2">
             <Sliders className="w-4 h-4 text-neutral-300" />
@@ -977,15 +977,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        {/* Tab Bar: Flat bottom border indicator with cohesive styling */}
-        <div className="flex sm:grid sm:grid-cols-4 border-b border-white/[0.06] shrink-0 px-3 sm:px-6 overflow-x-auto no-scrollbar scrollbar-none transition-colors">
+        {/* Tab Bar: Minimal text tabs with a subtle sage line */}
+        <div className="flex sm:grid sm:grid-cols-4 border-b border-white/[0.06] shrink-0 px-4 sm:px-6 overflow-x-auto no-scrollbar scrollbar-none pt-2.5 gap-2 sm:gap-0">
           <button
             id="tab-assets"
             onClick={() => setActiveTab('assets')}
-            className={`py-3 px-3 sm:px-1 text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'assets'
-                ? 'text-white font-medium border-b-2 border-emerald-400'
-                : 'text-neutral-400 hover:text-white font-normal'
+                ? 'border-b border-emerald-400 text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
             자산 관리
@@ -994,10 +994,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             id="tab-ai-engine"
             onClick={() => setActiveTab('engine')}
-            className={`py-3 px-3 sm:px-1 text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'engine'
-                ? 'text-white font-medium border-b-2 border-emerald-400'
-                : 'text-neutral-400 hover:text-white font-normal'
+                ? 'border-b border-emerald-400 text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
             AI 엔진
@@ -1006,10 +1006,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             id="tab-prefs"
             onClick={() => setActiveTab('preferences')}
-            className={`py-3 px-3 sm:px-1 text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'preferences'
-                ? 'text-white font-medium border-b-2 border-emerald-400'
-                : 'text-neutral-400 hover:text-white font-normal'
+                ? 'border-b border-emerald-400 text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
             일반 설정
@@ -1018,10 +1018,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             id="tab-data"
             onClick={() => setActiveTab('privacy')}
-            className={`py-3 px-3 sm:px-1 text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'privacy'
-                ? 'text-white font-medium border-b-2 border-emerald-400'
-                : 'text-neutral-400 hover:text-white font-normal'
+                ? 'border-b border-emerald-400 text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
             데이터 관리
@@ -1030,8 +1030,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Status Toast inside Modal */}
         {statusMessage && (
-          <div className={`mx-6 mt-1 px-3.5 py-2 rounded-2xl text-xs flex items-center justify-between shrink-0 ${
-            statusMessage.type === 'success' ? 'bg-[#00F5A0]/15 border border-[#00F5A0]/30 text-[#00F5A0]' : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'
+          <div className={`mx-6 mt-2 px-3.5 py-2 rounded-xl text-xs flex items-center justify-between shrink-0 ${
+            statusMessage.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/25 text-rose-400'
           }`}>
             <span className="truncate">{statusMessage.text}</span>
             <button onClick={() => setStatusMessage(null)} className="ml-1 text-sm font-bold">×</button>
@@ -1039,7 +1039,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         )}
 
         {/* Tab Body */}
-        <div className="flex-1 px-5 py-3 overflow-y-auto text-sm flex flex-col justify-between scrollbar-none">
+        <div className="flex-1 px-5 py-4 overflow-y-auto text-sm flex flex-col justify-between scrollbar-none">
           
           {/* TAB 0: SMART ASSET SETUP */}
           {activeTab === 'assets' && (
@@ -1057,63 +1057,51 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           {/* TAB 1: AI ENGINE CONFIGURATION */}
           {activeTab === 'engine' && (
-            <div className="space-y-3 animate-in fade-in duration-150">
+            <div className="space-y-4 animate-in fade-in duration-150">
               {/* Clean Engine Toggle */}
-              <div className={`p-1 rounded-xl border grid grid-cols-2 gap-1 ${
-                isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/[0.04] border-white/10'
-              }`}>
+              <div className="p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] grid grid-cols-2 gap-1 mb-4">
                 <button
                   type="button"
                   onClick={() => {
                     setEngineType('byok');
                     setProvider('gemini');
                   }}
-                  className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-[0.99] ${
+                  className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 active:scale-[0.99] ${
                     engineType === 'byok'
-                      ? isLight
-                        ? 'bg-white text-slate-900 shadow-xs'
-                        : 'bg-white/15 text-white shadow-xs'
-                      : isLight
-                        ? 'text-slate-600 hover:text-slate-900'
-                        : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-white/10 text-white shadow-xs font-semibold'
+                      : 'text-neutral-400 hover:text-white'
                   }`}
                 >
-                  <KeyRound size={13} className={engineType === 'byok' ? (isLight ? 'text-emerald-600' : 'text-emerald-400') : ''} />
+                  <KeyRound size={13} className={engineType === 'byok' ? 'text-emerald-400' : ''} />
                   <span className="truncate">클라우드 AI (Gemini, 권장)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setEngineType('local')}
-                  className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-[0.99] ${
+                  className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 active:scale-[0.99] ${
                     engineType === 'local'
-                      ? isLight
-                        ? 'bg-white text-slate-900 shadow-xs'
-                        : 'bg-white/15 text-white shadow-xs'
-                      : isLight
-                        ? 'text-slate-600 hover:text-slate-900'
-                        : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-white/10 text-white shadow-xs font-semibold'
+                      : 'text-neutral-400 hover:text-white'
                   }`}
                 >
-                  <Cpu size={13} className={engineType === 'local' ? (isLight ? 'text-amber-600' : 'text-amber-400') : ''} />
-                  <span className="truncate">온디바이스 로컬 AI (오프라인/실험실)</span>
+                  <Cpu size={13} className={engineType === 'local' ? 'text-amber-400' : ''} />
+                  <span className="truncate">온디바이스 로컬 AI (오프라인)</span>
                 </button>
               </div>
 
-              {/* Cloud AI (Gemini) Card */}
+              {/* Cloud AI (Gemini) Flat Group */}
               {engineType === 'byok' && (
-                <div className={`p-3.5 rounded-2xl border space-y-3 animate-in fade-in duration-150 ${
-                  isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-white/[0.02] border-white/10'
-                }`}>
+                <div className="space-y-3.5 pb-5 mb-5 border-b border-white/[0.06] animate-in fade-in duration-150">
                   <div className="flex items-center justify-between">
-                    <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                    <label className="text-xs font-medium text-neutral-200">
                       Gemini API 키
                     </label>
                     <a
                       href="https://aistudio.google.com/app/apikey"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[11px] font-medium text-emerald-500 hover:text-emerald-400 flex items-center gap-1 transition-colors"
+                      className="text-[11px] font-normal text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
                     >
                       <span>Google AI Studio에서 키 발급</span>
                       <ExternalLink size={10} />
@@ -1133,19 +1121,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         placeholder="AIzaSy... (Gemini API 키)"
                         autoComplete="off"
                         spellCheck={false}
-                        className={`w-full rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border ${
-                          isLight 
-                            ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500' 
-                            : 'bg-slate-900/90 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-emerald-500'
-                        }`}
+                        className="w-full rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border bg-white/[0.03] border-white/10 text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-500/50"
                       />
                       <button
                         type="button"
                         onClick={() => setShowKey(!showKey)}
                         title={showKey ? "API 키 마스킹" : "API 키 보기"}
-                        className={`absolute right-2.5 top-2.5 transition-colors ${
-                          isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-400 hover:text-slate-200'
-                        }`}
+                        className="absolute right-2.5 top-2.5 text-neutral-400 hover:text-neutral-200 transition-colors"
                       >
                         {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
@@ -1156,11 +1138,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         type="button"
                         onClick={handleClearKey}
                         title="API 키 삭제 및 초기화"
-                        className={`p-2 rounded-xl text-xs font-medium border shrink-0 transition-all active:scale-95 ${
-                          isLight
-                            ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
-                            : 'bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border-rose-800/40'
-                        }`}
+                        className="p-2 rounded-xl text-xs font-medium border shrink-0 transition-all active:scale-95 bg-white/[0.04] hover:bg-rose-500/15 text-neutral-300 hover:text-rose-400 border-white/10"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -1170,11 +1148,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       type="button"
                       onClick={handleTestKey}
                       disabled={isTestingKey || !apiKey.trim()}
-                      className={`px-3 py-2 disabled:opacity-40 rounded-xl text-xs font-semibold border shrink-0 transition-all active:scale-95 ${
-                        isLight
-                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
-                          : 'bg-white/10 hover:bg-white/15 text-slate-100 border-white/10'
-                      }`}
+                      className="px-3 py-2 disabled:opacity-40 rounded-xl text-xs font-normal border shrink-0 transition-all active:scale-95 bg-white/[0.05] hover:bg-white/[0.09] text-white border-white/10"
                     >
                       {isTestingKey ? <Loader2 size={13} className="animate-spin" /> : '키 검증'}
                     </button>
@@ -1184,8 +1158,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {testResult.status && (
                     <div className={`text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 ${
                       testResult.status === 'valid' 
-                        ? isLight ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium' 
-                        : isLight ? 'bg-rose-50 text-rose-800 border border-rose-200' : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-normal' 
+                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                     }`}>
                       {testResult.status === 'valid' ? <CheckCircle2 size={13} className="shrink-0" /> : <XCircle size={13} className="shrink-0" />}
                       <span>{testResult.message}</span>
@@ -1193,36 +1167,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   )}
 
                   {/* 1-Line Clean Note */}
-                  <p className={`text-[11px] leading-tight flex items-center gap-1 ${
-                    isLight ? 'text-slate-500' : 'text-slate-400'
-                  }`}>
-                    <span>🔒 API 키는 브라우저 내부 암호화 스토리지에만 보관됩니다.</span>
+                  <p className="text-[11px] leading-tight text-neutral-400 font-light flex items-center gap-1">
+                    <span>🔒 API 키는 브라우저 내부 암호화 스토리지에만 안전하게 보관됩니다.</span>
                   </p>
                 </div>
               )}
 
-              {/* On-Device AI Consolidated Compact Card */}
+              {/* On-Device AI Flat Group */}
               {engineType === 'local' && (
-                <div className={`p-3.5 rounded-2xl border space-y-3 animate-in fade-in duration-150 ${
-                  isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-white/[0.02] border-white/10'
-                }`}>
+                <div className="space-y-3.5 pb-5 mb-5 border-b border-white/[0.06] animate-in fade-in duration-150">
                   {/* Model Selector & WebGPU status */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                      <label className="text-xs font-medium text-neutral-200">
                         온디바이스 로컬 모델
                       </label>
                       {webGpuStatus === null ? (
-                        <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                        <span className="text-[10px] text-neutral-400 flex items-center gap-1 font-light">
                           <Loader2 size={10} className="animate-spin" /> WebGPU 확인 중
                         </span>
                       ) : webGpuStatus.supported ? (
-                        <span className={`text-[10px] font-medium flex items-center gap-1 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>
+                        <span className="text-[10px] font-normal flex items-center gap-1 text-emerald-400">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                           WebGPU 가속 지원
                         </span>
                       ) : (
-                        <span className="text-[10px] font-medium flex items-center gap-1 text-rose-400">
+                        <span className="text-[10px] font-normal flex items-center gap-1 text-rose-400">
                           <XCircle size={11} />
                           WebGPU 미지원 ({webGpuStatus.reason || '가속 불가'})
                         </span>
@@ -1240,13 +1210,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {/* Progress Bar when downloading */}
                   {isDownloadingModel && downloadProgress && (
                     <div className="space-y-1">
-                      <div className="flex justify-between text-[11px] text-slate-400">
+                      <div className="flex justify-between text-[11px] text-neutral-400">
                         <span>{downloadProgress.text}</span>
-                        <span className="font-mono font-medium">{downloadProgress.progress}%</span>
+                        <span className="font-mono font-normal">{downloadProgress.progress}%</span>
                       </div>
-                      <div className="w-full h-1.5 rounded-full bg-slate-700/30 overflow-hidden">
+                      <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-200"
+                          className="h-full bg-emerald-400 transition-all duration-200"
                           style={{ width: `${downloadProgress.progress}%` }}
                         />
                       </div>
@@ -1254,22 +1224,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   )}
 
                   {downloadError && (
-                    <div className="text-[11px] text-rose-500 flex items-center gap-1">
+                    <div className="text-[11px] text-rose-400 flex items-center gap-1">
                       <AlertTriangle size={12} />
                       <span>{downloadError}</span>
                     </div>
                   )}
 
-                  {/* Action Button: Download / Cancel / Purge */}
+                  {/* Action Button: Download / Cancel / Purge - Luxury Ghost Button */}
                   <div className="flex items-center gap-2">
                     {!isModelDownloaded ? (
                       isDownloadingModel ? (
                         <button
                           type="button"
                           onClick={handleCancelWebLLMDownload}
-                          className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-colors ${
-                            isLight ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100' : 'bg-rose-950/40 text-rose-300 border-rose-800/40 hover:bg-rose-900/60'
-                          }`}
+                          className="flex-1 py-2.5 px-3 rounded-xl text-xs font-normal border border-white/10 bg-white/[0.05] hover:bg-white/[0.09] text-rose-300 flex items-center justify-center gap-1.5 transition-colors"
                         >
                           <X size={13} />
                           <span>다운로드 취소</span>
@@ -1279,11 +1247,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           type="button"
                           onClick={handleStartWebLLMDownload}
                           disabled={webGpuStatus?.supported === false}
-                          className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-98 ${
-                            webGpuStatus?.supported === false
-                              ? 'opacity-40 cursor-not-allowed bg-slate-700 text-slate-300'
-                              : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
-                          }`}
+                          className="w-full bg-white/[0.05] hover:bg-white/[0.09] text-white border border-white/10 rounded-xl py-2.5 flex items-center justify-center gap-1.5 transition-all active:scale-98 text-xs font-medium disabled:opacity-40"
                         >
                           <Download size={13} />
                           <span>모델 다운로드 ({localModel === 'llama3-8b' ? '4.5GB' : '1.5GB'})</span>
@@ -1291,7 +1255,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       )
                     ) : (
                       <div className="flex items-center justify-between gap-2 w-full">
-                        <div className="text-[11px] text-emerald-500 font-medium flex items-center gap-1">
+                        <div className="text-[11px] text-emerald-400 font-normal flex items-center gap-1">
                           <CheckCircle2 size={13} />
                           <span>오프라인 추론 사용 가능 (캐시 보관 중)</span>
                         </div>
@@ -1299,9 +1263,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           type="button"
                           onClick={handlePurgeWebLLMCache}
                           title="로컬 저장소 모델 가중치 삭제"
-                          className={`py-1.5 px-2.5 rounded-lg text-xs border font-medium flex items-center gap-1 transition-colors ${
-                            isLight ? 'border-slate-300 text-slate-600 hover:bg-slate-100' : 'border-white/10 text-slate-300 hover:bg-white/10'
-                          }`}
+                          className="py-1.5 px-2.5 rounded-lg text-xs border border-white/10 bg-white/[0.04] text-neutral-300 hover:text-white hover:bg-white/[0.08] font-normal flex items-center gap-1 transition-colors"
                         >
                           <Trash2 size={12} />
                           <span>캐시 삭제</span>
@@ -1311,7 +1273,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   {/* Condensed Warning Caption below Download Button */}
-                  <p className={`text-[10px] leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <p className="text-[10px] leading-relaxed text-neutral-500 font-light">
                     ⚠️ 모바일 브라우저 환경에서는 대용량 가중치 다운로드 시 메모리 부족(OOM)이나 급격한 배터리 소모가 발생할 수 있습니다.
                   </p>
                 </div>
@@ -1435,8 +1397,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Active Currencies Box */}
-                    <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-3">
+                    {/* Active Currencies */}
+                    <div className="pt-3 border-t border-white/[0.04] space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-semibold text-slate-200">
@@ -1449,7 +1411,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                           activeCurrenciesList.length > 1
                             ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
-                            : 'bg-slate-800 text-slate-400 border border-white/5'
+                            : 'bg-white/[0.04] text-neutral-400 border border-white/5'
                         }`}>
                           {activeCurrenciesList.length > 1 ? '다중 통화 모드' : '단일 통화 모드'}
                         </span>
@@ -1749,11 +1711,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: DATA & PRIVACY (LOCAL-FIRST) - Single Flat Obsidian Black Surface */}
+          {/* TAB 3: DATA & PRIVACY (LOCAL-FIRST) */}
           {activeTab === 'privacy' && (
-            <div className="bg-[#0D0E12] border border-white/[0.08] rounded-2xl p-5 space-y-5 animate-in fade-in duration-150">
+            <div className="space-y-5 animate-in fade-in duration-150">
               {/* Group 1: 금고 보안 & 자동 잠금 */}
-              <div className="space-y-3.5 border-b border-white/[0.05] pb-4">
+              <div className="space-y-3.5 border-b border-white/[0.06] pb-5 mb-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs font-medium text-white">
                     <Lock size={13} className="text-neutral-400" />
@@ -1800,7 +1762,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             setPinError(null);
                             setShowPinModal(true);
                           }}
-                          className="text-xs px-2.5 py-1 rounded-full border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-neutral-300 font-normal transition-colors"
+                          className="bg-white/[0.05] hover:bg-white/[0.09] text-neutral-200 border border-white/10 rounded-lg px-3 py-1 text-xs font-normal transition-all active:scale-95"
                         >
                           PIN 변경
                         </button>
@@ -1812,7 +1774,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             setPinError(null);
                             setShowPinModal(true);
                           }}
-                          className="text-xs px-2.5 py-1 rounded-full border border-rose-500/20 bg-rose-500/10 text-rose-400 hover:bg-rose-500/15 font-normal transition-colors"
+                          className="bg-white/[0.05] hover:bg-rose-500/15 text-neutral-300 hover:text-rose-400 border border-white/10 rounded-lg px-3 py-1 text-xs font-normal transition-all active:scale-95"
                         >
                           PIN 해제
                         </button>
@@ -1827,7 +1789,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           setPinError(null);
                           setShowPinModal(true);
                         }}
-                        className="text-xs px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 font-normal transition-all active:scale-95"
+                        className="bg-white/[0.05] hover:bg-white/[0.09] text-neutral-200 border border-white/10 rounded-lg px-3 py-1 text-xs font-normal transition-all active:scale-95"
                       >
                         PIN 설정
                       </button>
@@ -1869,7 +1831,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Group 2: 데이터 백업 및 복원 */}
-              <div className="space-y-3.5 border-b border-white/[0.05] pb-4">
+              <div className="space-y-3.5 border-b border-white/[0.06] pb-5 mb-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs font-medium text-white">
                     <Database size={13} className="text-neutral-400" />
@@ -1884,7 +1846,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={handleOpenExportModal}
-                    className="py-2 px-2.5 rounded-full text-xs font-normal bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-neutral-300 hover:text-white flex items-center justify-center gap-1.5 transition-all active:scale-98"
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 text-neutral-200 hover:text-white flex items-center justify-center gap-2 transition-all active:scale-98"
                   >
                     <Download size={13} className="shrink-0 text-neutral-400" />
                     <span>백업 파일 내보내기</span>
@@ -1893,7 +1855,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="py-2 px-2.5 rounded-full text-xs font-normal bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-neutral-300 hover:text-white flex items-center justify-center gap-1.5 transition-all active:scale-98"
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 text-neutral-200 hover:text-white flex items-center justify-center gap-2 transition-all active:scale-98"
                   >
                     <Upload size={13} className="shrink-0 text-neutral-400" />
                     <span>백업 파일 가져오기/복원</span>
@@ -1921,9 +1883,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     id="load-sample-data-btn"
                     onClick={handleLoadSampleData}
                     disabled={isClearingData}
-                    className="py-2 px-3 rounded-full text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/15"
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 bg-white/[0.05] hover:bg-white/[0.09] text-neutral-200 hover:text-white border border-white/10"
                   >
-                    <Sparkles size={13} className="text-emerald-400 shrink-0" />
+                    <Sparkles size={13} className="text-neutral-400 shrink-0" />
                     <span>✦ 샘플 데이터 불러오기</span>
                   </button>
 
@@ -1932,14 +1894,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     id="reset-all-data-btn"
                     onClick={handleResetAllData}
                     disabled={isClearingData}
-                    className="py-2 px-3 rounded-full text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/15"
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 bg-rose-500/10 hover:bg-rose-500/15 text-rose-400 border border-rose-500/20"
                   >
                     <Trash2 size={13} className="text-rose-400 shrink-0" />
-                    <span>🗑️ 전체 데이터 초기화</span>
+                    <span>전체 데이터 초기화</span>
                   </button>
                 </div>
 
-                <p className="text-[10px] leading-relaxed text-neutral-400 font-light">
+                <p className="text-[10px] leading-relaxed text-neutral-500 font-light">
                   ⚠️ 전체 데이터 초기화 시 기기에 암호화되어 저장된 모든 자산, 거래 내역, PIN이 영구 삭제됩니다.
                 </p>
               </div>
@@ -1947,7 +1909,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
 
           {/* Bottom Action Bar (Apply & Save + Session Logout) */}
-          <div className="pt-3 border-t border-white/[0.06] mt-2 shrink-0 flex items-center justify-between gap-2">
+          <div className="pt-3.5 border-t border-white/[0.06] mt-auto shrink-0 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => {
@@ -1955,16 +1917,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 lockVault();
               }}
               title="금고 잠그기 (로그아웃)"
-              className="h-9 px-3 sm:px-3.5 rounded-full font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.04] hover:bg-rose-500/10 hover:border-rose-500/20 text-neutral-300 hover:text-rose-400"
+              className="h-10 px-3.5 rounded-xl font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white"
             >
               <Lock size={13} className="shrink-0 text-neutral-400" />
-              <span>금고 잠그기 (로그아웃)</span>
+              <span>금고 잠그기</span>
             </button>
 
             <button
               type="button"
               onClick={handleSaveAll}
-              className="h-9 px-4 rounded-full font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 bg-white text-neutral-950 hover:bg-neutral-200"
+              className="bg-white text-black hover:bg-neutral-200 font-medium rounded-xl px-5 py-2 text-sm transition-all active:scale-95 flex items-center gap-1.5"
             >
               <Check size={14} />
               <span>설정 저장</span>
@@ -1981,44 +1943,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           onClick={() => setIsExportModalOpen(false)}
         >
           <div 
-            className="w-full max-w-sm border border-white/[0.08] rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#121318]/95 text-white"
+            className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <div
-                style={{
-                  backgroundColor: 'var(--color-accent-subtle)',
-                  color: 'var(--color-accent)'
-                }}
-                className="p-2 rounded-xl"
-              >
+              <div className="p-2 rounded-xl bg-white/[0.05] text-emerald-400 border border-white/10">
                 <Download size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold">데이터 백업 내보내기 (v2.0)</h3>
-                <p className="text-[11px] text-slate-400">거래, 구독, 자산 설정 통합 저장</p>
+                <h3 className="text-sm font-semibold text-white">데이터 백업 내보내기 (v2.0)</h3>
+                <p className="text-[11px] text-neutral-400">거래, 구독, 자산 설정 통합 저장</p>
               </div>
             </div>
 
             {/* Password Protection Toggle */}
-            <div className={`p-3 rounded-2xl border flex items-center justify-between ${
-              isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/[0.02] border-white/10'
-            }`}>
+            <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold flex items-center gap-1.5">
-                  <Lock size={12} style={{ color: 'var(--color-accent)' }} />
+                <span className="text-xs font-medium text-white flex items-center gap-1.5">
+                  <Lock size={12} className="text-neutral-400" />
                   AES-256 비밀번호 암호화
                 </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">
+                <span className="text-[10px] text-neutral-400 block mt-0.5">
                   비밀번호 없이는 타인이 열람할 수 없도록 암호화합니다
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setEnablePasswordProtection(!enablePasswordProtection)}
-                style={enablePasswordProtection ? { backgroundColor: 'var(--color-accent)' } : undefined}
                 className={`w-11 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 ${
-                  enablePasswordProtection ? 'bg-[var(--color-accent)]' : isLight ? 'bg-slate-300' : 'bg-slate-800'
+                  enablePasswordProtection ? 'bg-emerald-400' : 'bg-white/10'
                 }`}
               >
                 <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform transform ${
@@ -2029,7 +1982,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {enablePasswordProtection && (
               <div className="space-y-1.5 animate-in fade-in duration-150">
-                <label className="text-[11px] font-semibold text-slate-400 block">
+                <label className="text-[11px] font-medium text-neutral-400 block">
                   암호화 비밀번호 설정
                 </label>
                 <input
@@ -2037,9 +1990,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   value={exportPassphrase}
                   onChange={(e) => setExportPassphrase(e.target.value)}
                   placeholder="8자 이상의 안전한 비밀번호 입력"
-                  className={`w-full px-3 py-2 rounded-xl text-xs border outline-none ${
-                    isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
-                  }`}
+                  className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-emerald-500/50"
                 />
               </div>
             )}
@@ -2048,16 +1999,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsExportModalOpen(false)}
-                className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold ${
-                  isLight ? 'border-slate-200 text-slate-600 hover:bg-slate-100' : 'border-white/10 text-slate-400 hover:bg-white/5'
-                }`}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-neutral-300 hover:text-white hover:bg-white/[0.06] text-xs font-normal transition-colors"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={handlePerformExport}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#00F5A0] to-[#00D9F5] text-slate-950 text-xs font-bold shadow-md shadow-[#00F5A0]/20"
+                className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-200 font-medium text-xs transition-all active:scale-95 shadow-sm"
               >
                 내보내기 실행
               </button>
@@ -2073,25 +2022,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           onClick={() => setIsDecryptModalOpen(false)}
         >
           <div 
-            className="w-full max-w-sm border border-white/[0.08] rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#121318]/95 text-white"
+            className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+              <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/20">
                 <Lock size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold">암호화된 백업 복호화</h3>
-                <p className="text-[11px] text-slate-400">AES-GCM 256 암호화 보호됨</p>
+                <h3 className="text-sm font-semibold text-white">암호화된 백업 복호화</h3>
+                <p className="text-[11px] text-neutral-400">AES-GCM 256 암호화 보호됨</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-neutral-400 leading-relaxed font-light">
               이 백업 파일은 비밀번호로 안전하게 암호화되어 있습니다. 백업 생성 시 설정한 복호화 비밀번호를 입력해주세요.
             </p>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-slate-400 block">
+              <label className="text-[11px] font-medium text-neutral-400 block">
                 복호화 비밀번호
               </label>
               <input
@@ -2100,9 +2049,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={(e) => setDecryptPassphrase(e.target.value)}
                 placeholder="비밀번호 입력"
                 autoFocus
-                className={`w-full px-3 py-2 rounded-xl text-xs border outline-none ${
-                  isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
-                }`}
+                className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-emerald-500/50"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handlePerformDecryption();
                 }}
@@ -2116,9 +2063,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   setIsDecryptModalOpen(false);
                   setPendingEncryptedData(null);
                 }}
-                className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold ${
-                  isLight ? 'border-slate-200 text-slate-600 hover:bg-slate-100' : 'border-white/10 text-slate-400 hover:bg-white/5'
-                }`}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-neutral-300 hover:text-white hover:bg-white/[0.06] text-xs font-normal transition-colors"
               >
                 취소
               </button>
@@ -2126,7 +2071,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 disabled={!decryptPassphrase.trim()}
                 onClick={handlePerformDecryption}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#00F5A0] to-[#00D9F5] disabled:opacity-40 text-slate-950 text-xs font-bold"
+                className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-200 disabled:opacity-40 font-medium text-xs transition-all active:scale-95 shadow-sm"
               >
                 복호화 및 계속
               </button>
@@ -2142,22 +2087,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           onClick={() => setIsMergeModalOpen(false)}
         >
           <div 
-            className="w-full max-w-sm border border-white/[0.08] rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#121318]/95 text-white"
+            className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <div className={`p-2 rounded-xl ${isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/20 text-blue-400'}`}>
+              <div className="p-2 rounded-xl bg-white/[0.05] text-neutral-300 border border-white/10">
                 <Database size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold">백업 데이터 복원 방식</h3>
-                <p className="text-[11px] text-slate-400">
+                <h3 className="text-sm font-semibold text-white">백업 데이터 복원 방식</h3>
+                <p className="text-[11px] text-neutral-400">
                   가져올 거래: {pendingRestorePayload.transactions?.length || 0}건
                 </p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-neutral-400 leading-relaxed font-light">
               기존에 기록된 거래 내역과 백업 파일을 어떻게 합칠지 선택해주세요.
             </p>
 
@@ -2165,17 +2110,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleExecuteRestore('merge')}
-                className={`w-full p-3 rounded-2xl border text-left transition-all flex flex-col gap-1 ${
-                  isLight 
-                    ? 'bg-emerald-50/80 border-emerald-300 hover:bg-emerald-100/80 text-slate-900' 
-                    : 'bg-[#00F5A0]/10 border-[#00F5A0]/30 hover:bg-[#00F5A0]/15 text-white'
-                }`}
+                className="w-full p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/15 text-white text-left transition-all flex flex-col gap-1"
               >
-                <div className="flex items-center gap-1.5 font-bold text-xs">
-                  <CheckCircle2 size={14} className={isLight ? 'text-emerald-700' : 'text-[#00F5A0]'} />
+                <div className="flex items-center gap-1.5 font-medium text-xs text-emerald-400">
+                  <CheckCircle2 size={14} />
                   <span>스마트 중복제거 병합 (권장)</span>
                 </div>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-neutral-400 font-light">
                   기존 데이터를 안전하게 유지하며, 중복 없는 신규 거래만 덧붙입니다.
                 </span>
               </button>
@@ -2183,17 +2124,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleExecuteRestore('overwrite')}
-                className={`w-full p-3 rounded-2xl border text-left transition-all flex flex-col gap-1 ${
-                  isLight 
-                    ? 'bg-slate-50 border-slate-300 hover:bg-slate-100 text-slate-900' 
-                    : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] text-white'
-                }`}
+                className="w-full p-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-white text-left transition-all flex flex-col gap-1"
               >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-amber-400">
+                <div className="flex items-center gap-1.5 font-medium text-xs text-amber-400">
                   <AlertTriangle size={14} />
                   <span>전체 덮어쓰기 (Overwrite)</span>
                 </div>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-neutral-400 font-light">
                   기존 가계부 내역을 모두 지우고 백업 데이터로 완전히 교체합니다.
                 </span>
               </button>
@@ -2205,15 +2142,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 setIsMergeModalOpen(false);
                 setPendingRestorePayload(null);
               }}
-              className={`w-full py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white`}
+              className="w-full py-2 rounded-xl text-xs font-normal text-neutral-400 hover:text-white transition-colors"
             >
               복원 취소
             </button>
           </div>
         </div>
       )}
-
-
 
       {/* Vault PIN Setup / Remove Modal */}
       {showPinModal && (
@@ -2222,18 +2157,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           onClick={() => setShowPinModal(false)}
         >
           <div 
-            className="w-full max-w-xs border border-white/[0.08] rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#121318]/95 text-white"
+            className="w-full max-w-xs border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <div className={`p-2 rounded-xl ${isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-[#00F5A0]/15 text-[#00F5A0]'}`}>
+              <div className="p-2 rounded-xl bg-white/[0.05] text-neutral-200 border border-white/10">
                 <KeyRound size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold">
+                <h3 className="text-sm font-semibold text-white">
                   {pinModalMode === 'set' ? '금고 보안 PIN 설정' : '금고 보안 PIN 해제'}
                 </h3>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-neutral-400 font-light">
                   {pinModalMode === 'set' ? '4자리 이상의 숫자 또는 비밀번호' : '현재 사용 중인 PIN 번호 확인'}
                 </p>
               </div>
@@ -2243,7 +2178,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {pinModalMode === 'set' ? (
                 <>
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-400 block">
+                    <label className="text-[11px] font-medium text-neutral-400 block">
                       새 PIN 번호 입력
                     </label>
                     <input
@@ -2252,14 +2187,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       value={pinInput}
                       onChange={(e) => setPinInput(e.target.value)}
                       placeholder="새 PIN 번호 입력"
-                      className={`w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center ${
-                        isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
-                      }`}
+                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/50"
                       autoFocus
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-400 block">
+                    <label className="text-[11px] font-medium text-neutral-400 block">
                       PIN 번호 재입력 확인
                     </label>
                     <input
@@ -2268,15 +2201,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       value={pinConfirmInput}
                       onChange={(e) => setPinConfirmInput(e.target.value)}
                       placeholder="새 PIN 번호 다시 입력"
-                      className={`w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center ${
-                        isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
-                      }`}
+                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/50"
                     />
                   </div>
                 </>
               ) : (
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400 block">
+                  <label className="text-[11px] font-medium text-neutral-400 block">
                     현재 PIN 번호 입력
                   </label>
                   <input
@@ -2285,9 +2216,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     value={currentPinInput}
                     onChange={(e) => setCurrentPinInput(e.target.value)}
                     placeholder="현재 PIN 번호 입력"
-                    className={`w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
-                    }`}
+                    className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/50"
                     autoFocus
                   />
                 </div>
@@ -2304,15 +2233,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowPinModal(false)}
-                  className={`flex-1 py-2 rounded-xl border text-xs font-semibold ${
-                    isLight ? 'border-slate-200 text-slate-600 hover:bg-slate-100' : 'border-white/10 text-slate-400 hover:bg-white/5'
-                  }`}
+                  className="flex-1 py-2 rounded-xl border border-white/10 text-neutral-300 hover:text-white hover:bg-white/[0.06] text-xs font-normal transition-colors"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-[#00F5A0] to-[#00D9F5] text-slate-950 text-xs font-bold shadow-md shadow-[#00F5A0]/20 active:scale-95"
+                  className="flex-1 py-2 rounded-xl bg-white text-black hover:bg-neutral-200 font-medium text-xs transition-all active:scale-95 shadow-sm"
                 >
                   {pinModalMode === 'set' ? 'PIN 저장' : 'PIN 해제'}
                 </button>

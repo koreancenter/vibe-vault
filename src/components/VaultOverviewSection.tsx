@@ -801,8 +801,12 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
               총 보유 자산
             </span>
-            <div className={`text-sm md:text-base font-normal text-emerald-400 mt-1 tabular-nums whitespace-nowrap ${stealthMode ? 'blur-sm' : ''}`}>
-              +{formatCurrency(totalAssets, currentCurrency)}
+            <div className={`text-sm md:text-base tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
+              totalAssets > 0
+                ? 'font-normal text-emerald-400'
+                : 'font-light text-neutral-500'
+            }`}>
+              {totalAssets > 0 ? '+' : ''}{formatCurrency(totalAssets, currentCurrency)}
             </div>
           </div>
 
@@ -810,8 +814,12 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
               총 부채/대출
             </span>
-            <div className={`text-sm md:text-base font-normal text-rose-400/90 mt-1 tabular-nums whitespace-nowrap ${stealthMode ? 'blur-sm' : ''}`}>
-              -{formatCurrency(totalLiabilities, currentCurrency)}
+            <div className={`text-sm md:text-base tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
+              totalLiabilities > 0
+                ? 'font-normal text-rose-400/90'
+                : 'font-light text-neutral-500'
+            }`}>
+              {totalLiabilities > 0 ? '-' : ''}{formatCurrency(totalLiabilities, currentCurrency)}
             </div>
           </div>
 
@@ -819,7 +827,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
               증권/투자 평가액
             </span>
-            <div className={`text-sm md:text-base font-normal text-neutral-200 mt-1 tabular-nums whitespace-nowrap ${stealthMode ? 'blur-sm' : ''}`}>
+            <div className={`text-sm md:text-base tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
+              categoryTotals.BROKERAGE > 0
+                ? 'font-normal text-neutral-200'
+                : 'font-light text-neutral-500'
+            }`}>
               {formatCurrency(categoryTotals.BROKERAGE, currentCurrency)}
             </div>
           </div>
@@ -828,7 +840,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
               은행 입출금/예적금
             </span>
-            <div className={`text-sm md:text-base font-normal text-neutral-200 mt-1 tabular-nums whitespace-nowrap ${stealthMode ? 'blur-sm' : ''}`}>
+            <div className={`text-sm md:text-base tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
+              categoryTotals.BANK > 0
+                ? 'font-normal text-neutral-200'
+                : 'font-light text-neutral-500'
+            }`}>
               {formatCurrency(categoryTotals.BANK, currentCurrency)}
             </div>
           </div>
@@ -1011,55 +1027,42 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
         {/* Cards Grid / Empty State: Smoky Glass Surfaces & Polished Typography */}
         {accounts.length === 0 ? (
-          <div className={`p-8 sm:p-12 rounded-2xl border text-center space-y-5 transition-all ${
+          <div className={`p-8 sm:p-10 rounded-2xl border text-center space-y-4 transition-all ${
             isLight 
               ? 'bg-white/80 backdrop-blur-2xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
               : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl text-white'
           }`}>
-            <div className="relative mx-auto w-14 h-14 flex items-center justify-center">
-              <div className="relative w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-emerald-400">
-                <Wallet size={24} />
+            <div className="relative mx-auto w-12 h-12 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-neutral-400">
+                <Wallet size={20} />
               </div>
             </div>
 
-            <div className="space-y-1.5 max-w-md mx-auto">
-              <h3 className={`text-fluid-heading font-normal tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                등록된 자산 계좌가 없습니다 (순자산 ₩0)
-              </h3>
-              <p className={`text-fluid-body font-light leading-relaxed ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
-                은행 입출금 통장, 증권사 주식, 가상자산, 현금을 등록하고 분산 포트폴리오를 한눈에 관리해보세요.
+            <div className="max-w-md mx-auto">
+              <p className={`text-sm font-light ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}>
+                등록된 계좌가 없습니다
               </p>
             </div>
 
-            <div className="flex items-center justify-center flex-wrap gap-2.5 pt-2">
+            <div className="flex items-center justify-center gap-2 pt-1">
               <button
                 type="button"
                 id="vault-empty-add-btn"
                 onClick={() => setShowAddModal(true)}
-                className="bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] rounded-full px-4 py-1.5 font-normal text-xs flex items-center gap-1.5 active:scale-95 transition-all"
+                className="bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] rounded-xl px-4 py-2 font-normal text-xs flex items-center gap-1.5 active:scale-95 transition-all"
               >
-                <Plus size={14} />
-                <span>자산 계좌 직접 등록</span>
+                <Plus size={13} />
+                <span>+ 직접 등록</span>
               </button>
 
               <button
                 type="button"
                 id="vault-empty-scan-btn"
                 onClick={() => setShowScanModal(true)}
-                className="bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] rounded-full px-4 py-1.5 font-normal text-xs flex items-center gap-1.5 active:scale-95 transition-all"
+                className="bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] rounded-xl px-4 py-2 font-normal text-xs flex items-center gap-1.5 active:scale-95 transition-all"
               >
-                <Camera size={14} className="text-neutral-400" />
-                <span>증권/계좌 캡처 스캔 (AI OCR)</span>
-              </button>
-
-              <button
-                type="button"
-                id="vault-empty-sample-btn"
-                onClick={handleLoadSampleDataFromVault}
-                className="bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] rounded-full px-4 py-1.5 font-normal text-xs flex items-center gap-1.5 active:scale-95 transition-all"
-              >
-                <Sparkles size={14} className="text-neutral-400" />
-                <span>샘플 데이터 로드</span>
+                <Camera size={13} className="text-neutral-400" />
+                <span>캡처 스캔</span>
               </button>
             </div>
           </div>

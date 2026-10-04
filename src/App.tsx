@@ -933,49 +933,6 @@ export function App() {
             </div>
           </div>
 
-          {/* Center: Desktop Segmented Tab Controls (hidden on mobile, visible on lg) */}
-          <nav className="hidden lg:flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06] backdrop-blur-md">
-            <button
-              id="desktop-nav-vault-btn"
-              type="button"
-              onClick={() => setMainMode('vault')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                mainMode === 'vault'
-                  ? 'bg-white/10 text-white shadow-xs font-semibold'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <ShieldCheck size={14} className={mainMode === 'vault' ? 'text-blue-400' : ''} />
-              <span>자산 (Vault)</span>
-            </button>
-            <button
-              id="desktop-nav-insights-btn"
-              type="button"
-              onClick={() => setMainMode('insights')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                mainMode === 'insights'
-                  ? 'bg-white/10 text-white shadow-xs font-semibold'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Sparkles size={14} className={mainMode === 'insights' ? 'text-indigo-400' : ''} />
-              <span>인사이트 (Insights)</span>
-            </button>
-            <button
-              id="desktop-nav-ledger-btn"
-              type="button"
-              onClick={() => setMainMode('ledger')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                mainMode === 'ledger'
-                  ? 'bg-white/10 text-white shadow-xs font-semibold'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Wallet size={14} className={mainMode === 'ledger' ? 'text-emerald-400' : ''} />
-              <span>장부 (Ledger)</span>
-            </button>
-          </nav>
-
           {/* Right action controls: consolidated to prevent wrapping with flex items-center gap-2 */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Quick-Cycle Currency Chip: [ 🌐 IDR ] - Progressive multi-currency mode only */}
@@ -1468,10 +1425,8 @@ export function App() {
       </div>
       </main>
 
-      {/* 3. FIXED BOTTOM DOCK (AI Omnibar & Mic/Camera Controls) */}
+      {/* 3. FIXED BOTTOM DOCK (AI Omnibar & Navigation) */}
       <footer className={`flex-none backdrop-blur-2xl py-2 z-20 transition-colors border-t ${
-        mainMode !== 'ledger' ? 'lg:hidden' : ''
-      } ${
         isLight 
           ? 'bg-white/95 border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]' 
           : 'bg-[#08090D]/80 backdrop-blur-2xl border-white/[0.08]'
@@ -1699,8 +1654,8 @@ export function App() {
           </>
         ) : null}
 
-        {/* Persistent Bottom Tab Navigation Switcher (Ergonomic Thumb Access - Hidden on Desktop) */}
-        <div className={`lg:hidden pt-1.5 flex items-center justify-around ${
+        {/* Persistent Bottom Tab Navigation Switcher (Ergonomic Thumb & Click Access - Single Source of Truth) */}
+        <div className={`pt-1.5 flex items-center justify-around max-w-md mx-auto ${
           mainMode === 'ledger' ? (isLight ? 'mt-1 border-t border-slate-200/80' : 'mt-1 border-t border-white/[0.04]') : ''
         }`}>
           <button
