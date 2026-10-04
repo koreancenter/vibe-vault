@@ -180,7 +180,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
           {/* 2. Base Currency (Quick chips) */}
           <div className="space-y-1.5 pt-1">
             <label className={`text-xs font-semibold flex items-center justify-between ${isLight ? 'text-slate-700' : 'text-[#94A3B8]'}`}>
-              <span>기본 통화 (Currency)</span>
+              <span>기본 통화</span>
               <span className="text-[11px] opacity-70 font-normal">정산서 기준 통화</span>
             </label>
             <div className="grid grid-cols-5 gap-2">
@@ -239,7 +239,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
             <div className="space-y-1.5">
               <label className={`text-xs font-semibold flex items-center gap-1.5 ${isLight ? 'text-slate-700' : 'text-[#94A3B8]'}`}>
                 <Users size={13} className="text-blue-400" />
-                <span>참여 인원수 (N-Split)</span>
+                <span>참여 인원</span>
               </label>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">

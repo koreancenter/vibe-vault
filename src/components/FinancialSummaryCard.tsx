@@ -195,7 +195,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           <span className={`text-xs font-light truncate ${
             isLight ? 'text-slate-500' : 'text-neutral-400'
           }`}>
-            지난달 ({prevMonthName})
+            지난달 {prevMonthName}
           </span>
           <div className={`mt-1.5 flex items-baseline whitespace-nowrap tabular-nums min-w-0 ${isStealth ? 'blur-xs select-none' : ''}`}>
             <span className="text-base font-light text-neutral-400 mr-1 whitespace-nowrap">{currSymbol}</span>
@@ -214,7 +214,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           <span className={`text-xs font-light truncate ${
             isLight ? 'text-slate-500' : 'text-neutral-400'
           }`}>
-            이번 달 ({currentMonthName})
+            이번 달 {currentMonthName}
           </span>
           <div className="mt-1.5 flex flex-col justify-start min-w-0">
             <div className={`flex items-baseline whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>

@@ -117,12 +117,12 @@ export function saveUserPreferences(prefs: UserPreferences) {
 }
 
 export const ASSET_CATEGORY_NAMES_KO: Record<AssetCategoryType, string> = {
-  BROKERAGE: '증권/투자',
-  BANK: '은행/예적금',
+  BROKERAGE: '투자',
+  BANK: '예적금',
   CRYPTO: '가상자산',
-  REAL_ESTATE: '부동산/실물',
-  CASH: '현금/비상금',
-  LIABILITY: '부채/대출',
+  REAL_ESTATE: '부동산',
+  CASH: '현금',
+  LIABILITY: '부채',
 };
 
 export function getAssetCategoryKo(type: AssetCategoryType): string {

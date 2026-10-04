@@ -148,7 +148,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
     csv += `\r\n`;
     csv += `총 수입 합계,,,,+${totalIncome},,,\r\n`;
     csv += `총 지출 합계,,,,,-${totalExpense},,\r\n`;
-    csv += `최종 잔액 (차인잔고),,,,,${finalBalance},,\r\n`;
+    csv += `최종 잔액,,,,,${finalBalance},,\r\n`;
     csv += `1인당 정산 금액 (총 지출 ÷ ${activeMembers}명),,,,,${perPersonExpense},,\r\n`;
     csv += `1인당 ${finalBalance >= 0 ? '환급금' : '추가납부액'} (최종 잔액 ÷ ${activeMembers}명),,,,,${perPersonNet},,\r\n`;
 
@@ -437,25 +437,25 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
               <div className="p-5 rounded-2xl border border-white/10 print:border-black bg-white/[0.02] print:bg-white space-y-3">
                 <h3 className="text-xs font-bold text-slate-300 print:text-black flex items-center gap-1.5 border-b border-white/10 print:border-gray-300 pb-2">
                   <Calculator size={14} className="text-emerald-400 print:text-black" />
-                  <span>공식 결산 총계 요약 (Settlement Summary)</span>
+                  <span>공식 결산 총계 요약</span>
                 </h3>
 
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center text-slate-300 print:text-gray-700">
-                    <span>총 수입 합계 (collected dues/income)</span>
+                    <span>총 수입 합계</span>
                     <span className="font-bold text-emerald-400 print:text-black tabular-nums">
                       +{currencySymbol}{totalIncome.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-300 print:text-gray-700">
-                    <span>총 지출 합계 (total expenses)</span>
+                    <span>총 지출 합계</span>
                     <span className="font-bold text-rose-400 print:text-black tabular-nums">
                       -{currencySymbol}{totalExpense.toLocaleString()}
                     </span>
                   </div>
                   <div className="border-t border-white/10 print:border-gray-300 pt-2 flex justify-between items-center">
                     <span className="font-extrabold text-sm text-white print:text-black">
-                      최종 잔액 (차인잔고)
+                      최종 잔액
                     </span>
                     <span className={`text-base font-extrabold tabular-nums ${
                       finalBalance > 0 
@@ -475,7 +475,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                 <h3 className="text-xs font-bold text-emerald-400 print:text-black flex items-center justify-between border-b border-emerald-500/20 print:border-gray-300 pb-2">
                   <span className="flex items-center gap-1.5">
                     <Users size={14} />
-                    <span>1인당 정산 내역 ({activeMembers}명 N분의 1 균등 분할)</span>
+                    <span>1인당 정산 내역 ({activeMembers}인 균등 분할)</span>
                   </span>
                   <span className="text-[10px] font-normal text-slate-400 print:text-gray-600">
                     총 참여 {activeMembers}명
@@ -501,10 +501,10 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-white print:text-black">
                         {finalBalance > 0
-                          ? '1인당 환급 예정액 (Dues Refund)'
+                          ? '1인당 환급 예정액'
                           : finalBalance < 0
-                          ? '1인당 추가 납부액 (Additional Due)'
-                          : '정산 완료 (수지 균형)'}
+                          ? '1인당 추가 납부액'
+                          : '정산 완료 (수지 일치)'}
                       </span>
                       <span className={`text-base font-extrabold tabular-nums ${
                         finalBalance > 0 
