@@ -54,10 +54,13 @@ import {
   clearAllTransactions, 
   replaceAllTransactions,
   loadSampleData,
-  resetAllDataToZero
+  resetAllDataToZero,
+  getSpaces,
+  deleteSpace,
+  DEFAULT_SPACE
 } from '../db';
 import { PWAInstallButton } from './PWAInstallButton';
-import { Transaction, EncryptedBackupPayload, UnencryptedBackupPayloadV2, SupportedCurrency } from '../types';
+import { Transaction, EncryptedBackupPayload, UnencryptedBackupPayloadV2, SupportedCurrency, LedgerSpace } from '../types';
 import { SmartAssetSetup } from './SmartAssetSetup';
 import {
   encryptBackupData,
@@ -94,6 +97,11 @@ interface SettingsModalProps {
   onDataReset?: () => void;
   initialTab?: 'assets' | 'engine' | 'preferences' | 'privacy';
   initialSubTab?: 'assets' | 'budget' | 'subscriptions';
+  spaces?: LedgerSpace[];
+  activeSpaceId?: string;
+  onSelectSpace?: (space: LedgerSpace) => void;
+  onDeleteSpace?: (spaceId: string) => void;
+  onOpenNewSpace?: () => void;
 }
 
 // Custom Dark Dropdown Component (replaces browser native <select> to fix white scrollbars and OS styling)
@@ -235,8 +243,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onDataChanged, 
   onDataReset, 
   initialTab,
-  initialSubTab 
+  initialSubTab,
+  spaces,
+  activeSpaceId,
+  onSelectSpace,
+  onDeleteSpace,
+  onOpenNewSpace
 }) => {
+  // Multi-Ledger Spaces State in Settings
+  const [internalSpaces, setInternalSpaces] = useState<LedgerSpace[]>(spaces || [DEFAULT_SPACE]);
+
+  useEffect(() => {
+    if (spaces) {
+      setInternalSpaces(spaces);
+    } else if (isOpen) {
+      getSpaces().then(s => setInternalSpaces(s)).catch(() => {});
+    }
+  }, [spaces, isOpen]);
+
+  const handleSelectSpaceItem = (sp: LedgerSpace) => {
+    if (onSelectSpace) {
+      onSelectSpace(sp);
+    } else if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('vibe_active_space_id', sp.id);
+    }
+    setStatusMessage({ type: 'success', text: `'${sp.name}' 장부로 전환되었습니다.` });
+  };
+
+  const handleDeleteSpaceItem = async (spId: string) => {
+    if (spId === 'default') return;
+    if (!window.confirm('이 프로젝트 장부와 관련 거래 내역을 삭제하시겠습니까?')) return;
+    if (onDeleteSpace) {
+      onDeleteSpace(spId);
+    } else {
+      await deleteSpace(spId);
+      const updated = await getSpaces();
+      setInternalSpaces(updated);
+    }
+    if (onDataChanged) onDataChanged();
+  };
+
+  const handleCreateNewSpace = () => {
+    if (onOpenNewSpace) {
+      onOpenNewSpace();
+    }
+  };
+
   // 4-Tab Segmented Control: [ 스마트 자산 | AI 엔진 | 일반 설정 | 데이터 관리 ]
   const [activeTab, setActiveTab] = useState<'assets' | 'engine' | 'preferences' | 'privacy'>(resolveSafeTab(initialTab));
   const [subTab, setSubTab] = useState<'assets' | 'budget' | 'subscriptions'>(initialSubTab || 'assets');
@@ -904,74 +956,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl max-md:rounded-b-none max-md:fixed max-md:bottom-0 max-md:max-h-[90vh] backdrop-blur-2xl border shadow-2xl flex flex-col h-[84dvh] sm:h-[630px] overflow-hidden animate-in slide-in-from-bottom-6 duration-200 transition-colors ${
-          isLight
-            ? 'bg-white/98 border-slate-200 text-slate-900 shadow-slate-300/40'
-            : 'bg-[#0E1524]/95 border-white/10 text-slate-100 shadow-2xl'
-        }`}
+        className="w-full max-w-md rounded-t-3xl sm:rounded-3xl max-md:rounded-b-none max-md:fixed max-md:bottom-0 max-md:max-h-[90vh] backdrop-blur-xl border border-white/[0.06] bg-[#090A0D]/95 text-neutral-100 shadow-2xl flex flex-col h-[84dvh] sm:h-[640px] overflow-hidden animate-in slide-in-from-bottom-6 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile drag handle indicator */}
-        <div className={`w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 ${
-          isLight ? 'bg-slate-300' : 'bg-white/20'
-        }`} />
+        <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
-        {/* Top Header */}
-        <div className={`flex justify-between items-center px-5 sm:px-6 py-3.5 border-b shrink-0 transition-colors ${
-          isLight ? 'border-slate-200 bg-slate-50/60' : 'border-white/10 bg-white/[0.02]'
-        }`}>
-          <h2 className={`text-sm sm:text-base font-bold flex items-center gap-2 ${isLight ? 'text-slate-950' : 'text-white'}`}>
-            <Sliders className={`w-4 h-4 ${isLight ? 'text-slate-800' : 'text-slate-200'}`} />
+        {/* Top Header: De-cluttered without awkward logout pill */}
+        <div className="flex justify-between items-center px-5 sm:px-6 py-3.5 border-b border-white/[0.06] bg-transparent shrink-0">
+          <h2 className="text-sm sm:text-base font-semibold text-white flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-neutral-300" />
             <span>환경 설정</span>
           </h2>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                lockVault();
-              }}
-              title="금고 잠그기 (로그아웃)"
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors border flex items-center gap-1.5 active:scale-95 ${
-                isLight
-                  ? 'bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border-slate-200 hover:border-rose-200'
-                  : 'bg-white/[0.04] hover:bg-rose-500/10 text-slate-300 hover:text-rose-400 border-white/10 hover:border-rose-500/30'
-              }`}
-            >
-              <Lock size={12} className="shrink-0 text-rose-400" />
-              <span className="hidden xs:inline sm:inline">금고 잠그기</span>
-              <span className="text-[10px] text-slate-400 font-normal">(로그아웃)</span>
-            </button>
-            <button 
-              onClick={onClose} 
-              className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors ${
-                isLight
-                  ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-                  : 'text-slate-400 hover:text-white hover:bg-white/10'
-              }`}
-              aria-label="설정 창 닫기"
-            >
-              <X size={17} />
-            </button>
-          </div>
+          <button 
+            onClick={onClose} 
+            className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+            aria-label="설정 창 닫기"
+          >
+            <X size={17} />
+          </button>
         </div>
 
-        {/* Tab Bar: Horizontal scrollable with touch-friendly spacing */}
-        <div className={`flex sm:grid sm:grid-cols-4 border-b shrink-0 px-3 sm:px-6 overflow-x-auto no-scrollbar scrollbar-none transition-colors ${
-          isLight ? 'border-slate-200' : 'border-white/10'
-        }`}>
+        {/* Tab Bar: Flat bottom border indicator with cohesive styling */}
+        <div className="flex sm:grid sm:grid-cols-4 border-b border-white/[0.06] shrink-0 px-3 sm:px-6 overflow-x-auto no-scrollbar scrollbar-none transition-colors">
           <button
             id="tab-assets"
             onClick={() => setActiveTab('assets')}
-            style={activeTab === 'assets' ? { borderBottomColor: 'var(--color-accent)' } : undefined}
             className={`py-3 px-3 sm:px-1 text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 ${
               activeTab === 'assets'
-                ? isLight
-                  ? 'text-slate-950 font-bold border-b-2 border-[var(--color-accent)]'
-                  : 'text-white font-bold border-b-2 border-[var(--color-accent)]'
-                : isLight
-                  ? 'text-slate-500 hover:text-slate-900 font-medium'
-                  : 'text-slate-400 hover:text-white font-medium'
+                ? 'text-white font-medium border-b-2 border-emerald-400'
+                : 'text-neutral-400 hover:text-white font-normal'
             }`}
           >
             자산 관리
@@ -980,15 +994,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             id="tab-ai-engine"
             onClick={() => setActiveTab('engine')}
-            style={activeTab === 'engine' ? { borderBottomColor: 'var(--color-accent)' } : undefined}
             className={`py-3 px-3 sm:px-1 text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 ${
               activeTab === 'engine'
-                ? isLight
-                  ? 'text-slate-950 font-bold border-b-2 border-[var(--color-accent)]'
-                  : 'text-white font-bold border-b-2 border-[var(--color-accent)]'
-                : isLight
-                  ? 'text-slate-500 hover:text-slate-900 font-medium'
-                  : 'text-slate-400 hover:text-white font-medium'
+                ? 'text-white font-medium border-b-2 border-emerald-400'
+                : 'text-neutral-400 hover:text-white font-normal'
             }`}
           >
             AI 엔진
@@ -997,15 +1006,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             id="tab-prefs"
             onClick={() => setActiveTab('preferences')}
-            style={activeTab === 'preferences' ? { borderBottomColor: 'var(--color-accent)' } : undefined}
             className={`py-3 px-3 sm:px-1 text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 ${
               activeTab === 'preferences'
-                ? isLight
-                  ? 'text-slate-950 font-bold border-b-2 border-[var(--color-accent)]'
-                  : 'text-white font-bold border-b-2 border-[var(--color-accent)]'
-                : isLight
-                  ? 'text-slate-500 hover:text-slate-900 font-medium'
-                  : 'text-slate-400 hover:text-white font-medium'
+                ? 'text-white font-medium border-b-2 border-emerald-400'
+                : 'text-neutral-400 hover:text-white font-normal'
             }`}
           >
             일반 설정
@@ -1014,15 +1018,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             id="tab-data"
             onClick={() => setActiveTab('privacy')}
-            style={activeTab === 'privacy' ? { borderBottomColor: 'var(--color-accent)' } : undefined}
             className={`py-3 px-3 sm:px-1 text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 ${
               activeTab === 'privacy'
-                ? isLight
-                  ? 'text-slate-950 font-bold border-b-2 border-[var(--color-accent)]'
-                  : 'text-white font-bold border-b-2 border-[var(--color-accent)]'
-                : isLight
-                  ? 'text-slate-500 hover:text-slate-900 font-medium'
-                  : 'text-slate-400 hover:text-white font-medium'
+                ? 'text-white font-medium border-b-2 border-emerald-400'
+                : 'text-neutral-400 hover:text-white font-normal'
             }`}
           >
             데이터 관리
@@ -1622,8 +1621,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Group 3: 장부 설정 (Ledger Settings) */}
-              <div className="space-y-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-500">
+              <div className="space-y-3 pt-3 border-t border-white/[0.04]">
+                <span className="text-[11px] font-bold uppercase tracking-wider block text-neutral-400">
                   장부 설정
                 </span>
                 
@@ -1653,20 +1652,112 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
 
+              {/* Group 4: 장부 관리 (Ledger Spaces) */}
+              <div className="space-y-3 pt-3 border-t border-white/[0.04]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-white block">
+                      장부 관리 (Ledger Spaces)
+                    </span>
+                    <span className="text-[11px] text-neutral-400 font-light block">
+                      일상 가계부와 분리된 프로젝트·행사 전용 정산 장부
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCreateNewSpace}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-normal bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] transition-all active:scale-95 shrink-0"
+                  >
+                    <Plus size={12} />
+                    <span>새 장부 만들기</span>
+                  </button>
+                </div>
+
+                {/* Spaces List */}
+                <div className="space-y-1.5 pt-1">
+                  {internalSpaces.map((sp) => {
+                    const isCurrent = sp.id === (activeSpaceId || 'default');
+                    const isDefault = sp.id === 'default';
+                    const isEvent = sp.type === 'EVENT' || Boolean(sp.memberCount && sp.memberCount > 1);
+
+                    return (
+                      <div
+                        key={sp.id}
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
+                          isCurrent
+                            ? 'bg-emerald-500/10 border-emerald-500/25 text-white'
+                            : 'bg-white/[0.02] border-white/[0.06] text-neutral-300 hover:border-white/10'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="truncate">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-medium text-xs text-white truncate">{sp.name}</span>
+                              {isDefault && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-neutral-400 font-normal border border-white/[0.08]">
+                                  기본
+                                </span>
+                              )}
+                              {isEvent && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 font-normal border border-indigo-500/25">
+                                  행사/정산
+                                </span>
+                              )}
+                              {isCurrent && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-normal border border-emerald-500/25 flex items-center gap-1">
+                                  <Check size={10} />
+                                  <span>현재 활성</span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-neutral-400 font-light mt-0.5 flex items-center gap-2">
+                              <span>기준 통화: {sp.currency}</span>
+                              {sp.memberCount && <span>· 정산 인원: {sp.memberCount}명</span>}
+                              {sp.description && <span className="truncate">· {sp.description}</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          {!isCurrent && (
+                            <button
+                              type="button"
+                              onClick={() => handleSelectSpaceItem(sp)}
+                              className="px-2.5 py-1 rounded-full text-[11px] font-normal border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-neutral-300 hover:text-white transition-all active:scale-95"
+                            >
+                              전환
+                            </button>
+                          )}
+                          {!isDefault && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSpaceItem(sp.id)}
+                              className="p-1.5 rounded-full hover:bg-rose-500/15 text-neutral-400 hover:text-rose-400 border border-transparent hover:border-rose-500/20 transition-all"
+                              title="장부 삭제"
+                              aria-label={`${sp.name} 장부 삭제`}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
             </div>
           )}
 
-          {/* TAB 3: DATA & PRIVACY (LOCAL-FIRST) - Compact 3-Section Grouping */}
+          {/* TAB 3: DATA & PRIVACY (LOCAL-FIRST) - Single Flat Obsidian Black Surface */}
           {activeTab === 'privacy' && (
-            <div className="space-y-3 animate-in fade-in duration-150">
+            <div className="bg-[#0D0E12] border border-white/[0.08] rounded-2xl p-5 space-y-5 animate-in fade-in duration-150">
               {/* Group 1: 금고 보안 & 자동 잠금 */}
-              <div className={`p-3.5 rounded-2xl border space-y-2.5 ${
-                isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-white/[0.02] border-white/10'
-              }`}>
+              <div className="space-y-3.5 border-b border-white/[0.05] pb-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-semibold text-xs">
-                    <Lock size={13} className={isLight ? 'text-slate-700' : 'text-slate-300'} />
-                    <span className={isLight ? 'text-slate-800' : 'text-slate-200'}>금고 보안 & 자동 잠금</span>
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-white">
+                    <Lock size={13} className="text-neutral-400" />
+                    <span>금고 보안 & 자동 잠금</span>
                   </div>
                   {isPinSet && (
                     <button
@@ -1675,30 +1766,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         onClose();
                         lockVault();
                       }}
-                      className={`text-[11px] px-2.5 py-1 rounded-lg font-medium transition-colors border ${
-                        isLight
-                          ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-700'
-                          : 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-300'
-                      }`}
+                      className="text-[11px] px-2.5 py-1 rounded-full font-normal bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-neutral-300 transition-colors"
                     >
                       지금 잠그기
                     </button>
                   )}
                 </div>
 
-                <div className="space-y-2 pt-0.5">
+                <div className="space-y-3">
                   {/* PIN 설정 상태 & 버튼 */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>보안 PIN</span>
+                      <span className="text-xs text-neutral-400 font-light">보안 PIN</span>
                       {isPinSet ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium bg-emerald-500/15 text-emerald-500 border border-emerald-500/20">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                           설정됨
                         </span>
                       ) : (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
-                          isLight ? 'bg-slate-200 text-slate-600' : 'bg-white/10 text-slate-400'
-                        }`}>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-normal bg-white/[0.04] text-neutral-400 border border-white/[0.06]">
                           미설정
                         </span>
                       )}
@@ -1715,9 +1800,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             setPinError(null);
                             setShowPinModal(true);
                           }}
-                          className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-colors ${
-                            isLight ? 'border-slate-300 hover:bg-white text-slate-700' : 'border-white/10 hover:bg-white/5 text-slate-300'
-                          }`}
+                          className="text-xs px-2.5 py-1 rounded-full border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-neutral-300 font-normal transition-colors"
                         >
                           PIN 변경
                         </button>
@@ -1729,7 +1812,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             setPinError(null);
                             setShowPinModal(true);
                           }}
-                          className="text-xs px-2.5 py-1 rounded-lg border border-rose-500/20 text-rose-400 hover:bg-rose-500/10 font-medium transition-colors"
+                          className="text-xs px-2.5 py-1 rounded-full border border-rose-500/20 bg-rose-500/10 text-rose-400 hover:bg-rose-500/15 font-normal transition-colors"
                         >
                           PIN 해제
                         </button>
@@ -1744,11 +1827,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           setPinError(null);
                           setShowPinModal(true);
                         }}
-                        className={`text-xs px-3 py-1 rounded-lg font-semibold transition-all active:scale-95 ${
-                          isLight
-                            ? 'bg-slate-900 text-white hover:bg-slate-800'
-                            : 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
-                        }`}
+                        className="text-xs px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 font-normal transition-all active:scale-95"
                       >
                         PIN 설정
                       </button>
@@ -1756,10 +1835,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   {/* 자동 잠금 드롭다운 */}
-                  <div className={`flex items-center justify-between gap-2 pt-2 border-t ${
-                    isLight ? 'border-slate-200/60' : 'border-white/[0.06]'
-                  }`}>
-                    <span className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>자동 잠금</span>
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.04]">
+                    <span className="text-xs text-neutral-400 font-light">자동 잠금</span>
                     <div className="w-28">
                       <CustomDarkSelect
                         value={!autoLockConfigState.enabled ? 'disabled' : String(autoLockConfigState.timeoutMinutes)}
@@ -1783,7 +1860,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           setAutoLockConfigState(updated);
                           saveAutoLockConfig(updated);
                         }}
-                        theme={isLight ? 'light' : 'dark'}
+                        theme="dark"
                         size="sm"
                       />
                     </div>
@@ -1792,16 +1869,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Group 2: 데이터 백업 및 복원 */}
-              <div className={`p-3.5 rounded-2xl border space-y-2.5 ${
-                isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-white/[0.02] border-white/10'
-              }`}>
+              <div className="space-y-3.5 border-b border-white/[0.05] pb-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-semibold text-xs">
-                    <Database size={13} className={isLight ? 'text-slate-700' : 'text-slate-300'} />
-                    <span className={isLight ? 'text-slate-800' : 'text-slate-200'}>데이터 백업 및 복원</span>
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-white">
+                    <Database size={13} className="text-neutral-400" />
+                    <span>데이터 백업 및 복원</span>
                   </div>
-                  <span className={`text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    마지막 백업: <span className={`font-medium ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{lastExportedDate}</span>
+                  <span className="text-[10px] text-neutral-400 font-light">
+                    마지막 백업: <span className="font-normal text-neutral-300">{lastExportedDate}</span>
                   </span>
                 </div>
 
@@ -1809,26 +1884,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={handleOpenExportModal}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-98 ${
-                      isLight 
-                        ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-800' 
-                        : 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-200'
-                    }`}
+                    className="py-2 px-2.5 rounded-full text-xs font-normal bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-neutral-300 hover:text-white flex items-center justify-center gap-1.5 transition-all active:scale-98"
                   >
-                    <Download size={13} className="shrink-0" />
+                    <Download size={13} className="shrink-0 text-neutral-400" />
                     <span>백업 파일 내보내기</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-98 ${
-                      isLight 
-                        ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-800' 
-                        : 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-200'
-                    }`}
+                    className="py-2 px-2.5 rounded-full text-xs font-normal bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-neutral-300 hover:text-white flex items-center justify-center gap-1.5 transition-all active:scale-98"
                   >
-                    <Upload size={13} className="shrink-0" />
+                    <Upload size={13} className="shrink-0 text-neutral-400" />
                     <span>백업 파일 가져오기/복원</span>
                   </button>
                   <input
@@ -1841,13 +1908,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* Group 3: 데이터 유틸리티 (Danger Zone) */}
-              <div className={`p-3.5 rounded-2xl border space-y-2.5 ${
-                isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-white/[0.02] border-white/10'
-              }`}>
-                <div className="flex items-center gap-1.5 font-semibold text-xs">
-                  <AlertTriangle size={13} className="text-amber-500 shrink-0" />
-                  <span className={isLight ? 'text-slate-800' : 'text-slate-200'}>데이터 유틸리티</span>
+              {/* Group 3: 데이터 유틸리티 */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-white">
+                  <AlertTriangle size={13} className="text-amber-400/80 shrink-0" />
+                  <span>데이터 유틸리티</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1856,11 +1921,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     id="load-sample-data-btn"
                     onClick={handleLoadSampleData}
                     disabled={isClearingData}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 ${
-                      isLight 
-                        ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200' 
-                        : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20'
-                    }`}
+                    className="py-2 px-3 rounded-full text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/15"
                   >
                     <Sparkles size={13} className="text-emerald-400 shrink-0" />
                     <span>✦ 샘플 데이터 불러오기</span>
@@ -1871,18 +1932,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     id="reset-all-data-btn"
                     onClick={handleResetAllData}
                     disabled={isClearingData}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 ${
-                      isLight
-                        ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
-                        : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20'
-                    }`}
+                    className="py-2 px-3 rounded-full text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/15"
                   >
                     <Trash2 size={13} className="text-rose-400 shrink-0" />
                     <span>🗑️ 전체 데이터 초기화</span>
                   </button>
                 </div>
 
-                <p className={`text-[10px] leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <p className="text-[10px] leading-relaxed text-neutral-400 font-light">
                   ⚠️ 전체 데이터 초기화 시 기기에 암호화되어 저장된 모든 자산, 거래 내역, PIN이 영구 삭제됩니다.
                 </p>
               </div>
@@ -1890,9 +1947,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
 
           {/* Bottom Action Bar (Apply & Save + Session Logout) */}
-          <div className={`pt-3 border-t mt-2 shrink-0 flex items-center justify-between gap-2 ${
-            isLight ? 'border-slate-200' : 'border-white/10'
-          }`}>
+          <div className="pt-3 border-t border-white/[0.06] mt-2 shrink-0 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => {
@@ -1900,24 +1955,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 lockVault();
               }}
               title="금고 잠그기 (로그아웃)"
-              className={`h-9 px-3 sm:px-3.5 rounded-xl font-medium text-xs transition-all flex items-center gap-1.5 active:scale-95 border ${
-                isLight
-                  ? 'bg-slate-100 hover:bg-rose-50 hover:border-rose-200 text-slate-700 hover:text-rose-600 border-slate-200'
-                  : 'bg-white/[0.04] hover:bg-rose-500/10 hover:border-rose-500/30 text-slate-300 hover:text-rose-400 border-white/10'
-              }`}
+              className="h-9 px-3 sm:px-3.5 rounded-full font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.04] hover:bg-rose-500/10 hover:border-rose-500/20 text-neutral-300 hover:text-rose-400"
             >
-              <Lock size={13} className="shrink-0 text-rose-400/80" />
+              <Lock size={13} className="shrink-0 text-neutral-400" />
               <span>금고 잠그기 (로그아웃)</span>
             </button>
 
             <button
               type="button"
               onClick={handleSaveAll}
-              className={`h-9 px-4 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 active:scale-95 ${
-                isLight 
-                  ? 'bg-slate-900 text-white hover:bg-slate-800' 
-                  : 'bg-white text-slate-950 hover:bg-slate-200'
-              }`}
+              className="h-9 px-4 rounded-full font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 bg-white text-neutral-950 hover:bg-neutral-200"
             >
               <Check size={14} />
               <span>설정 저장</span>
@@ -1934,9 +1981,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           onClick={() => setIsExportModalOpen(false)}
         >
           <div 
-            className={`w-full max-w-sm border rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 ${
-              isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0E1526] border-white/10 text-white'
-            }`}
+            className="w-full max-w-sm border border-white/[0.08] rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#121318]/95 text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
@@ -2028,9 +2073,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           onClick={() => setIsDecryptModalOpen(false)}
         >
           <div 
-            className={`w-full max-w-sm border rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 ${
-              isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0E1526] border-white/10 text-white'
-            }`}
+            className="w-full max-w-sm border border-white/[0.08] rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#121318]/95 text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
@@ -2099,9 +2142,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           onClick={() => setIsMergeModalOpen(false)}
         >
           <div 
-            className={`w-full max-w-sm border rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 ${
-              isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0E1526] border-white/10 text-white'
-            }`}
+            className="w-full max-w-sm border border-white/[0.08] rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#121318]/95 text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
@@ -2181,9 +2222,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           onClick={() => setShowPinModal(false)}
         >
           <div 
-            className={`w-full max-w-xs border rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 ${
-              isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0E1526] border-white/10 text-white'
-            }`}
+            className="w-full max-w-xs border border-white/[0.08] rounded-3xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#121318]/95 text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">

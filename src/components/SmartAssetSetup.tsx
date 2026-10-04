@@ -601,21 +601,15 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
   return (
     <div className="space-y-4">
       {/* Sub-Navigation Switcher: Assets vs Monthly Budget vs Subscriptions */}
-      <div className={`flex items-center gap-4 border-b pb-2 ${
-        isLight ? 'border-slate-200' : 'border-white/10'
-      }`}>
+      <div className="flex items-center gap-2 border-b border-white/[0.04] pb-3">
         <button
           type="button"
           id="subtab-btn-assets"
           onClick={() => setActiveSection('assets')}
-          className={`text-xs pb-1 transition-colors relative whitespace-nowrap ${
+          className={`rounded-full px-3 py-1 text-xs transition-all whitespace-nowrap border ${
             activeSection === 'assets'
-              ? isLight
-                ? 'font-bold text-slate-950 border-b-2 border-slate-950'
-                : 'font-bold text-white border-b-2 border-white'
-              : isLight
-                ? 'text-slate-500 hover:text-slate-800'
-                : 'text-slate-400 hover:text-white'
+              ? 'bg-white/[0.08] text-white font-medium border-white/20'
+              : 'bg-white/[0.02] text-neutral-400 hover:text-white border-white/[0.06]'
           }`}
         >
           보유 자산 ({assets.length})
@@ -625,14 +619,10 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
           type="button"
           id="subtab-btn-monthly-budget"
           onClick={() => setActiveSection('budget')}
-          className={`text-xs pb-1 transition-colors relative whitespace-nowrap ${
+          className={`rounded-full px-3 py-1 text-xs transition-all whitespace-nowrap border ${
             activeSection === 'budget'
-              ? isLight
-                ? 'font-bold text-slate-950 border-b-2 border-slate-950'
-                : 'font-bold text-white border-b-2 border-white'
-              : isLight
-                ? 'text-slate-500 hover:text-slate-800'
-                : 'text-slate-400 hover:text-white'
+              ? 'bg-white/[0.08] text-white font-medium border-white/20'
+              : 'bg-white/[0.02] text-neutral-400 hover:text-white border-white/[0.06]'
           }`}
         >
           월간 예산 설정
@@ -642,22 +632,18 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
           type="button"
           id="subtab-btn-subscriptions"
           onClick={() => setActiveSection('subscriptions')}
-          className={`text-xs pb-1 transition-colors relative whitespace-nowrap flex items-center gap-1.5 ${
+          className={`rounded-full px-3 py-1 text-xs transition-all whitespace-nowrap flex items-center gap-1.5 border ${
             activeSection === 'subscriptions'
-              ? isLight
-                ? 'font-bold text-slate-950 border-b-2 border-slate-950'
-                : 'font-bold text-white border-b-2 border-white'
-              : isLight
-                ? 'text-slate-500 hover:text-slate-800'
-                : 'text-slate-400 hover:text-white'
+              ? 'bg-white/[0.08] text-white font-medium border-white/20'
+              : 'bg-white/[0.02] text-neutral-400 hover:text-white border-white/[0.06]'
           }`}
         >
           <span>고정 구독</span>
           {subscriptionsCount > 0 && (
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
               activeSection === 'subscriptions'
-                ? isLight ? 'bg-slate-200 text-slate-900' : 'bg-white/20 text-white'
-                : isLight ? 'bg-emerald-100 text-emerald-800' : 'bg-[#00F5A0]/20 text-[#00F5A0]'
+                ? 'bg-white/20 text-white'
+                : 'bg-emerald-500/20 text-emerald-300'
             }`}>
               {subscriptionsCount}
             </span>

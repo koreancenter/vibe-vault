@@ -24,15 +24,23 @@ import {
   Lock,
   ChevronDown,
   Eye,
-  EyeOff
+  EyeOff,
+  ArrowRight,
+  Globe,
+  Activity,
+  Receipt,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { format, parseISO } from 'date-fns';
 import { 
   AssetAccount, 
   AssetCategoryType, 
   SupportedCurrency, 
   FxRates, 
-  HoldingItem 
+  HoldingItem,
+  Transaction
 } from '../types';
 import { 
   getAllAssetAccounts, 
@@ -40,7 +48,8 @@ import {
   deleteAssetAccount, 
   updateAssetAccountBalance, 
   executeAccountTransfer,
-  loadSampleData
+  loadSampleData,
+  getAllTransactions
 } from '../db';
 import { 
   convertCurrency, 
@@ -48,6 +57,7 @@ import {
   getCurrencySymbol,
   getDualCurrencyComparison,
   getAssetCategoryKo, 
+  getCategoryKo,
   ASSET_CATEGORY_NAMES_KO, 
   AIEngineConfig, 
   getAIEngineConfig 
@@ -67,6 +77,9 @@ interface VaultOverviewSectionProps {
   theme?: 'light' | 'dark' | 'system';
   onTransactionAdded?: () => void;
   isMultiCurrencyMode?: boolean;
+  transactions?: Transaction[];
+  onNavigateToLedger?: () => void;
+  onNavigateToInsights?: () => void;
 }
 
 const INSTITUTION_COLORS: Record<string, { bg: string; text: string; border: string; badge: string }> = {
@@ -116,6 +129,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
   theme = 'dark',
   onTransactionAdded,
   isMultiCurrencyMode = false,
+  transactions: propTransactions,
+  onNavigateToLedger,
+  onNavigateToInsights,
 }) => {
   const isLight = theme === 'light';
   const [accounts, setAccounts] = useState<AssetAccount[]>([]);
@@ -263,12 +279,112 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
     return getDualCurrencyComparison(Math.round(netWorth), currentCurrency, fxRates);
   }, [netWorth, currentCurrency, fxRates]);
 
-  // Dynamic Font Scaling for Net Worth
-  const formattedNetWorth = `${getCurrencySymbol(currentCurrency)} ${Math.round(netWorth).toLocaleString()}`;
-  const isLongNetWorth = formattedNetWorth.length > 12;
-  const netWorthFontSizeClass = isLongNetWorth
-    ? 'text-2xl md:text-3xl font-light tracking-tight'
-    : 'text-3xl md:text-4xl font-light tracking-tight';
+  // Transactions sync for Right Column (Col 10-12) and Middle Column (Col 5-9)
+  const [localTransactions, setLocalTransactions] = useState<Transaction[]>(propTransactions || []);
+
+  useEffect(() => {
+    if (propTransactions && propTransactions.length > 0) {
+      setLocalTransactions(propTransactions);
+    } else {
+      getAllTransactions().then(txs => {
+        if (txs && txs.length > 0) setLocalTransactions(txs);
+      }).catch(() => {});
+    }
+  }, [propTransactions]);
+
+  // Dynamic Donut Arc Calculation for Left Column (Col 1-4)
+  const donutSlices = useMemo(() => {
+    if (totalAssets <= 0) return [];
+    const radius = 42;
+    const circumference = 2 * Math.PI * radius; // ≈ 263.89
+    
+    const validCategories = [
+      { type: 'BROKERAGE' as AssetCategoryType, label: '증권/투자', color: '#60a5fa', amount: categoryTotals.BROKERAGE || 0 },
+      { type: 'BANK' as AssetCategoryType, label: '은행/예적금', color: '#34d399', amount: categoryTotals.BANK || 0 },
+      { type: 'CRYPTO' as AssetCategoryType, label: '가상자산', color: '#fbbf24', amount: categoryTotals.CRYPTO || 0 },
+      { type: 'REAL_ESTATE' as AssetCategoryType, label: '부동산/실물', color: '#c084fc', amount: categoryTotals.REAL_ESTATE || 0 },
+      { type: 'CASH' as AssetCategoryType, label: '현금/비상금', color: '#2dd4bf', amount: categoryTotals.CASH || 0 },
+    ].filter(c => c.amount > 0);
+
+    let cumulativePercentage = 0;
+    return validCategories.map((c) => {
+      const pct = (c.amount / totalAssets);
+      const dashLength = pct * circumference;
+      const dashOffset = cumulativePercentage * circumference;
+      cumulativePercentage += pct;
+      return {
+        ...c,
+        percentage: pct * 100,
+        dashLength,
+        dashOffset,
+      };
+    });
+  }, [categoryTotals, totalAssets]);
+
+  // Micro FX Calculator state & computation for Right Column (Col 10-12)
+  const [fxCalcAmount, setFxCalcAmount] = useState<string>('100000');
+  const [fxCalcBase, setFxCalcBase] = useState<'KRW' | 'IDR' | 'USD'>('KRW');
+
+  const fxOverviewData = useMemo(() => {
+    const krwIdr = fxRates.KRW_IDR || (fxRates.IDR ? 1 / fxRates.IDR : 11.8);
+    const usdKrw = fxRates.USD_KRW || 1450;
+    const usdIdr = Math.round(usdKrw * krwIdr);
+
+    const amt = parseFloat(fxCalcAmount.replace(/,/g, '')) || 0;
+
+    let resKRW = 0;
+    let resIDR = 0;
+    let resUSD = 0;
+
+    if (fxCalcBase === 'KRW') {
+      resKRW = amt;
+      resIDR = Math.round(amt * krwIdr);
+      resUSD = parseFloat((amt / usdKrw).toFixed(2));
+    } else if (fxCalcBase === 'IDR') {
+      resIDR = amt;
+      resKRW = Math.round(amt / krwIdr);
+      resUSD = parseFloat((amt / usdIdr).toFixed(2));
+    } else {
+      resUSD = amt;
+      resKRW = Math.round(amt * usdKrw);
+      resIDR = Math.round(amt * usdIdr);
+    }
+
+    return {
+      krwIdr,
+      usdKrw,
+      usdIdr,
+      resKRW,
+      resIDR,
+      resUSD
+    };
+  }, [fxRates, fxCalcAmount, fxCalcBase]);
+
+  // Recent 4 Transactions for Right Column
+  const recentTransactions = useMemo(() => {
+    return [...localTransactions]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 4);
+  }, [localTransactions]);
+
+  // Mini Cashflow Pulse
+  const miniPulse = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    localTransactions.forEach(t => {
+      const amt = convertCurrency(t.amount, t.currency || currentCurrency, currentCurrency, fxRates);
+      if (t.type === 'INCOME') income += amt;
+      else if (t.type === 'EXPENSE') expense += amt;
+    });
+    const total = income + expense;
+    const expensePercent = total > 0 ? Math.round((expense / total) * 100) : 0;
+    return {
+      income,
+      expense,
+      expensePercent,
+      count: localTransactions.length
+    };
+  }, [localTransactions, currentCurrency, fxRates]);
 
   // Filtered Accounts
   const filteredAccounts = useMemo(() => {
@@ -589,9 +705,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       </AnimatePresence>
 
       {/* 2-Column Responsive Dashboard Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-        {/* Left Column (lg:col-span-5): Total Net Worth Hero Card & Account Allocation Chart */}
-        <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 xl:gap-10 items-start">
+        {/* Left Column: Total Net Worth Hero Card & Account Allocation Chart */}
+        <div className="lg:col-span-5 xl:col-span-4 space-y-4 lg:sticky lg:top-4">
           {/* TOP HERO CARD: Net Worth & Consolidated Asset Summary */}
       <div className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 border backdrop-blur-xl transition-all ${
         isLight
@@ -602,23 +718,23 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           <div className="space-y-1.5">
             {/* Subtle Quiet Indicator */}
             <div className="flex items-center gap-2">
-              <span className="text-xs font-light text-neutral-400 flex items-center gap-1.5">
+              <span className="text-fluid-label font-light text-neutral-400 flex items-center gap-1.5">
                 <Lock size={12} className="text-emerald-400/90" />
                 <span>Private Vault</span>
               </span>
               <span className="text-white/20 font-light text-xs">·</span>
-              <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
+              <span className={`text-fluid-label font-light ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
                 총 순자산
               </span>
             </div>
 
-            {/* Net Worth Hero Number: Slim, Confident, Tabular & No-Wrap */}
+            {/* Net Worth Hero Number: Slim, Confident, Tabular & No-Wrap with Fluid Typography */}
             <div className="flex flex-col justify-start min-w-0">
               <div className={`flex items-baseline pt-0.5 whitespace-nowrap tabular-nums ${
                 stealthMode ? 'blur-md select-none' : ''
               }`}>
-                <span className="text-xl font-light text-neutral-400 mr-1.5 whitespace-nowrap">{getCurrencySymbol(currentCurrency)}</span>
-                <h1 className="text-3xl font-light tracking-tight text-white tabular-nums whitespace-nowrap">
+                <span className="text-fluid-heading font-light text-neutral-400 mr-1.5 whitespace-nowrap">{getCurrencySymbol(currentCurrency)}</span>
+                <h1 className="text-fluid-hero font-light tracking-tight text-white tabular-nums whitespace-nowrap">
                   {Math.round(netWorth).toLocaleString()}
                 </h1>
               </div>
@@ -626,7 +742,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               {/* Native Dual-Currency Comparison Sub-line (Multi-currency mode only) */}
               {isMultiCurrencyMode && dualCurrency && (
                 <div className={`mt-1 ${stealthMode ? 'blur-xs select-none' : ''}`}>
-                  <span className="text-xs font-light text-neutral-400 tracking-wide whitespace-nowrap tabular-nums">
+                  <span className="text-fluid-label font-light text-neutral-400 tracking-wide whitespace-nowrap tabular-nums">
                     ≈ {dualCurrency.secondaryFormatted} · 환율 {dualCurrency.rateText}
                   </span>
                 </div>
@@ -727,16 +843,57 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       }`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-xs font-normal tracking-wide text-slate-300">자산 포트폴리오 비중</h2>
+            <h2 className="text-fluid-heading font-normal tracking-wide text-slate-200">자산 포트폴리오 비중</h2>
           </div>
-          <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+          <span className={`text-fluid-label font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
             총 {accounts.length}개 계좌
           </span>
         </div>
 
-        {/* Dynamic Proportion Bar: Subtle, refined hairline track */}
+        {/* Dynamic Donut / Asset Pie & Class Breakdown */}
         {totalAssets > 0 ? (
           <div className="space-y-4">
+            {/* SVG Donut Ring Chart with centered summary */}
+            <div className="flex items-center justify-center pt-1 pb-1">
+              <div className="relative w-36 h-36 flex items-center justify-center">
+                <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90 transform">
+                  {/* Subtle track */}
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="42"
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.05)"
+                    strokeWidth="12"
+                  />
+                  {/* Category Arcs */}
+                  {donutSlices.map((slice) => (
+                    <circle
+                      key={slice.type}
+                      cx="60"
+                      cy="60"
+                      r="42"
+                      fill="none"
+                      stroke={slice.color}
+                      strokeWidth="12"
+                      strokeDasharray={`${slice.dashLength} 263.89`}
+                      strokeDashoffset={-slice.dashOffset}
+                      strokeLinecap="round"
+                      className="transition-all duration-300 hover:opacity-100 opacity-90"
+                    />
+                  ))}
+                </svg>
+                {/* Center metric */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                  <span className="text-[10px] font-light text-neutral-400">총 보유 자산</span>
+                  <span className="text-xs font-semibold text-white tabular-nums tracking-tight mt-0.5">
+                    {getCurrencySymbol(currentCurrency)}{Math.round(totalAssets).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Dynamic Proportion Bar: Subtle, refined hairline track */}
             <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-white/[0.04] border border-white/[0.04]">
               {assetCategories.map((cat) => {
                 const amount = categoryTotals[cat.type] || 0;
@@ -754,7 +911,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             </div>
 
             {/* Single flat parent card separated by subtle hairline dividers (No Box-in-Box) */}
-            <div className={`rounded-xl border grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 divide-x overflow-hidden ${
+            <div className={`rounded-xl border grid grid-cols-2 sm:grid-cols-3 divide-y sm:divide-y-0 divide-x overflow-hidden ${
               isLight 
                 ? 'bg-slate-50/70 border-slate-200/80 divide-slate-200/60' 
                 : 'bg-transparent border-white/[0.05] divide-white/[0.04]'
@@ -767,18 +924,27 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 return (
                   <div
                     key={cat.type}
-                    className={`p-3 transition-colors ${
+                    className={`p-2.5 transition-colors ${
                       isZero ? (isLight ? 'opacity-40' : 'opacity-30') : ''
                     }`}
                   >
-                    <span className={`text-xs font-light block truncate ${isZero ? 'text-slate-500' : 'text-slate-400'}`}>
-                      {cat.label}
-                    </span>
-                    <div className="flex items-baseline justify-between gap-1 mt-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        cat.type === 'BROKERAGE' ? 'bg-blue-400' :
+                        cat.type === 'BANK' ? 'bg-emerald-400' :
+                        cat.type === 'CRYPTO' ? 'bg-amber-400' :
+                        cat.type === 'REAL_ESTATE' ? 'bg-purple-400' :
+                        cat.type === 'CASH' ? 'bg-teal-400' : 'bg-rose-400'
+                      }`} />
+                      <span className={`text-[11px] font-light truncate ${isZero ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {cat.label}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-1 mt-1">
                       <span className={`text-xs font-normal tabular-nums ${isZero ? 'text-slate-500' : (isLight ? 'text-slate-900' : 'text-slate-200')} ${stealthMode && !isZero ? 'blur-xs' : ''}`}>
                         {formatCurrency(amount, currentCurrency)}
                       </span>
-                      <span className={`text-[11px] font-light ${
+                      <span className={`text-[10px] font-light ${
                         isZero
                           ? 'text-slate-500/50'
                           : isLight ? 'text-slate-500' : 'text-slate-400'
@@ -799,8 +965,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       </div>
         </div>
 
-        {/* Right Column (lg:col-span-7): Account List with Detailed Breakdowns */}
-        <div className="lg:col-span-7 space-y-4 pt-1">
+        {/* Middle Column (Col 5-9 on wide displays, Col 6-12 on standard desktop): Account Feed & Ledger Entries */}
+        <div className="lg:col-span-7 xl:col-span-5 space-y-4 pt-1">
         <div className="flex items-center justify-between flex-wrap gap-2">
           {/* Pill-shaped filter buttons with gentle active outlines */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
@@ -857,10 +1023,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             </div>
 
             <div className="space-y-1.5 max-w-md mx-auto">
-              <h3 className={`text-base font-normal tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
+              <h3 className={`text-fluid-heading font-normal tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
                 등록된 자산 계좌가 없습니다 (순자산 ₩0)
               </h3>
-              <p className={`text-xs font-light leading-relaxed ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
+              <p className={`text-fluid-body font-light leading-relaxed ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
                 은행 입출금 통장, 증권사 주식, 가상자산, 현금을 등록하고 분산 포트폴리오를 한눈에 관리해보세요.
               </p>
             </div>
@@ -901,7 +1067,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           <div className={`p-8 rounded-2xl border text-center space-y-2.5 ${
             isLight ? 'bg-slate-50/70 border-slate-200 text-slate-500' : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-neutral-400'
           }`}>
-            <p className="text-xs font-light">선택한 분류에 해당하는 자산 계좌가 없습니다.</p>
+            <p className="text-fluid-body font-light">선택한 분류에 해당하는 자산 계좌가 없습니다.</p>
             <button
               type="button"
               onClick={() => setSelectedFilter('ALL')}
@@ -911,7 +1077,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             </button>
           </div>
         ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3.5 sm:gap-4">
           {filteredAccounts.map((acc) => {
             const converted = convertCurrency(
               acc.currentBalance,
@@ -1054,6 +1220,257 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           })}
         </div>
         )}
+
+        {/* Ledger Entries Feed with ample reading room */}
+        <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
+          isLight 
+            ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
+            : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
+        }`}>
+          <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.04]">
+            <div className="flex items-center gap-2">
+              <Receipt size={15} className="text-emerald-400" />
+              <h3 className="text-fluid-heading font-normal tracking-wide text-slate-200">
+                최근 장부 기록 (Ledger Entries)
+              </h3>
+            </div>
+            {onNavigateToLedger && (
+              <button
+                type="button"
+                onClick={onNavigateToLedger}
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-light flex items-center gap-1 transition-colors group"
+              >
+                <span>장부 전체보기</span>
+                <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            )}
+          </div>
+
+          {localTransactions.length === 0 ? (
+            <div className="py-6 text-center text-xs font-light text-slate-400">
+              기록된 거래 내역이 없습니다.
+            </div>
+          ) : (
+            <div className="divide-y divide-white/[0.03]">
+              {localTransactions.slice(0, 5).map((t) => {
+                const isExpense = t.type === 'EXPENSE';
+                const isIncome = t.type === 'INCOME';
+                return (
+                  <div key={t.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        isIncome ? 'bg-emerald-400' : isExpense ? 'bg-rose-400' : 'bg-blue-400'
+                      }`} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-normal text-neutral-200 truncate">{t.description}</span>
+                          <span className="text-[10px] text-neutral-500 font-light shrink-0">
+                            {t.category ? getCategoryKo(t.category) : ''}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-neutral-400 font-light mt-0.5">
+                          <span>{format(parseISO(t.date), 'M.d HH:mm')}</span>
+                          {t.paymentMethod && <span className="ml-1.5 opacity-70">· {t.paymentMethod}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`font-medium tabular-nums whitespace-nowrap ${
+                      isIncome ? 'text-emerald-400' : isExpense ? 'text-slate-200' : 'text-blue-400'
+                    } ${stealthMode ? 'blur-xs' : ''}`}>
+                      {isExpense ? '-' : isIncome ? '+' : ''}{getCurrencySymbol(t.currency || currentCurrency)}{t.amount.toLocaleString()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        </div>
+
+        {/* Right Column (Col 10-12 on wide displays >= 1440px): Multi-Currency FX Overview & Recent Activity Preview */}
+        <div className="hidden xl:block xl:col-span-3 space-y-4 xl:sticky xl:top-4">
+          {/* Card 1: Multi-Currency FX Overview (KRW ⇄ IDR ⇄ USD) */}
+          <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
+            isLight 
+              ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
+              : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
+              <div className="flex items-center gap-2">
+                <Globe size={15} className="text-emerald-400" />
+                <h3 className="text-fluid-heading font-normal tracking-wide text-slate-200">
+                  실시간 환율 정보
+                </h3>
+              </div>
+              <span className="text-[10px] text-emerald-400/90 font-light flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Live
+              </span>
+            </div>
+
+            {/* Matrix rate chips */}
+            <div className="space-y-2 mt-3.5">
+              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-between text-xs">
+                <span className="text-neutral-400 font-light">1 KRW ⇄ IDR</span>
+                <span className="font-normal text-emerald-300 tabular-nums">
+                  ≈ {fxOverviewData.krwIdr.toFixed(1)} IDR
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-between text-xs">
+                <span className="text-neutral-400 font-light">1 USD ⇄ KRW</span>
+                <span className="font-normal text-sky-300 tabular-nums">
+                  ≈ ₩{fxOverviewData.usdKrw.toLocaleString()}
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-between text-xs">
+                <span className="text-neutral-400 font-light">1 USD ⇄ IDR</span>
+                <span className="font-normal text-amber-300 tabular-nums">
+                  ≈ Rp {fxOverviewData.usdIdr.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* Interactive Quick FX Converter */}
+            <div className="mt-4 pt-3.5 border-t border-white/[0.04]">
+              <div className="flex items-center justify-between text-[11px] text-neutral-400 font-light mb-1.5">
+                <span>간편 환율 계산기</span>
+                <div className="flex items-center gap-1">
+                  {(['KRW', 'IDR', 'USD'] as const).map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setFxCalcBase(c)}
+                      className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+                        fxCalcBase === c 
+                          ? 'bg-emerald-500/20 text-emerald-300 font-medium' 
+                          : 'text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  value={fxCalcAmount}
+                  onChange={(e) => setFxCalcAmount(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs text-white tabular-nums focus:outline-none focus:border-emerald-500/50"
+                  placeholder="금액 입력"
+                />
+              </div>
+
+              {/* Converted outputs */}
+              <div className="grid grid-cols-2 gap-2 mt-2 text-[11px]">
+                {fxCalcBase !== 'KRW' && (
+                  <div className="p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                    <span className="text-neutral-500 block">₩ KRW</span>
+                    <span className="font-medium text-neutral-200 tabular-nums">
+                      ₩{fxOverviewData.resKRW.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {fxCalcBase !== 'IDR' && (
+                  <div className="p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                    <span className="text-neutral-500 block">Rp IDR</span>
+                    <span className="font-medium text-neutral-200 tabular-nums">
+                      Rp {fxOverviewData.resIDR.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {fxCalcBase !== 'USD' && (
+                  <div className="p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                    <span className="text-neutral-500 block">$ USD</span>
+                    <span className="font-medium text-neutral-200 tabular-nums">
+                      ${fxOverviewData.resUSD.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Recent Activity / Mini Analytics Preview */}
+          <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
+            isLight 
+              ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
+              : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
+              <div className="flex items-center gap-2">
+                <Activity size={15} className="text-emerald-400" />
+                <h3 className="text-fluid-heading font-normal tracking-wide text-slate-200">
+                  활동 & 지출 펄스
+                </h3>
+              </div>
+              {onNavigateToInsights && (
+                <button
+                  type="button"
+                  onClick={onNavigateToInsights}
+                  className="text-xs text-neutral-400 hover:text-white transition-colors"
+                  title="인사이트로 이동"
+                >
+                  <ArrowRight size={13} />
+                </button>
+              )}
+            </div>
+
+            {/* Monthly cashflow pulse bar */}
+            <div className="mt-3.5 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-neutral-400 font-light">수입 / 지출 펄스</span>
+                <span className="text-[11px] text-neutral-300 tabular-nums">
+                  지출 {miniPulse.expensePercent}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-white/[0.04] overflow-hidden flex">
+                <div 
+                  style={{ width: `${100 - miniPulse.expensePercent}%` }} 
+                  className="h-full bg-emerald-400/80" 
+                  title="수입 비중"
+                />
+                <div 
+                  style={{ width: `${miniPulse.expensePercent}%` }} 
+                  className="h-full bg-rose-400/80" 
+                  title="지출 비중"
+                />
+              </div>
+              <div className="flex items-center justify-between text-[11px] tabular-nums pt-1 text-neutral-400">
+                <span className="text-emerald-400">+{getCurrencySymbol(currentCurrency)}{Math.round(miniPulse.income).toLocaleString()}</span>
+                <span className="text-rose-400">-{getCurrencySymbol(currentCurrency)}{Math.round(miniPulse.expense).toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Recent 3-4 Transactions Preview */}
+            <div className="mt-4 pt-3.5 border-t border-white/[0.04] space-y-2">
+              <span className="text-[11px] font-light text-neutral-400 block">
+                최근 발생 거래
+              </span>
+              {recentTransactions.length === 0 ? (
+                <p className="text-xs font-light text-slate-500 py-1">거래 내역 없음</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {recentTransactions.map(t => {
+                    const isExpense = t.type === 'EXPENSE';
+                    return (
+                      <div key={t.id} className="flex items-center justify-between text-xs py-1">
+                        <span className="text-neutral-300 truncate max-w-[120px]" title={t.description}>
+                          {t.description}
+                        </span>
+                        <span className={`tabular-nums ${isExpense ? 'text-neutral-300' : 'text-emerald-400'} ${stealthMode ? 'blur-xs' : ''}`}>
+                          {isExpense ? '-' : '+'}{getCurrencySymbol(t.currency || currentCurrency)}{t.amount.toLocaleString()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

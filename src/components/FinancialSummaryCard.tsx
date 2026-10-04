@@ -131,19 +131,19 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
       <div className="flex items-center justify-between pb-3.5">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className={`text-xs font-normal tracking-wide ${
+            <h3 className={`text-fluid-heading font-normal tracking-wide ${
               isLight ? 'text-slate-800' : 'text-neutral-200'
             }`}>
               재무 요약
             </h3>
             <span className="text-white/20 font-light text-xs">·</span>
-            <span className={`text-xs font-light ${
+            <span className={`text-fluid-label font-light ${
               isLight ? 'text-slate-500' : 'text-neutral-400'
             }`}>
               월별 지출 비교
             </span>
           </div>
-          <p className={`text-xs font-light mt-0.5 ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
+          <p className={`text-fluid-label font-light mt-0.5 ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
             {prevMonthName} 대비 {currentMonthName} 지출 변동
           </p>
         </div>
@@ -216,8 +216,8 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           </span>
           <div className="mt-1.5 flex flex-col justify-start min-w-0">
             <div className={`flex items-baseline whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
-              <span className="text-xl font-light text-neutral-400 mr-1.5 whitespace-nowrap">{currSymbol}</span>
-              <span className="text-3xl font-light tracking-tight text-white tabular-nums whitespace-nowrap">
+              <span className="text-fluid-heading font-light text-neutral-400 mr-1.5 whitespace-nowrap">{currSymbol}</span>
+              <span className="text-fluid-hero font-light tracking-tight text-white tabular-nums whitespace-nowrap">
                 {currentSpending.toLocaleString()}
               </span>
             </div>
@@ -225,7 +225,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             {/* Native Dual-Currency Comparison Sub-line (Multi-currency mode only) */}
             {isMultiCurrencyMode && dualCurrency && (
               <div className={`mt-1 ${isStealth ? 'blur-xs select-none' : ''}`}>
-                <span className="text-xs font-light text-neutral-400 tracking-wide whitespace-nowrap tabular-nums">
+                <span className="text-fluid-label font-light text-neutral-400 tracking-wide whitespace-nowrap tabular-nums">
                   ≈ {dualCurrency.secondaryFormatted} · 환율 {dualCurrency.rateText}
                 </span>
               </div>

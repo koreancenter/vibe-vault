@@ -849,7 +849,7 @@ export function App() {
     }`}>
       {/* 1. TOP HEADER */}
       <header className="flex-none h-16 border-b border-white/[0.06] bg-[#090A0D]/90 backdrop-blur-xl z-20 text-white">
-        <div className="w-full max-w-md lg:max-w-7xl mx-auto h-full px-4 lg:px-8 flex items-center justify-between transition-all duration-300">
+        <div className="w-full max-w-md lg:max-w-7xl 2xl:max-w-[1560px] mx-auto h-full px-4 lg:px-8 2xl:px-12 flex items-center justify-between transition-all duration-300">
           {/* Left: Brand & Space Switcher Pill Chip directly underneath */}
           <div className="flex flex-col justify-center min-w-0">
             <h1 className="text-base font-bold tracking-tight text-white leading-tight">
@@ -869,16 +869,17 @@ export function App() {
                 <ChevronDown size={11} className={`transition-transform text-neutral-400 opacity-70 ${isSpacePopoverOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Glassmorphic Popover Dropdown */}
+              {/* Glassmorphic Popover Dropdown - Slimmed Down */}
               {isSpacePopoverOpen && (
                 <div 
-                  className="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/[0.06] bg-[#121318]/95 text-white shadow-2xl z-50 p-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl"
+                  className="absolute left-0 top-full mt-2 w-64 rounded-2xl border border-white/[0.06] bg-[#121318]/95 text-white shadow-2xl z-50 p-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl"
                 >
                   <div className="px-3 py-1.5 flex items-center justify-between text-[11px] text-neutral-400 font-medium border-b border-white/[0.04] pb-2 mb-1">
                     <span>장부 공간 선택</span>
                     <span className="tabular-nums">{spaces.length}개</span>
                   </div>
 
+                  {/* Active Ledger Space Chips */}
                   <div className="max-h-60 overflow-y-auto space-y-1">
                     {spaces.map((sp) => {
                       const isCurrent = sp.id === activeSpaceId;
@@ -887,7 +888,7 @@ export function App() {
                           key={sp.id}
                           className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer group ${
                             isCurrent
-                              ? 'bg-emerald-500/15 text-emerald-300 font-semibold border border-emerald-500/30'
+                              ? 'bg-emerald-500/15 text-emerald-300 font-medium border border-emerald-500/30'
                               : 'hover:bg-white/[0.05] text-neutral-300'
                           }`}
                           onClick={() => {
@@ -902,44 +903,29 @@ export function App() {
                               <span className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0" />
                             )}
                             <div className="truncate flex-1">
-                              <div className="truncate font-medium">{sp.name}</div>
-                              <div className="text-[10px] text-neutral-400 font-normal flex items-center gap-1.5">
-                                <span>{sp.currency}</span>
-                                {sp.memberCount && <span>· {sp.memberCount}명 정산</span>}
-                                {sp.id === 'default' && <span className="opacity-70">(기본)</span>}
-                              </div>
+                              <span className="font-medium truncate">{sp.name}</span>
+                              <span className="text-[10px] text-neutral-400 ml-1.5 font-light">
+                                {sp.currency}
+                              </span>
                             </div>
                           </div>
-
-                          {sp.id !== 'default' && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteSpace(sp.id);
-                              }}
-                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition-all shrink-0 ml-1"
-                              title="장부 삭제"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          )}
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* Action Button: [+ 새 프로젝트/행사 장부 만들기] */}
-                  <div className="pt-2 mt-1 border-t border-white/[0.04]">
+                  {/* Tiny 1-line footer link: 설정에서 장부 관리 > */}
+                  <div className="pt-2 mt-1 border-t border-white/[0.04] text-center">
                     <button
                       type="button"
                       onClick={() => {
                         setIsSpacePopoverOpen(false);
-                        setIsNewSpaceModalOpen(true);
+                        handleOpenSettingsModal('preferences');
                       }}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] active:scale-95 transition-all"
+                      className="text-[11px] text-neutral-400 hover:text-emerald-400 font-light transition-colors py-1 flex items-center justify-center gap-1 mx-auto"
                     >
-                      <span>+ 새 프로젝트/행사 장부 만들기</span>
+                      <span>설정에서 장부 관리</span>
+                      <ChevronRight size={11} />
                     </button>
                   </div>
                 </div>
@@ -1047,7 +1033,7 @@ export function App() {
         ref={scrollContainerRef}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className={`flex-1 w-full max-w-md lg:max-w-7xl mx-auto px-4 lg:px-8 overflow-hidden relative flex flex-col transition-all duration-300 ${
+        className={`flex-1 w-full max-w-md lg:max-w-7xl 2xl:max-w-[1560px] mx-auto px-4 lg:px-8 2xl:px-12 overflow-hidden relative flex flex-col transition-all duration-300 ${
           isVaultLockedState ? 'filter blur-xl opacity-20 pointer-events-none select-none' : ''
         }`}
       >
@@ -1077,6 +1063,9 @@ export function App() {
                 theme={userPrefs.theme || 'dark'}
                 onTransactionAdded={() => loadTransactions()}
                 isMultiCurrencyMode={isMultiCurrencyMode}
+                transactions={transactions}
+                onNavigateToLedger={() => setMainMode('ledger')}
+                onNavigateToInsights={() => setMainMode('insights')}
               />
             </div>
 
@@ -1100,9 +1089,9 @@ export function App() {
               isDesktop && mainMode !== 'ledger' ? 'hidden' : 'block'
             }`}>
               {/* Desktop 2-Column Responsive Dashboard for Ledger */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start pb-8">
-                {/* Left Column (lg:col-span-5): Financial Summary Card & Event Budget / Actions */}
-                <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-0">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 xl:gap-10 items-start pb-8">
+                {/* Left Column: Financial Summary Card & Event Budget / Actions */}
+                <div className="lg:col-span-5 xl:col-span-4 space-y-4 lg:sticky lg:top-0">
                   {/* FINANCIAL SUMMARY HERO CARD */}
                   <FinancialSummaryCard
                     transactions={currentSpaceTransactions}
@@ -1174,8 +1163,8 @@ export function App() {
                 </div>
               </div>
 
-              {/* Right Column (lg:col-span-7): Transaction Feed */}
-              <div className="lg:col-span-7 space-y-3">
+              {/* Right Column: Transaction Feed */}
+              <div className="lg:col-span-7 xl:col-span-8 space-y-3">
             {/* Category Filter Status Pill (if filtered by category from pie chart or insights) */}
             {selectedCategory && (
               <div className="flex items-center justify-between px-2 text-xs text-[#94A3B8]">
@@ -1485,7 +1474,7 @@ export function App() {
           ? 'bg-white/95 border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]' 
           : 'bg-[#08090D]/80 backdrop-blur-2xl border-white/[0.08]'
       }`}>
-        <div className="w-full max-w-md lg:max-w-7xl mx-auto px-4 lg:px-8 transition-all duration-300">
+        <div className="w-full max-w-md lg:max-w-7xl 2xl:max-w-[1560px] mx-auto px-4 lg:px-8 2xl:px-12 transition-all duration-300">
         {mainMode === 'ledger' ? (
           <>
             {/* Error notification */}
@@ -1815,6 +1804,14 @@ export function App() {
         onDataReset={loadTransactions}
         initialTab={settingsInitialTab}
         initialSubTab={settingsInitialSubTab}
+        spaces={spaces}
+        activeSpaceId={activeSpaceId}
+        onSelectSpace={handleSelectSpace}
+        onDeleteSpace={handleDeleteSpace}
+        onOpenNewSpace={() => {
+          setIsSettingsOpen(false);
+          setIsNewSpaceModalOpen(true);
+        }}
       />
 
       {/* Global Currency Selector Modal */}
