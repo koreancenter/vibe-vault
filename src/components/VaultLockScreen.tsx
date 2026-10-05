@@ -1,22 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  Lock, 
-  Unlock, 
-  Shield, 
-  KeyRound, 
-  AlertCircle, 
-  Sparkles, 
-  Delete, 
-  Check, 
-  ArrowRight,
-  ShieldAlert
-} from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   isVaultLocked, 
   hasVaultPin, 
   unlockVault, 
-  setVaultPin, 
-  lockVault 
+  setVaultPin 
 } from '../vaultSecurity';
 
 interface VaultLockScreenProps {
@@ -241,54 +228,37 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-y-auto"
     >
       <div
-        className={`w-full max-w-sm rounded-3xl border border-white/10 bg-[#0B0F17]/95 p-6 sm:p-7 shadow-2xl text-center space-y-5 transition-transform ${
+        className={`w-full max-w-sm rounded-3xl border border-white/10 bg-[#0B0F17]/95 p-6 sm:p-7 shadow-2xl text-center space-y-6 transition-transform ${
           shake ? 'animate-bounce duration-200' : ''
         }`}
       >
-        {/* Shield & Lock Header Visual */}
-        <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-2xl bg-emerald-500/20 blur-xl animate-pulse" />
-          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-b from-emerald-500/20 to-emerald-500/5 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner">
-            {!isPinSet ? (
-              <KeyRound size={28} className="text-emerald-400 stroke-[2.2]" />
-            ) : (
-              <Lock size={28} className="text-emerald-400 stroke-[2.2]" />
-            )}
-          </div>
-        </div>
-
         {/* Title & Description */}
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 pt-1">
           {!isPinSet ? (
             <>
-              <h2 className="text-lg font-bold text-white tracking-tight flex items-center justify-center gap-1.5">
-                <span>마스터 보안 PIN 설정</span>
-                <Sparkles size={16} className="text-emerald-400" />
+              <h2 className="text-xl font-bold text-white tracking-tight">
+                마스터 보안 PIN 설정
               </h2>
               <p className="text-xs text-slate-400 leading-relaxed">
                 {setupStep === 'create'
-                  ? '금고 및 가계부 기록을 영구 암호화 보관할 4~6자리 마스터 PIN을 설정하세요.'
+                  ? '금고 및 가계부 기록을 보관할 4~6자리 마스터 PIN을 설정하세요.'
                   : '확인을 위해 동일한 PIN 번호를 다시 입력해주세요.'}
               </p>
-              <div className="py-1 px-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 font-medium inline-block">
-                ⚠️ PIN 미설정 시 세션 종료와 함께 데이터가 초기화됩니다.
-              </div>
             </>
           ) : (
             <>
-              <h2 className="text-lg font-bold text-white tracking-tight flex items-center justify-center gap-2">
-                <span>Vibe Vault 보호 중</span>
-                <Shield size={16} className="text-emerald-400" />
+              <h2 className="text-xl font-bold text-white tracking-tight">
+                Vibe Vault
               </h2>
               <p className="text-xs text-slate-400 leading-relaxed">
-                자산 및 장부 데이터가 <span className="text-emerald-400 font-semibold">AES-GCM-256</span>으로 잠겨 있습니다.
+                자산 및 장부 데이터를 확인하려면 PIN 번호를 입력하세요.
               </p>
             </>
           )}
         </div>
 
         {/* PIN Dot Indicators */}
-        <div className="flex items-center justify-center gap-3 py-2">
+        <div className="flex items-center justify-center gap-3 py-1">
           {[0, 1, 2, 3, 4, 5].map((idx) => {
             const isFilled = idx < activeInput.length;
             return (
@@ -306,20 +276,19 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
 
         {/* Error message */}
         {error && (
-          <div className="flex items-center justify-center gap-1.5 text-xs text-rose-400 animate-in fade-in duration-150">
-            <AlertCircle size={13} className="shrink-0" />
-            <span className="truncate">{error}</span>
+          <div className="text-xs text-rose-400 animate-in fade-in duration-150">
+            {error}
           </div>
         )}
 
         {/* Interactive Numeric Touch Keypad */}
-        <div className="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto pt-1">
+        <div className="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
             <button
               key={digit}
               type="button"
               onClick={() => handleKeypadPress(digit)}
-              className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:bg-emerald-500/20 text-white font-medium text-lg border border-white/5 transition-all active:scale-95 flex items-center justify-center shadow-xs"
+              className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:bg-emerald-500/20 text-white font-medium text-lg border border-white/5 transition-all active:scale-95 flex items-center justify-center shadow-xs cursor-pointer"
             >
               {digit}
             </button>
@@ -329,7 +298,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
           <button
             type="button"
             onClick={() => handleKeypadPress('clear')}
-            className="h-12 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] active:bg-white/10 text-slate-400 text-xs font-semibold border border-white/5 transition-all active:scale-95 flex items-center justify-center"
+            className="h-12 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] active:bg-white/10 text-slate-400 text-xs font-semibold border border-white/5 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
           >
             C
           </button>
@@ -338,7 +307,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
           <button
             type="button"
             onClick={() => handleKeypadPress('0')}
-            className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:bg-emerald-500/20 text-white font-medium text-lg border border-white/5 transition-all active:scale-95 flex items-center justify-center shadow-xs"
+            className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:bg-emerald-500/20 text-white font-medium text-lg border border-white/5 transition-all active:scale-95 flex items-center justify-center shadow-xs cursor-pointer"
           >
             0
           </button>
@@ -347,10 +316,10 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
           <button
             type="button"
             onClick={() => handleKeypadPress('backspace')}
-            className="h-12 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] active:bg-white/10 text-slate-400 border border-white/5 transition-all active:scale-95 flex items-center justify-center"
+            className="h-12 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] active:bg-white/10 text-slate-300 font-medium text-base border border-white/5 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
             aria-label="지우기"
           >
-            <Delete size={18} />
+            ←
           </button>
         </div>
 
@@ -362,27 +331,19 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
                 type="button"
                 onClick={handleCompleteSetup}
                 disabled={activeInput.length < 4 || isSubmitting}
-                className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 active:scale-95 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20"
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer"
               >
-                {setupStep === 'create' ? (
-                  <>
-                    <span>PIN 확인 단계로 이동</span>
-                    <ArrowRight size={14} />
-                  </>
-                ) : (
-                  <>
-                    <Check size={14} />
-                    <span>마스터 PIN 생성 및 금고 활성화</span>
-                  </>
-                )}
+                {setupStep === 'create'
+                  ? 'PIN 확인 단계로 이동'
+                  : '마스터 PIN 설정 완료'}
               </button>
 
               <button
                 type="button"
                 onClick={handleSkipSetup}
-                className="w-full py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+                className="w-full py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
               >
-                나중에 설정하기 (게스트 모드 · 세션 종료 시 초기화)
+                나중에 설정하기 (게스트 모드)
               </button>
             </div>
           ) : (
@@ -390,18 +351,11 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
               type="button"
               onClick={() => handleAttemptUnlock(pin)}
               disabled={pin.length < 4 || isSubmitting}
-              className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 active:scale-95 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20"
+              className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer"
             >
-              <Unlock size={15} />
-              <span>{isSubmitting ? '잠금 해제 중...' : '금고 잠금 해제'}</span>
+              {isSubmitting ? '잠금 해제 중...' : '금고 잠금 해제'}
             </button>
           )}
-        </div>
-
-        {/* Security badge footer */}
-        <div className="pt-2 border-t border-white/5 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
-          <Sparkles size={11} className="text-emerald-400" />
-          <span>Zero-Knowledge Local At-Rest AES-GCM-256</span>
         </div>
       </div>
     </div>
