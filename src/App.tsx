@@ -266,10 +266,8 @@ export function App() {
     }
     return 'default';
   });
-  const [isSpacePopoverOpen, setIsSpacePopoverOpen] = useState(false);
   const [isNewSpaceModalOpen, setIsNewSpaceModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const spacePopoverRef = useRef<HTMLDivElement | null>(null);
 
   const refreshSpaces = useCallback(async () => {
     try {
@@ -287,21 +285,6 @@ export function App() {
   useEffect(() => {
     refreshSpaces();
   }, [refreshSpaces]);
-
-  // Click outside listener for space switcher popover
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (spacePopoverRef.current && !spacePopoverRef.current.contains(e.target as Node)) {
-        setIsSpacePopoverOpen(false);
-      }
-    };
-    if (isSpacePopoverOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isSpacePopoverOpen]);
 
   const activeSpace = useMemo(() => {
     return spaces.find(s => s.id === activeSpaceId) || DEFAULT_SPACE;
@@ -850,87 +833,12 @@ export function App() {
       {/* 1. TOP HEADER */}
       <header className="flex-none h-16 border-b border-white/[0.06] bg-[#090A0D]/90 backdrop-blur-xl z-20 text-white">
         <div className="w-full max-w-md lg:max-w-7xl 2xl:max-w-[1560px] mx-auto h-full px-4 lg:px-8 2xl:px-12 flex items-center justify-between transition-all duration-300">
-          {/* Left: Brand & Space Switcher Pill Chip directly underneath */}
-          <div className="flex flex-col justify-center min-w-0">
-            <h1 className="text-base font-bold tracking-tight text-white leading-tight">
-              Vibe Vault
+          {/* Left: Brand with Version */}
+          <div className="flex items-center min-w-0">
+            <h1 className="text-base font-bold tracking-tight text-white leading-tight flex items-baseline gap-1.5">
+              <span>Vibe Vault</span>
+              <span className="text-xs font-light text-slate-400 tabular-nums">0.1.2</span>
             </h1>
-            <div className="relative inline-block mt-0.5" ref={spacePopoverRef}>
-              <button
-                id="space-switcher-btn"
-                type="button"
-                onClick={() => setIsSpacePopoverOpen(prev => !prev)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-normal bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] transition-all active:scale-95"
-                title="장부 공간 전환"
-                aria-label="장부 공간 전환"
-              >
-                <span className="text-sky-400 text-xs">✦</span>
-                <span className="max-w-[120px] sm:max-w-[180px] truncate font-medium">{activeSpace.name}</span>
-                <ChevronDown size={11} className={`transition-transform text-neutral-400 opacity-70 ${isSpacePopoverOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Glassmorphic Popover Dropdown - Slimmed Down */}
-              {isSpacePopoverOpen && (
-                <div 
-                  className="absolute left-0 top-full mt-2 w-64 rounded-2xl border border-white/[0.06] bg-[#121318]/95 text-white shadow-2xl z-50 p-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl"
-                >
-                  <div className="px-3 py-1.5 flex items-center justify-between text-[11px] text-neutral-400 font-medium border-b border-white/[0.04] pb-2 mb-1">
-                    <span>장부 공간 선택</span>
-                    <span className="tabular-nums">{spaces.length}개</span>
-                  </div>
-
-                  {/* Active Ledger Space Chips */}
-                  <div className="max-h-60 overflow-y-auto space-y-1">
-                    {spaces.map((sp) => {
-                      const isCurrent = sp.id === activeSpaceId;
-                      return (
-                        <div
-                          key={sp.id}
-                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer group ${
-                            isCurrent
-                              ? 'bg-sky-500/15 text-sky-300 font-medium border border-sky-500/30'
-                              : 'hover:bg-white/[0.05] text-neutral-300'
-                          }`}
-                          onClick={() => {
-                            handleSelectSpace(sp);
-                            setIsSpacePopoverOpen(false);
-                          }}
-                        >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            {isCurrent ? (
-                              <Check size={14} className="text-sky-400 shrink-0" />
-                            ) : (
-                              <span className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0" />
-                            )}
-                            <div className="truncate flex-1">
-                              <span className="font-medium truncate">{sp.name}</span>
-                              <span className="text-[10px] text-neutral-400 ml-1.5 font-light">
-                                {sp.currency}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Tiny 1-line footer link: 설정에서 장부 관리 > */}
-                  <div className="pt-2 mt-1 border-t border-white/[0.04] text-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsSpacePopoverOpen(false);
-                        handleOpenSettingsModal('preferences');
-                      }}
-                      className="text-[11px] text-neutral-400 hover:text-sky-400 font-light transition-colors py-1 flex items-center justify-center gap-1 mx-auto"
-                    >
-                      <span>설정에서 장부 관리</span>
-                      <ChevronRight size={11} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Desktop Center Primary Navigation Tabs: Quiet Luxury Segment */}

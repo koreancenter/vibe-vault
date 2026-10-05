@@ -26,9 +26,6 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  Globe,
-  Activity,
-  Receipt,
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
@@ -1216,12 +1213,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl text-white'
         }`}>
           <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.04]">
-            <div className="flex items-center gap-2">
-              <Receipt size={15} className="text-sky-400" />
-              <h3 className="text-sm font-medium tracking-wide text-slate-200">
-                최근 거래
-              </h3>
-            </div>
+            <h3 className="text-sm font-medium tracking-wide text-slate-200">
+              최근 거래
+            </h3>
             {onNavigateToLedger && (
               <button
                 type="button"
@@ -1284,12 +1278,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl text-white'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
-              <div className="flex items-center gap-2">
-                <Globe size={15} className="text-sky-400" />
-                <h3 className="text-sm font-medium tracking-wide text-slate-200">
-                  실시간 주요 환율
-                </h3>
-              </div>
+              <h3 className="text-sm font-medium tracking-wide text-slate-200">
+                실시간 주요 환율
+              </h3>
               <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" title="실시간 반영 중" />
             </div>
 
@@ -1378,12 +1369,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl text-white'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
-              <div className="flex items-center gap-2">
-                <Activity size={15} className="text-sky-400" />
-                <h3 className="text-sm font-medium tracking-wide text-slate-200">
-                  월간 재정 흐름
-                </h3>
-              </div>
+              <h3 className="text-sm font-medium tracking-wide text-slate-200">
+                월간 재정 흐름
+              </h3>
               {onNavigateToInsights && (
                 <button
                   type="button"
