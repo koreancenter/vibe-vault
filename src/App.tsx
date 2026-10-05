@@ -832,7 +832,7 @@ export function App() {
     }`}>
       {/* 1. TOP HEADER */}
       <header className="flex-none h-16 border-b border-white/[0.06] bg-[#090A0D]/90 backdrop-blur-xl z-20 text-white">
-        <div className="w-full max-w-md lg:max-w-7xl 2xl:max-w-[1560px] mx-auto h-full px-4 lg:px-8 2xl:px-12 flex items-center justify-between transition-all duration-300">
+        <div className="relative w-full max-w-md lg:max-w-7xl 2xl:max-w-[1560px] mx-auto h-full px-4 lg:px-8 2xl:px-12 flex items-center justify-between transition-all duration-300">
           {/* Left: Brand with Version */}
           <div className="flex items-center min-w-0">
             <h1 className="text-base font-bold tracking-tight text-white leading-tight flex items-baseline gap-1.5">
@@ -842,7 +842,7 @@ export function App() {
           </div>
 
           {/* Desktop Center Primary Navigation Tabs: Quiet Luxury Segment */}
-          <nav className="hidden lg:flex items-center gap-1.5 p-1 bg-white/[0.03] border border-white/[0.06] rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+          <nav className="hidden lg:flex items-center gap-1.5 p-1 bg-white/[0.03] border border-white/[0.06] rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:top-1/2 lg:-translate-y-1/2">
             <button
               type="button"
               onClick={() => setMainMode('vault')}
@@ -994,9 +994,9 @@ export function App() {
               isDesktop && mainMode !== 'ledger' ? 'hidden' : 'block'
             }`}>
               {/* Desktop 2-Column Responsive Dashboard for Ledger */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 xl:gap-10 items-start pb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pb-8">
                 {/* Left Column: Financial Summary Card & Event Budget / Actions */}
-                <div className="lg:col-span-5 xl:col-span-4 space-y-4 lg:sticky lg:top-0">
+                <div className="lg:col-span-5 xl:col-span-4 space-y-4 lg:sticky lg:top-4 lg:pt-[52px]">
                   {/* FINANCIAL SUMMARY HERO CARD */}
                   <FinancialSummaryCard
                     transactions={currentSpaceTransactions}
@@ -1064,7 +1064,7 @@ export function App() {
                 </div>
 
               {/* Right Column: Transaction Feed */}
-              <div className="lg:col-span-7 xl:col-span-8 space-y-3">
+              <div className="lg:col-span-7 xl:col-span-8 space-y-4">
             {/* Category Filter Status Pill (if filtered by category from pie chart or insights) */}
             {selectedCategory && (
               <div className="flex items-center justify-between px-2 text-xs text-[#94A3B8]">
@@ -1080,21 +1080,21 @@ export function App() {
             )}
 
             {/* Filter Pills & Actions (Event Settlement Report & CSV Export) */}
-            <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap sm:flex-nowrap">
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+            <div className="flex items-center justify-between gap-2 min-h-[36px] flex-wrap sm:flex-nowrap">
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
                 {(['ALL', 'EXPENSE', 'INCOME', 'TRANSFER', 'SETTLEMENT'] as const).map(f => (
                   <button
                     key={f}
                     type="button"
                     onClick={() => setLedgerFilter(f as LedgerFilterType)}
-                    className={`px-3 py-1.5 rounded-full text-xs shrink-0 transition-all ${
+                    className={`px-3.5 py-1 rounded-full text-xs font-normal whitespace-nowrap shrink-0 transition-all border ${
                       ledgerFilter === f
                         ? isLight
-                          ? 'bg-slate-900 text-white font-medium shadow-xs'
-                          : 'bg-white/10 text-white font-medium border border-white/20'
+                          ? 'bg-slate-900 text-white border-slate-900'
+                          : 'bg-white/[0.1] text-white border-white/20'
                         : isLight
-                          ? 'bg-transparent text-slate-500 hover:text-slate-800 border border-slate-200/80 font-normal'
-                          : 'bg-transparent text-slate-400 hover:text-slate-200 border border-white/[0.06] font-normal'
+                          ? 'bg-transparent text-slate-600 hover:text-slate-950 border-slate-200/60'
+                          : 'bg-transparent text-slate-400 hover:text-slate-200 border-white/[0.06]'
                     }`}
                   >
                     {f === 'ALL' ? '전체' : f === 'EXPENSE' ? '지출' : f === 'INCOME' ? '수입' : f === 'TRANSFER' ? '이체' : '정산'}
@@ -1109,7 +1109,7 @@ export function App() {
                     id="event-settlement-report-btn"
                     type="button"
                     onClick={() => setIsReportModalOpen(true)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all active:scale-95 shadow-xs ${
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all active:scale-95 shadow-xs ${
                       isLight
                         ? 'bg-sky-600 hover:bg-sky-700 text-white border border-sky-600'
                         : 'bg-gradient-to-r from-sky-500/20 to-blue-500/20 text-sky-300 border border-sky-500/40 hover:border-sky-400 hover:bg-sky-500/30'
@@ -1125,7 +1125,7 @@ export function App() {
                   id="export-csv-btn"
                   type="button"
                   onClick={handleExportSpaceCSV}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-normal shrink-0 transition-all active:scale-95 border ${
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal shrink-0 transition-all active:scale-95 border ${
                     isLight 
                       ? 'bg-transparent hover:bg-slate-100 text-slate-700 border-slate-200/80' 
                       : 'bg-transparent hover:bg-white/[0.04] text-slate-300 border-white/[0.08]'

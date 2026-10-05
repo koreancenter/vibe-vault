@@ -704,7 +704,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       {/* 2-Column / 3-Column Responsive Financial Command Center Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column (Col 1-4 on wide displays, Col 1-5 on standard desktop): Vault Summary, Allocation Donut, Quick Actions */}
-        <div className="lg:col-span-5 xl:col-span-4 2xl:col-span-4 space-y-4 lg:sticky lg:top-4">
+        <div className="lg:col-span-5 xl:col-span-4 2xl:col-span-4 space-y-4 lg:sticky lg:top-4 lg:pt-[52px]">
           {/* TOP HERO CARD: Net Worth & Consolidated Asset Summary */}
       <div className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 border backdrop-blur-xl transition-all ${
         isLight
@@ -975,7 +975,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
         {/* Middle Column (Col 5-9 on wide displays, Col 6-12 on standard desktop): Account Feed & Ledger Entries */}
         <div className="lg:col-span-7 xl:col-span-5 2xl:col-span-5 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center justify-between flex-wrap gap-2 min-h-[36px]">
           {/* Pill-shaped filter buttons with gentle active outlines */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
             <button
@@ -1270,7 +1270,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         </div>
 
         {/* Right Column (Col 10-12 on wide displays >= 1440px): Multi-Currency FX Overview & Monthly Cashflow */}
-        <div className="hidden xl:block xl:col-span-3 2xl:col-span-3 space-y-4 xl:sticky xl:top-4">
+        <div className="hidden xl:block xl:col-span-3 2xl:col-span-3 space-y-4 xl:sticky xl:top-4 xl:pt-[52px]">
           {/* Card 1: Real-time Major FX Rates */}
           <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
             isLight 
