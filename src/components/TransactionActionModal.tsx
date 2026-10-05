@@ -68,7 +68,7 @@ export const TransactionActionModal: React.FC<TransactionActionModalProps> = ({
         className={`w-full max-w-sm rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 duration-200 transition-colors ${
           isLight 
             ? 'bg-white border-slate-200 text-slate-900 shadow-slate-300/40' 
-            : 'bg-[#0E1524] border-white/10 text-white'
+            : 'bg-[#121318]/95 backdrop-blur-2xl border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
         }`}
         onClick={(e) => e.stopPropagation()}
       >

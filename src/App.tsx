@@ -861,7 +861,7 @@ export function App() {
                 type="button"
                 onClick={() => setIsSpacePopoverOpen(prev => !prev)}
                 className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-normal bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] transition-all active:scale-95"
-                title="장부 공간 전환 (일상 장부 / 프로젝트·행사 장부)"
+                title="장부 공간 전환"
                 aria-label="장부 공간 전환"
               >
                 <span className="text-emerald-400 text-xs">✦</span>
@@ -933,6 +933,46 @@ export function App() {
             </div>
           </div>
 
+          {/* Desktop Center Primary Navigation Tabs: Quiet Luxury Segment */}
+          <nav className="hidden lg:flex items-center gap-1.5 p-1 bg-white/[0.03] border border-white/[0.06] rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+            <button
+              type="button"
+              onClick={() => setMainMode('vault')}
+              className={`px-5 py-1.5 rounded-full text-xs transition-all flex items-center gap-1.5 ${
+                mainMode === 'vault'
+                  ? 'bg-white text-slate-900 font-semibold shadow-sm'
+                  : 'text-neutral-400 hover:text-white font-normal'
+              }`}
+            >
+              <ShieldCheck size={13} className={mainMode === 'vault' ? 'text-slate-900' : 'text-neutral-400'} />
+              <span>자산</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMainMode('ledger')}
+              className={`px-5 py-1.5 rounded-full text-xs transition-all flex items-center gap-1.5 ${
+                mainMode === 'ledger'
+                  ? 'bg-white text-slate-900 font-semibold shadow-sm'
+                  : 'text-neutral-400 hover:text-white font-normal'
+              }`}
+            >
+              <Wallet size={13} className={mainMode === 'ledger' ? 'text-slate-900' : 'text-neutral-400'} />
+              <span>장부</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMainMode('insights')}
+              className={`px-5 py-1.5 rounded-full text-xs transition-all flex items-center gap-1.5 ${
+                mainMode === 'insights'
+                  ? 'bg-white text-slate-900 font-semibold shadow-sm'
+                  : 'text-neutral-400 hover:text-white font-normal'
+              }`}
+            >
+              <Sparkles size={13} className={mainMode === 'insights' ? 'text-slate-900' : 'text-neutral-400'} />
+              <span>인사이트</span>
+            </button>
+          </nav>
+
           {/* Right action controls: consolidated to prevent wrapping with flex items-center gap-2 */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Quick-Cycle Currency Chip: [ 🌐 IDR ] - Progressive multi-currency mode only */}
@@ -959,14 +999,14 @@ export function App() {
               </button>
             )}
 
-            {/* Dedicated Lock Vault / Logout Button: [ 🔒 ] */}
+            {/* Dedicated Lock Vault Button */}
             <button
               id="quick-vault-lock-btn"
               type="button"
               onClick={handleLockVault}
-              title="금고 잠그기 (로그아웃)"
+              title="금고 잠그기"
               className="w-8 h-8 rounded-full border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white transition-all active:scale-95 flex items-center justify-center"
-              aria-label="금고 잠그기 (로그아웃)"
+              aria-label="금고 잠그기"
             >
               <Lock size={14} />
             </button>
@@ -1081,44 +1121,39 @@ export function App() {
                         className="w-full py-2.5 px-4 rounded-xl text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 flex items-center justify-center gap-2 active:scale-95 transition-all"
                       >
                         <span>📄</span>
-                        <span>공식 결산서 출력 / PDF</span>
+                        <span>결산서 출력</span>
                       </button>
                     </div>
                   )}
 
-                  {/* Desktop Guidance & Quick Suggestions */}
-                  <div className="hidden lg:block p-4 rounded-2xl border bg-white/[0.03] backdrop-blur-2xl border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]">
-                  <span className="text-xs font-medium text-slate-400 block mb-2.5">
-                    💡 빠른 자연어 입력 추천
-                  </span>
-                  <div className="space-y-1.5">
-                    {(activeSpace.id !== 'default' ? [
-                      { text: `회비 5만원 전원 통장 입금`, category: '회비 수입' },
-                      { text: '단체 저녁 식사 및 음료비 18만원 카드 결제', category: '단체 식비' },
-                      { text: '입장료 및 대관료 30만원 계좌이체', category: '대관/입장료' },
-                      { text: '이동 대형버스 대절 45만원 결제', category: '교통비' }
-                    ] : [
-                      { text: '스타벅스 아메리카노 4500원 카드 결제', category: '식비' },
-                      { text: '민수랑 점심 3만원 더치페이하고 15000원 송금받음', category: '더치페이' },
-                      { text: '이번 달 월급 350만원 통장 입금', category: '급여' },
-                      { text: '카카오택시 14800원', category: '교통' }
-                    ]).map((prompt, idx) => (
+                  {/* Desktop Quick Actions */}
+                  <div className="hidden lg:block p-4 rounded-2xl border bg-white/[0.02] border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] space-y-2.5">
+                    <div className="flex items-center justify-between text-xs text-neutral-400 font-light">
+                      <span>빠른 기록</span>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <button
-                        key={idx}
                         type="button"
-                        onClick={() => handleProcessInput(prompt.text)}
-                        className="w-full text-left text-xs py-2 px-2.5 rounded-xl hover:bg-white/[0.04] text-slate-300 flex items-center justify-between transition-colors group"
+                        onClick={() => setIsReceiptModalOpen(true)}
+                        className="flex-1 py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-neutral-300 hover:text-white text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-95"
                       >
-                        <span className="truncate pr-2">
-                          <span className="text-emerald-400 font-medium mr-1.5">[{prompt.category}]</span>
-                          {prompt.text}
-                        </span>
-                        <ChevronRight size={12} className="opacity-40 group-hover:opacity-100 text-slate-400 shrink-0" />
+                        <Camera size={13} className="text-neutral-400" />
+                        <span>영수증 스캔</span>
                       </button>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const inputEl = document.getElementById('instant-ingest-input');
+                          inputEl?.focus();
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-neutral-300 hover:text-white text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                      >
+                        <Edit2 size={13} className="text-neutral-400" />
+                        <span>자연어 입력</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
               {/* Right Column: Transaction Feed */}
               <div className="lg:col-span-7 xl:col-span-8 space-y-3">
@@ -1171,10 +1206,10 @@ export function App() {
                         ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600'
                         : 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 border border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/30'
                     }`}
-                    title="공식 결산서 출력 / PDF"
+                    title="공식 결산서 출력"
                   >
                     <span className="text-xs">📄</span>
-                    <span>공식 결산서 출력 / PDF</span>
+                    <span>결산서 출력</span>
                   </button>
                 )}
 
@@ -1187,10 +1222,10 @@ export function App() {
                       ? 'bg-transparent hover:bg-slate-100 text-slate-700 border-slate-200/80' 
                       : 'bg-transparent hover:bg-white/[0.04] text-slate-300 border-white/[0.08]'
                   }`}
-                  title="CSV 내역 다운로드"
+                  title="CSV 내역 내보내기"
                 >
                   <Download size={13} className={isLight ? 'text-emerald-600' : 'text-emerald-400'} />
-                  <span>CSV</span>
+                  <span>내보내기</span>
                 </button>
               </div>
             </div>
@@ -1213,7 +1248,7 @@ export function App() {
                   <h3 className={`text-base font-normal tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
                     {activeSpace.id !== 'default' 
                       ? `[${activeSpace.name}] 기록된 내역이 없습니다`
-                      : '기록된 거래 내역이 없습니다 (₩0)'}
+                      : '기록된 거래 내역이 없습니다'}
                   </h3>
                   <p className={`text-xs font-light leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                     {activeSpace.id !== 'default'
@@ -1427,6 +1462,8 @@ export function App() {
 
       {/* 3. FIXED BOTTOM DOCK (AI Omnibar & Navigation) */}
       <footer className={`flex-none backdrop-blur-2xl py-2 z-20 transition-colors border-t ${
+        mainMode !== 'ledger' ? 'lg:hidden' : ''
+      } ${
         isLight 
           ? 'bg-white/95 border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]' 
           : 'bg-[#08090D]/80 backdrop-blur-2xl border-white/[0.08]'
@@ -1654,8 +1691,8 @@ export function App() {
           </>
         ) : null}
 
-        {/* Persistent Bottom Tab Navigation Switcher (Ergonomic Thumb & Click Access - Single Source of Truth) */}
-        <div className={`pt-1.5 flex items-center justify-around max-w-md mx-auto ${
+        {/* Persistent Bottom Tab Navigation Switcher (Mobile Only) */}
+        <div className={`lg:hidden pt-1.5 flex items-center justify-around max-w-md mx-auto ${
           mainMode === 'ledger' ? (isLight ? 'mt-1 border-t border-slate-200/80' : 'mt-1 border-t border-white/[0.04]') : ''
         }`}>
           <button

@@ -393,7 +393,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
               className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 active:scale-95 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20"
             >
               <Unlock size={15} />
-              <span>{isSubmitting ? '잠금 해제 중...' : '금고 잠금 해제 (Unlock)'}</span>
+              <span>{isSubmitting ? '잠금 해제 중...' : '금고 잠금 해제'}</span>
             </button>
           )}
         </div>

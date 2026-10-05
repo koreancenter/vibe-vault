@@ -573,7 +573,7 @@ export async function parseReceiptWithResilience(
         if (res.status === 429 || res.status >= 500) {
           const errorText = await res.text().catch(() => '');
           const isRateLimit = res.status === 429;
-          const reason = isRateLimit ? 'API 사용량 제한 (Rate Limit 429)' : `서버 일시 오류 (${res.status})`;
+          const reason = isRateLimit ? 'API 호출 한도 초과' : `서버 일시 오류 (${res.status})`;
 
           if (attempt < maxRetries) {
             const delayMs = Math.min(5000, 1000 * Math.pow(2, attempt - 1) + Math.random() * 300);
@@ -903,7 +903,7 @@ export async function orchestrateAutonomousFinancialText(
     } else if (receivableRecovery) {
       summary = `${receivableRecovery.counterparty}님 대여금 회수 입금 감지: ${receivableRecovery.recoveredAmount.toLocaleString()}원 채권 차감 (수입 부풀림 방지)`;
     } else if (hasCardSettlement) {
-      summary = `카드 대금 결제 감지: 내부 이체(TRANSFER)로 처리하여 월간 지출 예산 중복 반영을 방지했습니다.`;
+      summary = `카드 대금 결제 감지: 내부 이체로 처리하여 월간 지출 예산 중복 반영을 방지했습니다.`;
     }
 
     return {

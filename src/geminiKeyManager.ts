@@ -261,7 +261,7 @@ export async function testGeminiApiKeyOnline(keyToTest: string): Promise<{
       return { valid: false, message: 'API 키 인증 실패: 권한이 없거나 만료된 키입니다 (HTTP ' + status + ').', statusCode: status };
     }
     if (status === 429) {
-      return { valid: true, message: 'API 키는 유효하나 호출 한도(Quota)가 초과되었습니다 (HTTP 429).', statusCode: status };
+      return { valid: true, message: 'API 키는 유효하나 호출 한도가 초과되었습니다 (HTTP 429).', statusCode: status };
     }
 
     return {

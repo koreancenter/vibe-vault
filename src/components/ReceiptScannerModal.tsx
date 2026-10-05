@@ -353,7 +353,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                     {error.includes('INVALID_API_KEY') ? 'Gemini API 키 인증 실패' : 'Gemini API 키 등록 필요'}
                   </p>
                   <p className="leading-relaxed opacity-90 text-[11px]">
-                    클라우드 AI 영수증 인식을 위해 개인 Google Gemini API 키(BYOK)가 필요합니다. Google AI Studio에서 무료로 발급받아 기기에만 안전하게 보관할 수 있습니다.
+                    클라우드 AI 영수증 인식을 위해 개인 Google Gemini API 키가 필요합니다. Google AI Studio에서 무료로 발급받아 기기에만 안전하게 보관할 수 있습니다.
                   </p>
                 </div>
               </div>
@@ -403,7 +403,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 <div className="space-y-0.5">
                   <p className="font-semibold leading-snug">
                     {error.includes('보안') || error.includes('SVG') || error.includes('XSS')
-                      ? '보안 차단 안내 (Anti-XSS)'
+                      ? '보안 차단 안내'
                       : '업로드 오류'}
                   </p>
                   <p className="leading-relaxed text-[11px] opacity-90">{error}</p>

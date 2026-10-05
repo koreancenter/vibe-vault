@@ -223,7 +223,7 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
         <div className="p-2.5 rounded-2xl border border-white/10 bg-white/[0.02] flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] mb-1">
             <span className="flex items-center gap-1 font-medium text-[#94A3B8]">
-              <Wallet size={13} className="text-indigo-400" /> 순수익 (저축)
+              <Wallet size={13} className="text-indigo-400" /> 순저축
             </span>
           </div>
           <span className={`text-sm font-extrabold ${

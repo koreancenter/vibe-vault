@@ -1402,7 +1402,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-semibold text-slate-200">
-                            나의 활성 통화 (Active Currencies)
+                            활성 통화 관리
                           </span>
                           <span className="text-[10px] text-slate-400 font-mono">
                             ({activeCurrenciesList.length})
@@ -1614,12 +1614,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* Group 4: 장부 관리 (Ledger Spaces) */}
+              {/* Group 4: 장부 공간 관리 */}
               <div className="space-y-3 pt-3 border-t border-white/[0.04]">
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-xs font-semibold text-white block">
-                      장부 관리 (Ledger Spaces)
+                      장부 공간 관리
                     </span>
                     <span className="text-[11px] text-neutral-400 font-light block">
                       일상 가계부와 분리된 프로젝트·행사 전용 정산 장부
@@ -1916,7 +1916,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onClose();
                 lockVault();
               }}
-              title="금고 잠그기 (로그아웃)"
+              title="금고 잠그기"
               className="h-10 px-3.5 rounded-xl font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white"
             >
               <Lock size={13} className="shrink-0 text-neutral-400" />
@@ -2114,7 +2114,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 <div className="flex items-center gap-1.5 font-medium text-xs text-emerald-400">
                   <CheckCircle2 size={14} />
-                  <span>스마트 중복제거 병합 (권장)</span>
+                  <span>스마트 중복 제외 병합 (권장)</span>
                 </div>
                 <span className="text-[11px] text-neutral-400 font-light">
                   기존 데이터를 안전하게 유지하며, 중복 없는 신규 거래만 덧붙입니다.
@@ -2128,7 +2128,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 <div className="flex items-center gap-1.5 font-medium text-xs text-amber-400">
                   <AlertTriangle size={14} />
-                  <span>전체 덮어쓰기 (Overwrite)</span>
+                  <span>전체 덮어쓰기</span>
                 </div>
                 <span className="text-[11px] text-neutral-400 font-light">
                   기존 가계부 내역을 모두 지우고 백업 데이터로 완전히 교체합니다.
