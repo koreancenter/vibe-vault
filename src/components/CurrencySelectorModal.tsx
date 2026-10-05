@@ -103,7 +103,7 @@ export const CurrencySelectorModal: React.FC<CurrencySelectorModalProps> = ({
         {/* Header: Slim, clean luxury header */}
         <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center text-emerald-400 shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-sky-400/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
               <Coins size={14} />
             </div>
             <div>
@@ -147,7 +147,7 @@ export const CurrencySelectorModal: React.FC<CurrencySelectorModalProps> = ({
                   key={code}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-mono transition-all ${
                     isBase
-                      ? 'bg-emerald-400/15 border-emerald-400/40 text-emerald-300 shadow-xs'
+                      ? 'bg-sky-400/15 border-sky-400/40 text-sky-300 shadow-xs'
                       : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-slate-300'
                   }`}
                 >
@@ -160,7 +160,7 @@ export const CurrencySelectorModal: React.FC<CurrencySelectorModalProps> = ({
                     className="flex items-center gap-1 hover:text-white focus:outline-hidden"
                     title={KNOWN_CURRENCY_NAMES[code]?.nameKo || `${code} 통화로 전환`}
                   >
-                    {isBase && <Check size={11} className="text-emerald-400 shrink-0 stroke-[2.5]" />}
+                    {isBase && <Check size={11} className="text-sky-400 shrink-0 stroke-[2.5]" />}
                     <span className="font-semibold tracking-wider">{code}</span>
                     {preview && (
                       <span className="text-[10px] text-slate-400/90 tracking-tight font-sans">
@@ -208,7 +208,7 @@ export const CurrencySelectorModal: React.FC<CurrencySelectorModalProps> = ({
                 }}
                 maxLength={4}
                 placeholder="통화 코드 (예: IDR, JPY, EUR)..."
-                className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-500 placeholder:font-sans focus:outline-hidden focus:border-emerald-400/50 focus:bg-white/[0.07] transition-all"
+                className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-500 placeholder:font-sans focus:outline-hidden focus:border-sky-400/50 focus:bg-white/[0.07] transition-all"
               />
               {newCurrencyInput && KNOWN_CURRENCY_NAMES[newCurrencyInput.trim().toUpperCase()] && (
                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-sans pointer-events-none truncate max-w-[85px]">
@@ -220,7 +220,7 @@ export const CurrencySelectorModal: React.FC<CurrencySelectorModalProps> = ({
             <button
               type="submit"
               disabled={isLoadingRate || !newCurrencyInput.trim()}
-              className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-emerald-400/20 border border-emerald-400/30 text-emerald-300 hover:bg-emerald-400/30 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-xs font-semibold transition-all shrink-0"
+              className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-sky-400/20 border border-sky-400/30 text-sky-300 hover:bg-sky-400/30 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-xs font-semibold transition-all shrink-0"
             >
               {isLoadingRate ? (
                 <Loader2 size={13} className="animate-spin" />
@@ -243,7 +243,7 @@ export const CurrencySelectorModal: React.FC<CurrencySelectorModalProps> = ({
         {/* Footer: Quiet Luxury FX sync notice & contextual tip */}
         <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[10px] text-slate-500">
           <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
             <span>원화 기준 자동 환율 환산</span>
           </div>
           <span className="font-mono text-[9px] text-slate-500">

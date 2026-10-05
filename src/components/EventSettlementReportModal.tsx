@@ -230,7 +230,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
           {/* Top Interactive Screen Bar (Hidden on print) */}
           <div className="screen-only flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-white/10 bg-white/[0.02]">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-500/10 border border-sky-500/20 text-sky-400">
                 📄 공식 결산서
               </span>
               <span className="text-xs text-slate-400">
@@ -269,7 +269,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                 className="h-9 px-3.5 rounded-xl text-xs font-medium border border-white/10 bg-white/[0.04] hover:bg-white/10 text-slate-200 flex items-center gap-1.5 active:scale-95 transition-all"
                 title="엑셀 CSV 다운로드"
               >
-                <FileSpreadsheet size={14} className="text-emerald-400" />
+                <FileSpreadsheet size={14} className="text-sky-400" />
                 <span>엑셀 CSV</span>
               </button>
 
@@ -277,7 +277,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
               <button
                 type="button"
                 onClick={handlePrint}
-                className="h-9 px-4 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center gap-1.5 active:scale-95 transition-all shadow-md shadow-emerald-500/20"
+                className="h-9 px-4 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 flex items-center gap-1.5 active:scale-95 transition-all shadow-md shadow-sky-500/20"
                 title="A4 용지 인쇄 및 PDF 저장"
               >
                 <Printer size={14} />
@@ -312,7 +312,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                 <div className="text-left sm:text-right text-xs text-slate-400 print:text-gray-700 space-y-0.5 tabular-nums">
                   <div>출력일시: <strong className="text-white print:text-black font-semibold">{printDateStr}</strong></div>
                   <div>결산 기간: <span className="text-white print:text-black">{dateRangeStr}</span></div>
-                  <div>기준 통화: <span className="font-bold text-emerald-400 print:text-black">{space.currency}</span></div>
+                  <div>기준 통화: <span className="font-bold text-sky-400 print:text-black">{space.currency}</span></div>
                 </div>
               </div>
 
@@ -332,7 +332,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                 </div>
                 <div className="p-3 rounded-xl border border-white/10 print:border-gray-400 bg-white/[0.02] print:bg-gray-50">
                   <span className="text-[11px] text-slate-400 print:text-gray-600 block">총 수입 (회비 등)</span>
-                  <span className="text-base font-extrabold text-emerald-400 print:text-black tabular-nums">
+                  <span className="text-base font-extrabold text-sky-400 print:text-black tabular-nums">
                     +{currencySymbol}{totalIncome.toLocaleString()}
                   </span>
                 </div>
@@ -391,7 +391,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                           <td className="py-2 px-3 text-white print:text-black font-medium border-r border-white/5 print:border-gray-300">
                             {row.description}
                           </td>
-                          <td className="py-2 px-3 text-right font-medium tabular-nums text-emerald-400 print:text-black border-r border-white/5 print:border-gray-300">
+                          <td className="py-2 px-3 text-right font-medium tabular-nums text-sky-400 print:text-black border-r border-white/5 print:border-gray-300">
                             {row.income > 0 ? `+${currencySymbol}${row.income.toLocaleString()}` : ''}
                           </td>
                           <td className="py-2 px-3 text-right font-medium tabular-nums text-rose-400 print:text-black border-r border-white/5 print:border-gray-300">
@@ -412,7 +412,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                         <td colSpan={4} className="py-2.5 px-3 text-center border-r border-white/5 print:border-gray-300">
                           합계
                         </td>
-                        <td className="py-2.5 px-3 text-right tabular-nums text-emerald-400 print:text-black border-r border-white/5 print:border-gray-300">
+                        <td className="py-2.5 px-3 text-right tabular-nums text-sky-400 print:text-black border-r border-white/5 print:border-gray-300">
                           +{currencySymbol}{totalIncome.toLocaleString()}
                         </td>
                         <td className="py-2.5 px-3 text-right tabular-nums text-rose-400 print:text-black border-r border-white/5 print:border-gray-300">
@@ -436,14 +436,14 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
               {/* Bottom Settlement Summary Box */}
               <div className="p-5 rounded-2xl border border-white/10 print:border-black bg-white/[0.02] print:bg-white space-y-3">
                 <h3 className="text-xs font-bold text-slate-300 print:text-black flex items-center gap-1.5 border-b border-white/10 print:border-gray-300 pb-2">
-                  <Calculator size={14} className="text-emerald-400 print:text-black" />
+                  <Calculator size={14} className="text-sky-400 print:text-black" />
                   <span>공식 결산 총계 요약</span>
                 </h3>
 
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center text-slate-300 print:text-gray-700">
                     <span>총 수입 합계</span>
-                    <span className="font-bold text-emerald-400 print:text-black tabular-nums">
+                    <span className="font-bold text-sky-400 print:text-black tabular-nums">
                       +{currencySymbol}{totalIncome.toLocaleString()}
                     </span>
                   </div>
@@ -459,7 +459,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                     </span>
                     <span className={`text-base font-extrabold tabular-nums ${
                       finalBalance > 0 
-                        ? 'text-emerald-400 print:text-black' 
+                        ? 'text-sky-400 print:text-black' 
                         : finalBalance < 0 
                         ? 'text-rose-400 print:text-black' 
                         : 'text-white print:text-black'
@@ -471,8 +471,8 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
               </div>
 
               {/* 1인당 정산 내역 (N-Split Box) */}
-              <div className="p-5 rounded-2xl border-2 border-emerald-500/30 print:border-black bg-emerald-500/[0.03] print:bg-gray-50 space-y-3">
-                <h3 className="text-xs font-bold text-emerald-400 print:text-black flex items-center justify-between border-b border-emerald-500/20 print:border-gray-300 pb-2">
+              <div className="p-5 rounded-2xl border-2 border-sky-500/30 print:border-black bg-sky-500/[0.03] print:bg-gray-50 space-y-3">
+                <h3 className="text-xs font-bold text-sky-400 print:text-black flex items-center justify-between border-b border-sky-500/20 print:border-gray-300 pb-2">
                   <span className="flex items-center gap-1.5">
                     <Users size={14} />
                     <span>1인당 정산 내역 ({activeMembers}인 균등 분할)</span>
@@ -508,7 +508,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                       </span>
                       <span className={`text-base font-extrabold tabular-nums ${
                         finalBalance > 0 
-                          ? 'text-emerald-400 print:text-black' 
+                          ? 'text-sky-400 print:text-black' 
                           : finalBalance < 0 
                           ? 'text-rose-400 print:text-black' 
                           : 'text-white print:text-black'

@@ -180,7 +180,7 @@ const CustomDarkSelect: React.FC<CustomSelectProps> = ({
           size={isSm ? 12 : 14} 
           className={`transition-transform duration-200 shrink-0 ml-1 ${
             isLight ? 'text-slate-500' : 'text-slate-400'
-          } ${isOpen ? 'rotate-180 text-emerald-500' : ''}`} 
+          } ${isOpen ? 'rotate-180 text-sky-500' : ''}`} 
         />
       </button>
 
@@ -205,8 +205,8 @@ const CustomDarkSelect: React.FC<CustomSelectProps> = ({
                 } ${
                   isSelected 
                     ? isLight
-                      ? 'bg-emerald-50 text-emerald-700 font-bold'
-                      : 'bg-emerald-500/15 text-emerald-400 font-semibold' 
+                      ? 'bg-sky-50 text-sky-700 font-bold'
+                      : 'bg-sky-500/15 text-sky-400 font-semibold' 
                     : isLight
                       ? 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
                       : 'text-slate-200 hover:bg-slate-800/80 hover:text-white'
@@ -220,7 +220,7 @@ const CustomDarkSelect: React.FC<CustomSelectProps> = ({
                     </span>
                   )}
                 </div>
-                {isSelected && <Check size={isSm ? 12 : 14} className={isLight ? 'text-emerald-600 shrink-0' : 'text-emerald-400 shrink-0'} />}
+                {isSelected && <Check size={isSm ? 12 : 14} className={isLight ? 'text-sky-600 shrink-0' : 'text-sky-400 shrink-0'} />}
               </button>
             );
           })}
@@ -984,7 +984,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={() => setActiveTab('assets')}
             className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'assets'
-                ? 'border-b border-emerald-400 text-white font-medium'
+                ? 'border-b border-sky-400 text-white font-medium'
                 : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
@@ -996,7 +996,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={() => setActiveTab('engine')}
             className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'engine'
-                ? 'border-b border-emerald-400 text-white font-medium'
+                ? 'border-b border-sky-400 text-white font-medium'
                 : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
@@ -1008,7 +1008,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={() => setActiveTab('preferences')}
             className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'preferences'
-                ? 'border-b border-emerald-400 text-white font-medium'
+                ? 'border-b border-sky-400 text-white font-medium'
                 : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
@@ -1020,7 +1020,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={() => setActiveTab('privacy')}
             className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
               activeTab === 'privacy'
-                ? 'border-b border-emerald-400 text-white font-medium'
+                ? 'border-b border-sky-400 text-white font-medium'
                 : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
             }`}
           >
@@ -1031,7 +1031,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Status Toast inside Modal */}
         {statusMessage && (
           <div className={`mx-6 mt-2 px-3.5 py-2 rounded-xl text-xs flex items-center justify-between shrink-0 ${
-            statusMessage.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/25 text-rose-400'
+            statusMessage.type === 'success' ? 'bg-sky-500/10 border border-sky-500/25 text-sky-400' : 'bg-rose-500/10 border border-rose-500/25 text-rose-400'
           }`}>
             <span className="truncate">{statusMessage.text}</span>
             <button onClick={() => setStatusMessage(null)} className="ml-1 text-sm font-bold">×</button>
@@ -1072,7 +1072,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       : 'text-neutral-400 hover:text-white'
                   }`}
                 >
-                  <KeyRound size={13} className={engineType === 'byok' ? 'text-emerald-400' : ''} />
+                  <KeyRound size={13} className={engineType === 'byok' ? 'text-sky-400' : ''} />
                   <span className="truncate">클라우드 AI (Gemini, 권장)</span>
                 </button>
 
@@ -1101,7 +1101,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       href="https://aistudio.google.com/app/apikey"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[11px] font-normal text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                      className="text-[11px] font-normal text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors"
                     >
                       <span>Google AI Studio에서 키 발급</span>
                       <ExternalLink size={10} />
@@ -1121,7 +1121,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         placeholder="AIzaSy... (Gemini API 키)"
                         autoComplete="off"
                         spellCheck={false}
-                        className="w-full rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border bg-white/[0.03] border-white/10 text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-500/50"
+                        className="w-full rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border bg-white/[0.03] border-white/10 text-neutral-100 placeholder:text-neutral-600 focus:border-sky-500/50"
                       />
                       <button
                         type="button"
@@ -1158,7 +1158,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {testResult.status && (
                     <div className={`text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 ${
                       testResult.status === 'valid' 
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-normal' 
+                        ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20 font-normal' 
                         : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                     }`}>
                       {testResult.status === 'valid' ? <CheckCircle2 size={13} className="shrink-0" /> : <XCircle size={13} className="shrink-0" />}
@@ -1187,8 +1187,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           <Loader2 size={10} className="animate-spin" /> WebGPU 확인 중
                         </span>
                       ) : webGpuStatus.supported ? (
-                        <span className="text-[10px] font-normal flex items-center gap-1 text-emerald-400">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-[10px] font-normal flex items-center gap-1 text-sky-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
                           WebGPU 가속 지원
                         </span>
                       ) : (
@@ -1216,7 +1216,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
                       <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                         <div 
-                          className="h-full bg-emerald-400 transition-all duration-200"
+                          className="h-full bg-sky-400 transition-all duration-200"
                           style={{ width: `${downloadProgress.progress}%` }}
                         />
                       </div>
@@ -1255,7 +1255,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       )
                     ) : (
                       <div className="flex items-center justify-between gap-2 w-full">
-                        <div className="text-[11px] text-emerald-400 font-normal flex items-center gap-1">
+                        <div className="text-[11px] text-sky-400 font-normal flex items-center gap-1">
                           <CheckCircle2 size={13} />
                           <span>오프라인 추론 사용 가능 (캐시 보관 중)</span>
                         </div>
@@ -1410,7 +1410,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                           activeCurrenciesList.length > 1
-                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                            ? 'bg-sky-500/15 text-sky-400 border border-sky-500/25'
                             : 'bg-white/[0.04] text-neutral-400 border border-white/5'
                         }`}>
                           {activeCurrenciesList.length > 1 ? '다중 통화 모드' : '단일 통화 모드'}
@@ -1428,7 +1428,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                               key={code}
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition-all ${
                                 isBase
-                                  ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300 font-semibold'
+                                  ? 'bg-sky-500/15 border-sky-500/35 text-sky-300 font-semibold'
                                   : 'bg-white/[0.04] border-white/5 text-slate-300 hover:border-white/10'
                               }`}
                             >
@@ -1451,7 +1451,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                   </span>
                                 )}
                                 {isBase && (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-400/20 text-emerald-300 font-normal ml-0.5">
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-sky-400/20 text-sky-300 font-normal ml-0.5">
                                     기준
                                   </span>
                                 )}
@@ -1476,8 +1476,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                       {/* Subtle Prompt when only 1 currency is present */}
                       {activeCurrenciesList.length <= 1 && (
-                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15 text-[11px] text-slate-300 animate-in fade-in duration-150">
-                          <Sparkles size={13} className="text-emerald-400 shrink-0" />
+                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-sky-500/[0.06] border border-sky-500/15 text-[11px] text-slate-300 animate-in fade-in duration-150">
+                          <Sparkles size={13} className="text-sky-400 shrink-0" />
                           <span>새 통화를 추가하면 다중 통화 비교 모드가 자동으로 활성화됩니다.</span>
                         </div>
                       )}
@@ -1516,13 +1516,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             }}
                             maxLength={3}
                             placeholder="3자리 통화 코드 (예: SGD, VND, AUD)..."
-                            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-hidden focus:border-emerald-400/50 transition-all"
+                            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-hidden focus:border-sky-400/50 transition-all"
                           />
                           <button
                             type="button"
                             onClick={() => handleAddActiveCurrency(newCurrencyInput)}
                             disabled={!newCurrencyInput.trim()}
-                            className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
+                            className="px-3 py-1.5 rounded-xl bg-sky-500/20 border border-sky-500/30 text-sky-300 hover:bg-sky-500/30 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
                           >
                             <Plus size={12} strokeWidth={2.5} />
                             <span>추가</span>
@@ -1551,12 +1551,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       {stealthMode ? (
-                        <EyeOff size={15} className="text-emerald-400 shrink-0" />
+                        <EyeOff size={15} className="text-sky-400 shrink-0" />
                       ) : (
                         <Eye size={15} className="text-neutral-400 group-hover:text-white transition-colors shrink-0" />
                       )}
                       <div>
-                        <span className="text-xs font-semibold group-hover:text-emerald-400 transition-colors text-slate-200 block">
+                        <span className="text-xs font-semibold group-hover:text-sky-400 transition-colors text-slate-200 block">
                           스텔스 모드 (금액 숨김)
                         </span>
                         <span className="text-[11px] text-neutral-500 font-light block">
@@ -1569,7 +1569,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       type="button"
                       aria-label="스텔스 모드 토글"
                       className={`w-9 h-5 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 pointer-events-none ${
-                        stealthMode ? 'bg-emerald-400' : 'bg-slate-700'
+                        stealthMode ? 'bg-sky-400' : 'bg-slate-700'
                       }`}
                     >
                       <span
@@ -1647,7 +1647,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         key={sp.id}
                         className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
                           isCurrent
-                            ? 'bg-emerald-500/10 border-emerald-500/25 text-white'
+                            ? 'bg-sky-500/10 border-sky-500/25 text-white'
                             : 'bg-white/[0.02] border-white/[0.06] text-neutral-300 hover:border-white/10'
                         }`}
                       >
@@ -1666,7 +1666,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 </span>
                               )}
                               {isCurrent && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-normal border border-emerald-500/25 flex items-center gap-1">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-400 font-normal border border-sky-500/25 flex items-center gap-1">
                                   <Check size={10} />
                                   <span>현재 활성</span>
                                 </span>
@@ -1741,7 +1741,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-neutral-400 font-light">보안 PIN</span>
                       {isPinSet ? (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-sky-500/10 text-sky-400 border border-sky-500/20">
                           설정됨
                         </span>
                       ) : (
@@ -1947,7 +1947,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-white/[0.05] text-emerald-400 border border-white/10">
+              <div className="p-2 rounded-xl bg-white/[0.05] text-sky-400 border border-white/10">
                 <Download size={18} />
               </div>
               <div>
@@ -1971,7 +1971,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 onClick={() => setEnablePasswordProtection(!enablePasswordProtection)}
                 className={`w-11 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 ${
-                  enablePasswordProtection ? 'bg-emerald-400' : 'bg-white/10'
+                  enablePasswordProtection ? 'bg-sky-400' : 'bg-white/10'
                 }`}
               >
                 <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform transform ${
@@ -1990,7 +1990,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   value={exportPassphrase}
                   onChange={(e) => setExportPassphrase(e.target.value)}
                   placeholder="8자 이상의 안전한 비밀번호 입력"
-                  className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-emerald-500/50"
+                  className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-sky-500/50"
                 />
               </div>
             )}
@@ -2049,7 +2049,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={(e) => setDecryptPassphrase(e.target.value)}
                 placeholder="비밀번호 입력"
                 autoFocus
-                className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-emerald-500/50"
+                className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-sky-500/50"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handlePerformDecryption();
                 }}
@@ -2110,9 +2110,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleExecuteRestore('merge')}
-                className="w-full p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/15 text-white text-left transition-all flex flex-col gap-1"
+                className="w-full p-3 rounded-xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/15 text-white text-left transition-all flex flex-col gap-1"
               >
-                <div className="flex items-center gap-1.5 font-medium text-xs text-emerald-400">
+                <div className="flex items-center gap-1.5 font-medium text-xs text-sky-400">
                   <CheckCircle2 size={14} />
                   <span>스마트 중복 제외 병합 (권장)</span>
                 </div>
@@ -2187,7 +2187,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       value={pinInput}
                       onChange={(e) => setPinInput(e.target.value)}
                       placeholder="새 PIN 번호 입력"
-                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/50"
+                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-sky-500/50"
                       autoFocus
                     />
                   </div>
@@ -2201,7 +2201,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       value={pinConfirmInput}
                       onChange={(e) => setPinConfirmInput(e.target.value)}
                       placeholder="새 PIN 번호 다시 입력"
-                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/50"
+                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-sky-500/50"
                     />
                   </div>
                 </>
@@ -2216,7 +2216,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     value={currentPinInput}
                     onChange={(e) => setCurrentPinInput(e.target.value)}
                     placeholder="현재 PIN 번호 입력"
-                    className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-emerald-500/50"
+                    className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-sky-500/50"
                     autoFocus
                   />
                 </div>

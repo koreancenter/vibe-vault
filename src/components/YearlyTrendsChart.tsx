@@ -25,7 +25,7 @@ import {
 
 // Permanent Quiet Luxury Dark Palette Constants
 const LUXURY_YEARLY_COLORS = {
-  income: '#34d399',  // Refined Muted Sage Emerald
+  income: '#38bdf8',  // Refined Muted Sage Emerald
   expense: '#fb7185', // Refined Rose Coral
 };
 
@@ -144,7 +144,7 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
           <div className="flex items-center justify-between gap-4 pb-1.5 border-b border-white/10">
             <span className="font-bold text-white">{data.fullLabel}</span>
             {data.isCurrent && (
-              <span className="px-1.5 py-0.5 bg-emerald-400/20 text-emerald-300 text-[10px] rounded-full font-bold">
+              <span className="px-1.5 py-0.5 bg-sky-400/20 text-sky-300 text-[10px] rounded-full font-bold">
                 이번 달
               </span>
             )}
@@ -152,9 +152,9 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
           <div className="pt-2 space-y-1">
             <div className="flex items-center justify-between gap-4">
               <span className="text-[#94A3B8] flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" /> 수입
+                <span className="w-2 h-2 rounded-full bg-sky-400 inline-block" /> 수입
               </span>
-              <span className={`font-bold text-emerald-400 ${isStealth ? 'blur-xs select-none' : ''}`}>
+              <span className={`font-bold text-sky-400 ${isStealth ? 'blur-xs select-none' : ''}`}>
                 +{currSymbol}{data.income.toLocaleString()}
               </span>
             </div>
@@ -168,7 +168,7 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
             </div>
             <div className="flex items-center justify-between gap-4 pt-1 border-t border-white/10 font-bold">
               <span className="text-white">순수익</span>
-              <span className={`${data.net >= 0 ? 'text-emerald-400' : 'text-rose-400'} ${isStealth ? 'blur-xs select-none' : ''}`}>
+              <span className={`${data.net >= 0 ? 'text-sky-400' : 'text-rose-400'} ${isStealth ? 'blur-xs select-none' : ''}`}>
                 {data.net >= 0 ? '+' : ''}{currSymbol}{data.net.toLocaleString()}
               </span>
             </div>
@@ -188,13 +188,13 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
       {/* 12-Month Micro Summary Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {/* Total Income */}
-        <div className="p-2.5 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 flex flex-col justify-between">
+        <div className="p-2.5 rounded-2xl border border-sky-500/20 bg-sky-950/20 flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] mb-1">
-            <span className="flex items-center gap-1 font-medium text-emerald-400">
+            <span className="flex items-center gap-1 font-medium text-sky-400">
               <ArrowUpRight size={13} /> 최근 1년 수입
             </span>
           </div>
-          <span className={`text-sm font-extrabold text-emerald-400 ${
+          <span className={`text-sm font-extrabold text-sky-400 ${
             isStealth ? 'blur-xs select-none' : ''
           }`}>
             +{currSymbol}{total12mIncome.toLocaleString()}
@@ -346,14 +346,14 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
               <span className="font-bold text-white">
                 📌 {selectedMonthData.fullLabel}:
               </span>
-              <span className="text-emerald-400 font-semibold">
+              <span className="text-sky-400 font-semibold">
                 수입 +{currSymbol}{selectedMonthData.income.toLocaleString()}
               </span>
               <span className="text-rose-400 font-semibold">
                 지출 -{currSymbol}{selectedMonthData.expense.toLocaleString()}
               </span>
               <span className={`font-bold ${
-                selectedMonthData.net >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                selectedMonthData.net >= 0 ? 'text-sky-400' : 'text-rose-400'
               }`}>
                 순수익 {selectedMonthData.net >= 0 ? '+' : ''}{currSymbol}{selectedMonthData.net.toLocaleString()}
               </span>

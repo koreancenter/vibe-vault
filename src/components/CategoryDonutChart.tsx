@@ -6,7 +6,7 @@ import { getCategoryKo } from '../utils';
 
 // Permanent Quiet Luxury Dark Palette Constants
 export const LUXURY_CATEGORY_COLORS: Record<string, string> = {
-  Food: '#34d399',          // Refined Muted Sage Emerald
+  Food: '#38bdf8',          // Refined Muted Sage Emerald
   Fixed: '#818cf8',         // Muted Indigo
   Living: '#fbbf24',        // Warm Amber
   Transport: '#38bdf8',     // Soft Sky Cyan
@@ -15,7 +15,7 @@ export const LUXURY_CATEGORY_COLORS: Record<string, string> = {
   Uncategorized: '#94a3b8', // Refined Slate
 };
 
-const SIGNATURE_ACCENT = '#34d399';
+const SIGNATURE_ACCENT = '#38bdf8';
 
 interface CategoryDonutChartProps {
   transactions: Transaction[];
@@ -162,7 +162,7 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
       {!embedded && (
         <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center text-emerald-400 shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
               <PieChart size={16} />
             </div>
             <div className="flex flex-col min-w-0">
@@ -180,7 +180,7 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectCategory(null)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-400/15 border border-emerald-400/30 text-emerald-300 text-xs font-semibold hover:bg-emerald-400/25 active:scale-95 transition-all"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-sky-400/15 border border-sky-400/30 text-sky-300 text-xs font-semibold hover:bg-sky-400/25 active:scale-95 transition-all"
               >
                 <span>{getCategoryKo(selectedCategory)}</span>
                 <X size={12} />
@@ -215,7 +215,7 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
                   ? activeCategoryInfo.amount.toLocaleString()
                   : totalExpense.toLocaleString()}
               </span>
-              <span className="text-[10px] font-bold text-emerald-400">
+              <span className="text-[10px] font-bold text-sky-400">
                 {activeCategoryInfo
                   ? `${activeCategoryInfo.percentage.toFixed(0)}%`
                   : ''}

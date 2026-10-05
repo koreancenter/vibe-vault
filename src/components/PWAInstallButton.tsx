@@ -52,7 +52,7 @@ export const IOSInstallModal: React.FC<{
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
                 <Smartphone size={20} />
               </div>
               <div>
@@ -95,12 +95,12 @@ export const IOSInstallModal: React.FC<{
             <div className={`p-3 rounded-2xl flex items-start gap-3 border ${
               isLight ? 'bg-slate-50 border-slate-100' : 'bg-white/[0.03] border-white/5'
             }`}>
-              <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
                 2
               </div>
               <div className="text-xs leading-relaxed">
                 메뉴 목록을 아래로 스크롤하여{' '}
-                <span className="inline-flex items-center gap-1 font-semibold text-emerald-400 mx-0.5">
+                <span className="inline-flex items-center gap-1 font-semibold text-sky-400 mx-0.5">
                   <PlusSquare size={12} className="inline" /> 홈 화면에 추가
                 </span>{' '}
                 를 선택합니다.
@@ -122,7 +122,7 @@ export const IOSInstallModal: React.FC<{
           {/* Close button */}
           <button
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl font-bold text-xs transition-all active:scale-98 bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-lg shadow-emerald-500/20"
+            className="w-full py-2.5 rounded-xl font-bold text-xs transition-all active:scale-98 bg-sky-500 hover:bg-sky-600 text-slate-950 shadow-lg shadow-sky-500/20"
           >
             확인 완료
           </button>
@@ -151,10 +151,10 @@ export const PWAInstallButton: React.FC<PWAInstallProps> = ({
     if (isInstalled) {
       return (
         <div className={`p-3 rounded-xl border flex items-center justify-between ${
-          isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+          isLight ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-sky-500/10 border-sky-500/20 text-sky-400'
         } ${className}`}>
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+            <CheckCircle2 size={16} className="text-sky-400 shrink-0" />
             <div className="text-xs">
               <span className="font-bold">PWA 독립 앱으로 설치되어 실행 중</span>
               <p className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>오프라인 캐싱 및 전체화면 모드가 활성화되어 있습니다.</p>
@@ -170,7 +170,7 @@ export const PWAInstallButton: React.FC<PWAInstallProps> = ({
           isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-white/[0.03] border-white/10 text-white'
         } ${className}`}>
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
               <Download size={15} />
             </div>
             <div className="min-w-0">
@@ -189,7 +189,7 @@ export const PWAInstallButton: React.FC<PWAInstallProps> = ({
                   const success = await install();
                   if (success && onInstalled) onInstalled();
                 }}
-                className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                className="px-3.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
               >
                 <Download size={13} />
                 <span>앱 설치</span>
@@ -258,14 +258,14 @@ export const PWAInstallButton: React.FC<PWAInstallProps> = ({
         title="홈 화면 또는 기기 앱으로 설치 (PWA)"
         className={`h-8 px-2.5 flex items-center gap-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-xs ${
           isLight
-            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-            : 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
+            ? 'bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200'
+            : 'bg-sky-500/15 text-sky-400 hover:bg-sky-500/25 border border-sky-500/30'
         } ${className}`}
       >
         {isIOS ? (
           <Share2 size={13} className="shrink-0 text-blue-400" />
         ) : (
-          <Download size={13} className="shrink-0 text-emerald-400" />
+          <Download size={13} className="shrink-0 text-sky-400" />
         )}
         <span>앱 설치</span>
       </button>
@@ -334,7 +334,7 @@ export const PWAInstallBanner: React.FC<{
               <div className="flex flex-col truncate">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold tracking-tight truncate">Vibe Ledger AI 앱 설치</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold">PWA</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/20 text-sky-400 font-semibold">PWA</span>
                 </div>
                 <span className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   홈 화면에서 더 빠르고 편리하게 사용하세요
@@ -354,7 +354,7 @@ export const PWAInstallBanner: React.FC<{
                       onInstalled();
                     }
                   }}
-                  className="h-8 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1 transition-all active:scale-95 shadow-md shadow-emerald-500/20"
+                  className="h-8 px-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center gap-1 transition-all active:scale-95 shadow-md shadow-sky-500/20"
                 >
                   <Download size={13} />
                   <span>설치</span>

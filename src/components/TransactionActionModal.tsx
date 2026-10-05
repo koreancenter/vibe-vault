@@ -85,7 +85,7 @@ export const TransactionActionModal: React.FC<TransactionActionModalProps> = ({
                 ? 'bg-blue-500/10 text-blue-400'
                 : isExpense
                   ? 'bg-rose-500/10 text-rose-400'
-                  : 'bg-emerald-500/10 text-emerald-400'
+                  : 'bg-sky-500/10 text-sky-400'
             }`}>
               {isInternalTransfer ? (
                 <ArrowLeftRight size={13} />
@@ -129,7 +129,7 @@ export const TransactionActionModal: React.FC<TransactionActionModalProps> = ({
                   ? isLight ? 'text-blue-600' : 'text-blue-400'
                   : isExpense
                     ? isLight ? 'text-slate-900' : 'text-rose-400'
-                    : isLight ? 'text-emerald-600' : 'text-emerald-400'
+                    : isLight ? 'text-sky-600' : 'text-sky-400'
               }`}>
                 {isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+')}
                 {currSymbol}{transaction.amount.toLocaleString()}

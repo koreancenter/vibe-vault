@@ -829,7 +829,7 @@ export function App() {
   const getCategoryIcon = (category: string) => {
     const cat = category.toLowerCase();
     if (cat.includes('food') || cat.includes('dining') || cat.includes('식사') || cat.includes('카페') || cat.includes('외식')) {
-      return <UtensilsCrossed size={16} className="text-[#00F5A0]" />;
+      return <UtensilsCrossed size={16} className="text-[#38bdf8]" />;
     }
     if (cat.includes('coffee') || cat.includes('cafe') || cat.includes('커피')) {
       return <Coffee size={16} className="text-amber-400" />;
@@ -864,7 +864,7 @@ export function App() {
                 title="장부 공간 전환"
                 aria-label="장부 공간 전환"
               >
-                <span className="text-emerald-400 text-xs">✦</span>
+                <span className="text-sky-400 text-xs">✦</span>
                 <span className="max-w-[120px] sm:max-w-[180px] truncate font-medium">{activeSpace.name}</span>
                 <ChevronDown size={11} className={`transition-transform text-neutral-400 opacity-70 ${isSpacePopoverOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -888,7 +888,7 @@ export function App() {
                           key={sp.id}
                           className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer group ${
                             isCurrent
-                              ? 'bg-emerald-500/15 text-emerald-300 font-medium border border-emerald-500/30'
+                              ? 'bg-sky-500/15 text-sky-300 font-medium border border-sky-500/30'
                               : 'hover:bg-white/[0.05] text-neutral-300'
                           }`}
                           onClick={() => {
@@ -898,7 +898,7 @@ export function App() {
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             {isCurrent ? (
-                              <Check size={14} className="text-emerald-400 shrink-0" />
+                              <Check size={14} className="text-sky-400 shrink-0" />
                             ) : (
                               <span className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0" />
                             )}
@@ -922,7 +922,7 @@ export function App() {
                         setIsSpacePopoverOpen(false);
                         handleOpenSettingsModal('preferences');
                       }}
-                      className="text-[11px] text-neutral-400 hover:text-emerald-400 font-light transition-colors py-1 flex items-center justify-center gap-1 mx-auto"
+                      className="text-[11px] text-neutral-400 hover:text-sky-400 font-light transition-colors py-1 flex items-center justify-center gap-1 mx-auto"
                     >
                       <span>설정에서 장부 관리</span>
                       <ChevronRight size={11} />
@@ -989,7 +989,7 @@ export function App() {
                 className="h-8 px-2.5 rounded-full border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white flex items-center gap-1.5 text-xs transition-all active:scale-95 group"
                 aria-label="통화 빠른 전환"
               >
-                <Globe size={13} className="text-neutral-400 group-hover:text-emerald-400 transition-colors" />
+                <Globe size={13} className="text-neutral-400 group-hover:text-sky-400 transition-colors" />
                 <span className="tabular-nums font-medium tracking-tight whitespace-nowrap">{currentCurrency}</span>
                 {activeCurrencies.length > 1 && (
                   <span className="text-[10px] text-neutral-500 font-normal opacity-70 tabular-nums">
@@ -1104,7 +1104,7 @@ export function App() {
                   {activeSpace.id !== 'default' && (
                     <div className="p-5 rounded-2xl border backdrop-blur-2xl bg-white/[0.03] border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] space-y-3.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-sky-400 flex items-center gap-1.5">
                           <span>✦</span> 프로젝트·행사 정산 관리
                         </span>
                         <span className="text-xs text-slate-400 font-light tabular-nums">
@@ -1118,7 +1118,7 @@ export function App() {
                         id="event-settlement-report-desktop-btn"
                         type="button"
                         onClick={() => setIsReportModalOpen(true)}
-                        className="w-full py-2.5 px-4 rounded-xl text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 flex items-center justify-center gap-2 active:scale-95 transition-all"
+                        className="w-full py-2.5 px-4 rounded-xl text-xs font-medium bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 flex items-center justify-center gap-2 active:scale-95 transition-all"
                       >
                         <span>📄</span>
                         <span>결산서 출력</span>
@@ -1160,7 +1160,7 @@ export function App() {
             {/* Category Filter Status Pill (if filtered by category from pie chart or insights) */}
             {selectedCategory && (
               <div className="flex items-center justify-between px-2 text-xs text-[#94A3B8]">
-                <span>카테고리 필터링: <strong className="text-[#00F5A0] font-semibold">{getCategoryKo(selectedCategory)}</strong></span>
+                <span>카테고리 필터링: <strong className="text-[#38bdf8] font-semibold">{getCategoryKo(selectedCategory)}</strong></span>
                 <button
                   type="button"
                   onClick={() => setSelectedCategory(null)}
@@ -1203,8 +1203,8 @@ export function App() {
                     onClick={() => setIsReportModalOpen(true)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all active:scale-95 shadow-xs ${
                       isLight
-                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600'
-                        : 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 border border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/30'
+                        ? 'bg-sky-600 hover:bg-sky-700 text-white border border-sky-600'
+                        : 'bg-gradient-to-r from-sky-500/20 to-blue-500/20 text-sky-300 border border-sky-500/40 hover:border-sky-400 hover:bg-sky-500/30'
                     }`}
                     title="공식 결산서 출력"
                   >
@@ -1224,7 +1224,7 @@ export function App() {
                   }`}
                   title="CSV 내역 내보내기"
                 >
-                  <Download size={13} className={isLight ? 'text-emerald-600' : 'text-emerald-400'} />
+                  <Download size={13} className={isLight ? 'text-sky-600' : 'text-sky-400'} />
                   <span>내보내기</span>
                 </button>
               </div>
@@ -1237,33 +1237,18 @@ export function App() {
                   ? 'bg-slate-50/80 border-slate-200/80 text-slate-800' 
                   : 'bg-white/[0.03] backdrop-blur-2xl border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
               }`}>
-                <div className="relative mx-auto w-12 h-12 flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-2xl bg-emerald-500/20 blur-xl animate-pulse" />
-                  <div className="relative w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                    <Receipt size={24} />
-                  </div>
-                </div>
-
-                <div className="space-y-1 max-w-sm mx-auto">
-                  <h3 className={`text-base font-normal tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                    {activeSpace.id !== 'default' 
-                      ? `[${activeSpace.name}] 기록된 내역이 없습니다`
-                      : '기록된 거래 내역이 없습니다'}
-                  </h3>
-                  <p className={`text-xs font-light leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {activeSpace.id !== 'default'
-                      ? '회비 입금, 단체 식사, 교통비, 입장료 등을 자연어로 입력하거나 영수증을 찍어 기록해보세요.'
-                      : '하단 자연어 입력창에 평소처럼 적거나, 영수증 사진을 찍어 즉시 기록해보세요.'}
-                  </p>
-                </div>
+                <h3 className={`text-base font-medium tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  {activeSpace.id !== 'default' 
+                    ? `[${activeSpace.name}] 기록된 내역이 없습니다`
+                    : '기록된 거래 내역이 없습니다'}
+                </h3>
 
                 <div className="flex items-center justify-center flex-wrap gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => setIsReceiptModalOpen(true)}
-                    className="h-8 px-3.5 rounded-xl font-medium text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
+                    className="h-8 px-4 rounded-xl font-medium text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 flex items-center justify-center active:scale-95 transition-all shadow-sm cursor-pointer"
                   >
-                    <Camera size={13} />
                     <span>영수증 촬영 스캔</span>
                   </button>
 
@@ -1271,13 +1256,12 @@ export function App() {
                     <button
                       type="button"
                       onClick={handleLoadSampleFromLedger}
-                      className={`h-8 px-3.5 rounded-xl font-medium text-xs border flex items-center gap-1.5 active:scale-95 transition-all ${
+                      className={`h-8 px-4 rounded-xl font-medium text-xs border flex items-center justify-center active:scale-95 transition-all cursor-pointer ${
                         isLight 
                           ? 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200' 
                           : 'bg-white/[0.05] hover:bg-white/10 text-slate-200 border-white/10'
                       }`}
                     >
-                      <Sparkles size={13} className="text-amber-400" />
                       <span>샘플 데이터 로드</span>
                     </button>
                   )}
@@ -1306,12 +1290,12 @@ export function App() {
                         }`}
                       >
                         <div className="truncate pr-2">
-                          <span className={`font-medium mr-1.5 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>
+                          <span className={`font-medium mr-1.5 ${isLight ? 'text-sky-700' : 'text-sky-400'}`}>
                             [{prompt.category}]
                           </span>
                           <span className={`font-light ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>{prompt.text}</span>
                         </div>
-                        <ChevronRight size={13} className={`shrink-0 opacity-40 group-hover:opacity-100 transition-opacity ${isLight ? 'text-slate-400 group-hover:text-emerald-600' : 'text-slate-400 group-hover:text-emerald-400'}`} />
+                        <ChevronRight size={13} className={`shrink-0 opacity-40 group-hover:opacity-100 transition-opacity ${isLight ? 'text-slate-400 group-hover:text-sky-600' : 'text-slate-400 group-hover:text-sky-400'}`} />
                       </button>
                     ))}
                   </div>
@@ -1402,7 +1386,7 @@ export function App() {
                               : isExpense 
                                 ? isLight ? 'text-slate-900' : 'text-slate-200' 
                                 : isIncome || isSettlement
-                                  ? isLight ? 'text-emerald-600' : 'text-emerald-400'
+                                  ? isLight ? 'text-sky-600' : 'text-sky-400'
                                   : isLight ? 'text-blue-600' : 'text-blue-400'
                           }`}>
                             {t.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+')}{currSymbol}{t.amount.toLocaleString()}
@@ -1439,8 +1423,8 @@ export function App() {
                       {isSettlement && (
                         <div className={`mt-2 px-2.5 py-1 rounded-full text-xs flex items-center justify-between font-normal ${
                           isLight 
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' 
-                            : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                            ? 'bg-sky-50 text-sky-800 border border-sky-100' 
+                            : 'bg-sky-500/10 text-sky-300 border border-sky-500/20'
                         }`}>
                           <span className="flex items-center gap-1.5">
                             <ArrowLeftRight size={13} /> 더치페이 정산 완료
@@ -1510,8 +1494,8 @@ export function App() {
             {realtimePreview.amount !== undefined && (
               <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0 ${
                 isLight 
-                  ? 'bg-emerald-50 text-emerald-800' 
-                  : 'bg-[#00F5A0]/15 text-[#00F5A0]'
+                  ? 'bg-sky-50 text-sky-800' 
+                  : 'bg-[#38bdf8]/15 text-[#38bdf8]'
               }`}>
                 <span>금액:</span>
                 <strong>{getCurrencySymbol(realtimePreview.currency)}{realtimePreview.amount.toLocaleString()}</strong>
@@ -1575,8 +1559,8 @@ export function App() {
           className={`relative rounded-2xl p-[1px] transition-all duration-200 ${
             isInputFocused 
               ? isLight
-                ? 'bg-gradient-to-r from-emerald-500 via-indigo-500 to-emerald-500 shadow-md'
-                : 'bg-gradient-to-r from-emerald-400 via-blue-500 to-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.15)]' 
+                ? 'bg-gradient-to-r from-sky-500 via-indigo-500 to-sky-500 shadow-md'
+                : 'bg-gradient-to-r from-sky-400 via-blue-500 to-sky-400 shadow-[0_0_20px_rgba(56, 189, 248,0.15)]' 
               : isLight
                 ? 'bg-slate-200'
                 : 'bg-white/[0.08]'
@@ -1593,8 +1577,8 @@ export function App() {
               title="영수증 AI 스캔"
               className={`w-8 h-8 min-w-[32px] rounded-xl flex items-center justify-center transition-all ${
                 isLight
-                  ? 'text-slate-500 hover:text-emerald-700 hover:bg-slate-200/70 active:scale-95'
-                  : 'text-slate-400 hover:text-emerald-400 hover:bg-white/5 active:scale-95'
+                  ? 'text-slate-500 hover:text-sky-700 hover:bg-slate-200/70 active:scale-95'
+                  : 'text-slate-400 hover:text-sky-400 hover:bg-white/5 active:scale-95'
               }`}
             >
               <Camera size={16} />
@@ -1610,8 +1594,8 @@ export function App() {
                 isListening
                   ? 'bg-rose-500/20 text-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.5)] animate-pulse'
                   : isLight
-                    ? 'text-slate-500 hover:text-emerald-700 hover:bg-slate-200/70 active:scale-95'
-                    : 'text-slate-400 hover:text-emerald-400 hover:bg-white/5 active:scale-95'
+                    ? 'text-slate-500 hover:text-sky-700 hover:bg-slate-200/70 active:scale-95'
+                    : 'text-slate-400 hover:text-sky-400 hover:bg-white/5 active:scale-95'
               }`}
             >
               {isListening ? <MicOff size={16} /> : <Mic size={16} />}
@@ -1653,7 +1637,7 @@ export function App() {
               className="flex items-center gap-1 shrink-0 px-1"
               title={`AI 상태: ${engineStatus} (기기 내 안전 보관)`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${isLight ? 'bg-emerald-600' : 'bg-emerald-400'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${isLight ? 'bg-sky-600' : 'bg-sky-400'}`} />
               <span className={`hidden md:inline text-[10px] font-normal max-w-[90px] truncate ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 {engineStatus.split(' ')[0]}
               </span>
@@ -1675,10 +1659,10 @@ export function App() {
               id="parse-submit-btn"
               type="submit"
               disabled={isProcessing || !input.trim() || !isOnline}
-              className="h-8 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-300 border border-emerald-500/30 font-medium text-xs transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1 shadow-sm shrink-0"
+              className="h-8 px-3.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 active:scale-95 text-sky-300 border border-sky-500/30 font-medium text-xs transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1 shadow-sm shrink-0"
             >
               {isProcessing ? (
-                <Loader2 size={14} className="animate-spin text-emerald-300" />
+                <Loader2 size={14} className="animate-spin text-sky-300" />
               ) : (
                 <>
                   <Sparkles size={12} />
@@ -1738,8 +1722,8 @@ export function App() {
             className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
               mainMode === 'ledger'
                 ? isLight
-                  ? 'text-emerald-600 font-semibold'
-                  : 'text-emerald-400 font-semibold'
+                  ? 'text-sky-600 font-semibold'
+                  : 'text-sky-400 font-semibold'
                 : isLight
                 ? 'text-slate-400 hover:text-slate-700'
                 : 'text-slate-500 hover:text-slate-300'

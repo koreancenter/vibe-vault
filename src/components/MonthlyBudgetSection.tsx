@@ -215,7 +215,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
                 월간 예산
               </h4>
               <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
-                isLight ? 'bg-emerald-100 text-emerald-800' : 'bg-[#00F5A0]/15 text-[#00F5A0]'
+                isLight ? 'bg-sky-100 text-sky-800' : 'bg-[#38bdf8]/15 text-[#38bdf8]'
               }`}>
                 {currentMonthName} 현황
               </span>
@@ -250,7 +250,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
               }
               setShowAddModal(true);
             }}
-            className="px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 bg-gradient-to-r from-[#00F5A0] to-[#00D9A5] text-[#0B0F17] hover:opacity-90 active:scale-95 transition-all shadow-xs"
+            className="px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 bg-gradient-to-r from-[#38bdf8] to-[#0284c7] text-[#0B0F17] hover:opacity-90 active:scale-95 transition-all shadow-xs"
           >
             <Plus size={13} />
             <span>예산 추가</span>
@@ -262,7 +262,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
       {banner && (
         <div className={`p-2.5 rounded-xl text-xs flex items-center justify-between animate-in fade-in duration-150 ${
           banner.type === 'success' 
-            ? 'bg-emerald-500/15 text-emerald-400' 
+            ? 'bg-sky-500/15 text-sky-400' 
             : banner.type === 'error'
             ? 'bg-rose-500/15 text-rose-400'
             : 'bg-sky-500/15 text-sky-400'
@@ -281,12 +281,12 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
       <div className="py-2 space-y-1.5">
         <div className="flex items-center justify-between text-xs">
           <span className={`font-semibold flex items-center gap-1.5 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-            <Wallet size={13} className="text-emerald-500 shrink-0" /> 총 예산 잔여액
+            <Wallet size={13} className="text-sky-500 shrink-0" /> 총 예산 잔여액
           </span>
           <span className={`font-extrabold ${
             overallStats.isOver 
               ? 'text-rose-500' 
-              : isLight ? 'text-emerald-700' : 'text-[#00F5A0]'
+              : isLight ? 'text-sky-700' : 'text-[#38bdf8]'
           }`}>
             {overallStats.isOver 
               ? `${currSymbol}${Math.abs(overallStats.remaining).toLocaleString()} 초과!` 
@@ -304,7 +304,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
                 ? 'bg-rose-500' 
                 : overallStats.spentPercent > 80 
                 ? 'bg-amber-400' 
-                : isLight ? 'bg-emerald-500' : 'bg-[#00F5A0]'
+                : isLight ? 'bg-sky-500' : 'bg-[#38bdf8]'
             }`}
             style={{ width: `${Math.min(100, overallStats.spentPercent)}%` }}
           />
@@ -315,7 +315,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
         }`}>
           <span>총 지출: <strong className={isLight ? 'text-slate-800' : 'text-white'}>{currSymbol}{overallStats.totalSpent.toLocaleString()}</strong></span>
           <span>총 한도: <strong className={isLight ? 'text-slate-800' : 'text-white'}>{currSymbol}{overallStats.totalBudget.toLocaleString()}</strong></span>
-          <span>소진율: <strong className={overallStats.isOver ? 'text-rose-400' : isLight ? 'text-emerald-700' : 'text-[#00F5A0]'}>{overallStats.spentPercent}%</strong></span>
+          <span>소진율: <strong className={overallStats.isOver ? 'text-rose-400' : isLight ? 'text-sky-700' : 'text-[#38bdf8]'}>{overallStats.spentPercent}%</strong></span>
         </div>
       </div>
 
@@ -375,7 +375,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
                     <button
                       type="button"
                       onClick={() => handleSaveEdit(category)}
-                      className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-md flex items-center gap-1 active:scale-95"
+                      className="px-2.5 py-1 bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs rounded-md flex items-center gap-1 active:scale-95"
                     >
                       <Check size={12} />
                       <span>확인</span>
@@ -441,13 +441,13 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
                           ? 'bg-rose-500' 
                           : spentPercent >= 80 
                           ? 'bg-amber-400' 
-                          : isLight ? 'bg-emerald-500' : 'bg-[#00F5A0]'
+                          : isLight ? 'bg-sky-500' : 'bg-[#38bdf8]'
                       }`}
                       style={{ width: `${Math.min(100, spentPercent)}%` }}
                     />
                   </div>
                   <span className={`text-[10px] font-bold shrink-0 w-8 text-right tabular-nums ${
-                    isOver ? 'text-rose-500' : spentPercent >= 80 ? 'text-amber-500' : isLight ? 'text-emerald-700' : 'text-[#00F5A0]'
+                    isOver ? 'text-rose-500' : spentPercent >= 80 ? 'text-amber-500' : isLight ? 'text-sky-700' : 'text-[#38bdf8]'
                   }`}>
                     {spentPercent}%
                   </span>
@@ -511,7 +511,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
         }`}>
           <div className="flex items-center justify-between pb-2 border-b border-inherit/10">
             <h5 className="text-xs font-bold flex items-center gap-1.5">
-              <Plus size={14} className="text-emerald-500" /> 새 카테고리 예산 설정
+              <Plus size={14} className="text-sky-500" /> 새 카테고리 예산 설정
             </h5>
             <button
               type="button"
@@ -572,7 +572,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
                     onClick={() => setNewLimitValue(String(amt))}
                     className={`px-2 py-1 rounded-lg text-[10px] font-semibold border transition-all ${
                       newLimitValue === String(amt)
-                        ? 'bg-emerald-500 text-white border-emerald-500'
+                        ? 'bg-sky-500 text-white border-sky-500'
                         : isLight 
                         ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' 
                         : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
@@ -597,7 +597,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
               <button
                 type="button"
                 onClick={handleAddBudget}
-                className="px-4 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-[#00F5A0] to-[#00D9A5] text-[#0B0F17] hover:opacity-90 active:scale-95 transition-all shadow-md shadow-[#00F5A0]/20"
+                className="px-4 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-[#38bdf8] to-[#0284c7] text-[#0B0F17] hover:opacity-90 active:scale-95 transition-all shadow-md shadow-[#38bdf8]/20"
               >
                 예산 등록 완료
               </button>

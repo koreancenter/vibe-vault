@@ -85,7 +85,7 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
             </span>
             <span className={`text-sm sm:text-base font-black tracking-tight mt-0.5 block truncate ${
               forecast.currentBalance >= 0 
-                ? isLight ? 'text-emerald-700' : 'text-[#00F5A0]' 
+                ? isLight ? 'text-sky-700' : 'text-[#38bdf8]' 
                 : 'text-rose-500'
             } ${isStealth ? 'blur-sm select-none' : ''}`}>
               {formatMoney(forecast.currentBalance)}
@@ -134,7 +134,7 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
             </span>
             <div className="flex items-center gap-3 text-[10px]">
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                <span className="w-2 h-2 rounded-full bg-sky-500 inline-block" />
                 <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>실제 실적</span>
               </span>
               <span className="flex items-center gap-1">
@@ -177,7 +177,7 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
                             {data.day}일 {data.isPast ? '(실제 실적)' : data.isToday ? '(오늘)' : '(예측)'}
                           </div>
                           {data.actualBalance !== undefined ? (
-                            <div className="text-emerald-500 font-semibold">
+                            <div className="text-sky-500 font-semibold">
                               실제 누적: {formatMoney(data.actualBalance)}
                             </div>
                           ) : (
@@ -200,7 +200,7 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
                 <Area 
                   type="monotone" 
                   dataKey="actualBalance" 
-                  stroke="#10b981" 
+                  stroke="#0284c7" 
                   strokeWidth={2}
                   fill={isLight ? 'rgba(16, 185, 129, 0.08)' : 'rgba(0, 245, 160, 0.08)'} 
                   connectNulls={false}
@@ -221,7 +221,7 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
         {/* Autonomous CFO Recommendation: Clean Flat Banner without box border */}
         <div className={`mt-3 p-3 rounded-2xl flex items-start gap-2.5 ${
           forecast.status === 'HEALTHY'
-            ? isLight ? 'bg-emerald-500/10 text-emerald-900' : 'bg-emerald-950/30 text-emerald-300'
+            ? isLight ? 'bg-sky-500/10 text-sky-900' : 'bg-sky-950/30 text-sky-300'
             : forecast.status === 'MODERATE'
               ? isLight ? 'bg-amber-500/10 text-amber-900' : 'bg-amber-950/30 text-amber-300'
               : isLight ? 'bg-rose-500/10 text-rose-900' : 'bg-rose-950/30 text-rose-300'

@@ -153,8 +153,8 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           {diff !== 0 && status === 'better' && (
             <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-normal border tabular-nums transition-all ${
               isLight 
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25'
+                ? 'bg-sky-50 text-sky-800 border-sky-200' 
+                : 'bg-sky-500/10 text-sky-300 border-sky-500/25'
             }`}>
               <span>절약</span>
               <span className="text-[11px] opacity-75">(-{percentChange}%)</span>
@@ -243,7 +243,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             diff === 0
               ? (isLight ? 'text-slate-500' : 'text-neutral-400')
               : status === 'better'
-              ? (isLight ? 'text-emerald-700' : 'text-emerald-400')
+              ? (isLight ? 'text-sky-700' : 'text-sky-400')
               : (isLight ? 'text-rose-700' : 'text-rose-400/90')
           }`}>
             전월 대비 변동
@@ -253,14 +253,14 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
               diff === 0
                 ? 'text-neutral-500 font-light'
                 : status === 'better'
-                ? (isLight ? 'text-emerald-700 font-normal' : 'text-emerald-400 font-normal')
+                ? (isLight ? 'text-sky-700 font-normal' : 'text-sky-400 font-normal')
                 : (isLight ? 'text-rose-700 font-normal' : 'text-rose-400/90 font-normal')
             }`}>
               {diff > 0 ? '+' : diff < 0 ? '-' : ''}{currSymbol} {Math.abs(diff).toLocaleString()}
             </span>
             {diff !== 0 && percentChange > 0 && (
               <span className={`text-xs font-light tabular-nums whitespace-nowrap ${
-                status === 'better' ? (isLight ? 'text-emerald-700' : 'text-emerald-400') : (isLight ? 'text-rose-700' : 'text-rose-400/90')
+                status === 'better' ? (isLight ? 'text-sky-700' : 'text-sky-400') : (isLight ? 'text-rose-700' : 'text-rose-400/90')
               }`}>
                 ({diff < 0 ? '▼' : '▲'}{percentChange}%)
               </span>

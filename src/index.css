@@ -6,12 +6,12 @@
   --surface-inset: rgba(0, 0, 0, 0.35);
   --surface-subtle-border: rgba(255, 255, 255, 0.06);
 
-  /* Quiet Luxury Signature Accent System (Refined Muted Sage & Rose Coral) */
-  --color-accent: #34d399;
-  --color-accent-hover: #10b981;
-  --color-accent-subtle: rgba(52, 211, 153, 0.08);
-  --color-accent-border: rgba(52, 211, 153, 0.18);
-  --color-accent-glow: rgba(52, 211, 153, 0.08);
+  /* Quiet Luxury Signature Accent System (Refined Luxury Light Blue & Rose Coral) */
+  --color-accent: #38bdf8;
+  --color-accent-hover: #0284c7;
+  --color-accent-subtle: rgba(56, 189, 248, 0.08);
+  --color-accent-border: rgba(56, 189, 248, 0.18);
+  --color-accent-glow: rgba(56, 189, 248, 0.08);
   --color-accent-contrast: #090A0D;
 
   --color-rose: #fb7185;

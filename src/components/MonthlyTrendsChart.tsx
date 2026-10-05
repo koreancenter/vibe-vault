@@ -23,9 +23,9 @@ import { BarChart3, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-
 
 // Permanent Quiet Luxury Dark Palette Constants
 const LUXURY_CHART_COLORS = {
-  regularBar: 'rgba(52, 211, 153, 0.45)', // Refined Muted Sage
+  regularBar: 'rgba(56, 189, 248, 0.45)', // Refined Muted Sage
   peakBar: '#fb7185',                     // Refined Rose Coral
-  todayBar: '#34d399',                    // Primary Muted Sage Accent
+  todayBar: '#38bdf8',                    // Primary Muted Sage Accent
   selectedBar: '#6ee7b7',                 // Highlighted Sage
   emptyBar: '#1E293B',
 };
@@ -110,7 +110,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
           <div className="flex items-center justify-between gap-3 text-[#94A3B8] pb-1 border-b border-white/10">
             <span className="font-semibold text-white">{data.dateLabel}</span>
             {data.isToday && (
-              <span className="px-2 py-0.5 bg-emerald-400/20 text-emerald-300 text-[10px] rounded-full font-bold">
+              <span className="px-2 py-0.5 bg-sky-400/20 text-sky-300 text-[10px] rounded-full font-bold">
                 오늘
               </span>
             )}
@@ -139,7 +139,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
       {!embedded && (
         <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center text-emerald-400 shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
               <BarChart3 size={16} />
             </div>
             <div className="flex flex-col min-w-0">
@@ -171,7 +171,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
           <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-2 py-1 px-0.5 text-xs text-slate-200">
             <div className="flex items-center justify-between xs:justify-start gap-2">
               <span className="flex items-center gap-1.5 text-[#94A3B8]">
-                <TrendingUp size={13} className="text-emerald-400" /> 일 평균
+                <TrendingUp size={13} className="text-sky-400" /> 일 평균
               </span>
               <span className={`font-bold text-white ${isStealth ? 'blur-xs select-none' : ''}`}>
                 ₩{dailyAverage.toLocaleString()}

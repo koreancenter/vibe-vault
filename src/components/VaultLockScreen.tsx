@@ -266,7 +266,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
                 key={idx}
                 className={`w-3.5 h-3.5 rounded-full transition-all duration-150 ${
                   isFilled
-                    ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)] scale-110'
+                    ? 'bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.7)] scale-110'
                     : 'bg-white/10 border border-white/20'
                 }`}
               />
@@ -288,7 +288,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
               key={digit}
               type="button"
               onClick={() => handleKeypadPress(digit)}
-              className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:bg-emerald-500/20 text-white font-medium text-lg border border-white/5 transition-all active:scale-95 flex items-center justify-center shadow-xs cursor-pointer"
+              className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:bg-sky-500/20 text-white font-medium text-lg border border-white/5 transition-all active:scale-95 flex items-center justify-center shadow-xs cursor-pointer"
             >
               {digit}
             </button>
@@ -307,7 +307,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
           <button
             type="button"
             onClick={() => handleKeypadPress('0')}
-            className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:bg-emerald-500/20 text-white font-medium text-lg border border-white/5 transition-all active:scale-95 flex items-center justify-center shadow-xs cursor-pointer"
+            className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:bg-sky-500/20 text-white font-medium text-lg border border-white/5 transition-all active:scale-95 flex items-center justify-center shadow-xs cursor-pointer"
           >
             0
           </button>
@@ -331,7 +331,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
                 type="button"
                 onClick={handleCompleteSetup}
                 disabled={activeInput.length < 4 || isSubmitting}
-                className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer"
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400 text-slate-950 hover:from-sky-300 hover:to-blue-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-sky-500/20 cursor-pointer"
               >
                 {setupStep === 'create'
                   ? 'PIN 확인 단계로 이동'
@@ -351,7 +351,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
               type="button"
               onClick={() => handleAttemptUnlock(pin)}
               disabled={pin.length < 4 || isSubmitting}
-              className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer"
+              className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400 text-slate-950 hover:from-sky-300 hover:to-blue-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-sky-500/20 cursor-pointer"
             >
               {isSubmitting ? '잠금 해제 중...' : '금고 잠금 해제'}
             </button>

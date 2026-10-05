@@ -1263,7 +1263,7 @@ export function computeDeterministicFinancialQuery(
         label: `총 ${targetCurrency} 환차손익`,
         value: formattedTotal,
         highlight: true,
-        color: totalGain >= 0 ? 'emerald' : 'amber'
+        color: totalGain >= 0 ? 'sky' : 'amber'
       });
       breakdownPills.push({
         label: '외화 평가익',
@@ -1318,7 +1318,7 @@ export function computeDeterministicFinancialQuery(
         label: `${categoryKo} 총 지출`,
         value: `${currSymbol}${Math.round(totalSum).toLocaleString()}`,
         highlight: true,
-        color: 'emerald'
+        color: 'sky'
       });
       breakdownPills.push({
         label: '결제 건수',
@@ -1392,7 +1392,7 @@ export function computeDeterministicFinancialQuery(
         label: '주말 총 지출',
         value: `${currSymbol}${Math.round(weekendSum).toLocaleString()}`,
         highlight: true,
-        color: 'emerald'
+        color: 'sky'
       });
       breakdownPills.push({
         label: '주말 소비 비중',
@@ -1428,7 +1428,7 @@ export function computeDeterministicFinancialQuery(
         label: '총 지출액',
         value: `${currSymbol}${Math.round(totalExp).toLocaleString()}`,
         highlight: true,
-        color: 'emerald'
+        color: 'sky'
       });
       breakdownPills.push({
         label: '총 결제 건수',
@@ -1456,7 +1456,7 @@ export function computeDeterministicFinancialQuery(
         label: '총 수입액',
         value: `${currSymbol}${Math.round(totalInc).toLocaleString()}`,
         highlight: true,
-        color: 'emerald'
+        color: 'sky'
       });
       breakdownPills.push({
         label: '입금 건수',
@@ -1481,7 +1481,7 @@ export function computeDeterministicFinancialQuery(
         label: '순 저축액',
         value: `${prefix}${currSymbol}${Math.round(net).toLocaleString()}`,
         highlight: true,
-        color: net >= 0 ? 'emerald' : 'amber'
+        color: net >= 0 ? 'sky' : 'amber'
       });
       breakdownPills.push({
         label: '저축률',
@@ -1514,7 +1514,7 @@ export function computeDeterministicFinancialQuery(
         label: '가맹점 지출',
         value: `${currSymbol}${Math.round(total).toLocaleString()}`,
         highlight: true,
-        color: 'emerald'
+        color: 'sky'
       });
       breakdownPills.push({
         label: '결제 횟수',
@@ -1542,7 +1542,7 @@ export function computeDeterministicFinancialQuery(
         label: '순수지',
         value: `${net >= 0 ? '+' : ''}${currSymbol}${Math.round(net).toLocaleString()}`,
         highlight: true,
-        color: net >= 0 ? 'emerald' : 'blue'
+        color: net >= 0 ? 'sky' : 'blue'
       });
       breakdownPills.push({
         label: '총 수입',

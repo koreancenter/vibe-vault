@@ -310,7 +310,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
               <div className="flex items-center gap-1.5">
                 <h3 className="text-sm font-bold tracking-tight">AI 영수증 스캐너</h3>
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
-                  isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  isLight ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'
                 }`}>
                   Phase 1 AI
                 </span>
@@ -366,7 +366,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       onClose();
                       onOpenSettings('engine');
                     }}
-                    className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-xs"
+                    className="flex-1 py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-xs"
                   >
                     <Settings size={13} />
                     <span>설정에서 API 키 등록하기</span>
@@ -426,7 +426,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
               isLight ? 'bg-slate-50 border-slate-200 text-slate-600' : 'bg-white/[0.02] border-white/5 text-slate-400'
             }`}>
               <span className="text-[11px] flex items-center gap-1.5">
-                <KeyRound size={12} className="text-emerald-500 shrink-0" />
+                <KeyRound size={12} className="text-sky-500 shrink-0" />
                 <span>개인 Gemini API 키를 등록하면 고정밀 AI Vision 인식이 동작합니다.</span>
               </span>
               {onOpenSettings && (
@@ -436,7 +436,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                     onClose();
                     onOpenSettings('engine');
                   }}
-                  className="text-[11px] font-bold text-emerald-500 hover:text-emerald-400 shrink-0 underline underline-offset-2"
+                  className="text-[11px] font-bold text-sky-500 hover:text-sky-400 shrink-0 underline underline-offset-2"
                 >
                   키 등록
                 </button>
@@ -468,10 +468,10 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                   isDraggingOver
                     ? isLight
                       ? 'border-indigo-600 bg-indigo-50/80 ring-4 ring-indigo-500/20 scale-[1.01]'
-                      : 'border-[#00F5A0] bg-[#00F5A0]/10 ring-4 ring-[#00F5A0]/20 scale-[1.01]'
+                      : 'border-[#38bdf8] bg-[#38bdf8]/10 ring-4 ring-[#38bdf8]/20 scale-[1.01]'
                     : isLight 
                       ? 'border-slate-300 hover:border-indigo-500 bg-slate-50/60 hover:bg-indigo-50/20' 
-                      : 'border-white/10 hover:border-[#00F5A0]/40 bg-white/[0.02] hover:bg-white/[0.04]'
+                      : 'border-white/10 hover:border-[#38bdf8]/40 bg-white/[0.02] hover:bg-white/[0.04]'
                 }`}
               >
                 <input
@@ -485,7 +485,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shadow-xs transition-transform ${
                   isDraggingOver ? 'scale-110' : ''
                 } ${
-                  isLight ? 'bg-white border-slate-200 text-indigo-600' : 'bg-white/[0.05] border-white/10 text-[#00F5A0]'
+                  isLight ? 'bg-white border-slate-200 text-indigo-600' : 'bg-white/[0.05] border-white/10 text-[#38bdf8]'
                 }`}>
                   <Upload size={22} className={isDraggingOver ? 'animate-bounce' : ''} />
                 </div>
@@ -499,7 +499,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] opacity-75 mt-0.5">
                   <span className="flex items-center gap-1">
-                    <ShieldCheck size={12} className="text-emerald-500" />
+                    <ShieldCheck size={12} className="text-sky-500" />
                     <span>1280px 자동 리샘플링</span>
                   </span>
                   <span>•</span>
@@ -535,14 +535,14 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 {/* Compression Specs Badge */}
                 {compressionMeta && (
                   <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-white/15 text-[10px] font-mono text-white flex items-center gap-2">
-                    <span className="flex items-center gap-1 text-emerald-400">
+                    <span className="flex items-center gap-1 text-sky-400">
                       <ImageIcon size={10} />
                       {compressionMeta.width}×{compressionMeta.height}
                     </span>
                     <span className="opacity-40">|</span>
                     <span>{compressionMeta.mimeType.replace('image/', '').toUpperCase()}</span>
                     <span className="opacity-40">|</span>
-                    <span>{compressionMeta.originalKB}KB → <strong className="text-emerald-400">{compressionMeta.compressedKB}KB</strong></span>
+                    <span>{compressionMeta.originalKB}KB → <strong className="text-sky-400">{compressionMeta.compressedKB}KB</strong></span>
                   </div>
                 )}
 
@@ -561,7 +561,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 <div className={`p-4 rounded-2xl border text-center space-y-2 flex flex-col items-center ${
                   isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/[0.03] border-white/10'
                 }`}>
-                  <Loader2 size={24} className="animate-spin text-emerald-500" />
+                  <Loader2 size={24} className="animate-spin text-sky-500" />
                   <p className="text-xs font-bold">Gemini Vision AI 구조화 분석 중...</p>
                   <p className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
                     가맹점명, 총액, 상세 품목을 JSON 스키마로 추출하고 있습니다
@@ -576,7 +576,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 }`}>
                   <div className="flex items-center justify-between pb-2 border-b border-black/5 dark:border-white/5">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold flex items-center gap-1 text-emerald-600 dark:text-[#00F5A0]">
+                      <span className="text-xs font-bold flex items-center gap-1 text-sky-600 dark:text-[#38bdf8]">
                         <Sparkles size={14} /> 인식 완료
                       </span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
@@ -601,7 +601,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
 
                     <div className="text-right">
                       <span className={`text-[11px] block ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>총 결제 금액</span>
-                      <span className="text-base font-black text-emerald-600 dark:text-[#00F5A0] block mt-0.5 font-mono">
+                      <span className="text-base font-black text-sky-600 dark:text-[#38bdf8] block mt-0.5 font-mono">
                         {getCurrencySymbol(parsedResult.currency as SupportedCurrency)}{parsedResult.totalAmount.toLocaleString()}
                       </span>
                     </div>
@@ -665,7 +665,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 className={`w-full p-2.5 rounded-xl border text-xs font-mono resize-none focus:outline-hidden transition-colors ${
                   isLight 
                     ? 'bg-white border-slate-200 text-slate-900 focus:border-indigo-500' 
-                    : 'bg-black/30 border-white/10 text-white focus:border-[#00F5A0]'
+                    : 'bg-black/30 border-white/10 text-white focus:border-[#38bdf8]'
                 }`}
               />
               <button
@@ -715,7 +715,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
               <button
                 type="button"
                 onClick={handleApply}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-[#00F5A0] to-[#00D9F5] text-[#0B0F17] hover:opacity-95 active:scale-95 shadow-md flex items-center gap-1.5 transition-all"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-[#38bdf8] to-[#60a5fa] text-[#0B0F17] hover:opacity-95 active:scale-95 shadow-md flex items-center gap-1.5 transition-all"
               >
                 <Check size={14} />
                 <span>가계부에 기록</span>

@@ -35,7 +35,6 @@ import {
   Bitcoin,
   Banknote,
   CreditCard,
-  CheckCircle2,
   AlertTriangle,
   ArrowRight,
   X,
@@ -327,7 +326,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
   const assetBreakdownList = useMemo(() => {
     const items = [
       { key: 'BANK', name: '예적금 / 입출금', icon: Landmark, color: '#3B82F6', amount: categoryTotals.BANK || 0 },
-      { key: 'BROKERAGE', name: '주식 / 투자', icon: TrendingUp, color: '#10B981', amount: categoryTotals.BROKERAGE || 0 },
+      { key: 'BROKERAGE', name: '주식 / 투자', icon: TrendingUp, color: '#0284c7', amount: categoryTotals.BROKERAGE || 0 },
       { key: 'REAL_ESTATE', name: '부동산', icon: Building, color: '#8B5CF6', amount: categoryTotals.REAL_ESTATE || 0 },
       { key: 'CRYPTO', name: '가상자산', icon: Bitcoin, color: '#F59E0B', amount: categoryTotals.CRYPTO || 0 },
       { key: 'CASH', name: '현금', icon: Banknote, color: '#06B6D4', amount: categoryTotals.CASH || 0 },
@@ -388,8 +387,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               onClick={handleResetToCurrentMonth}
               className={`px-3 py-1 rounded-full text-xs font-light transition-all active:scale-95 ${
                 isLight 
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
-                  : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                  ? 'bg-sky-50 text-sky-800 border border-sky-200' 
+                  : 'bg-sky-500/10 text-sky-300 border border-sky-500/20'
               }`}
             >
               이번 달
@@ -587,8 +586,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                     className={`p-3 rounded-xl border flex flex-col justify-between ${
                       pill.highlight
                         ? isLight
-                          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
-                          : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                          ? 'bg-sky-50/80 border-sky-200 text-sky-900'
+                          : 'bg-sky-500/10 border-sky-500/20 text-sky-300'
                         : isLight
                           ? 'bg-slate-50 border-slate-200/60 text-slate-800'
                           : 'bg-white/[0.02] border-white/[0.04] text-slate-200'
@@ -596,14 +595,14 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                   >
                     <span className={`text-[11px] font-light ${
                       pill.highlight 
-                        ? (isLight ? 'text-emerald-700' : 'text-emerald-400') 
+                        ? (isLight ? 'text-sky-700' : 'text-sky-400') 
                         : (isLight ? 'text-slate-500' : 'text-slate-400')
                     }`}>
                       {pill.label}
                     </span>
                     <span className={`text-xs sm:text-sm font-normal tabular-nums mt-1 ${
                       pill.highlight
-                        ? (isLight ? 'text-emerald-900 font-medium' : 'text-emerald-200')
+                        ? (isLight ? 'text-sky-900 font-medium' : 'text-sky-200')
                         : (isLight ? 'text-slate-900' : 'text-slate-100')
                     }`}>
                       {pill.value}
@@ -659,7 +658,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               : isLight ? 'text-slate-600 hover:text-slate-950 border border-transparent' : 'text-slate-400 hover:text-white border border-transparent'
           }`}
         >
-          <PieChartIcon size={13} className={activeTab === 'spending' ? 'text-emerald-400' : ''} />
+          <PieChartIcon size={13} className={activeTab === 'spending' ? 'text-sky-400' : ''} />
           <span>소비·지출</span>
         </button>
 
@@ -716,11 +715,11 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   이번 달 저축률
                 </span>
-                <TrendingUp size={14} className="text-emerald-400/90" />
+                <TrendingUp size={14} className="text-sky-400/90" />
               </div>
               <div className="flex items-baseline gap-1">
                 <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums ${
-                  savingsRate >= 30 ? (isLight ? 'text-emerald-700' : 'text-emerald-400/90') : savingsRate >= 0 ? (isLight ? 'text-slate-800' : 'text-slate-200') : 'text-rose-400/90'
+                  savingsRate >= 30 ? (isLight ? 'text-sky-700' : 'text-sky-400/90') : savingsRate >= 0 ? (isLight ? 'text-slate-800' : 'text-slate-200') : 'text-rose-400/90'
                 }`}>
                   {savingsRate}%
                 </span>
@@ -743,7 +742,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               </div>
               <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums block ${
                 parseFloat(String(burnRateToNetWorth)) < 3 
-                  ? (isLight ? 'text-emerald-700' : 'text-emerald-400/90') 
+                  ? (isLight ? 'text-sky-700' : 'text-sky-400/90') 
                   : parseFloat(String(burnRateToNetWorth)) < 7 
                   ? isLight ? 'text-slate-900' : 'text-white' 
                   : 'text-amber-400'
@@ -761,19 +760,19 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   비상 유동성 완충
                 </span>
-                <Banknote size={14} className="text-teal-400" />
+                <Banknote size={14} className="text-sky-300" />
               </div>
               <div className="flex items-baseline gap-1">
                 {monthExpense === 0 ? (
                   <span className={`text-xl md:text-2xl font-light tracking-tight ${
-                    liquidAssets > 0 ? (isLight ? 'text-emerald-700' : 'text-emerald-400/90') : 'text-neutral-500'
+                    liquidAssets > 0 ? (isLight ? 'text-sky-700' : 'text-sky-400/90') : 'text-neutral-500'
                   }`}>
                     {liquidAssets > 0 ? '충분' : '-'}
                   </span>
                 ) : (
                   <>
                     <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums ${
-                      parseFloat(runwayMonths) >= 6 ? (isLight ? 'text-emerald-700' : 'text-emerald-400/90') : parseFloat(runwayMonths) >= 3 ? 'text-amber-400' : 'text-rose-400/90'
+                      parseFloat(runwayMonths) >= 6 ? (isLight ? 'text-sky-700' : 'text-sky-400/90') : parseFloat(runwayMonths) >= 3 ? 'text-amber-400' : 'text-rose-400/90'
                     }`}>
                       {parseFloat(runwayMonths) > 99 ? '99+' : runwayMonths}
                     </span>
@@ -796,46 +795,58 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               {/* Integrated AI CFO Diagnosis Card */}
               <div className={`p-5 sm:p-6 rounded-2xl transition-all border ${
                 isLight 
-                  ? 'bg-white/85 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
-                  : 'bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
+                  ? 'bg-white/90 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
+                  : 'bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]'
               }`}>
-                <div className="flex items-start gap-3.5">
-                  <div className={`p-2 rounded-xl shrink-0 ${
-                    integratedDiagnosis.status === 'EXCELLENT'
-                      ? 'bg-emerald-500/10 text-emerald-400'
-                      : integratedDiagnosis.status === 'HEALTHY'
-                      ? 'bg-indigo-500/10 text-indigo-400'
-                      : 'bg-rose-500/10 text-rose-400'
+                <div className="space-y-2.5">
+                  {/* Clean unboxed typographic kicker & status */}
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className={`font-medium ${
+                      integratedDiagnosis.status === 'EXCELLENT'
+                        ? isLight ? 'text-sky-700' : 'text-sky-400'
+                        : integratedDiagnosis.status === 'HEALTHY'
+                        ? isLight ? 'text-blue-700' : 'text-blue-400'
+                        : integratedDiagnosis.status === 'MODERATE'
+                        ? isLight ? 'text-slate-600' : 'text-slate-400'
+                        : isLight ? 'text-rose-700' : 'text-rose-400'
+                    }`}>
+                      {integratedDiagnosis.status === 'EXCELLENT'
+                        ? '최상'
+                        : integratedDiagnosis.status === 'HEALTHY'
+                        ? '안정'
+                        : integratedDiagnosis.status === 'MODERATE'
+                        ? '적정'
+                        : '주의 필요'}
+                    </span>
+                    <span className="opacity-30">·</span>
+                    <span className={`font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      재정 밸런스 진단
+                    </span>
+                  </div>
+
+                  {/* Clean Primary Title */}
+                  <h3 className={`text-base font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                    {integratedDiagnosis.title}
+                  </h3>
+
+                  {/* Summary Text */}
+                  <p className={`text-xs sm:text-sm font-light leading-relaxed ${
+                    isLight ? 'text-slate-600' : 'text-slate-300'
                   }`}>
-                    <Sparkles size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[10px] font-light px-2 py-0.5 rounded-full border ${
-                        integratedDiagnosis.status === 'EXCELLENT'
-                          ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
-                          : integratedDiagnosis.status === 'HEALTHY'
-                          ? 'border-indigo-500/20 bg-indigo-500/10 text-indigo-300'
-                          : 'border-rose-500/20 bg-rose-500/10 text-rose-300'
-                      }`}>
-                        {integratedDiagnosis.status === 'EXCELLENT' ? '우수' : integratedDiagnosis.status === 'HEALTHY' ? '안정' : '주의 필요'}
+                    {integratedDiagnosis.summary}
+                  </p>
+
+                  {/* Quiet Recommendation Footer (No decorative icons, clean divider) */}
+                  {integratedDiagnosis.recommendation && (
+                    <div className={`pt-3 border-t text-xs font-light leading-relaxed ${
+                      isLight ? 'border-slate-200/60 text-slate-600' : 'border-white/[0.06] text-slate-400'
+                    }`}>
+                      <span className={`font-medium mr-1.5 ${isLight ? 'text-sky-700' : 'text-sky-400'}`}>
+                        가이드
                       </span>
-                      <h3 className="font-normal text-sm sm:text-base tracking-tight">
-                        {integratedDiagnosis.title}
-                      </h3>
+                      <span>{integratedDiagnosis.recommendation}</span>
                     </div>
-                    <p className={`mt-2 text-xs sm:text-sm font-light leading-relaxed ${
-                      isLight ? 'text-slate-600' : 'text-slate-300'
-                    }`}>
-                      {integratedDiagnosis.summary}
-                    </p>
-                    <div className={`mt-3 pt-3 border-t text-xs font-light flex items-start gap-2.5 ${
-                      isLight ? 'border-slate-200/60 text-slate-700' : 'border-white/[0.05] text-slate-300'
-                    }`}>
-                      <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
-                      <span className="leading-relaxed">{integratedDiagnosis.recommendation}</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -900,7 +911,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                   <span className={isLight ? 'text-slate-600' : 'text-slate-300'}>
                     이번 달 수지 대조
                   </span>
-                  <span className={`tabular-nums ${monthNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  <span className={`tabular-nums ${monthNet >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
                     순수익: {formatMoney(monthNet)}
                   </span>
                 </div>
@@ -909,9 +920,9 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                     isLight ? 'bg-slate-50 border border-slate-200/60 text-slate-800' : 'bg-white/[0.02] border border-white/[0.04] text-slate-200'
                   }`}>
                     <span className="text-xs font-light flex items-center gap-1 text-slate-400">
-                      <ArrowUpRight size={13} className="text-emerald-400" /> 수입
+                      <ArrowUpRight size={13} className="text-sky-400" /> 수입
                     </span>
-                    <span className={`font-normal tabular-nums text-emerald-400 ${isStealth ? 'blur-sm select-none' : ''}`}>
+                    <span className={`font-normal tabular-nums text-sky-400 ${isStealth ? 'blur-sm select-none' : ''}`}>
                       +{formatMoney(monthIncome)}
                     </span>
                   </div>
@@ -984,7 +995,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveTab('spending')}
-                  className={`text-xs font-light ${isLight ? 'text-emerald-700 hover:underline' : 'text-emerald-300 hover:underline'}`}
+                  className={`text-xs font-light ${isLight ? 'text-sky-700 hover:underline' : 'text-sky-300 hover:underline'}`}
                 >
                   상세보기
                 </button>
@@ -1032,14 +1043,14 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                               isLight ? 'bg-white/95 border-slate-200 text-slate-900' : 'bg-[#08090D]/90 border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
                             }`}>
                               <div className="font-normal">{data.day}일 {data.isPast ? '(실적)' : '(예측)'}</div>
-                              <div className="text-emerald-400 font-normal tabular-nums">{formatMoney(data.actualBalance ?? data.projectedBalance)}</div>
+                              <div className="text-sky-400 font-normal tabular-nums">{formatMoney(data.actualBalance ?? data.projectedBalance)}</div>
                             </div>
                           );
                         }
                         return null;
                       }}
                     />
-                    <Area type="monotone" dataKey="actualBalance" stroke="#34d399" strokeWidth={1.5} fill={isLight ? 'rgba(52, 211, 153, 0.08)' : 'rgba(52, 211, 153, 0.06)'} connectNulls={false} />
+                    <Area type="monotone" dataKey="actualBalance" stroke="#38bdf8" strokeWidth={1.5} fill={isLight ? 'rgba(56, 189, 248, 0.08)' : 'rgba(56, 189, 248, 0.06)'} connectNulls={false} />
                     <Line type="monotone" dataKey="projectedBalance" stroke="#38bdf8" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -1100,7 +1111,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   부채 비율
                 </span>
-                <span className={`text-sm sm:text-base font-normal tabular-nums ${debtRatio < 40 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <span className={`text-sm sm:text-base font-normal tabular-nums ${debtRatio < 40 ? 'text-sky-400' : 'text-amber-400'}`}>
                   {debtRatio}%
                 </span>
               </div>
@@ -1212,7 +1223,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                         {formatMoney(convertCurrency(acc.currentBalance, acc.currency || 'KRW', currentCurrency, fxRates))}
                       </span>
                       {acc.holdings && acc.holdings.length > 0 && (
-                        <span className="text-[10px] font-light text-emerald-400">
+                        <span className="text-[10px] font-light text-sky-400">
                           종목 {acc.holdings.length}개 보유
                         </span>
                       )}
@@ -1244,8 +1255,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                   onClick={() => setSelectedCategory(null)}
                   className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-normal active:scale-95 transition-all border ${
                     isLight 
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                      : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20'
+                      ? 'bg-sky-50 text-sky-800 border-sky-200' 
+                      : 'bg-sky-500/10 text-sky-300 border-sky-500/20 hover:bg-sky-500/20'
                   }`}
                 >
                   <span>{getCategoryKo(selectedCategory)}</span>
@@ -1328,7 +1339,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           }`}>
             <div className={`p-3.5 rounded-xl flex items-start gap-2.5 mb-4 border ${
               forecast.status === 'HEALTHY'
-                ? isLight ? 'bg-emerald-50/70 text-emerald-950 border-emerald-200/60' : 'bg-emerald-500/[0.06] text-emerald-300 border-emerald-500/20'
+                ? isLight ? 'bg-sky-50/70 text-sky-950 border-sky-200/60' : 'bg-sky-500/[0.06] text-sky-300 border-sky-500/20'
                 : forecast.status === 'MODERATE'
                   ? isLight ? 'bg-amber-50/70 text-amber-950 border-amber-200/60' : 'bg-amber-500/[0.06] text-amber-300 border-amber-500/20'
                   : isLight ? 'bg-rose-50/70 text-rose-950 border-rose-200/60' : 'bg-rose-500/[0.06] text-rose-300 border-rose-500/20'
@@ -1365,7 +1376,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                   월말 예상 잔액
                 </span>
                 <span className={`text-sm sm:text-base font-normal tracking-tight tabular-nums mt-0.5 block truncate ${
-                  forecast.projectedMonthEndBalance >= 0 ? (isLight ? 'text-emerald-600' : 'text-emerald-400') : 'text-rose-400'
+                  forecast.projectedMonthEndBalance >= 0 ? (isLight ? 'text-sky-600' : 'text-sky-400') : 'text-rose-400'
                 } ${isStealth ? 'blur-sm select-none' : ''}`}>
                   {formatMoney(forecast.projectedMonthEndBalance)}
                 </span>
@@ -1397,7 +1408,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 </span>
                 <div className="flex items-center gap-3 text-[10px]">
                   <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" />
                     <span className={`font-light ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>실제 실적</span>
                   </span>
                   <span className="flex items-center gap-1">
@@ -1425,7 +1436,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                                 {data.day}일 {data.isPast ? '(실제 실적)' : data.isToday ? '(오늘)' : '(예측)'}
                               </div>
                               {data.actualBalance !== undefined ? (
-                                <div className="text-emerald-400 font-normal tabular-nums">
+                                <div className="text-sky-400 font-normal tabular-nums">
                                   실제 누적: {formatMoney(data.actualBalance)}
                                 </div>
                               ) : (
@@ -1445,7 +1456,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                       }}
                     />
                     <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" opacity={0.4} />
-                    <Area type="monotone" dataKey="actualBalance" stroke="#34d399" strokeWidth={1.5} fill={isLight ? 'rgba(52, 211, 153, 0.08)' : 'rgba(52, 211, 153, 0.06)'} connectNulls={false} />
+                    <Area type="monotone" dataKey="actualBalance" stroke="#38bdf8" strokeWidth={1.5} fill={isLight ? 'rgba(56, 189, 248, 0.08)' : 'rgba(56, 189, 248, 0.06)'} connectNulls={false} />
                     <Line type="monotone" dataKey="projectedBalance" stroke="#38bdf8" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
                   </ComposedChart>
                 </ResponsiveContainer>

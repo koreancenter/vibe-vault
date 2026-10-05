@@ -100,7 +100,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
         }`}>
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#00F5A0] animate-pulse" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] animate-pulse" />
               <h2 className={`text-base font-bold tracking-tight ${isLight ? 'text-slate-950' : 'text-white'}`}>
                 새 프로젝트 / 행사 장부 만들기
               </h2>
@@ -134,7 +134,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
           {/* 1. Project Name (Required) */}
           <div className="space-y-1.5">
             <label className={`text-xs font-semibold flex items-center justify-between ${isLight ? 'text-slate-700' : 'text-[#94A3B8]'}`}>
-              <span>장부 이름 <strong className="text-[#00F5A0] font-normal">*</strong></span>
+              <span>장부 이름 <strong className="text-[#38bdf8] font-normal">*</strong></span>
               <span className="text-[11px] opacity-70 font-normal">필수</span>
             </label>
             <input 
@@ -145,7 +145,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                 if (error) setError(null);
               }}
               placeholder="예: 동창회 유럽 여행, 여름 발리 휴가, 2026 워크샵" 
-              className={`w-full border rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#00F5A0] transition-colors ${
+              className={`w-full border rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#38bdf8] transition-colors ${
                 isLight 
                   ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400' 
                   : 'bg-black/40 border-white/10 text-white placeholder:text-white/30'
@@ -164,8 +164,8 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                   className={`text-[11px] px-2.5 py-1 rounded-xl border transition-all ${
                     name === idea
                       ? isLight
-                        ? 'bg-emerald-100 border-emerald-500 text-emerald-800 font-semibold'
-                        : 'bg-[#00F5A0]/20 border-[#00F5A0] text-[#00F5A0] font-semibold'
+                        ? 'bg-sky-100 border-sky-500 text-sky-800 font-semibold'
+                        : 'bg-[#38bdf8]/20 border-[#38bdf8] text-[#38bdf8] font-semibold'
                       : isLight
                         ? 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
                         : 'bg-white/[0.04] border-white/10 text-slate-300 hover:text-white hover:bg-white/10'
@@ -193,7 +193,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                     currency === cur.code
                       ? isLight
                         ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
-                        : 'bg-[#00F5A0]/20 border-[#00F5A0] text-[#00F5A0] font-bold shadow-sm shadow-[#00F5A0]/10'
+                        : 'bg-[#38bdf8]/20 border-[#38bdf8] text-[#38bdf8] font-bold shadow-sm shadow-[#38bdf8]/10'
                       : isLight
                         ? 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                         : 'bg-white/[0.03] border-white/10 text-slate-300 hover:text-white hover:bg-white/10'
@@ -211,7 +211,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
             {/* Target Budget / Total Dues */}
             <div className="space-y-1.5">
               <label className={`text-xs font-semibold flex items-center gap-1.5 ${isLight ? 'text-slate-700' : 'text-[#94A3B8]'}`}>
-                <Wallet size={13} className="text-emerald-400" />
+                <Wallet size={13} className="text-sky-400" />
                 <span>목표 예산 / 총 회비</span>
               </label>
               <div className="relative">
@@ -223,7 +223,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                     setBudget(raw ? Number(raw).toLocaleString() : '');
                   }}
                   placeholder="예: 2,000,000" 
-                  className={`w-full border rounded-2xl pl-3 pr-9 py-2.5 text-xs outline-none focus:border-[#00F5A0] transition-colors tabular-nums font-semibold ${
+                  className={`w-full border rounded-2xl pl-3 pr-9 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors tabular-nums font-semibold ${
                     isLight 
                       ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400' 
                       : 'bg-black/40 border-white/10 text-white placeholder:text-white/30'
@@ -250,7 +250,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                     value={memberCount}
                     onChange={(e) => setMemberCount(e.target.value)}
                     placeholder="인원수" 
-                    className={`w-full border rounded-2xl pl-3 pr-8 py-2.5 text-xs outline-none focus:border-[#00F5A0] transition-colors tabular-nums font-bold ${
+                    className={`w-full border rounded-2xl pl-3 pr-8 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors tabular-nums font-bold ${
                       isLight 
                         ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400' 
                         : 'bg-black/40 border-white/10 text-white placeholder:text-white/30'
@@ -301,7 +301,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                   type="date" 
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className={`w-full border rounded-2xl px-3 py-2 text-xs outline-none focus:border-[#00F5A0] transition-colors font-medium ${
+                  className={`w-full border rounded-2xl px-3 py-2 text-xs outline-none focus:border-[#38bdf8] transition-colors font-medium ${
                     isLight 
                       ? 'bg-slate-50 border-slate-300 text-slate-900' 
                       : 'bg-black/40 border-white/10 text-white'
@@ -314,7 +314,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                   type="date" 
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className={`w-full border rounded-2xl px-3 py-2 text-xs outline-none focus:border-[#00F5A0] transition-colors font-medium ${
+                  className={`w-full border rounded-2xl px-3 py-2 text-xs outline-none focus:border-[#38bdf8] transition-colors font-medium ${
                     isLight 
                       ? 'bg-slate-50 border-slate-300 text-slate-900' 
                       : 'bg-black/40 border-white/10 text-white'
@@ -340,7 +340,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
-              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#00F5A0] to-[#00D9A5] hover:opacity-95 active:scale-[0.98] text-[#0B0F17] font-bold text-xs transition-all shadow-lg shadow-[#00F5A0]/20 disabled:opacity-40 disabled:pointer-events-none"
+              className="flex-1 h-11 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#38bdf8] to-[#0284c7] hover:opacity-95 active:scale-[0.98] text-[#0B0F17] font-bold text-xs transition-all shadow-lg shadow-[#38bdf8]/20 disabled:opacity-40 disabled:pointer-events-none"
             >
               <Sparkles size={15} />
               <span>장부 공간 생성 및 바로 전환</span>

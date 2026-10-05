@@ -280,7 +280,7 @@ export interface CalculationBreakdownPill {
   label: string;
   value: string;
   highlight?: boolean;
-  color?: 'emerald' | 'blue' | 'amber' | 'purple' | 'slate';
+  color?: 'sky' | 'blue' | 'amber' | 'purple' | 'slate';
 }
 
 export interface FinancialQueryResult {

@@ -142,7 +142,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
       );
     }
     return (
-      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-sky-500/15 text-sky-400 border border-sky-500/30">
         결제 완료
       </span>
     );
@@ -199,7 +199,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
               연간 환산 고정비
             </span>
             <span className={`text-lg font-black tracking-tight mt-0.5 block ${
-              isLight ? 'text-emerald-700' : 'text-[#00F5A0]'
+              isLight ? 'text-sky-700' : 'text-[#38bdf8]'
             } ${isStealth ? 'blur-sm select-none' : ''}`}>
               {currSymbol}{annualizedTotal.toLocaleString()}
             </span>
@@ -303,7 +303,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
                         title={sub.isActive ? '구독 일시중지' : '구독 다시 활성화'}
                         className={`p-1.5 rounded-lg transition-colors ${
                           sub.isActive
-                            ? isLight ? 'hover:bg-slate-100 text-emerald-600' : 'hover:bg-white/10 text-[#00F5A0]'
+                            ? isLight ? 'hover:bg-slate-100 text-sky-600' : 'hover:bg-white/10 text-[#38bdf8]'
                             : isLight ? 'hover:bg-slate-100 text-slate-400' : 'hover:bg-white/10 text-slate-500'
                         }`}
                       >
@@ -334,7 +334,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
           }`}>
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-bold flex items-center gap-1.5">
-                <Sparkles size={16} className={isLight ? 'text-emerald-600' : 'text-[#00F5A0]'} />
+                <Sparkles size={16} className={isLight ? 'text-sky-600' : 'text-[#38bdf8]'} />
                 <span>정기 구독 직접 추가</span>
               </h4>
               <button
@@ -411,7 +411,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-[#00F5A0] to-[#00D9F5] text-slate-950 font-bold"
+                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-[#38bdf8] to-[#60a5fa] text-slate-950 font-bold"
                 >
                   추가하기
                 </button>

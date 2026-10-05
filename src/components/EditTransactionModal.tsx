@@ -95,7 +95,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 name="type" 
                 value={formData.type || ''} 
                 onChange={handleChange} 
-                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#00F5A0] transition-colors font-medium ${
+                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors font-medium ${
                   isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/40 border-white/10 text-white'
                 }`}
               >
@@ -113,7 +113,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 name="amount" 
                 value={formData.amount ?? ''} 
                 onChange={handleChange} 
-                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#00F5A0] font-bold transition-colors ${
+                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] font-bold transition-colors ${
                   isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/40 border-white/10 text-white'
                 }`} 
               />
@@ -127,7 +127,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               name="description" 
               value={formData.description || ''} 
               onChange={handleChange} 
-              className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#00F5A0] transition-colors ${
+              className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors ${
                 isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/40 border-white/10 text-white'
               }`} 
             />
@@ -142,7 +142,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 value={formData.category || ''} 
                 onChange={handleChange} 
                 placeholder="예: 식비, 생활/쇼핑"
-                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#00F5A0] transition-colors ${
+                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors ${
                   isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/40 border-white/10 text-white'
                 }`} 
               />
@@ -155,8 +155,8 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                     className={`text-[10px] px-1.5 py-0.5 rounded-lg border transition-all ${
                       formData.category === cat.key || formData.category === cat.nameKo
                         ? isLight
-                          ? 'bg-emerald-100 border-emerald-500 text-emerald-800 font-bold'
-                          : 'bg-[#00F5A0]/20 border-[#00F5A0] text-[#00F5A0] font-bold'
+                          ? 'bg-sky-100 border-sky-500 text-sky-800 font-bold'
+                          : 'bg-[#38bdf8]/20 border-[#38bdf8] text-[#38bdf8] font-bold'
                         : isLight
                           ? 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
                           : 'bg-white/[0.04] border-white/10 text-slate-300 hover:text-white'
@@ -176,7 +176,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 value={formData.paymentMethod || ''} 
                 onChange={handleChange} 
                 placeholder="예: 현대카드, 토스머니" 
-                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#00F5A0] transition-colors ${
+                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors ${
                   isLight ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400' : 'bg-black/40 border-white/10 text-white placeholder:text-[#94A3B8]/50'
                 }`} 
               />
@@ -190,8 +190,8 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                       className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all ${
                         formData.paymentMethod === asset.name
                           ? isLight
-                            ? 'bg-emerald-100 border-emerald-500 text-emerald-800 font-bold'
-                            : 'bg-[#00F5A0]/20 border-[#00F5A0] text-[#00F5A0] font-bold'
+                            ? 'bg-sky-100 border-sky-500 text-sky-800 font-bold'
+                            : 'bg-[#38bdf8]/20 border-[#38bdf8] text-[#38bdf8] font-bold'
                           : isLight
                             ? 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
                             : 'bg-white/[0.04] border-white/10 text-slate-300 hover:text-white'
@@ -213,7 +213,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               value={formData.note || ''} 
               onChange={handleChange} 
               placeholder="예: 정산 메모, 결제자, 영수증 번호 등"
-              className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#00F5A0] transition-colors ${
+              className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors ${
                 isLight ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400' : 'bg-black/40 border-white/10 text-white placeholder:text-[#94A3B8]/50'
               }`} 
             />
@@ -222,7 +222,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
           <div className="flex justify-end pt-3">
             <button 
               onClick={handleSave} 
-              className="h-12 w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#00F5A0] to-[#00D9A5] hover:opacity-95 active:scale-[0.98] text-[#0B0F17] font-bold text-xs transition-all shadow-lg shadow-[#00F5A0]/20"
+              className="h-12 w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#38bdf8] to-[#0284c7] hover:opacity-95 active:scale-[0.98] text-[#0B0F17] font-bold text-xs transition-all shadow-lg shadow-[#38bdf8]/20"
             >
               <Check size={16} /> 변경사항 저장하기
             </button>

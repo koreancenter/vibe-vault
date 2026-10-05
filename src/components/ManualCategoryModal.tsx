@@ -163,7 +163,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
             isLight ? 'bg-slate-100/70 border-slate-200 text-slate-700' : 'bg-black/30 border-white/5 text-slate-300'
           }`}>
             <span className="flex items-center gap-1.5">
-              <Layers size={13} className="text-emerald-500" />
+              <Layers size={13} className="text-sky-500" />
               <span>항목 {currentIndex + 1} / {totalCount}</span>
             </span>
             <div className="flex gap-1">
@@ -172,9 +172,9 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
                   key={idx}
                   className={`w-2 h-2 rounded-full transition-all ${
                     idx === currentIndex 
-                      ? isLight ? 'bg-emerald-600 w-4' : 'bg-[#00F5A0] w-4' 
+                      ? isLight ? 'bg-sky-600 w-4' : 'bg-[#38bdf8] w-4' 
                       : idx < currentIndex
-                        ? isLight ? 'bg-emerald-300' : 'bg-[#00F5A0]/40'
+                        ? isLight ? 'bg-sky-300' : 'bg-[#38bdf8]/40'
                         : isLight ? 'bg-slate-300' : 'bg-slate-700'
                   }`}
                 />
@@ -196,7 +196,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
                     : currentTx.type === 'TRANSFER'
                     ? isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/20 text-purple-400'
                     : currentTx.type === 'SETTLEMENT'
-                    ? isLight ? 'bg-teal-100 text-teal-700' : 'bg-teal-500/20 text-teal-400'
+                    ? isLight ? 'bg-sky-100 text-sky-700' : 'bg-sky-500/20 text-sky-300'
                     : isLight ? 'bg-rose-100 text-rose-700' : 'bg-rose-500/20 text-rose-400'
                 }`}>
                   {currentTx.type === 'INCOME' ? '수입' : currentTx.type === 'TRANSFER' ? '이체' : currentTx.type === 'SETTLEMENT' ? '정산' : '지출'}
@@ -229,8 +229,8 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
               <span className={`font-bold px-2.5 py-0.5 rounded-lg border ${
                 selectedCategory 
                   ? isLight 
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800' 
-                    : 'bg-[#00F5A0]/15 border-[#00F5A0]/30 text-[#00F5A0]'
+                    ? 'bg-sky-50 border-sky-300 text-sky-800' 
+                    : 'bg-[#38bdf8]/15 border-[#38bdf8]/30 text-[#38bdf8]'
                   : isLight
                     ? 'bg-amber-50 border-amber-300 text-amber-700'
                     : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
@@ -258,8 +258,8 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
                     className={`p-3 rounded-2xl border text-left flex items-center gap-2.5 transition-all active:scale-95 ${
                       isSelected
                         ? isLight
-                          ? 'bg-emerald-50 border-emerald-500 text-emerald-900 ring-2 ring-emerald-500/30 font-bold shadow-sm'
-                          : 'bg-[#00F5A0]/15 border-[#00F5A0] text-white ring-2 ring-[#00F5A0]/40 font-bold shadow-md shadow-[#00F5A0]/10'
+                          ? 'bg-sky-50 border-sky-500 text-sky-900 ring-2 ring-sky-500/30 font-bold shadow-sm'
+                          : 'bg-[#38bdf8]/15 border-[#38bdf8] text-white ring-2 ring-[#38bdf8]/40 font-bold shadow-md shadow-[#38bdf8]/10'
                         : isLight
                           ? 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                           : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:bg-white/[0.08]'
@@ -291,7 +291,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
                 value={customCategoryInput}
                 onChange={(e) => setCustomCategoryInput(e.target.value)}
                 placeholder="예: 반려동물, 자기계발, 구독료"
-                className={`flex-1 border rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-500 transition-colors ${
+                className={`flex-1 border rounded-xl px-3 py-2 text-xs outline-none focus:border-sky-500 transition-colors ${
                   isLight ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400' : 'bg-slate-900 border-white/10 text-white placeholder:text-slate-500'
                 }`}
               />
@@ -345,7 +345,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
             id="manual-category-confirm-btn"
             type="button"
             onClick={handleNextOrSave}
-            className="flex-1 h-11 px-5 rounded-2xl bg-gradient-to-r from-[#00F5A0] to-[#00D9A5] hover:opacity-95 active:scale-95 text-[#0B0F17] font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-[#00F5A0]/20"
+            className="flex-1 h-11 px-5 rounded-2xl bg-gradient-to-r from-[#38bdf8] to-[#0284c7] hover:opacity-95 active:scale-95 text-[#0B0F17] font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-[#38bdf8]/20"
           >
             {isLast ? (
               <>
