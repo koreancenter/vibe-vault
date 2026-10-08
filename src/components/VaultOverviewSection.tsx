@@ -1862,39 +1862,45 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       {/* ADD ACCOUNT MODAL */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className={`relative w-full max-w-sm rounded-2xl p-6 shadow-2xl border ${
-                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#121318]/95 backdrop-blur-xl text-white border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-base font-bold">새 자산 계좌 추가</h3>
-                  <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    증권, 은행, 가상자산, 부동산 등
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="p-1 text-slate-400 hover:text-white"
-                >
-                  <X size={18} />
-                </button>
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md"
+          onClick={() => setShowAddModal(false)}
+        >
+          {/* Modal Dialog Window */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="w-full max-w-md max-h-[90vh] flex flex-col bg-[#0E1015] border border-white/[0.08] rounded-3xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Sticky Modal Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06] shrink-0">
+              <div>
+                <h3 className="text-base font-medium text-white">새 자산 계좌 추가</h3>
+                <p className="text-xs text-neutral-400 mt-0.5">증권, 은행, 가상자산, 부동산 등</p>
               </div>
+              <button 
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-              <form onSubmit={handleCreateAccount} className="space-y-3">
+            {/* Scrollable Form Body & Sticky Action Footer */}
+            <form onSubmit={handleCreateAccount} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              {/* Scrollable Form Body */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 overscroll-contain">
+                {/* Form fields: 자산 유형, 기관명, 계좌명, 현재 잔고, 메모 */}
                 <div>
-                  <label className="text-xs font-semibold block mb-1 text-slate-400">자산 유형</label>
+                  <label className="text-xs font-semibold block mb-1.5 text-neutral-400">자산 유형</label>
                   <select
                     value={newAccountForm.assetType}
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, assetType: e.target.value as AssetCategoryType })}
-                    className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white'
-                    }`}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium outline-none border bg-white/[0.03] border-white/10 text-white focus:border-white/30"
                   >
                     {assetCategories.map((c) => (
                       <option key={c.type} value={c.type} className="bg-[#08090D] text-white">
@@ -1905,35 +1911,31 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold block mb-1 text-slate-400">기관명</label>
+                  <label className="text-xs font-semibold block mb-1.5 text-neutral-400">기관명</label>
                   <input
                     type="text"
                     value={newAccountForm.institution}
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, institution: e.target.value })}
                     placeholder="토스증권, 카카오페이증권, 업비트 등"
                     required
-                    className={`w-full px-3 py-2 rounded-xl text-xs outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-sky-500/40'
-                    }`}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-xs outline-none border bg-white/[0.03] border-white/10 text-white focus:border-white/30 placeholder:text-neutral-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold block mb-1 text-slate-400">계좌명 / 포트폴리오 별칭</label>
+                  <label className="text-xs font-semibold block mb-1.5 text-neutral-400">계좌명 / 포트폴리오 별칭</label>
                   <input
                     type="text"
                     value={newAccountForm.accountName}
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, accountName: e.target.value })}
                     placeholder="해외주식 종합계좌, 비트코인 적립 등"
                     required
-                    className={`w-full px-3 py-2 rounded-xl text-xs outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-sky-500/40'
-                    }`}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-xs outline-none border bg-white/[0.03] border-white/10 text-white focus:border-white/30 placeholder:text-neutral-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold block mb-1 text-slate-400">현재 잔고 / 평가액</label>
+                  <label className="text-xs font-semibold block mb-1.5 text-neutral-400">현재 잔고 / 평가액</label>
                   <input
                     type="number"
                     step="any"
@@ -1941,44 +1943,42 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, balance: e.target.value })}
                     placeholder="10000000"
                     required
-                    className={`w-full px-3 py-2 rounded-xl text-xs font-medium outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-sky-500/40'
-                    }`}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium outline-none border bg-white/[0.03] border-white/10 text-white focus:border-white/30 placeholder:text-neutral-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold block mb-1 text-slate-400">메모 (선택)</label>
+                  <label className="text-xs font-semibold block mb-1.5 text-neutral-400">메모 (선택)</label>
                   <input
                     type="text"
                     value={newAccountForm.note}
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, note: e.target.value })}
                     placeholder="S&P 500, 배당주 위주"
-                    className={`w-full px-3 py-2 rounded-xl text-xs outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white'
-                    }`}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-xs outline-none border bg-white/[0.03] border-white/10 text-white focus:border-white/30 placeholder:text-neutral-500"
                   />
                 </div>
+              </div>
 
-                <div className="flex items-center gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(false)}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]"
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 transition-all"
-                  >
-                    계좌 추가
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
+              {/* Sticky Action Footer */}
+              <div className="grid grid-cols-2 gap-3 px-6 py-4 border-t border-white/[0.06] bg-[#0E1015] shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="w-full py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 text-sm font-medium transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all shadow-sm"
+                >
+                  계좌 추가
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
 
         {/* Delete Account Confirmation Modal (Iframe & Cross-Origin Safe) */}
         {deletingAccount && (
