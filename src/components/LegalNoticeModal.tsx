@@ -97,6 +97,16 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
             </p>
           </div>
 
+          {/* Section 4: AI API Key Security & Billing Disclaimer */}
+          <div className="pt-4 space-y-1.5">
+            <h3 className="text-xs font-semibold text-white tracking-tight">
+              04. AI API Key 보안 및 과금 면책
+            </h3>
+            <p className="text-neutral-400 text-[11.5px] leading-relaxed">
+              사용자가 제공하거나 등록한 Gemini API Key는 오직 클라이언트 브라우저에서 Google AI Studio / Google Cloud 공식 엔드포인트로 향하는 직접 HTTPS 통신에만 사용됩니다. 외부 제3자 서버로 키가 수집·저장·재전송되지 않습니다. 아울러 AI 모델 호출 및 파싱 요청으로 인해 Google Cloud 또는 AI Studio에서 발생하는 모든 API 소비 요금 및 과금에 대한 납부 의무와 법적 책임은 전적으로 사용자 본인에게 있으며, Vibe Vault 및 운영 주체는 이에 대해 어떠한 대리 결제나 과금 면책 책임을 지지 않습니다.
+            </p>
+          </div>
+
           {/* Privacy Guarantee Note */}
           <div className="pt-4">
             <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-emerald-500/[0.04] border border-emerald-500/15 text-emerald-400/90 text-[11px]">
@@ -108,7 +118,22 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-white/[0.06] shrink-0 bg-[#0E1015]/90">
+        <div className="px-6 py-3.5 border-t border-white/[0.06] shrink-0 bg-[#0E1015]/90 space-y-2.5">
+          <div className="text-[10.5px] text-neutral-400 space-y-0.5">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-neutral-300">한국센터글로벌네트워크 지식관리실</span>
+              <a
+                href="mailto:master@goguma.app"
+                className="text-neutral-400 hover:text-white transition-colors underline underline-offset-2 font-mono text-[10px]"
+              >
+                master@goguma.app
+              </a>
+            </div>
+            <p className="text-[9.5px] text-neutral-400">
+              © 2026 한국센터글로벌네트워크 지식관리실. All rights reserved.
+            </p>
+          </div>
+
           <button
             type="button"
             onClick={onClose}

@@ -247,3 +247,15 @@ Vibe Vault는 데이터 백업 시 일반 평문 JSON 내보내기 외에, 군�
 
 Distributed under the MIT License for sovereign personal financial autonomy.  
 Designed & Engineered with absolute privacy by the Vibe Vault Core Team.
+
+---
+
+## ✦ Maintainer & Organization
+- **Organization**: 한국센터글로벌네트워크 지식관리실
+- **Inquiries**: master@goguma.app
+- **Copyright**: © 2026 한국센터글로벌네트워크 지식관리실. All rights reserved.
+
+## ✦ Security & Billing Disclaimer
+- **Client-Side API Key Storage**: 사용자가 등록한 Gemini API 키는 오직 브라우저 내부(IndexedDB/LocalStorage)에만 암호화 및 격리 저장되며, 외부 제3자 서버로 수집되거나 재전송되지 않습니다.
+- **Direct HTTPS Communication**: 모든 인공지능 분석 및 영수증 OCR 요청은 사용자의 클라이언트 브라우저에서 Google AI Studio / Google Cloud 공식 엔드포인트로 직접 HTTPS 통신합니다.
+- **Zero Third-Party Billing Liability**: Google AI Studio 또는 Google Cloud Platform(GCP)에서 발생하는 모든 API 사용료 및 과금 청구액은 전적으로 사용자 본인의 Google 계정에 직접 부과됩니다. Vibe Vault 및 운영 주체(한국센터글로벌네트워크 지식관리실)는 사용자의 API 호출량 및 이로 인해 발생하는 일체의 제3자 과금·비용에 대해 어떠한 대리 결제나 법적·재정적 책임을 부담하지 않습니다.
