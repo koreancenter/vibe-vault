@@ -5,6 +5,7 @@ import {
   unlockVault, 
   setVaultPin 
 } from '../vaultSecurity';
+import { LegalNoticeModal } from './LegalNoticeModal';
 
 interface VaultLockScreenProps {
   onUnlocked?: () => void;
@@ -23,6 +24,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [shake, setShake] = useState<boolean>(false);
+  const [legalOpen, setLegalOpen] = useState<boolean>(false);
 
   // Sync state on custom event and mount
   useEffect(() => {
@@ -346,19 +348,31 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
               >
                 나중에 설정하기 (게스트 모드)
               </button>
+
+              <p className="text-[10px] text-neutral-400 mt-4 text-center">
+                온디바이스 로컬 금고 · <button type="button" onClick={() => setLegalOpen(true)} className="underline hover:text-neutral-300 cursor-pointer">법적 고지 및 면책</button>
+              </p>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => handleAttemptUnlock(pin)}
-              disabled={pin.length < 4 || isSubmitting}
-              className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400 text-slate-950 hover:from-sky-300 hover:to-blue-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-sky-500/20 cursor-pointer"
-            >
-              {isSubmitting ? '잠금 해제 중...' : '금고 잠금 해제'}
-            </button>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => handleAttemptUnlock(pin)}
+                disabled={pin.length < 4 || isSubmitting}
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400 text-slate-950 hover:from-sky-300 hover:to-blue-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-sky-500/20 cursor-pointer"
+              >
+                {isSubmitting ? '잠금 해제 중...' : '금고 잠금 해제'}
+              </button>
+
+              <p className="text-[10px] text-neutral-400 mt-4 text-center">
+                온디바이스 로컬 금고 · <button type="button" onClick={() => setLegalOpen(true)} className="underline hover:text-neutral-300 cursor-pointer">법적 고지 및 면책</button>
+              </p>
+            </div>
           )}
         </div>
       </div>
+
+      <LegalNoticeModal isOpen={legalOpen} onClose={() => setLegalOpen(false)} />
     </div>
   );
 };

@@ -87,6 +87,7 @@ import {
   purgeWebLLMCache,
   ModelDownloadProgress
 } from '../webllmManager';
+import { LegalNoticeModal } from './LegalNoticeModal';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -250,6 +251,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   // Multi-Ledger Spaces State in Settings
   const [internalSpaces, setInternalSpaces] = useState<LedgerSpace[]>(spaces || [DEFAULT_SPACE]);
+  const [legalOpen, setLegalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (spaces) {
@@ -1724,6 +1726,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
 
+              {/* General Settings Legal Disclaimer Link */}
+              <div className="pt-2 pb-1 text-center">
+                <button
+                  type="button"
+                  onClick={() => setLegalOpen(true)}
+                  className="text-[11px] text-neutral-400 hover:text-white underline underline-offset-4 cursor-pointer transition-colors"
+                >
+                  법적 고지 및 면책 조항
+                </button>
+              </div>
+
             </div>
           )}
 
@@ -1913,24 +1926,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <p className="text-[10px] leading-relaxed text-neutral-400 font-light">
                   ⚠️ 전체 데이터 초기화 시 기기에 암호화되어 저장된 모든 자산, 거래 내역, PIN이 영구 삭제됩니다.
                 </p>
+
+                {/* Privacy & Data Tab Legal Disclaimer Link */}
+                <div className="pt-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setLegalOpen(true)}
+                    className="text-[11px] text-neutral-400 hover:text-white underline underline-offset-4 cursor-pointer transition-colors"
+                  >
+                    법적 고지 및 면책 조항
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
           {/* Bottom Action Bar (Apply & Save + Session Logout) */}
           <div className="pt-3.5 border-t border-white/[0.06] mt-auto shrink-0 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                lockVault();
-              }}
-              title="금고 잠그기"
-              className="h-10 px-3.5 rounded-xl font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white"
-            >
-              <Lock size={13} className="shrink-0 text-neutral-400" />
-              <span>금고 잠그기</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  lockVault();
+                }}
+                title="금고 잠그기"
+                className="h-10 px-3.5 rounded-xl font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white"
+              >
+                <Lock size={13} className="shrink-0 text-neutral-400" />
+                <span>금고 잠그기</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLegalOpen(true)}
+                className="text-[11px] text-neutral-400 hover:text-white underline underline-offset-4 cursor-pointer hidden sm:inline-block"
+              >
+                법적 고지 및 면책 조항
+              </button>
+            </div>
 
             <button
               type="button"
@@ -2227,6 +2261,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
       )}
+
+      {/* Legal Notice & Terms Modal */}
+      <LegalNoticeModal isOpen={legalOpen} onClose={() => setLegalOpen(false)} />
     </div>
   );
 };
