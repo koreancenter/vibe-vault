@@ -323,7 +323,7 @@ export const PWAInstallBanner: React.FC<{
               </div>
               <div className="flex flex-col truncate">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold tracking-tight truncate">Vibe Ledger AI 앱 설치</span>
+                  <span className="text-xs font-bold tracking-tight truncate">Vibe Vault 앱 설치</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/20 text-sky-400 font-semibold">PWA</span>
                 </div>
                 <span className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>

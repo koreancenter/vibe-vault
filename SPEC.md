@@ -1,4 +1,4 @@
-# SPEC.md: Vibe Ledger Global SaaS Technical Specification
+# SPEC.md: Vibe Vault Global Technical Specification
 
 ## 1. System Architecture Overview
 

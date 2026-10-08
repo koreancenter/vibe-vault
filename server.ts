@@ -666,7 +666,7 @@ Never output full resident identity numbers, personal passwords, or full unmaske
           model: 'gemini-3.8-flash',
           contents: sanitizedPrompt,
           config: {
-            systemInstruction: `You are 'Vibe Ledger AI', an expert NLP financial logic parser.
+            systemInstruction: `You are 'Vibe Vault AI', an expert NLP financial logic parser.
 Your mission is to parse natural language inputs (Korean or English) into structured financial transactions.
 
 CRITICAL INSTRUCTIONS:
@@ -844,7 +844,7 @@ Output a strict JSON array of ParsedItem objects.`,
           model: 'gemini-3.8-flash',
           contents: text,
           config: {
-            systemInstruction: `You are 'Vibe Ledger AI', an intelligent personal finance asset parser.
+            systemInstruction: `You are 'Vibe Vault AI', an intelligent personal finance asset parser.
 Your task is to parse unstructured natural language text, bank SMS alerts, KakaoTalk push notifications, or statements into structured financial asset records (bank accounts, credit/debit cards, cash funds).
 
 [Strict Privacy & Anonymity Rules]
