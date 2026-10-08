@@ -22,17 +22,32 @@
   --color-rose-subtle: rgba(251, 113, 133, 0.08);
   --color-rose-border: rgba(251, 113, 133, 0.18);
 
-  /* Responsive Fluid Typography System */
-  --fluid-hero-balance: clamp(1.75rem, 2.5vw, 3rem);
-  --fluid-heading: clamp(1.125rem, 1.3vw, 1.45rem);
-  --fluid-body: clamp(0.875rem, 0.9vw, 1rem);
-  --fluid-label: clamp(0.75rem, 0.75vw, 0.875rem);
+  /* Mobile Fluid Tokens (360px ~ 440px calibrated) */
+  --fluid-card-p: clamp(1rem, 4.5vw, 1.5rem);      /* 16px ~ 24px */
+  --fluid-gap: clamp(0.625rem, 2.5vw, 1rem);        /* 10px ~ 16px */
+  
+  /* Fluid Font Sizes */
+  --fluid-hero: clamp(1.75rem, 7.5vw, 2.25rem);     /* 28px ~ 36px */
+  --fluid-title: clamp(1rem, 4.2vw, 1.25rem);       /* 16px ~ 20px */
+  --fluid-body: clamp(0.8125rem, 3.4vw, 0.9375rem); /* 13px ~ 15px */
+  --fluid-caption: clamp(0.6875rem, 2.8vw, 0.75rem);/* 11px ~ 12px */
+
+  /* Aliases for backwards compatibility */
+  --fluid-hero-balance: var(--fluid-hero);
+  --fluid-heading: var(--fluid-title);
+  --fluid-label: var(--fluid-caption);
 }
 
-.text-fluid-hero { font-size: var(--fluid-hero-balance); line-height: 1.1; }
-.text-fluid-heading { font-size: var(--fluid-heading); line-height: 1.3; }
-.text-fluid-body { font-size: var(--fluid-body); line-height: 1.5; }
-.text-fluid-label { font-size: var(--fluid-label); line-height: 1.4; }
+.card-fluid-padding { padding: var(--fluid-card-p); }
+.gap-fluid { gap: var(--fluid-gap); }
+.text-fluid-hero { font-size: var(--fluid-hero); line-height: 1.15; }
+.text-fluid-title { font-size: var(--fluid-title); line-height: 1.3; }
+.text-fluid-body { font-size: var(--fluid-body); line-height: 1.45; }
+.text-fluid-caption { font-size: var(--fluid-caption); line-height: 1.4; }
+
+/* Legacy typography classes */
+.text-fluid-heading { font-size: var(--fluid-title); line-height: 1.3; }
+.text-fluid-label { font-size: var(--fluid-caption); line-height: 1.4; }
 
 body, #root {
   background: #090A0D !important;
