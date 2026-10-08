@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { 
   Transaction, 
   SupportedCurrency, 
@@ -54,9 +54,10 @@ import {
   ASSET_CATEGORY_NAMES_KO 
 } from '../utils';
 import { getAllAssetAccounts, getAllDebts } from '../db';
-import { CategoryDonutChart } from './CategoryDonutChart';
-import { MonthlyTrendsChart } from './MonthlyTrendsChart';
-import { YearlyTrendsChart } from './YearlyTrendsChart';
+
+const CategoryDonutChart = lazy(() => import('./CategoryDonutChart'));
+const MonthlyTrendsChart = lazy(() => import('./MonthlyTrendsChart'));
+const YearlyTrendsChart = lazy(() => import('./YearlyTrendsChart'));
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -995,14 +996,16 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                   상세보기
                 </button>
               </div>
-              <CategoryDonutChart
-                transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
-                selectedCategory={selectedCategory}
-                onSelectCategory={setSelectedCategory}
-                currencySymbol={currentCurrency}
-                isStealth={isStealth}
-                embedded={true}
-              />
+              <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 로딩 중...</div>}>
+                <CategoryDonutChart
+                  transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                  currencySymbol={currentCurrency}
+                  isStealth={isStealth}
+                  embedded={true}
+                />
+              </Suspense>
             </div>
 
             {/* Predictive Cashflow Curve */}
@@ -1067,12 +1070,14 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 {format(selectedMonth, 'yyyy년 M월')}
               </span>
             </div>
-            <MonthlyTrendsChart
-              transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
-              currencySymbol={currentCurrency}
-              isStealth={isStealth}
-              embedded={true}
-            />
+            <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 로딩 중...</div>}>
+              <MonthlyTrendsChart
+                transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
+                currencySymbol={currentCurrency}
+                isStealth={isStealth}
+                embedded={true}
+              />
+            </Suspense>
           </div>
         </div>
       </div>
@@ -1260,14 +1265,16 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               )}
             </div>
 
-            <CategoryDonutChart
-              transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-              currencySymbol={currentCurrency}
-              isStealth={isStealth}
-              embedded={true}
-            />
+            <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 로딩 중...</div>}>
+              <CategoryDonutChart
+                transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+                currencySymbol={currentCurrency}
+                isStealth={isStealth}
+                embedded={true}
+              />
+            </Suspense>
           </div>
 
           {/* Trend Deep Dive: 일별 추이 vs 연간 월별 비교 */}
@@ -1305,19 +1312,23 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
             </div>
 
             {trendSubTab === 'daily' ? (
-              <MonthlyTrendsChart
-                transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
-                currencySymbol={currentCurrency}
-                isStealth={isStealth}
-                embedded={true}
-              />
+              <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 로딩 중...</div>}>
+                <MonthlyTrendsChart
+                  transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
+                  currencySymbol={currentCurrency}
+                  isStealth={isStealth}
+                  embedded={true}
+                />
+              </Suspense>
             ) : (
-              <YearlyTrendsChart
-                transactions={transactions}
-                currencySymbol={currentCurrency}
-                isStealth={isStealth}
-                embedded={true}
-              />
+              <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 로딩 중...</div>}>
+                <YearlyTrendsChart
+                  transactions={transactions}
+                  currencySymbol={currentCurrency}
+                  isStealth={isStealth}
+                  embedded={true}
+                />
+              </Suspense>
             )}
           </div>
         </div>

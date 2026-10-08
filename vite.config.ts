@@ -4,13 +4,15 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-export default defineConfig(() => {
-  return {
-    base: '/',
-    plugins: [
-      react(), 
-      tailwindcss(),
-      VitePWA({
+export default defineConfig({
+  esbuild: {
+    drop: ['console', 'debugger'],
+  },
+  base: '/',
+  plugins: [
+    react(), 
+    tailwindcss(),
+    VitePWA({
         registerType: 'autoUpdate',
         includeAssets: [
           'icon.svg',
@@ -148,21 +150,12 @@ export default defineConfig(() => {
       chunkSizeWarningLimit: 600,
       rollupOptions: {
         output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              if (id.includes('lucide-react')) {
-                return 'vendor-icons';
-              }
-              if (id.includes('date-fns') || id.includes('idb')) {
-                return 'vendor-utils';
-              }
-              if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) {
-                return 'vendor-charts';
-              }
-            }
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-charts': ['recharts'],
+            'vendor-icons': ['lucide-react'],
           },
         },
       },
     },
-  };
 });

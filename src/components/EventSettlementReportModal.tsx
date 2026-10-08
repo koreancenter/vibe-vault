@@ -532,3 +532,5 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
     </>
   );
 };
+
+export default EventSettlementReportModal;

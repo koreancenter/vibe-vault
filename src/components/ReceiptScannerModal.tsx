@@ -727,3 +727,5 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
     </div>
   );
 };
+
+export default ReceiptScannerModal;

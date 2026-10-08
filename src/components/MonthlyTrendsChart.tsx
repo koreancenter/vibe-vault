@@ -283,3 +283,5 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
     </div>
   );
 };
+
+export default MonthlyTrendsChart;

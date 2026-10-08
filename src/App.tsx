@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
 import { 
   parseFinancialInputDeterministically, 
   inferCategoryAndMerchant,
@@ -65,15 +65,19 @@ import { SettingsModal } from './components/SettingsModal';
 import { InsightsSection } from './components/InsightsSection';
 import { ManualCategoryModal } from './components/ManualCategoryModal';
 import { FinancialSummaryCard } from './components/FinancialSummaryCard';
-import { CurrencySelectorModal } from './components/CurrencySelectorModal';
-import { ReceiptScannerModal } from './components/ReceiptScannerModal';
 import { SubscriptionManagerSection } from './components/SubscriptionManagerSection';
 import { PWAInstallButton, PWAInstallBanner } from './components/PWAInstallButton';
 import { VaultOverviewSection } from './components/VaultOverviewSection';
 import { VaultLockScreen } from './components/VaultLockScreen';
 import { NewSpaceModal } from './components/NewSpaceModal';
-import { EventSettlementReportModal } from './components/EventSettlementReportModal';
 import { initAutoLockWatcher, lockVault, isVaultLocked, subscribeVaultLock } from './vaultSecurity';
+
+// Dynamic Code-Split Components (Charts & Heavy Modals)
+export const CategoryDonutChart = lazy(() => import('./components/CategoryDonutChart'));
+export const MonthlyTrendsChart = lazy(() => import('./components/MonthlyTrendsChart'));
+export const YearlyTrendsChart = lazy(() => import('./components/YearlyTrendsChart'));
+export const ReceiptScannerModal = lazy(() => import('./components/ReceiptScannerModal'));
+export const EventSettlementReportModal = lazy(() => import('./components/EventSettlementReportModal'));
 
 /**
  * Online Connectivity Hook
@@ -238,7 +242,6 @@ export function App() {
 
   const handleLockVault = useCallback(() => {
     setIsSettingsOpen(false);
-    setIsCurrencyModalOpen(false);
     setIsReceiptModalOpen(false);
     setEditingTransaction(null);
     setSelectedActionTransaction(null);
@@ -314,7 +317,6 @@ export function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'assets' | 'engine' | 'preferences' | 'privacy'>('assets');
   const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'assets' | 'budget' | 'subscriptions'>('assets');
-  const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [selectedActionTransaction, setSelectedActionTransaction] = useState<Transaction | null>(null);
@@ -433,11 +435,25 @@ export function App() {
     refreshList();
     window.addEventListener('storage', refreshList);
     return () => window.removeEventListener('storage', refreshList);
-  }, [currentCurrency, isCurrencyModalOpen, isSettingsOpen]);
+  }, [currentCurrency, isSettingsOpen]);
 
   // Progressive Multi-Currency Logic:
   // Determine isMultiCurrencyMode: userCurrencies.length > 1
   const isMultiCurrencyMode = activeCurrencies.length > 1;
+
+  const handleOpenSettingsModal = useCallback((
+    tab?: unknown,
+    subTab?: 'assets' | 'budget' | 'subscriptions'
+  ) => {
+    const validTabs: ('assets' | 'engine' | 'preferences' | 'privacy')[] = ['assets', 'engine', 'preferences', 'privacy'];
+    const resolvedTab: 'assets' | 'engine' | 'preferences' | 'privacy' =
+      typeof tab === 'string' && (validTabs as string[]).includes(tab)
+        ? (tab as 'assets' | 'engine' | 'preferences' | 'privacy')
+        : 'assets';
+    setSettingsInitialTab(resolvedTab);
+    setSettingsInitialSubTab(subTab || 'assets');
+    setIsSettingsOpen(true);
+  }, []);
 
   // Quick-cycle through registered currencies when tapping the header chip
   const handleQuickCycleCurrency = useCallback(() => {
@@ -449,7 +465,7 @@ export function App() {
     }
 
     if (list.length <= 1) {
-      setIsCurrencyModalOpen(true);
+      handleOpenSettingsModal('preferences');
       return;
     }
 
@@ -457,7 +473,7 @@ export function App() {
     const nextIndex = (currentIndex + 1) % list.length;
     const nextCurrency = list[nextIndex] as SupportedCurrency;
     handleSelectCurrency(nextCurrency);
-  }, [currentCurrency, handleSelectCurrency]);
+  }, [currentCurrency, handleSelectCurrency, handleOpenSettingsModal]);
 
   const handleSelectSpace = useCallback((space: LedgerSpace) => {
     setActiveSpaceId(space.id);
@@ -510,25 +526,9 @@ export function App() {
     URL.revokeObjectURL(url);
   }, [spaceFilteredLedgerTransactions, activeSpace.name, activeSpace.currency, currentCurrency]);
 
-  const handleOpenCurrencyModal = useCallback(() => setIsCurrencyModalOpen(true), []);
-  const handleCloseCurrencyModal = useCallback(() => setIsCurrencyModalOpen(false), []);
-
   const handleOpenReceiptModal = useCallback(() => setIsReceiptModalOpen(true), []);
   const handleCloseReceiptModal = useCallback(() => setIsReceiptModalOpen(false), []);
 
-  const handleOpenSettingsModal = useCallback((
-    tab?: unknown,
-    subTab?: 'assets' | 'budget' | 'subscriptions'
-  ) => {
-    const validTabs: ('assets' | 'engine' | 'preferences' | 'privacy')[] = ['assets', 'engine', 'preferences', 'privacy'];
-    const resolvedTab: 'assets' | 'engine' | 'preferences' | 'privacy' =
-      typeof tab === 'string' && (validTabs as string[]).includes(tab)
-        ? (tab as 'assets' | 'engine' | 'preferences' | 'privacy')
-        : 'assets';
-    setSettingsInitialTab(resolvedTab);
-    setSettingsInitialSubTab(subTab || 'assets');
-    setIsSettingsOpen(true);
-  }, []);
   const handleCloseSettingsModal = useCallback(() => {
     setIsSettingsOpen(false);
     syncPreferences();
@@ -888,7 +888,7 @@ export function App() {
                 onClick={handleQuickCycleCurrency}
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  setIsCurrencyModalOpen(true);
+                  handleOpenSettingsModal('preferences');
                 }}
                 title={`클릭: 등록된 통화 빠른 순환 (${activeCurrencies.join(' → ')}) · 우클릭: 통화 관리`}
                 className="h-8 px-2.5 rounded-full border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white flex items-center gap-1.5 text-xs transition-all active:scale-95 group"
@@ -1492,7 +1492,7 @@ export function App() {
               <button
                 id="omnibar-currency-badge"
                 type="button"
-                onClick={handleOpenCurrencyModal}
+                onClick={handleQuickCycleCurrency}
                 title="클릭하여 통화 변경"
                 className={`px-2 py-0.5 rounded-lg text-[11px] font-bold shrink-0 transition-all ${
                   isLight
@@ -1678,26 +1678,19 @@ export function App() {
         }}
       />
 
-      {/* Global Currency Selector Modal */}
-      <CurrencySelectorModal
-        isOpen={isCurrencyModalOpen}
-        onClose={handleCloseCurrencyModal}
-        currentCurrency={currentCurrency}
-        onSelectCurrency={handleSelectCurrency}
-        fxRates={fxRates}
-        onFxRatesUpdated={setFxRates}
-        theme="dark"
-      />
-
       {/* Multimodal Receipt AI Scanner Modal */}
-      <ReceiptScannerModal
-        isOpen={isReceiptModalOpen}
-        onClose={handleCloseReceiptModal}
-        onConfirm={handleConfirmReceipt}
-        onOpenSettings={(tab) => handleOpenSettingsModal(tab || 'engine')}
-        theme={userPrefs.theme || 'dark'}
-        currentCurrency={currentCurrency}
-      />
+      <Suspense fallback={null}>
+        {isReceiptModalOpen && (
+          <ReceiptScannerModal
+            isOpen={isReceiptModalOpen}
+            onClose={handleCloseReceiptModal}
+            onConfirm={handleConfirmReceipt}
+            onOpenSettings={(tab) => handleOpenSettingsModal(tab || 'engine')}
+            theme={userPrefs.theme || 'dark'}
+            currentCurrency={currentCurrency}
+          />
+        )}
+      </Suspense>
 
       {/* New Project / Event Space Modal */}
       <NewSpaceModal
@@ -1718,17 +1711,21 @@ export function App() {
       />
 
       {/* Korean-Standard Event Settlement Report Modal */}
-      <EventSettlementReportModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        space={activeSpace}
-        transactions={currentSpaceTransactions}
-        onUpdateSpace={async (updated) => {
-          await createSpace(updated);
-          setSpaces(prev => prev.map(s => s.id === updated.id ? updated : s));
-        }}
-        theme={userPrefs.theme || 'dark'}
-      />
+      <Suspense fallback={null}>
+        {isReportModalOpen && (
+          <EventSettlementReportModal
+            isOpen={isReportModalOpen}
+            onClose={() => setIsReportModalOpen(false)}
+            space={activeSpace}
+            transactions={currentSpaceTransactions}
+            onUpdateSpace={async (updated) => {
+              await createSpace(updated);
+              setSpaces(prev => prev.map(s => s.id === updated.id ? updated : s));
+            }}
+            theme={userPrefs.theme || 'dark'}
+          />
+        )}
+      </Suspense>
 
       {/* Zero-Knowledge Privacy Vault PIN Lock Screen */}
       <VaultLockScreen onUnlocked={handleUnlocked} />

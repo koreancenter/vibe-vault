@@ -373,3 +373,5 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
     </div>
   );
 };
+
+export default YearlyTrendsChart;

@@ -260,3 +260,5 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
     </div>
   );
 };
+
+export default CategoryDonutChart;
