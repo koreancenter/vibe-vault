@@ -749,7 +749,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               id="vault-scan-balance-btn"
               type="button"
               onClick={() => setShowScanModal(true)}
-              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0"
+              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0 cursor-pointer"
             >
               <span className="whitespace-nowrap">화면 스캔</span>
             </button>
@@ -770,7 +770,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 });
                 setShowTransferModal(true);
               }}
-              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0"
+              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0 cursor-pointer"
             >
               <span className="whitespace-nowrap">계좌 간 이체</span>
             </button>
@@ -779,67 +779,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               id="vault-add-account-btn"
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0"
+              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0 cursor-pointer"
             >
               <span className="whitespace-nowrap">자산 추가</span>
             </button>
-          </div>
-        </div>
-
-        {/* Sub-Metrics: Clean hairline columns separated by hairline divider */}
-        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-fluid mt-6 pt-5 border-t ${
-          isLight ? 'border-slate-200/60' : 'border-t border-white/[0.04]'
-        }`}>
-          <div className="flex flex-col justify-between">
-            <span className={`text-fluid-caption font-light block ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
-              총 자산
-            </span>
-            <div className={`text-fluid-body tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
-              totalAssets > 0
-                ? 'font-normal text-sky-400'
-                : 'font-light text-neutral-400'
-            }`}>
-              {totalAssets > 0 ? '+' : ''}{formatCurrency(totalAssets, currentCurrency)}
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-between">
-            <span className={`text-fluid-caption font-light block ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
-              총 부채
-            </span>
-            <div className={`text-fluid-body tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
-              totalLiabilities > 0
-                ? 'font-normal text-rose-400/90'
-                : 'font-light text-neutral-400'
-            }`}>
-              {totalLiabilities > 0 ? '-' : ''}{formatCurrency(totalLiabilities, currentCurrency)}
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-between">
-            <span className={`text-fluid-caption font-light block ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
-              투자 자산
-            </span>
-            <div className={`text-fluid-body tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
-              categoryTotals.BROKERAGE > 0
-                ? 'font-normal text-neutral-200'
-                : 'font-light text-neutral-400'
-            }`}>
-              {formatCurrency(categoryTotals.BROKERAGE, currentCurrency)}
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-between">
-            <span className={`text-fluid-caption font-light block ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
-              예적금 잔액
-            </span>
-            <div className={`text-fluid-body tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
-              categoryTotals.BANK > 0
-                ? 'font-normal text-neutral-200'
-                : 'font-light text-neutral-400'
-            }`}>
-              {formatCurrency(categoryTotals.BANK, currentCurrency)}
-            </div>
           </div>
         </div>
       </div>
@@ -892,11 +835,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     />
                   ))}
                 </svg>
-                {/* Center metric */}
+                {/* Center metric: clean account summary indicator without redundant net worth figure */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                  <span className="text-fluid-caption font-light text-neutral-400">총 보유 자산</span>
-                  <span className="text-fluid-body font-semibold text-white tabular-nums tracking-tight mt-0.5">
-                    {getCurrencySymbol(currentCurrency)}{Math.round(totalAssets).toLocaleString()}
+                  <span className="text-fluid-caption font-light text-neutral-400">포트폴리오</span>
+                  <span className="text-fluid-body font-medium text-white tracking-tight mt-0.5">
+                    {accounts.length}개 계좌
                   </span>
                 </div>
               </div>
