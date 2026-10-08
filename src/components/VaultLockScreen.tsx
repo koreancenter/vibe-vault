@@ -227,50 +227,54 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
   return (
     <div
       id="vault-lock-overlay"
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl animate-in fade-in duration-300 select-none overflow-y-auto"
     >
       <div
-        className={`w-full max-w-sm rounded-3xl border border-white/10 bg-[#0B0F17]/95 p-6 sm:p-7 shadow-2xl text-center space-y-6 transition-transform ${
+        className={`w-full max-w-sm rounded-3xl border border-white/[0.08] bg-[#0A0D14]/95 p-6 sm:p-8 shadow-2xl text-center space-y-6 transition-all ${
           shake ? 'animate-bounce duration-200' : ''
         }`}
       >
-        {/* Title & Description */}
-        <div className="space-y-1.5 pt-1">
+        {/* Welcoming Hero Section */}
+        <div className="pt-1">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4 mx-auto text-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.15)] text-lg">
+            ✦
+          </div>
+
           {!isPinSet ? (
             <>
-              <h2 className="text-xl font-bold text-white tracking-tight">
-                마스터 보안 PIN 설정
+              <h2 className="text-xl font-light tracking-tight text-white">
+                {setupStep === 'create' ? '프라이빗 금고 시작하기' : 'PIN 번호 확인'}
               </h2>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p className="text-xs text-neutral-400 font-light mt-1">
                 {setupStep === 'create'
-                  ? '금고 및 가계부 기록을 보관할 4~6자리 마스터 PIN을 설정하세요.'
-                  : '확인을 위해 동일한 PIN 번호를 다시 입력해주세요.'}
+                  ? '기기 내부에 암호화 보관될 4~6자리 마스터 PIN을 설정하세요'
+                  : '확인을 위해 동일한 PIN 번호를 다시 입력해주세요'}
               </p>
             </>
           ) : (
             <>
-              <h2 className="text-xl font-bold text-white tracking-tight">
+              <h2 className="text-xl font-light tracking-tight text-white">
                 Vibe Vault
               </h2>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                자산 및 장부 데이터를 확인하려면 PIN 번호를 입력하세요.
+              <p className="text-xs text-neutral-400 font-light mt-1">
+                자산 및 장부 데이터를 확인하려면 PIN 번호를 입력하세요
               </p>
             </>
           )}
         </div>
 
-        {/* PIN Dot Indicators */}
+        {/* Luminous PIN Indicator Dots */}
         <div className="flex items-center justify-center gap-3 py-1">
           {[0, 1, 2, 3, 4, 5].map((idx) => {
             const isFilled = idx < activeInput.length;
             return (
               <div
                 key={idx}
-                className={`w-3.5 h-3.5 rounded-full transition-all duration-150 ${
+                className={
                   isFilled
-                    ? 'bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.7)] scale-110'
-                    : 'bg-white/10 border border-white/20'
-                }`}
+                    ? 'w-3 h-3 rounded-full bg-emerald-400 border-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)] scale-110 transition-all duration-200'
+                    : 'w-3 h-3 rounded-full border border-white/20 transition-all duration-200'
+                }
               />
             );
           })}
@@ -278,19 +282,19 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
 
         {/* Error message */}
         {error && (
-          <div className="text-xs text-rose-400 animate-in fade-in duration-150">
+          <div className="text-xs text-rose-400 font-light animate-in fade-in duration-150">
             {error}
           </div>
         )}
 
-        {/* Interactive Numeric Touch Keypad */}
-        <div className="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto">
+        {/* Luxurious Frosted Keypad Buttons */}
+        <div className="grid grid-cols-3 gap-3 max-w-[240px] mx-auto">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
             <button
               key={digit}
               type="button"
               onClick={() => handleKeypadPress(digit)}
-              className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:bg-sky-500/20 text-white font-medium text-lg border border-white/5 transition-all active:scale-95 flex items-center justify-center shadow-xs cursor-pointer"
+              className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.035] hover:bg-white/[0.08] active:scale-95 border border-white/[0.06] text-xl font-light text-white transition-all flex items-center justify-center cursor-pointer select-none"
             >
               {digit}
             </button>
@@ -301,7 +305,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
             type="button"
             onClick={() => handleKeypadPress('clear')}
             aria-label="입력 전체 지우기"
-            className="h-12 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] active:bg-white/10 text-slate-400 text-xs font-semibold border border-white/5 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+            className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] active:scale-95 border border-white/[0.04] text-xs font-normal text-neutral-400 hover:text-white transition-all flex items-center justify-center cursor-pointer select-none"
           >
             C
           </button>
@@ -310,7 +314,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
           <button
             type="button"
             onClick={() => handleKeypadPress('0')}
-            className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] active:bg-sky-500/20 text-white font-medium text-lg border border-white/5 transition-all active:scale-95 flex items-center justify-center shadow-xs cursor-pointer"
+            className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.035] hover:bg-white/[0.08] active:scale-95 border border-white/[0.06] text-xl font-light text-white transition-all flex items-center justify-center cursor-pointer select-none"
           >
             0
           </button>
@@ -319,14 +323,14 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
           <button
             type="button"
             onClick={() => handleKeypadPress('backspace')}
-            className="h-12 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] active:bg-white/10 text-slate-300 font-medium text-base border border-white/5 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+            className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] active:scale-95 border border-white/[0.04] text-lg font-light text-neutral-400 hover:text-white transition-all flex items-center justify-center cursor-pointer select-none"
             aria-label="지우기"
           >
             ←
           </button>
         </div>
 
-        {/* Primary Action Button */}
+        {/* Cohesive Action Buttons */}
         <div className="space-y-2 pt-1">
           {!isPinSet ? (
             <div className="space-y-2">
@@ -334,23 +338,44 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
                 type="button"
                 onClick={handleCompleteSetup}
                 disabled={activeInput.length < 4 || isSubmitting}
-                className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400 text-slate-950 hover:from-sky-300 hover:to-blue-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-sky-500/20 cursor-pointer"
+                className="w-full py-3 rounded-xl bg-white hover:bg-neutral-200 text-black text-sm font-medium transition-all shadow-lg shadow-white/5 active:scale-[0.99] disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center justify-center"
               >
                 {setupStep === 'create'
                   ? 'PIN 확인 단계로 이동'
                   : '마스터 PIN 설정 완료'}
               </button>
 
-              <button
-                type="button"
-                onClick={handleSkipSetup}
-                className="w-full py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-              >
-                나중에 설정하기 (게스트 모드)
-              </button>
+              {setupStep === 'confirm' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSetupStep('create');
+                    setConfirmPin('');
+                    setError(null);
+                  }}
+                  className="w-full text-xs text-neutral-400 hover:text-white transition-colors py-2 cursor-pointer"
+                >
+                  이전 단계로 돌아가기
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSkipSetup}
+                  className="w-full text-xs text-neutral-400 hover:text-white transition-colors py-2 cursor-pointer"
+                >
+                  나중에 설정하기 (게스트 모드)
+                </button>
+              )}
 
-              <p className="text-[10px] text-neutral-400 mt-4 text-center">
-                온디바이스 로컬 금고 · <button type="button" onClick={() => setLegalOpen(true)} className="underline hover:text-neutral-300 cursor-pointer">법적 고지 및 면책</button>
+              <p className="text-[10px] text-neutral-500 mt-4 text-center">
+                온디바이스 로컬 금고 ·{' '}
+                <button
+                  type="button"
+                  onClick={() => setLegalOpen(true)}
+                  className="underline hover:text-neutral-400 transition-colors cursor-pointer"
+                >
+                  법적 고지 및 면책
+                </button>
               </p>
             </div>
           ) : (
@@ -359,13 +384,20 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
                 type="button"
                 onClick={() => handleAttemptUnlock(pin)}
                 disabled={pin.length < 4 || isSubmitting}
-                className="w-full py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400 text-slate-950 hover:from-sky-300 hover:to-blue-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-sky-500/20 cursor-pointer"
+                className="w-full py-3 rounded-xl bg-white hover:bg-neutral-200 text-black text-sm font-medium transition-all shadow-lg shadow-white/5 active:scale-[0.99] disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center justify-center"
               >
-                {isSubmitting ? '잠금 해제 중...' : '금고 잠금 해제'}
+                {isSubmitting ? '잠금 해제 중...' : '잠금 해제'}
               </button>
 
-              <p className="text-[10px] text-neutral-400 mt-4 text-center">
-                온디바이스 로컬 금고 · <button type="button" onClick={() => setLegalOpen(true)} className="underline hover:text-neutral-300 cursor-pointer">법적 고지 및 면책</button>
+              <p className="text-[10px] text-neutral-500 mt-4 text-center">
+                온디바이스 로컬 금고 ·{' '}
+                <button
+                  type="button"
+                  onClick={() => setLegalOpen(true)}
+                  className="underline hover:text-neutral-400 transition-colors cursor-pointer"
+                >
+                  법적 고지 및 면책
+                </button>
               </p>
             </div>
           )}
