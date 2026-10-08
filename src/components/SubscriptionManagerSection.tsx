@@ -16,7 +16,6 @@ import {
   CheckCircle2, 
   PauseCircle, 
   AlertCircle, 
-  Sparkles, 
   Trash2, 
   ArrowRight,
   TrendingDown,
@@ -331,9 +330,8 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
             isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#111217] border-white/10 text-white'
           }`}>
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-              <h4 className="text-sm font-semibold flex items-center gap-1.5 text-white">
-                <Sparkles size={15} className="text-white" />
-                <span>정기 구독 직접 추가</span>
+              <h4 className="text-sm font-semibold text-white">
+                정기 구독 직접 추가
               </h4>
               <button
                 type="button"

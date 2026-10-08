@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   X, 
   Plus, 
-  Coins, 
   Check, 
   Loader2, 
   AlertCircle, 
@@ -102,19 +101,12 @@ export const CurrencySelectorModal: React.FC<CurrencySelectorModalProps> = ({
       >
         {/* Header: Slim, clean luxury header */}
         <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-sky-400/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
-              <Coins size={14} />
-            </div>
-            <div>
-              <h3 className="text-xs font-semibold tracking-wide text-white flex items-center gap-1.5">
-                통화 관리
-                <span className="text-[10px] font-mono font-normal text-slate-400 uppercase">
-                  Active Currencies
-                </span>
-              </h3>
-            </div>
-          </div>
+          <h3 className="text-xs font-semibold tracking-wide text-white flex items-center gap-1.5">
+            통화 관리
+            <span className="text-[10px] font-mono font-normal text-slate-400 uppercase">
+              Active Currencies
+            </span>
+          </h3>
 
           <button 
             type="button"

@@ -541,8 +541,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
             {/* Card Header with Question Tag & Dismiss Button */}
             <div className="flex items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-normal border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                  <Sparkles size={12} className="text-indigo-400" />
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-normal border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
                   <span>재정 브리핑</span>
                 </span>
                 <span className={`text-xs font-light truncate max-w-[200px] sm:max-w-xs ${
@@ -620,7 +619,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('all')}
-          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center gap-1.5 ${
+          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center ${
             activeTab === 'all'
               ? isLight
                 ? 'bg-slate-900 text-white border border-slate-900'
@@ -628,14 +627,13 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               : isLight ? 'text-slate-600 hover:text-slate-950 border border-transparent' : 'text-slate-400 hover:text-white border border-transparent'
           }`}
         >
-          <Sparkles size={13} className={activeTab === 'all' ? 'text-indigo-400' : ''} />
           <span>통합 요약</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('assets')}
-          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center gap-1.5 ${
+          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center ${
             activeTab === 'assets'
               ? isLight
                 ? 'bg-slate-900 text-white border border-slate-900'
@@ -643,14 +641,13 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               : isLight ? 'text-slate-600 hover:text-slate-950 border border-transparent' : 'text-slate-400 hover:text-white border border-transparent'
           }`}
         >
-          <ShieldCheck size={13} className={activeTab === 'assets' ? 'text-blue-400' : ''} />
           <span>자산 포트폴리오</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('spending')}
-          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center gap-1.5 ${
+          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center ${
             activeTab === 'spending'
               ? isLight
                 ? 'bg-slate-900 text-white border border-slate-900'
@@ -658,14 +655,13 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               : isLight ? 'text-slate-600 hover:text-slate-950 border border-transparent' : 'text-slate-400 hover:text-white border border-transparent'
           }`}
         >
-          <PieChartIcon size={13} className={activeTab === 'spending' ? 'text-sky-400' : ''} />
           <span>소비·지출</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('cashflow')}
-          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center gap-1.5 ${
+          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center ${
             activeTab === 'cashflow'
               ? isLight
                 ? 'bg-slate-900 text-white border border-slate-900'
@@ -673,7 +669,6 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               : isLight ? 'text-slate-600 hover:text-slate-950 border border-transparent' : 'text-slate-400 hover:text-white border border-transparent'
           }`}
         >
-          <Activity size={13} className={activeTab === 'cashflow' ? 'text-sky-400' : ''} />
           <span>현금흐름 & 예측</span>
         </button>
       </div>
@@ -1337,16 +1332,13 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 text-slate-900 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)]' 
               : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
           }`}>
-            <div className={`p-3.5 rounded-xl flex items-start gap-2.5 mb-4 border ${
+            <div className={`p-3.5 rounded-xl flex items-start mb-4 border ${
               forecast.status === 'HEALTHY'
                 ? isLight ? 'bg-sky-50/70 text-sky-950 border-sky-200/60' : 'bg-sky-500/[0.06] text-sky-300 border-sky-500/20'
                 : forecast.status === 'MODERATE'
                   ? isLight ? 'bg-amber-50/70 text-amber-950 border-amber-200/60' : 'bg-amber-500/[0.06] text-amber-300 border-amber-500/20'
                   : isLight ? 'bg-rose-50/70 text-rose-950 border-rose-200/60' : 'bg-rose-500/[0.06] text-rose-300 border-rose-500/20'
             }`}>
-              <div className="p-1 rounded-lg bg-black/5 dark:bg-white/10 shrink-0 mt-0.5">
-                <Sparkles size={15} />
-              </div>
               <div className="text-xs">
                 <strong className="block font-medium">자율 CFO 현금흐름 진단</strong>
                 <p className="mt-0.5 leading-relaxed font-light text-[11px] sm:text-xs opacity-90">

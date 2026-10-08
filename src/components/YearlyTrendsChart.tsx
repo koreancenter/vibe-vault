@@ -16,12 +16,6 @@ import {
   isSameMonth, 
   isSameYear 
 } from 'date-fns';
-import { 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  CalendarRange, 
-  Wallet
-} from 'lucide-react';
 
 // Permanent Quiet Luxury Dark Palette Constants
 const LUXURY_YEARLY_COLORS = {
@@ -190,8 +184,8 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
         {/* Total Income */}
         <div className="p-2.5 rounded-2xl border border-sky-500/20 bg-sky-950/20 flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] mb-1">
-            <span className="flex items-center gap-1 font-medium text-sky-400">
-              <ArrowUpRight size={13} /> 최근 1년 수입
+            <span className="font-medium text-sky-400">
+              최근 1년 수입
             </span>
           </div>
           <span className={`text-sm font-extrabold text-sky-400 ${
@@ -207,8 +201,8 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
         {/* Total Expense */}
         <div className="p-2.5 rounded-2xl border border-rose-500/20 bg-rose-950/20 flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] mb-1">
-            <span className="flex items-center gap-1 font-medium text-rose-400">
-              <ArrowDownLeft size={13} /> 최근 1년 지출
+            <span className="font-medium text-rose-400">
+              최근 1년 지출
             </span>
           </div>
           <span className={`text-sm font-extrabold text-rose-400 ${isStealth ? 'blur-xs select-none' : ''}`}>
@@ -222,8 +216,8 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
         {/* Net Savings */}
         <div className="p-2.5 rounded-2xl border border-white/10 bg-white/[0.02] flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] mb-1">
-            <span className="flex items-center gap-1 font-medium text-[#94A3B8]">
-              <Wallet size={13} className="text-indigo-400" /> 순저축
+            <span className="font-medium text-[#94A3B8]">
+              순저축
             </span>
           </div>
           <span className={`text-sm font-extrabold ${
@@ -239,8 +233,8 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
         {/* Trend Verdict */}
         <div className="p-2.5 rounded-2xl border border-indigo-500/20 bg-indigo-950/20 flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] mb-1">
-            <span className="flex items-center gap-1 font-medium text-indigo-300">
-              <CalendarRange size={13} /> 집계 기간
+            <span className="font-medium text-indigo-300">
+              집계 기간
             </span>
           </div>
           <span className="text-xs font-bold text-white">

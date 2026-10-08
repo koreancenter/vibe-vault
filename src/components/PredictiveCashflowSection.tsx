@@ -15,7 +15,6 @@ import {
   TrendingUp, 
   Calendar, 
   ArrowUpRight,
-  Sparkles,
   Zap
 } from 'lucide-react';
 import {
@@ -219,16 +218,13 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
         </div>
 
         {/* Autonomous CFO Recommendation: Clean Flat Banner without box border */}
-        <div className={`mt-3 p-3 rounded-2xl flex items-start gap-2.5 ${
+        <div className={`mt-3 p-3 rounded-2xl flex items-start ${
           forecast.status === 'HEALTHY'
             ? isLight ? 'bg-sky-500/10 text-sky-900' : 'bg-sky-950/30 text-sky-300'
             : forecast.status === 'MODERATE'
               ? isLight ? 'bg-amber-500/10 text-amber-900' : 'bg-amber-950/30 text-amber-300'
               : isLight ? 'bg-rose-500/10 text-rose-900' : 'bg-rose-950/30 text-rose-300'
         }`}>
-          <div className="p-1 rounded-lg bg-black/5 dark:bg-white/10 shrink-0 mt-0.5">
-            <Sparkles size={14} />
-          </div>
           <div className="text-xs">
             <strong className="block font-bold">자율 CFO 재정 어드바이스</strong>
             <p className="mt-0.5 leading-relaxed opacity-90">

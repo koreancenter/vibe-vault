@@ -1545,16 +1545,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               }`}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
-                    <Sparkles size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold">계좌/증권 잔고 캡처 스캔</h3>
-                    <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Gemini 멀티모달 AI가 스크린샷에서 잔고를 자동 추출합니다.
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="text-base font-bold">계좌/증권 잔고 캡처 스캔</h3>
+                  <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    Gemini 멀티모달 AI가 스크린샷에서 잔고를 자동 추출합니다.
+                  </p>
                 </div>
                 <button
                   onClick={() => {
@@ -1766,16 +1761,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               }`}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
-                    <ArrowLeftRight size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-medium">계좌 간 자산 이체</h3>
-                    <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      내 계좌 간 이체는 가계부 소비 지출에서 제외됩니다.
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="text-base font-medium">계좌 간 자산 이체</h3>
+                  <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    내 계좌 간 이체는 가계부 소비 지출에서 제외됩니다.
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowTransferModal(false)}
@@ -1882,16 +1872,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               }`}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
-                    <Plus size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold">새 자산 계좌 추가</h3>
-                    <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      증권, 은행, 가상자산, 부동산 등
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="text-base font-bold">새 자산 계좌 추가</h3>
+                  <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    증권, 은행, 가상자산, 부동산 등
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowAddModal(false)}

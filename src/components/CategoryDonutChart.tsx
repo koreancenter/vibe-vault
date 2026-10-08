@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as d3 from 'd3';
 import { Transaction } from '../types';
-import { PieChart, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, ChevronDown, ChevronUp } from 'lucide-react';
 import { getCategoryKo } from '../utils';
 
 // Permanent Quiet Luxury Dark Palette Constants
@@ -161,18 +161,13 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
       {/* Header (hidden if embedded in segmented controller) */}
       {!embedded && (
         <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
-              <PieChart size={16} />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold text-white truncate">
-                카테고리별 지출
-              </span>
-              <span className="text-[11px] text-[#94A3B8]">
-                항목을 터치하여 필터링
-              </span>
-            </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-bold text-white truncate">
+              카테고리별 지출
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">
+              항목을 터치하여 필터링
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">

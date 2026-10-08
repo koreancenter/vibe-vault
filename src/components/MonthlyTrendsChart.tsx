@@ -19,7 +19,7 @@ import {
   isSameMonth, 
   getDate 
 } from 'date-fns';
-import { BarChart3, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Permanent Quiet Luxury Dark Palette Constants
 const LUXURY_CHART_COLORS = {
@@ -138,18 +138,13 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
       {/* Header with Title & Quick Stat Badges (hide when embedded in segmented wrapper) */}
       {!embedded && (
         <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
-              <BarChart3 size={16} />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold text-white truncate">
-                일별 지출 추이
-              </span>
-              <span className="text-[11px] text-[#94A3B8]">
-                {format(now, 'yyyy년 M월')}
-              </span>
-            </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-bold text-white truncate">
+              일별 지출 추이
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">
+              {format(now, 'yyyy년 M월')}
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">

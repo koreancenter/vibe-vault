@@ -502,8 +502,8 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
           isLight ? 'bg-slate-50 border-slate-200 shadow-sm' : 'bg-[#111217] border-white/10 shadow-xl'
         }`}>
           <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.08]">
-            <h5 className="text-xs font-semibold text-white flex items-center gap-1.5">
-              <Plus size={14} className="text-white" /> 새 카테고리 예산 설정
+            <h5 className="text-xs font-semibold text-white">
+              새 카테고리 예산 설정
             </h5>
             <button
               type="button"

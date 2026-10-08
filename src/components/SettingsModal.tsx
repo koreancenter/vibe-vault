@@ -6,7 +6,6 @@ import {
   ShieldCheck, 
   KeyRound, 
   Lock, 
-  Sliders, 
   Database, 
   Download, 
   AlertTriangle, 
@@ -980,9 +979,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Top Header */}
         <div className="flex justify-between items-center px-5 sm:px-6 py-3.5 border-b border-white/[0.06] bg-transparent shrink-0">
-          <h2 className="text-sm sm:text-base font-semibold text-white flex items-center gap-2">
-            <Sliders className="w-4 h-4 text-neutral-300" />
-            <span>환경 설정</span>
+          <h2 className="text-sm sm:text-base font-semibold text-white">
+            환경 설정
           </h2>
           <button 
             onClick={onClose} 
@@ -1744,8 +1742,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* Group 1: 금고 보안 & 자동 잠금 */}
               <div className="space-y-3.5 border-b border-white/[0.06] pb-5 mb-5">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-white">
-                    <Lock size={13} className="text-neutral-400" />
+                  <div className="text-xs font-medium text-white">
                     <span>금고 보안 & 자동 잠금</span>
                   </div>
                   {isPinSet && (
@@ -1860,8 +1857,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* Group 2: 데이터 백업 및 복원 */}
               <div className="space-y-3.5 border-b border-white/[0.06] pb-5 mb-5">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-white">
-                    <Database size={13} className="text-neutral-400" />
+                  <div className="text-xs font-medium text-white">
                     <span>데이터 백업 및 복원</span>
                   </div>
                   <span className="text-[10px] text-neutral-400 font-light">
@@ -1897,8 +1893,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* Group 3: 데이터 유틸리티 */}
               <div className="space-y-3">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-white">
-                  <AlertTriangle size={13} className="text-amber-400/80 shrink-0" />
+                <div className="text-xs font-medium text-white">
                   <span>데이터 유틸리티</span>
                 </div>
 
@@ -1969,14 +1964,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-white/[0.05] text-white border border-white/10">
-                <Download size={18} />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white">데이터 백업 내보내기 (v2.0)</h3>
-                <p className="text-[11px] text-neutral-400">거래, 구독, 자산 설정 통합 저장</p>
-              </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">데이터 백업 내보내기 (v2.0)</h3>
+              <p className="text-[11px] text-neutral-400">거래, 구독, 자산 설정 통합 저장</p>
             </div>
 
             {/* Password Protection Toggle */}
@@ -2048,14 +2038,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/20">
-                <Lock size={18} />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white">암호화된 백업 복호화</h3>
-                <p className="text-[11px] text-neutral-400">AES-GCM 256 암호화 보호됨</p>
-              </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">암호화된 백업 복호화</h3>
+              <p className="text-[11px] text-neutral-400">AES-GCM 256 암호화 보호됨</p>
             </div>
 
             <p className="text-xs text-neutral-400 leading-relaxed font-light">
@@ -2113,16 +2098,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-white/[0.05] text-neutral-300 border border-white/10">
-                <Database size={18} />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white">백업 데이터 복원 방식</h3>
-                <p className="text-[11px] text-neutral-400">
-                  가져올 거래: {pendingRestorePayload.transactions?.length || 0}건
-                </p>
-              </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">백업 데이터 복원 방식</h3>
+              <p className="text-[11px] text-neutral-400">
+                가져올 거래: {pendingRestorePayload.transactions?.length || 0}건
+              </p>
             </div>
 
             <p className="text-xs text-neutral-400 leading-relaxed font-light">
@@ -2183,18 +2163,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             className="w-full max-w-xs border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-white/[0.05] text-neutral-200 border border-white/10">
-                <KeyRound size={18} />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white">
-                  {pinModalMode === 'set' ? '금고 보안 PIN 설정' : '금고 보안 PIN 해제'}
-                </h3>
-                <p className="text-[11px] text-neutral-400 font-light">
-                  {pinModalMode === 'set' ? '4자리 이상의 숫자 또는 비밀번호' : '현재 사용 중인 PIN 번호 확인'}
-                </p>
-              </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">
+                {pinModalMode === 'set' ? '금고 보안 PIN 설정' : '금고 보안 PIN 해제'}
+              </h3>
+              <p className="text-[11px] text-neutral-400 font-light">
+                {pinModalMode === 'set' ? '4자리 이상의 숫자 또는 비밀번호' : '현재 사용 중인 PIN 번호 확인'}
+              </p>
             </div>
 
             <form onSubmit={handlePinSubmit} className="space-y-3">

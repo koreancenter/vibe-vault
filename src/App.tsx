@@ -846,37 +846,34 @@ export function App() {
             <button
               type="button"
               onClick={() => setMainMode('vault')}
-              className={`px-5 py-1.5 rounded-full text-xs transition-all flex items-center gap-1.5 ${
+              className={`px-5 py-1.5 rounded-full text-xs transition-all flex items-center justify-center ${
                 mainMode === 'vault'
                   ? 'bg-white text-slate-900 font-semibold shadow-sm'
                   : 'text-neutral-400 hover:text-white font-normal'
               }`}
             >
-              <ShieldCheck size={13} className={mainMode === 'vault' ? 'text-slate-900' : 'text-neutral-400'} />
               <span>자산</span>
             </button>
             <button
               type="button"
               onClick={() => setMainMode('ledger')}
-              className={`px-5 py-1.5 rounded-full text-xs transition-all flex items-center gap-1.5 ${
+              className={`px-5 py-1.5 rounded-full text-xs transition-all flex items-center justify-center ${
                 mainMode === 'ledger'
                   ? 'bg-white text-slate-900 font-semibold shadow-sm'
                   : 'text-neutral-400 hover:text-white font-normal'
               }`}
             >
-              <Wallet size={13} className={mainMode === 'ledger' ? 'text-slate-900' : 'text-neutral-400'} />
               <span>장부</span>
             </button>
             <button
               type="button"
               onClick={() => setMainMode('insights')}
-              className={`px-5 py-1.5 rounded-full text-xs transition-all flex items-center gap-1.5 ${
+              className={`px-5 py-1.5 rounded-full text-xs transition-all flex items-center justify-center ${
                 mainMode === 'insights'
                   ? 'bg-white text-slate-900 font-semibold shadow-sm'
                   : 'text-neutral-400 hover:text-white font-normal'
               }`}
             >
-              <Sparkles size={13} className={mainMode === 'insights' ? 'text-slate-900' : 'text-neutral-400'} />
               <span>인사이트</span>
             </button>
           </nav>

@@ -349,7 +349,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
             <div className="space-y-2 mb-6">
               <div className="flex items-center justify-between text-xs text-slate-400 print:text-gray-700 px-0.5">
                 <span className="font-semibold text-slate-300 print:text-black">
-                  ■ 수입 및 지출 상세 내역 (시간순 정렬)
+                  수입 및 지출 상세 내역 (시간순 정렬)
                 </span>
                 <span className="text-[11px]">단위: {space.currency}</span>
               </div>
@@ -435,8 +435,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:gap-3 print-break-inside-avoid">
               {/* Bottom Settlement Summary Box */}
               <div className="p-5 rounded-2xl border border-white/10 print:border-black bg-white/[0.02] print:bg-white space-y-3">
-                <h3 className="text-xs font-bold text-slate-300 print:text-black flex items-center gap-1.5 border-b border-white/10 print:border-gray-300 pb-2">
-                  <Calculator size={14} className="text-sky-400 print:text-black" />
+                <h3 className="text-xs font-bold text-slate-300 print:text-black border-b border-white/10 print:border-gray-300 pb-2">
                   <span>공식 결산 총계 요약</span>
                 </h3>
 
@@ -473,10 +472,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
               {/* 1인당 정산 내역 (N-Split Box) */}
               <div className="p-5 rounded-2xl border-2 border-sky-500/30 print:border-black bg-sky-500/[0.03] print:bg-gray-50 space-y-3">
                 <h3 className="text-xs font-bold text-sky-400 print:text-black flex items-center justify-between border-b border-sky-500/20 print:border-gray-300 pb-2">
-                  <span className="flex items-center gap-1.5">
-                    <Users size={14} />
-                    <span>1인당 정산 내역 ({activeMembers}인 균등 분할)</span>
-                  </span>
+                  <span>1인당 정산 내역 ({activeMembers}인 균등 분할)</span>
                   <span className="text-[10px] font-normal text-slate-400 print:text-gray-600">
                     총 참여 {activeMembers}명
                   </span>
