@@ -749,9 +749,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               id="vault-scan-balance-btn"
               type="button"
               onClick={() => setShowScanModal(true)}
-              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1.5 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal"
+              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0"
             >
-              <span className="truncate">화면 스캔</span>
+              <span className="whitespace-nowrap">화면 스캔</span>
             </button>
 
             <button
@@ -770,18 +770,18 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 });
                 setShowTransferModal(true);
               }}
-              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1.5 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal"
+              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0"
             >
-              <span className="truncate">계좌 간 이체</span>
+              <span className="whitespace-nowrap">계좌 간 이체</span>
             </button>
 
             <button
               id="vault-add-account-btn"
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1.5 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal"
+              className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-fluid-caption py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0"
             >
-              <span className="truncate">자산 추가</span>
+              <span className="whitespace-nowrap">자산 추가</span>
             </button>
           </div>
         </div>
