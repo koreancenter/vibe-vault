@@ -897,12 +897,24 @@ export function App() {
                 <Globe size={13} className="text-neutral-400 group-hover:text-sky-400 transition-colors" />
                 <span className="tabular-nums font-medium tracking-tight whitespace-nowrap">{currentCurrency}</span>
                 {activeCurrencies.length > 1 && (
-                  <span className="text-[10px] text-neutral-500 font-normal opacity-70 tabular-nums">
+                  <span className="text-[10px] text-neutral-400 font-normal opacity-70 tabular-nums">
                     ({activeCurrencies.length})
                   </span>
                 )}
               </button>
             )}
+
+            {/* Stealth Mode Toggle Button: [ 👁️ / 🕶️ ] */}
+            <button
+              id="stealth-mode-toggle-btn"
+              type="button"
+              onClick={toggleStealthMode}
+              title={isStealth ? "스텔스 모드 해제 (금액 표시)" : "스텔스 모드 켜기 (금액 숨김)"}
+              className="w-8 h-8 rounded-full border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white transition-all active:scale-95 flex items-center justify-center"
+              aria-label={isStealth ? "스텔스 모드 해제 (금액 표시)" : "스텔스 모드 켜기 (금액 숨김)"}
+            >
+              {isStealth ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
 
             {/* Dedicated Lock Vault Button */}
             <button
@@ -921,6 +933,7 @@ export function App() {
               id="settings-gear-btn"
               type="button"
               onClick={() => handleOpenSettingsModal('assets')}
+              title="설정"
               className="w-8 h-8 rounded-full border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white transition-all active:scale-95 flex items-center justify-center"
               aria-label="설정"
             >
@@ -1110,6 +1123,7 @@ export function App() {
                       : 'bg-transparent hover:bg-white/[0.04] text-neutral-300 border-white/[0.08]'
                   }`}
                   title="CSV 내역 내보내기"
+                  aria-label="CSV 내역 내보내기"
                 >
                   <span>내보내기</span>
                 </button>
@@ -1348,6 +1362,7 @@ export function App() {
             <button 
               type="button" 
               onClick={() => setError(null)} 
+              aria-label="오류 알림 닫기"
               className="text-rose-500 hover:text-rose-700 ml-1 font-bold"
             >
               ×
@@ -1461,6 +1476,7 @@ export function App() {
               type="button"
               onClick={handleOpenReceiptModal}
               title="영수증 AI 스캔"
+              aria-label="영수증 AI 스캔"
               className={`w-8 h-8 min-w-[32px] rounded-xl flex items-center justify-center transition-all ${
                 isLight
                   ? 'text-slate-500 hover:text-sky-700 hover:bg-slate-200/70 active:scale-95'
@@ -1494,6 +1510,7 @@ export function App() {
                 type="button"
                 onClick={handleQuickCycleCurrency}
                 title="클릭하여 통화 변경"
+                aria-label="클릭하여 통화 변경"
                 className={`px-2 py-0.5 rounded-lg text-[11px] font-bold shrink-0 transition-all ${
                   isLight
                     ? 'bg-slate-200/70 hover:bg-slate-300 text-slate-800'
@@ -1514,7 +1531,7 @@ export function App() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="예: 파스타 4만원 또는 $15 Starbucks"
               className={`w-full bg-transparent text-xs sm:text-sm outline-none transition-colors ${
-                isLight ? 'text-slate-950 placeholder:text-slate-400' : 'text-white placeholder:text-slate-500'
+                isLight ? 'text-slate-950 placeholder:text-slate-400' : 'text-white placeholder:text-slate-400'
               }`}
             />
 
@@ -1534,6 +1551,8 @@ export function App() {
               <button
                 type="button"
                 onClick={() => setInput('')}
+                title="입력 내용 지우기"
+                aria-label="입력 내용 지우기"
                 className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white"
               >
                 <X size={13} />
@@ -1569,6 +1588,7 @@ export function App() {
             id="bottom-nav-vault-btn"
             type="button"
             onClick={() => setMainMode('vault')}
+            aria-label="자산 대시보드로 이동"
             className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
               mainMode === 'vault'
                 ? isLight
@@ -1576,7 +1596,7 @@ export function App() {
                   : 'text-blue-400 font-semibold'
                 : isLight
                 ? 'text-slate-400 hover:text-slate-700'
-                : 'text-slate-500 hover:text-slate-300'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <ShieldCheck size={18} className={mainMode === 'vault' ? 'stroke-[2.5]' : ''} />
@@ -1587,6 +1607,7 @@ export function App() {
             id="bottom-nav-insights-btn"
             type="button"
             onClick={() => setMainMode('insights')}
+            aria-label="인사이트 대시보드로 이동"
             className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
               mainMode === 'insights'
                 ? isLight
@@ -1594,7 +1615,7 @@ export function App() {
                   : 'text-indigo-400 font-semibold'
                 : isLight
                 ? 'text-slate-400 hover:text-slate-700'
-                : 'text-slate-500 hover:text-slate-300'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Sparkles size={18} className={mainMode === 'insights' ? 'stroke-[2.5]' : ''} />
@@ -1605,6 +1626,7 @@ export function App() {
             id="bottom-nav-ledger-btn"
             type="button"
             onClick={() => setMainMode('ledger')}
+            aria-label="가계부 장부로 이동"
             className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
               mainMode === 'ledger'
                 ? isLight
@@ -1612,7 +1634,7 @@ export function App() {
                   : 'text-sky-400 font-semibold'
                 : isLight
                 ? 'text-slate-400 hover:text-slate-700'
-                : 'text-slate-500 hover:text-slate-300'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Wallet size={18} className={mainMode === 'ledger' ? 'stroke-[2.5]' : ''} />

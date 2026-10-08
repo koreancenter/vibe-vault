@@ -223,7 +223,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
               <span className="text-base font-light text-neutral-400 mr-1 whitespace-nowrap">{currSymbol}</span>
               <span className={`text-base sm:text-lg md:text-xl font-light tabular-nums whitespace-nowrap ${
                 !budget || budget === 0
-                  ? 'text-neutral-500'
+                  ? 'text-neutral-400'
                   : isLight ? 'text-slate-700' : 'text-neutral-300'
               }`}>
                 {budget ? budget.toLocaleString() : '미설정'}
@@ -242,7 +242,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
               <div className={`flex items-baseline whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
                 <span className="text-fluid-heading font-light text-neutral-400 mr-1.5 whitespace-nowrap">{currSymbol}</span>
                 <span className={`text-fluid-hero font-light tracking-tight tabular-nums whitespace-nowrap ${
-                  totalSpending === 0 ? 'text-neutral-500' : 'text-white'
+                  totalSpending === 0 ? 'text-neutral-400' : 'text-white'
                 }`}>
                   {totalSpending.toLocaleString()}
                 </span>
@@ -275,7 +275,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
                   }`}>
                     {perPersonShare !== undefined ? perPersonShare.toLocaleString() : '0'}
                   </span>
-                  <span className="text-xs text-neutral-500 font-light">/인</span>
+                  <span className="text-xs text-neutral-400 font-light">/인</span>
                 </div>
               ) : remainingBudget !== undefined ? (
                 <div className="flex items-baseline gap-1">
@@ -289,7 +289,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
                   </span>
                 </div>
               ) : (
-                <span className="text-sm text-neutral-500 font-light">-</span>
+                <span className="text-sm text-neutral-400 font-light">-</span>
               )}
             </div>
           </div>
@@ -417,7 +417,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             <span className="text-base font-light text-neutral-400 mr-1 whitespace-nowrap">{currSymbol}</span>
             <span className={`text-base sm:text-lg md:text-xl font-light tabular-nums whitespace-nowrap ${
               prevSpending === 0
-                ? 'text-neutral-500'
+                ? 'text-neutral-400'
                 : isLight ? 'text-slate-700' : 'text-neutral-300'
             }`}>
               {prevSpending.toLocaleString()}
@@ -436,7 +436,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             <div className={`flex items-baseline whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
               <span className="text-fluid-heading font-light text-neutral-400 mr-1.5 whitespace-nowrap">{currSymbol}</span>
               <span className={`text-fluid-hero font-light tracking-tight tabular-nums whitespace-nowrap ${
-                currentSpending === 0 ? 'text-neutral-500' : 'text-white'
+                currentSpending === 0 ? 'text-neutral-400' : 'text-white'
               }`}>
                 {currentSpending.toLocaleString()}
               </span>
@@ -467,7 +467,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           <div className={`flex flex-wrap items-baseline gap-1 mt-1.5 whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
             <span className={`text-sm md:text-base tracking-tight tabular-nums whitespace-nowrap ${
               diff === 0
-                ? 'text-neutral-500 font-light'
+                ? 'text-neutral-400 font-light'
                 : status === 'better'
                 ? (isLight ? 'text-neutral-800 font-normal' : 'text-neutral-200 font-normal')
                 : (isLight ? 'text-rose-700 font-normal' : 'text-rose-400/90 font-normal')

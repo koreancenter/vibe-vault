@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Asset, AssetType, AssetCategoryType, LaunchScreenMode, SupportedCurrency, FxRates, Transaction, AssetAccount, DebtItem } from './types';
-import { getSecureGeminiApiKey, setSecureGeminiApiKey, sanitizeApiKey } from './geminiKeyManager';
+import { getSecureGeminiApiKey, setSecureGeminiApiKey, sanitizeApiKey, maskApiKey } from './geminiKeyManager';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -34,7 +34,10 @@ export function getAIEngineConfig(): AIEngineConfig {
     const stored = localStorage.getItem('vibe_engine_config');
     if (stored) {
       const parsed = JSON.parse(stored);
-      const effectiveKey = sanitizeApiKey(parsed.apiKey) || secureKey || '';
+      const rawStoredKey = sanitizeApiKey(parsed.apiKey);
+      const effectiveKey = (rawStoredKey && !rawStoredKey.includes('•')) 
+        ? rawStoredKey 
+        : (secureKey || '');
       return {
         engineType: parsed.engineType || 'byok',
         localModel: parsed.localModel || 'gemma-2b',
@@ -57,13 +60,17 @@ export function getAIEngineConfig(): AIEngineConfig {
 export function saveAIEngineConfig(config: AIEngineConfig) {
   const cleanKey = sanitizeApiKey(config.apiKey);
   if (config.provider === 'gemini') {
-    if (cleanKey) {
+    if (cleanKey && !cleanKey.includes('•')) {
       setSecureGeminiApiKey(cleanKey);
     }
   }
+  const effectiveStoredKey = (cleanKey && !cleanKey.includes('•'))
+    ? maskApiKey(cleanKey)
+    : (cleanKey || '');
   localStorage.setItem('vibe_engine_config', JSON.stringify({
     ...config,
-    apiKey: cleanKey
+    apiKey: effectiveStoredKey,
+    maskedApiKey: effectiveStoredKey
   }));
 }
 

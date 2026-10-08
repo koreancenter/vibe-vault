@@ -298,6 +298,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
           <button
             type="button"
             onClick={() => handleKeypadPress('clear')}
+            aria-label="입력 전체 지우기"
             className="h-12 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] active:bg-white/10 text-slate-400 text-xs font-semibold border border-white/5 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
           >
             C

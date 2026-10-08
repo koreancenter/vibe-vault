@@ -761,7 +761,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               <div className="flex items-baseline gap-1">
                 {monthExpense === 0 ? (
                   <span className={`text-xl md:text-2xl font-light tracking-tight ${
-                    liquidAssets > 0 ? (isLight ? 'text-sky-700' : 'text-sky-400/90') : 'text-neutral-500'
+                    liquidAssets > 0 ? (isLight ? 'text-sky-700' : 'text-sky-400/90') : 'text-neutral-400'
                   }`}>
                     {liquidAssets > 0 ? '충분' : '-'}
                   </span>

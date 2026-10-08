@@ -323,6 +323,8 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
           <button 
             type="button"
             onClick={onClose}
+            title="닫기"
+            aria-label="닫기"
             className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors ${
               isLight ? 'text-slate-400 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-white hover:bg-white/10'
             }`}
@@ -551,6 +553,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                   onClick={handleReset}
                   className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-black transition-colors"
                   title="다른 이미지 선택"
+                  aria-label="다른 이미지 선택"
                 >
                   <X size={14} />
                 </button>

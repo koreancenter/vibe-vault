@@ -248,6 +248,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                   onClick={() => handleMemberCountChange(activeMembers - 1)}
                   className="w-5 h-5 flex items-center justify-center rounded-md bg-white/10 hover:bg-white/20 active:scale-95 font-bold"
                   title="1명 감소"
+                  aria-label="참여 인원 1명 감소"
                 >
                   -
                 </button>
@@ -257,6 +258,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                   onClick={() => handleMemberCountChange(activeMembers + 1)}
                   className="w-5 h-5 flex items-center justify-center rounded-md bg-white/10 hover:bg-white/20 active:scale-95 font-bold"
                   title="1명 증가"
+                  aria-label="참여 인원 1명 증가"
                 >
                   +
                 </button>
@@ -268,6 +270,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                 onClick={handleExportCSV}
                 className="h-9 px-3.5 rounded-xl text-xs font-medium border border-white/10 bg-white/[0.04] hover:bg-white/10 text-slate-200 flex items-center gap-1.5 active:scale-95 transition-all"
                 title="엑셀 CSV 다운로드"
+                aria-label="엑셀 CSV 다운로드"
               >
                 <FileSpreadsheet size={14} className="text-sky-400" />
                 <span>엑셀 CSV</span>

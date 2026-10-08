@@ -75,7 +75,10 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
             <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>금액 및 분류 상세 항목을 수정합니다</p>
           </div>
           <button 
+            type="button"
             onClick={onClose} 
+            title="닫기"
+            aria-label="닫기"
             className={`w-9 h-9 flex items-center justify-center rounded-2xl border transition-colors ${
               isLight 
                 ? 'text-slate-500 hover:text-slate-900 bg-slate-100 border-slate-200 hover:bg-slate-200' 

@@ -226,7 +226,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
             <p className="text-xs font-medium text-neutral-300">
               감지된 정기 구독이 아직 없습니다
             </p>
-            <p className="text-[11px] mt-0.5 text-neutral-500">
+            <p className="text-[11px] mt-0.5 text-neutral-400">
               가계부에 2회 이상 정기 결제 내역이 등록되거나, 우측 상단 '구독 직접 추가'를 통해 등록하세요.
             </p>
           </div>

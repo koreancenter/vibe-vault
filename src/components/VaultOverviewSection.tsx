@@ -796,7 +796,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <div className={`text-sm md:text-base tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
               totalAssets > 0
                 ? 'font-normal text-sky-400'
-                : 'font-light text-neutral-500'
+                : 'font-light text-neutral-400'
             }`}>
               {totalAssets > 0 ? '+' : ''}{formatCurrency(totalAssets, currentCurrency)}
             </div>
@@ -809,7 +809,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <div className={`text-sm md:text-base tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
               totalLiabilities > 0
                 ? 'font-normal text-rose-400/90'
-                : 'font-light text-neutral-500'
+                : 'font-light text-neutral-400'
             }`}>
               {totalLiabilities > 0 ? '-' : ''}{formatCurrency(totalLiabilities, currentCurrency)}
             </div>
@@ -822,7 +822,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <div className={`text-sm md:text-base tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
               categoryTotals.BROKERAGE > 0
                 ? 'font-normal text-neutral-200'
-                : 'font-light text-neutral-500'
+                : 'font-light text-neutral-400'
             }`}>
               {formatCurrency(categoryTotals.BROKERAGE, currentCurrency)}
             </div>
@@ -835,7 +835,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <div className={`text-sm md:text-base tabular-nums whitespace-nowrap mt-1 ${stealthMode ? 'blur-sm' : ''} ${
               categoryTotals.BANK > 0
                 ? 'font-normal text-neutral-200'
-                : 'font-light text-neutral-500'
+                : 'font-light text-neutral-400'
             }`}>
               {formatCurrency(categoryTotals.BANK, currentCurrency)}
             </div>
@@ -1246,7 +1246,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <span className="font-normal text-neutral-200 truncate">{t.description}</span>
-                          <span className="text-[10px] text-neutral-500 font-light shrink-0">
+                          <span className="text-[10px] text-neutral-400 font-light shrink-0">
                             {t.category ? getCategoryKo(t.category) : ''}
                           </span>
                         </div>
@@ -1344,7 +1344,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               <div className="grid grid-cols-2 gap-2 mt-2 text-[11px]">
                 {fxCalcBase !== 'KRW' && (
                   <div className="p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-                    <span className="text-neutral-500 block">원화 환산</span>
+                    <span className="text-neutral-400 block">원화 환산</span>
                     <span className="font-medium text-neutral-200 tabular-nums">
                       ₩{fxOverviewData.resKRW.toLocaleString()}
                     </span>
@@ -1352,7 +1352,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 )}
                 {fxCalcBase !== 'USD' && (
                   <div className="p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-                    <span className="text-neutral-500 block">달러 환산</span>
+                    <span className="text-neutral-400 block">달러 환산</span>
                     <span className="font-medium text-neutral-200 tabular-nums">
                       ${fxOverviewData.resUSD.toLocaleString()}
                     </span>

@@ -377,6 +377,79 @@ export async function encryptBackupToBinary(
   return serializeBinaryEnvelope(armored.iterations, salt, iv, ciphertext);
 }
 
+export interface EncryptedExportResult {
+  filename: string;
+  dataUrl: string;
+  encryptedPayload: EncryptedBackupPayload;
+}
+
+/**
+ * Enforces encrypted export in cryptoBackup.ts using AES-GCM, preventing unencrypted plaintext financial leaks.
+ * Strictly requires a non-empty master passphrase.
+ * If passphrase is empty or missing, throws a typed CryptoBackupError('EMPTY_PASSPHRASE').
+ */
+export async function exportEncryptedBackup(
+  payload: UnencryptedBackupPayloadV2,
+  passphrase: string,
+  options?: EncryptBackupOptions
+): Promise<EncryptedExportResult> {
+  const trimmed = passphrase ? passphrase.trim() : '';
+  if (!trimmed) {
+    throw new CryptoBackupError(
+      'EMPTY_PASSPHRASE',
+      '금융 데이터 보안 정책: 평문 유출 방지를 위해 AES-GCM 암호화 비밀번호가 반드시 필요합니다.'
+    );
+  }
+
+  const encrypted = await encryptBackupData(payload, trimmed, options);
+  const jsonStr = JSON.stringify(encrypted, null, 2);
+  const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonStr);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const filename = `vibe-vault-backup-encrypted-${dateStr}.vibe.enc`;
+
+  return {
+    filename,
+    dataUrl,
+    encryptedPayload: encrypted
+  };
+}
+
+/**
+ * Strict policy validator: Enforces that any exported payload MUST be authenticated and encrypted using AES-GCM-256.
+ * Rejects unencrypted payloads or attempts to leak plaintext financial records.
+ */
+export function enforceEncryptedExport(
+  data: EncryptedBackupPayload | UnencryptedBackupPayloadV2
+): data is EncryptedBackupPayload {
+  if (!data || typeof data !== 'object') {
+    throw new CryptoBackupError('CORRUPTED_PAYLOAD', '유효하지 않은 백업 데이터 객체입니다.');
+  }
+
+  const isEncrypted =
+    ('ciphertext' in data && typeof (data as any).ciphertext === 'string' && (data as any).ciphertext.length > 0) &&
+    ('cipher' in data && (data as any).cipher === 'AES-GCM-256') &&
+    ('magic' in data && (data as any).magic === MAGIC_HEADER);
+
+  if (!isEncrypted) {
+    throw new CryptoBackupError(
+      'CORRUPTED_PAYLOAD',
+      'UNENCRYPTED_EXPORT_REJECTED: 금융 데이터 평문 유출을 방지하기 위해 오직 AES-GCM 암호화된 백업만 허용됩니다.'
+    );
+  }
+
+  return true;
+}
+
+/**
+ * Security Assertion: Permanently prevents unencrypted plaintext exports.
+ */
+export function preventUnencryptedExport(): never {
+  throw new CryptoBackupError(
+    'CORRUPTED_PAYLOAD',
+    'UNENCRYPTED_EXPORT_BLOCKED: 평문 금융 데이터 내보내기는 차단되었습니다. AES-GCM 암호화를 사용하십시오.'
+  );
+}
+
 /**
  * Universal Resilient Decryptor:
  * Accepts:

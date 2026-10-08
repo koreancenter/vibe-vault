@@ -120,7 +120,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
           <div className="space-y-1.5">
             <label className={`text-xs font-medium flex items-center justify-between ${isLight ? 'text-neutral-700' : 'text-neutral-300'}`}>
               <span>장부 이름 <span className="text-neutral-400 font-normal">*</span></span>
-              <span className="text-[11px] text-neutral-500 font-normal">필수</span>
+              <span className="text-[11px] text-neutral-400 font-normal">필수</span>
             </label>
             <input 
               type="text" 
@@ -143,7 +143,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
           <div className="space-y-1.5 pt-0.5">
             <label className={`text-xs font-medium flex items-center justify-between ${isLight ? 'text-neutral-700' : 'text-neutral-300'}`}>
               <span>기본 통화</span>
-              <span className="text-[11px] text-neutral-500 font-normal">정산서 기준 통화</span>
+              <span className="text-[11px] text-neutral-400 font-normal">정산서 기준 통화</span>
             </label>
             <div className="grid grid-cols-5 gap-1.5">
               {PRESET_CURRENCIES.map((cur) => (
@@ -189,7 +189,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                       : 'bg-black/40 border-white/10 text-white placeholder:text-white/30 focus:border-white/40'
                   }`}
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-500 pointer-events-none">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 pointer-events-none">
                   {currency}
                 </span>
               </div>
@@ -215,7 +215,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                         : 'bg-black/40 border-white/10 text-white placeholder:text-white/30 focus:border-white/40'
                     }`}
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-500 pointer-events-none">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 pointer-events-none">
                     명
                   </span>
                 </div>
@@ -243,7 +243,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
               </div>
             </div>
           </div>
-          <p className={`text-[11px] font-normal leading-relaxed ${isLight ? 'text-neutral-500' : 'text-neutral-400'}`}>
+          <p className={`text-[11px] font-normal leading-relaxed ${isLight ? 'text-neutral-600' : 'text-neutral-400'}`}>
             참여 인원수는 공식 결산서의 1인당 정산 금액(총지출 ÷ 인원수) 및 환급금 계산에 사용됩니다.
           </p>
 
@@ -254,7 +254,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
             </label>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <span className="text-[10px] text-neutral-500 block mb-1">시작일</span>
+                <span className="text-[10px] text-neutral-400 block mb-1">시작일</span>
                 <input 
                   type="date" 
                   value={startDate}
@@ -267,7 +267,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-neutral-500 block mb-1">종료일</span>
+                <span className="text-[10px] text-neutral-400 block mb-1">종료일</span>
                 <input 
                   type="date" 
                   value={endDate}

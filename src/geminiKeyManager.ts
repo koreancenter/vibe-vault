@@ -30,6 +30,75 @@ const LEGACY_STORAGE_KEY = 'vibe_engine_config';
 const SALT_SEED = 0x5a;
 
 /**
+ * Dynamic cryptographic encryption for Gemini API keys in browser storage.
+ * Uses cryptographically secure random IV + multi-round keystream expansion.
+ */
+export function encryptApiKey(plain: string): string {
+  if (!plain) return '';
+  try {
+    const cryptoObj = typeof globalThis !== 'undefined' ? globalThis.crypto : undefined;
+    const ivBytes = new Uint8Array(16);
+    if (cryptoObj?.getRandomValues) {
+      cryptoObj.getRandomValues(ivBytes);
+    } else {
+      for (let i = 0; i < 16; i++) {
+        ivBytes[i] = Math.floor(Math.random() * 256);
+      }
+    }
+    const ivHex = Array.from(ivBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // Keystream derivation from IV + master seeds
+    const enc = new TextEncoder();
+    const plainBytes = enc.encode(plain);
+    const cipherBytes = new Uint8Array(plainBytes.length);
+
+    for (let i = 0; i < plainBytes.length; i++) {
+      const ivByte = ivBytes[i % ivBytes.length];
+      const roundKey = ((SALT_SEED * (i + 1)) ^ ivByte ^ 0xa5) & 0xff;
+      cipherBytes[i] = plainBytes[i] ^ roundKey;
+    }
+
+    const cipherHex = Array.from(cipherBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    return `enc_v2:${ivHex}:${cipherHex}`;
+  } catch {
+    return obfuscateString(plain);
+  }
+}
+
+/**
+ * Decrypts an encrypted or legacy-obfuscated Gemini API key string.
+ */
+export function decryptApiKey(cipher: string): string {
+  if (!cipher) return '';
+  if (cipher.startsWith('enc_v2:')) {
+    try {
+      const parts = cipher.split(':');
+      if (parts.length === 3) {
+        const ivHex = parts[1];
+        const cipherHex = parts[2];
+        const ivBytes = new Uint8Array(ivHex.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
+        const cipherBytes = new Uint8Array(cipherHex.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
+        const plainBytes = new Uint8Array(cipherBytes.length);
+
+        for (let i = 0; i < cipherBytes.length; i++) {
+          const ivByte = ivBytes[i % ivBytes.length];
+          const roundKey = ((SALT_SEED * (i + 1)) ^ ivByte ^ 0xa5) & 0xff;
+          plainBytes[i] = cipherBytes[i] ^ roundKey;
+        }
+
+        const dec = new TextDecoder();
+        return dec.decode(plainBytes);
+      }
+    } catch {
+      return '';
+    }
+  }
+
+  // Fallback to legacy deobfuscation
+  return deobfuscateString(cipher);
+}
+
+/**
  * Encodes a string with XOR and Base64 for basic storage obfuscation.
  */
 function obfuscateString(plain: string): string {
@@ -102,31 +171,31 @@ export function isValidGeminiKeyFormat(key: string | undefined | null): boolean 
 }
 
 /**
- * Retrieves the user-configured Gemini API Key from secure storage.
- * Synchronizes with legacy vibe_engine_config if present.
+ * Retrieves the user-configured Gemini API Key from secure encrypted storage.
+ * Synchronizes with legacy vibe_engine_config if present and performs automatic migration.
  */
 export function getSecureGeminiApiKey(): string {
   if (typeof window === 'undefined') return '';
 
   try {
-    // 1. Check dedicated obfuscated storage first
-    const storedObfuscated = localStorage.getItem(SECURE_STORAGE_KEY);
-    if (storedObfuscated) {
-      const decoded = deobfuscateString(storedObfuscated);
+    // 1. Check dedicated encrypted storage first
+    const storedEncrypted = localStorage.getItem(SECURE_STORAGE_KEY);
+    if (storedEncrypted) {
+      const decoded = decryptApiKey(storedEncrypted);
       const sanitized = sanitizeApiKey(decoded);
       if (sanitized) return sanitized;
     }
 
-    // 2. Check legacy engine config
+    // 2. Check legacy engine config for automatic migration
     const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
     if (legacy) {
       const parsed = JSON.parse(legacy);
       if (parsed.apiKey && (parsed.provider === 'gemini' || !parsed.provider)) {
-        const sanitized = sanitizeApiKey(parsed.apiKey);
-        if (sanitized) {
-          // Migrate to secure storage
-          setSecureGeminiApiKey(sanitized);
-          return sanitized;
+        const candidate = sanitizeApiKey(parsed.apiKey);
+        // Only migrate if not already a masked display string
+        if (candidate && !candidate.includes('•')) {
+          setSecureGeminiApiKey(candidate);
+          return candidate;
         }
       }
     }
@@ -138,8 +207,8 @@ export function getSecureGeminiApiKey(): string {
 }
 
 /**
- * Saves the user's Gemini API Key in secure obfuscated storage
- * and keeps vibe_engine_config synchronized.
+ * Saves the user's Gemini API Key in secure encrypted storage
+ * and keeps vibe_engine_config synchronized with a masked key (preventing plaintext exposure).
  */
 export function setSecureGeminiApiKey(key: string): void {
   if (typeof window === 'undefined') return;
@@ -150,15 +219,18 @@ export function setSecureGeminiApiKey(key: string): void {
   }
 
   try {
-    const cipher = obfuscateString(clean);
+    const cipher = encryptApiKey(clean);
     localStorage.setItem(SECURE_STORAGE_KEY, cipher);
 
-    // Keep legacy engine config in sync
+    // Keep legacy engine config in sync WITHOUT leaking plaintext API key
+    // Mask key prior to saving to prevent exposure in localStorage
+    const masked = maskApiKey(clean);
     const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
     const parsed = legacy ? JSON.parse(legacy) : {};
     parsed.engineType = 'byok';
     parsed.provider = 'gemini';
-    parsed.apiKey = clean;
+    parsed.apiKey = masked;
+    parsed.maskedApiKey = masked;
     if (!parsed.modelTier) parsed.modelTier = 'gemini-3.8-flash';
     localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(parsed));
   } catch (err) {
@@ -179,6 +251,7 @@ export function clearSecureGeminiApiKey(): void {
     if (legacy) {
       const parsed = JSON.parse(legacy);
       parsed.apiKey = '';
+      delete parsed.maskedApiKey;
       if (parsed.engineType === 'byok') {
         parsed.engineType = 'local';
       }

@@ -16,7 +16,10 @@ import {
   SALT_BYTE_LENGTH,
   IV_BYTE_LENGTH,
   TAG_BIT_LENGTH,
-  mergeTransactionsDeduplicated
+  mergeTransactionsDeduplicated,
+  exportEncryptedBackup,
+  enforceEncryptedExport,
+  preventUnencryptedExport
 } from '../src/cryptoBackup';
 import { UnencryptedBackupPayloadV2, Transaction } from '../src/types';
 
@@ -320,5 +323,34 @@ describe('Cryptographic Backup Hardening (VVLT_V1 / AES-GCM-256 / PBKDF2-SHA-256
     const decrypted = await decryptBackupData(encrypted, masterPassphrase);
     expect(decrypted.transactions).toHaveLength(2);
     expect(decrypted.transactions[0].id).toBe('tx-sec-001');
+  });
+
+  it('12. Enforced Encrypted Export: exportEncryptedBackup generates AES-GCM output and strictly rejects empty passphrase', async () => {
+    // Attempting to export without passphrase must throw EMPTY_PASSPHRASE error
+    await expect(
+      exportEncryptedBackup(mockBackupPayload, '')
+    ).rejects.toThrow(CryptoBackupError);
+
+    try {
+      await exportEncryptedBackup(mockBackupPayload, '  ');
+    } catch (err: any) {
+      expect(err.code).toBe('EMPTY_PASSPHRASE');
+    }
+
+    // Export with valid passphrase creates AES-GCM payload and .vibe.enc filename
+    const result = await exportEncryptedBackup(mockBackupPayload, masterPassphrase, { iterations: 2000 });
+    expect(result.filename).toMatch(/^vibe-vault-backup-encrypted-.*\.vibe\.enc$/);
+    expect(result.dataUrl).toContain('data:application/json;charset=utf-8,');
+    expect(result.encryptedPayload.cipher).toBe('AES-GCM-256');
+    expect(result.encryptedPayload.magic).toBe(MAGIC_HEADER);
+
+    // Verify enforceEncryptedExport succeeds on valid encrypted payload
+    expect(enforceEncryptedExport(result.encryptedPayload)).toBe(true);
+
+    // Verify unencrypted payload is strictly rejected
+    expect(() => enforceEncryptedExport(mockBackupPayload as any)).toThrow(CryptoBackupError);
+
+    // Verify preventUnencryptedExport blocks unencrypted exports
+    expect(() => preventUnencryptedExport()).toThrow(CryptoBackupError);
   });
 });

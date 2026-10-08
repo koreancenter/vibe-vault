@@ -1,6 +1,6 @@
 {
   "name": "Vibe Vault",
-  "description": "A privacy-first, local-encrypted asset vault and multi-brokerage portfolio dashboard (with built-in daily expense ledger)",
+  "description": "A privacy-first, local-encrypted asset vault and multi-brokerage portfolio dashboard with built-in daily expense ledger.",
   "requestFramePermissions": [
     "microphone",
     "camera"

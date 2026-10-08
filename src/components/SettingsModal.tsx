@@ -61,6 +61,7 @@ import { Transaction, EncryptedBackupPayload, UnencryptedBackupPayloadV2, Suppor
 import { SmartAssetSetup } from './SmartAssetSetup';
 import {
   encryptBackupData,
+  exportEncryptedBackup,
   decryptBackupData,
   mergeTransactionsDeduplicated,
   isBinaryEnvelope,
@@ -688,7 +689,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // Phase 4: Export with optional AES-GCM-256 Encryption
   const handleOpenExportModal = () => {
     setExportPassphrase('');
-    setEnablePasswordProtection(false);
+    setEnablePasswordProtection(true);
     setIsExportModalOpen(true);
   };
 
@@ -709,26 +710,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         assets
       };
 
-      let downloadDataStr = '';
-      let downloadFilename = `vibe-ledger-backup-${new Date().toISOString().slice(0, 10)}.json`;
-
-      if (enablePasswordProtection) {
-        if (!exportPassphrase.trim()) {
-          setStatusMessage({ type: 'error', text: '암호화할 비밀번호를 입력해주세요.' });
-          return;
-        }
-        const encrypted = await encryptBackupData(backupPayload, exportPassphrase.trim(), {
-          appName: 'Vibe Vault Pro'
-        });
-        downloadDataStr = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(encrypted, null, 2));
-        downloadFilename = `vibe-vault-backup-encrypted-${new Date().toISOString().slice(0, 10)}.vibe.enc`;
-      } else {
-        downloadDataStr = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPayload, null, 2));
+      if (!exportPassphrase.trim()) {
+        setStatusMessage({ type: 'error', text: '금융 데이터 평문 유출 방지를 위해 AES-GCM 암호화 비밀번호를 입력해주세요.' });
+        return;
       }
 
+      const { filename, dataUrl } = await exportEncryptedBackup(backupPayload, exportPassphrase.trim(), {
+        appName: 'Vibe Vault Pro'
+      });
+
       const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", downloadDataStr);
-      downloadAnchor.setAttribute("download", downloadFilename);
+      downloadAnchor.setAttribute("href", dataUrl);
+      downloadAnchor.setAttribute("download", filename);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -740,9 +733,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setIsExportModalOpen(false);
       setStatusMessage({ 
         type: 'success', 
-        text: enablePasswordProtection 
-          ? `AES-GCM-256 (PBKDF2 60만 회) 강화 암호화 백업(${txs.length}건)을 안전하게 내보냈습니다.` 
-          : `${txs.length}건의 거래 내역을 JSON 파일로 내보냈습니다.` 
+        text: `AES-GCM-256 (PBKDF2 60만 회) 강화 암호화 백업(${txs.length}건)을 안전하게 내보냈습니다.` 
       });
     } catch (err: any) {
       setStatusMessage({ type: 'error', text: '내보내기 실패: ' + (err.message || String(err)) });
@@ -1285,7 +1276,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   {/* Condensed Warning Caption below Download Button */}
-                  <p className="text-[10px] leading-relaxed text-neutral-500 font-light">
+                  <p className="text-[10px] leading-relaxed text-neutral-400 font-light">
                     ⚠️ 모바일 브라우저 환경에서는 대용량 가중치 다운로드 시 메모리 부족(OOM)이나 급격한 배터리 소모가 발생할 수 있습니다.
                   </p>
                 </div>
@@ -1919,7 +1910,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </button>
                 </div>
 
-                <p className="text-[10px] leading-relaxed text-neutral-500 font-light">
+                <p className="text-[10px] leading-relaxed text-neutral-400 font-light">
                   ⚠️ 전체 데이터 초기화 시 기기에 암호화되어 저장된 모든 자산, 거래 내역, PIN이 영구 삭제됩니다.
                 </p>
               </div>
@@ -1969,44 +1960,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <p className="text-[11px] text-neutral-400">거래, 구독, 자산 설정 통합 저장</p>
             </div>
 
-            {/* Password Protection Toggle */}
-            <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-between">
+            {/* Enforced AES-GCM Encryption Banner */}
+            <div className="p-3 rounded-xl border border-sky-500/20 bg-sky-500/[0.04] flex items-center justify-between">
               <div>
-                <span className="text-xs font-medium text-white flex items-center gap-1.5">
-                  <Lock size={12} className="text-neutral-400" />
-                  AES-256 비밀번호 암호화
+                <span className="text-xs font-medium text-sky-300 flex items-center gap-1.5">
+                  <Lock size={12} className="text-sky-400" />
+                  AES-GCM-256 암호화 강제 (평문 유출 차단)
                 </span>
                 <span className="text-[10px] text-neutral-400 block mt-0.5">
-                  비밀번호 없이는 타인이 열람할 수 없도록 암호화합니다
+                  PBKDF2 60만 회 + 128-bit MAC 인증 태그로 금융 내역을 보호합니다
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setEnablePasswordProtection(!enablePasswordProtection)}
-                className={`w-11 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 ${
-                  enablePasswordProtection ? 'bg-white' : 'bg-neutral-800'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded-full shadow-md transition-transform transform ${
-                  enablePasswordProtection ? 'translate-x-5 bg-black' : 'translate-x-0 bg-white'
-                }`} />
-              </button>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-medium">
+                보안 강제
+              </span>
             </div>
 
-            {enablePasswordProtection && (
-              <div className="space-y-1.5 animate-in fade-in duration-150">
-                <label className="text-[11px] font-medium text-neutral-400 block">
-                  암호화 비밀번호 설정
-                </label>
-                <input
-                  type="password"
-                  value={exportPassphrase}
-                  onChange={(e) => setExportPassphrase(e.target.value)}
-                  placeholder="8자 이상의 안전한 비밀번호 입력"
-                  className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-white/30"
-                />
-              </div>
-            )}
+            <div className="space-y-1.5 animate-in fade-in duration-150">
+              <label className="text-[11px] font-medium text-neutral-400 block">
+                암호화 비밀번호 설정 (필수)
+              </label>
+              <input
+                type="password"
+                value={exportPassphrase}
+                onChange={(e) => setExportPassphrase(e.target.value)}
+                placeholder="안전한 복호화 비밀번호 입력 (필수)"
+                className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-white/30"
+              />
+            </div>
 
             <div className="flex gap-2 pt-1">
               <button

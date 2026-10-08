@@ -319,7 +319,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
             isLight ? 'text-slate-500' : 'text-neutral-400'
           }`}>
             <p className="text-xs font-medium text-neutral-300">설정된 카테고리 예산이 없습니다.</p>
-            <p className="text-[11px] mt-0.5 text-neutral-500">우측 상단 '예산 추가' 또는 '기본값'을 눌러 시작해보세요.</p>
+            <p className="text-[11px] mt-0.5 text-neutral-400">우측 상단 '예산 추가' 또는 '기본값'을 눌러 시작해보세요.</p>
           </div>
         ) : (
           Object.entries(budgets).map(([category, rawLimit]) => {
