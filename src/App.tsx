@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
 import { 
   parseFinancialInputDeterministically, 
+  parseFinancialText,
+  ParsedItem,
   inferCategoryAndMerchant,
   extractRealtimePreview
 } from './financialParser';
-import { Transaction, SupportedCurrency, FxRates, ParsedReceiptData, LaunchScreenMode, LedgerSpace } from './types';
+import { Transaction, TransactionType, SupportedCurrency, FxRates, ParsedReceiptData, LaunchScreenMode, LedgerSpace } from './types';
 import { 
   Settings, 
   Mic, 
@@ -215,6 +217,28 @@ export function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToastMessage(msg);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null);
+      toastTimeoutRef.current = null;
+    }, 4500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [activeView, setActiveView] = useState<'ledger' | 'insights' | 'subscriptions'>('ledger');
   const [mainMode, setMainMode] = useState<LaunchScreenMode>('vault');
@@ -661,7 +685,7 @@ export function App() {
     }
   }, [isListening]);
 
-  // AI Omnibar Ingestion Process (Tier 1 Local Regex -> Tier 2 Cloud AI -> Tier 3 On-Device)
+  // AI Omnibar Ingestion Process (Multi-Item Parsing & Dutch-Pay Arithmetic)
   const handleProcessInput = useCallback(async (customText?: string) => {
     const textToProcess = (customText || input).trim();
     if (!textToProcess || isProcessing) return;
@@ -673,7 +697,7 @@ export function App() {
       const config = getAIEngineConfig();
       let parsedTransactions: any[] = [];
 
-      // If online and cloud AI configured, attempt cloud parse
+      // If online and cloud AI configured, attempt cloud parse via /api/parse (Gemini)
       if (isOnline) {
         try {
           const response = await fetch('/api/parse', {
@@ -687,7 +711,13 @@ export function App() {
 
           if (response.ok) {
             const data = await response.json();
-            if (Array.isArray(data.transactions) && data.transactions.length > 0) {
+            if (Array.isArray(data.items) && data.items.length > 0) {
+              parsedTransactions = data.items.map((it: any) => ({
+                ...it,
+                type: it.type ? it.type.toUpperCase() : 'EXPENSE',
+                description: it.merchant || it.description || '지출',
+              }));
+            } else if (Array.isArray(data.transactions) && data.transactions.length > 0) {
               parsedTransactions = data.transactions;
             }
           }
@@ -700,7 +730,29 @@ export function App() {
 
       // If server response was unavailable or empty, use client-side deterministic parser
       if (parsedTransactions.length === 0) {
-        parsedTransactions = parseFinancialInputDeterministically(textToProcess, debts);
+        // First check special debt/loan/card settlements via deterministic parser
+        const debtOrCardResults = parseFinancialInputDeterministically(textToProcess, debts);
+        const hasSpecialFlow = debtOrCardResults.some(r => r.loanSplitSuggestion || r.receivableRecoverySuggestion || r.isInternalTransfer || r.type === 'SETTLEMENT');
+        
+        if (hasSpecialFlow) {
+          parsedTransactions = debtOrCardResults;
+        } else {
+          // Use multi-item and Dutch-pay arithmetic engine
+          const items: ParsedItem[] = parseFinancialText(
+            textToProcess, 
+            (activeSpace.currency as SupportedCurrency) || userPrefs.currencySymbol || 'KRW'
+          );
+          parsedTransactions = items.map(it => ({
+            type: it.type.toUpperCase() as TransactionType,
+            amount: it.amount,
+            currency: it.currency,
+            category: it.category,
+            description: it.merchant,
+            merchant: it.merchant,
+            date: it.date,
+            note: it.note
+          }));
+        }
       }
 
       if (!Array.isArray(parsedTransactions) || parsedTransactions.length === 0) {
@@ -728,7 +780,7 @@ export function App() {
         }
 
         // 3. Standard Expense / Income / Settlement Transaction
-        let type = t.type || 'EXPENSE';
+        let type: TransactionType = t.type || 'EXPENSE';
         const isIncomeKeyword = /(?:월급|급여|보너스|상여금|수당|용돈|배당금|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|벌었|salary|paycheck|bonus|allowance)/i.test(textToProcess) || /(?:월급|급여|보너스|상여금|수당|용돈|배당금|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|벌었|salary|paycheck|bonus|allowance)/i.test(t.description || '');
         const isExplicitExpense = /(?:결제|지출|썼|사먹|구입|구매)/i.test(textToProcess);
 
@@ -736,21 +788,47 @@ export function App() {
           type = 'INCOME';
         }
 
-        let category = t.category;
-        let subCategory = t.subCategory;
+        let category = 'Living';
+        let subCategory = 'General';
+        const rawCat = t.category || '';
 
-        if (type === 'INCOME') {
+        if (rawCat.includes('식비') || rawCat === 'Food') {
+          category = 'Food';
+          subCategory = 'Dining';
+        } else if (rawCat.includes('카페') || rawCat.includes('간식')) {
+          category = 'Food';
+          subCategory = 'Cafe';
+        } else if (rawCat.includes('교통') || rawCat === 'Transport') {
+          category = 'Transport';
+          subCategory = 'Public Transport';
+        } else if (rawCat.includes('생활') || rawCat.includes('쇼핑') || rawCat === 'Living') {
+          category = 'Living';
+          subCategory = 'Shopping';
+        } else if (rawCat.includes('의료') || rawCat.includes('건강') || rawCat === 'Health') {
+          category = 'Health';
+          subCategory = 'Medical';
+        } else if (rawCat.includes('문화') || rawCat.includes('여가') || rawCat === 'Leisure') {
+          category = 'Leisure';
+          subCategory = 'Entertainment';
+        } else if (rawCat.includes('주거') || rawCat.includes('통신') || rawCat === 'Fixed') {
           category = 'Fixed';
-          if (!subCategory || subCategory === 'General') {
-            subCategory = 'Salary';
-          }
-        } else if (!category || category === 'Uncategorized' || category === '미분류') {
+          subCategory = 'Utilities';
+        } else if (rawCat.includes('급여') || rawCat.includes('수입') || type === 'INCOME') {
+          category = 'Fixed';
+          subCategory = 'Salary';
+        } else if (rawCat.includes('이체') || rawCat.includes('저축') || type === 'TRANSFER') {
+          category = 'Fixed';
+          subCategory = 'Savings';
+        } else if (!t.category || t.category === 'Uncategorized' || t.category === '미분류') {
           const inferred = inferCategoryAndMerchant(t.description || textToProcess);
           category = inferred.category;
           subCategory = inferred.subCategory;
+        } else {
+          category = t.category;
+          subCategory = t.subCategory || 'General';
         }
 
-        let desc = (t.description || '').trim();
+        let desc = (t.description || t.merchant || '').trim();
         desc = desc.replace(/만\s*원\s*들어옴/i, '들어옴')
                    .replace(/^[\s,·\.\-원\d]+(?:\s*원)?\s*/i, '')
                    .replace(/\s+/g, ' ')
@@ -764,8 +842,8 @@ export function App() {
           type,
           amount: Math.abs(Number(t.amount)) || 0,
           currency: t.currency || (activeSpace.currency as SupportedCurrency) || userPrefs.currencySymbol || 'KRW',
-          category: category || (type === 'INCOME' ? 'Fixed' : 'Living'),
-          subCategory: subCategory || (type === 'INCOME' ? 'Salary' : 'General'),
+          category,
+          subCategory,
           description: desc,
           date: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
           paymentMethod: t.paymentMethod || (type === 'INCOME' ? '통장' : '카드'),
@@ -786,10 +864,37 @@ export function App() {
         return;
       }
 
+      // Multi-transaction simultaneous IndexedDB record
       await batchAddTxs(newTxs);
       if (!customText) {
         setInput('');
       }
+
+      // Toast confirmation: e.g. "2건의 거래가 기록되었습니다 (식비 ₩10,000, 카페 ₩15,000)"
+      const itemSummaries = newTxs.map(tx => {
+        let catLabel = tx.category;
+        if (catLabel === 'Food') {
+          catLabel = tx.subCategory === 'Cafe' ? '카페' : '식비';
+        } else if (catLabel === 'Living') {
+          catLabel = '생활';
+        } else if (catLabel === 'Transport') {
+          catLabel = '교통';
+        } else if (catLabel === 'Fixed') {
+          catLabel = tx.subCategory === 'Salary' ? '급여' : '고정지출';
+        } else if (catLabel === 'Health') {
+          catLabel = '건강';
+        } else if (catLabel === 'Leisure') {
+          catLabel = '문화';
+        } else if (catLabel.includes('카페') || catLabel.includes('간식')) {
+          catLabel = '카페';
+        } else if (catLabel.includes('식비')) {
+          catLabel = '식비';
+        }
+        const currPrefix = tx.currency === 'USD' ? '$' : '₩';
+        return `${catLabel} ${currPrefix}${tx.amount.toLocaleString()}`;
+      }).join(', ');
+
+      showToast(`${newTxs.length}건의 거래가 기록되었습니다 (${itemSummaries})`);
 
       // Smooth scroll to top
       if (scrollContainerRef.current) {
@@ -802,7 +907,7 @@ export function App() {
     } finally {
       setIsProcessing(false);
     }
-  }, [input, isProcessing, isOnline, userPrefs.currencySymbol, userPrefs.autoCategorization, batchAddTxs]);
+  }, [input, isProcessing, isOnline, userPrefs.currencySymbol, userPrefs.autoCategorization, batchAddTxs, activeSpace.currency, activeSpaceId, showToast]);
 
   // Visual Theme & Icon Helpers
   const currSymbol = getCurrencySymbol(currentCurrency);
@@ -830,6 +935,30 @@ export function App() {
     <div className={`h-[100dvh] w-full flex flex-col font-sans antialiased relative overflow-hidden transition-colors duration-200 ${
       isLight ? 'bg-[#F8FAFC] text-slate-900 shadow-slate-300/40' : 'bg-transparent text-slate-100'
     }`}>
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div 
+          role="status"
+          aria-live="polite"
+          className="fixed top-5 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 duration-300 max-w-[92vw]"
+        >
+          <div className="bg-[#1e293b]/95 backdrop-blur-xl text-emerald-400 border border-emerald-500/30 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm font-medium">
+            <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+              <Check size={14} className="text-emerald-400" />
+            </div>
+            <span className="text-slate-100">{toastMessage}</span>
+            <button 
+              type="button" 
+              onClick={() => setToastMessage(null)} 
+              aria-label="닫기"
+              className="ml-2 text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 1. TOP HEADER */}
       <header className="flex-none h-16 border-b border-white/[0.06] bg-[#090A0D]/90 backdrop-blur-xl z-20 text-white">
         <div className="relative w-full max-w-md lg:max-w-7xl 2xl:max-w-[1560px] mx-auto h-full px-4 lg:px-8 2xl:px-12 flex items-center justify-between transition-all duration-300">

@@ -1,6 +1,16 @@
 import { TransactionType, CurrencyCode, ParsedReceiptData, ReceiptItem, DebtItem, LoanSplitSuggestion, ReceivableRecoverySuggestion } from './types';
 import { cleanMerchantTitle } from './merchantSanitizer';
 
+export interface ParsedItem {
+  date: string; // YYYY-MM-DD
+  type: 'expense' | 'income' | 'transfer';
+  amount: number;
+  currency: string;
+  category: string;
+  merchant: string;
+  note?: string;
+}
+
 export interface ParsedTransactionResult {
   type: TransactionType;
   amount: number;
@@ -46,6 +56,7 @@ export function anonymizeFinancialInput(rawText: string): string {
  *   "1.5M" -> 1500000
  *   "3,500,000원" -> 3500000
  *   "1억 2천만원" -> 120000000
+ *   "만 원씩" -> 10000
  */
 export function parseKoreanAmount(text: string): number | null {
   if (!text) return null;
@@ -58,10 +69,13 @@ export function parseKoreanAmount(text: string): number | null {
     let total = 0;
     let hasMatched = false;
 
-    // 1. 억 part (e.g. "1억", "2.5억")
+    // 1. 억 part (e.g. "1억", "2.5억", "억")
     const eokMatch = normalized.match(/(\d+(?:\.\d+)?)\s*억/);
     if (eokMatch) {
       total += parseFloat(eokMatch[1]) * 100000000;
+      hasMatched = true;
+    } else if (/(?:^|[^\d])억/.test(normalized)) {
+      total += 100000000;
       hasMatched = true;
     }
 
@@ -71,19 +85,25 @@ export function parseKoreanAmount(text: string): number | null {
       total += parseFloat(cheonManMatch[1]) * 10000000;
       hasMatched = true;
     } else {
-      // Regular 만 part (e.g. "4만", "1.5만", "350만")
+      // Regular 만 part (e.g. "4만", "1.5만", "350만", or standalone "만", "만원", "만 원씩")
       const manMatch = normalized.match(/(\d+(?:\.\d+)?)\s*만/);
       if (manMatch) {
         total += parseFloat(manMatch[1]) * 10000;
         hasMatched = true;
+      } else if (/(?:^|[^\d])만(?:\s*원|\s*씩)?/.test(normalized)) {
+        total += 10000;
+        hasMatched = true;
       }
     }
 
-    // 3. 천 part (e.g. "4만 5천", "5천원")
+    // 3. 천 part (e.g. "4만 5천", "5천원", or standalone "천", "천원")
     if (!cheonManMatch) {
       const cheonMatch = normalized.match(/(?:만\s*)?(\d+(?:\.\d+)?)\s*천(?:\s*원)?/);
       if (cheonMatch) {
         total += parseFloat(cheonMatch[1]) * 1000;
+        hasMatched = true;
+      } else if (/(?:^|[^\d])천(?:\s*원|\s*씩)?/.test(normalized)) {
+        total += 1000;
         hasMatched = true;
       }
     }
@@ -591,6 +611,448 @@ export function detectReceivableRecoveryNotification(
 }
 
 /**
+ * Helper to get today's date in YYYY-MM-DD format based on local time.
+ */
+export function getTodayIsoDate(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Extracts common date metadata across clauses (e.g., 오늘, 어제, 그제, ISO dates).
+ */
+export function extractCommonDate(text: string): string {
+  const now = new Date();
+  const todayStr = getTodayIsoDate();
+
+  if (/오늘/i.test(text)) {
+    return todayStr;
+  }
+
+  if (/어제/i.test(text)) {
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const y = yesterday.getFullYear();
+    const m = String(yesterday.getMonth() + 1).padStart(2, '0');
+    const d = String(yesterday.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  if (/그제|그저께/i.test(text)) {
+    const prevDay = new Date(now);
+    prevDay.setDate(now.getDate() - 2);
+    const y = prevDay.getFullYear();
+    const m = String(prevDay.getMonth() + 1).padStart(2, '0');
+    const d = String(prevDay.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  if (/내일/i.test(text)) {
+    const nextDay = new Date(now);
+    nextDay.setDate(now.getDate() + 1);
+    const y = nextDay.getFullYear();
+    const m = String(nextDay.getMonth() + 1).padStart(2, '0');
+    const d = String(nextDay.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  // ISO YYYY-MM-DD or YYYY.MM.DD or YYYY/MM/DD
+  const isoMatch = text.match(/\b(20\d{2})[-/.년]\s*(0?[1-9]|1[0-2])[-/.월]\s*(0?[1-9]|[12]\d|3[01])(?:일)?\b/);
+  if (isoMatch) {
+    const y = isoMatch[1];
+    const m = isoMatch[2].padStart(2, '0');
+    const d = isoMatch[3].padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  // M월 D일
+  const mdMatch = text.match(/\b(0?[1-9]|1[0-2])월\s*(0?[1-9]|[12]\d|3[01])일\b/);
+  if (mdMatch) {
+    const y = now.getFullYear();
+    const m = mdMatch[1].padStart(2, '0');
+    const d = mdMatch[2].padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  return todayStr;
+}
+
+export interface DutchPayModifier {
+  targetKeyword?: string;  // e.g. "식사", "식사비", "밥", "커피"
+  portionAmount?: number;  // e.g. 10000 ("만 원씩", "각자 15,000원씩")
+  splitCount?: number;     // e.g. 2 ("2명 N빵", "반반"), 3 ("3명 엔빵")
+  rawClause: string;
+}
+
+/**
+ * Splits sentence by commas, periods, or coordinating conjunctions (그리고, 및, +)
+ * while preserving numbers with thousands commas (e.g. 15,000) or decimals.
+ */
+export function splitIntoClauses(raw: string): string[] {
+  // Protect numbers with commas (e.g. 15,000) and decimals (e.g. 1.5)
+  const protectedText = raw
+    .replace(/(\d+),(\d{3})/g, '$1#COMMA#$2')
+    .replace(/(\d+),(\d{3})/g, '$1#COMMA#$2')
+    .replace(/\b(\d+)\.(\d+)\b/g, '$1#DOT#$2');
+
+  // Split by comma, period, coordinating conjunctions (그리고, 및, +), and newlines
+  const rawSegments = protectedText
+    .split(/(?:[,\.]\s*|\s+(?:그리고|및|\+)\s+|\r?\n+)/g)
+    .map(s => s.replace(/#COMMA#/g, ',').replace(/#DOT#/g, '.').trim())
+    .filter(s => s.length > 0);
+
+  return rawSegments;
+}
+
+/**
+ * Extracts Dutch-Pay modifier rule from clause if present.
+ * Detects keywords: 더치페이, 엔빵, N빵, 각자, 만 원씩, 반반, 반띵
+ */
+export function extractDutchPayModifier(clause: string): DutchPayModifier | null {
+  const hasDutchKeyword = /더치페이|엔빵|n빵|각자|반반|반띵|씩/i.test(clause);
+  if (!hasDutchKeyword) return null;
+
+  // 1. Check for explicit portion amount: e.g. "만 원씩", "10,000원씩", "각자 만원씩"
+  let portionAmount: number | undefined;
+  const portionMatch = clause.match(/(?:각자\s*)?([0-9.,만천억원kKmM\s]+?)\s*씩/i);
+  if (portionMatch) {
+    const parsedAmt = parseKoreanAmount(portionMatch[1]);
+    if (parsedAmt && parsedAmt > 0) {
+      portionAmount = parsedAmt;
+    }
+  }
+
+  // 2. Check for split count: e.g. "2명 N빵", "3명", "3명 엔빵", "반반", "반띵"
+  let splitCount: number | undefined;
+  if (/반반|반띵/i.test(clause)) {
+    splitCount = 2;
+  } else {
+    const countMatch = clause.match(/(\d+)\s*(?:명|인)\s*(?:N빵|엔빵|더치페이|각자)?/i);
+    if (countMatch) {
+      const count = parseInt(countMatch[1], 10);
+      if (count > 0) splitCount = count;
+    }
+  }
+
+  // If generic "더치페이" or "엔빵" without explicit count or portion, default to 2
+  if (!portionAmount && !splitCount) {
+    if (/더치페이|엔빵|n빵|각자/i.test(clause)) {
+      splitCount = 2;
+    }
+  }
+
+  // 3. Extract target keyword: e.g. "식사비는", "식사는", "밥값은", "커피는"
+  let targetKeyword: string | undefined;
+  const targetMatch = clause.match(/^([가-힣a-zA-Z0-9]{2,})(?:비|값)?(?:는|은|이|가)?\s*/);
+  if (targetMatch && targetMatch[1]) {
+    const candidate = targetMatch[1].replace(/비|값/g, '').trim();
+    if (candidate && !/더치|엔빵|n빵|각자|반반|반띵|전체|모두|만원|천원/.test(candidate)) {
+      targetKeyword = candidate;
+    }
+  }
+
+  if (portionAmount || splitCount) {
+    return {
+      targetKeyword,
+      portionAmount,
+      splitCount,
+      rawClause: clause
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Applies Dutch-pay arithmetic logic:
+ * - If specific portion is mentioned: deduce user's expense as portionAmount with note "<item> <total>원 (더치페이 분담)"
+ * - If split count (or 반반) is mentioned: divide item amount accordingly (amount / N)
+ */
+export function applyDutchPayRule(
+  itemAmount: number,
+  merchant: string,
+  category: string,
+  rule: DutchPayModifier
+): { amount: number; note: string } {
+  let resolvedAmount = itemAmount;
+  if (rule.portionAmount && rule.portionAmount > 0) {
+    resolvedAmount = rule.portionAmount;
+  } else if (rule.splitCount && rule.splitCount > 1) {
+    resolvedAmount = Math.round(itemAmount / rule.splitCount);
+  }
+
+  const cleanLabel = merchant || category || '식사';
+  const note = `${cleanLabel} ${itemAmount.toLocaleString()}원 (더치페이 분담)`;
+  return {
+    amount: resolvedAmount,
+    note
+  };
+}
+
+/**
+ * Extracts category and merchant specifically for ParsedItem segments.
+ */
+export function extractItemCategoryAndMerchant(
+  clause: string,
+  type: 'expense' | 'income' | 'transfer'
+): { category: string; merchant: string } {
+  if (type === 'income') {
+    return { category: '급여/수입', merchant: cleanMerchantTitle(clause, '급여 수입') };
+  }
+  if (type === 'transfer') {
+    return { category: '이체/저축', merchant: cleanMerchantTitle(clause, '계좌 이체') };
+  }
+
+  // Remove Dutch-pay keywords first so words like "N빵", "엔빵" don't falsely trigger the Bakery / Cafe regex
+  const clean = clause.replace(/더치페이|엔빵|N빵|n빵|반반|반띵|각자/gi, ' ').trim();
+
+  // Cafe / Bakery / Dessert
+  if (/스타벅스|스벅|투썸|이디야|메가커피|빽다방|컴포즈|폴바셋|블루보틀|할리스|공차|설빙|던킨|배스킨|배라|파리바게뜨|파바|뚜레쥬르|성심당|커피|카페|아메리카노|라떼|에스프레소|디저트|베이커리|케이크|마카롱|와플|coffee|cafe|latte|dessert|(?<![Nn엔])빵(?:집|\b)/i.test(clean)) {
+    const m = clean.match(/스타벅스|스벅|투썸|이디야|메가커피|빽다방|컴포즈|폴바셋|블루보틀|할리스|공차|설빙|던킨|배스킨|파리바게뜨|뚜레쥬르|성심당/i);
+    return {
+      category: '카페/간식',
+      merchant: m ? m[0] : (clean.includes('커피') ? '커피' : '카페')
+    };
+  }
+
+  // Meal / Dining / Food
+  if (/식사|밥|점심|저녁|아침|순두부|찌개|파스타|고기|삼겹살|갈비|한우|곱창|초밥|스시|라멘|마라탕|짜장면|짬뽕|탕수육|치킨|피자|버거|햄버거|맥도날드|버거킹|맘스터치|롯데리아|서브웨이|교촌|bbq|bhc|식당|레스토랑|외식|밥값|회식|분식|떡볶이|김밥|meal|lunch|dinner|dining|food/i.test(clean)) {
+    const m = clean.match(/맥도날드|버거킹|맘스터치|롯데리아|서브웨이|교촌|bbq|bhc|굽네|삼겹살|갈비|파스타|피자|치킨|순두부|초밥|라멘|마라탕|식사|점심|저녁|식당|밥/i);
+    return {
+      category: '식비',
+      merchant: m ? m[0] : '식사'
+    };
+  }
+
+  // Transport
+  if (/지하철|전철|시내버스|버스|택시|카카오택시|카카오\s*t|타다|우버|교통|교통카드|티머니|ktx|srt|기차|주유소|주유|기름|휘발유|경유|통행료|하이패스|주차장|주차|주차비|따릉이|킥보드|subway|bus|taxi|cab|transport/i.test(clean)) {
+    const m = clean.match(/카카오택시|카카오\s*t|타다|우버|지하철|버스|택시|주유소|주유|기차|ktx|srt|주차장|주차비|주차/i);
+    return {
+      category: '교통',
+      merchant: m ? m[0] : '교통'
+    };
+  }
+
+  // Living / Shopping
+  if (/이마트|홈플러스|롯데마트|코스트코|트레이더스|마트|장보기|슈퍼마켓|다이소|올리브영|올영|무인양품|자주|생필품|화장지|휴지|세제|샴푸|칫솔|쿠팡|네이버쇼핑|11번가|지마켓|알리|테무|아마존|쇼핑|무신사|유니클로|자라|나이키|아디다스|옷|의류|신발|gs25|cu|씨유|세븐일레븐|이마트24|편의점/i.test(clean)) {
+    const m = clean.match(/이마트|홈플러스|롯데마트|코스트코|트레이더스|다이소|올리브영|쿠팡|네이버쇼핑|무신사|유니클로|자라|나이키|gs25|cu|씨유|세븐일레븐|이마트24|편의점|마트|쇼핑|생필품/i);
+    return {
+      category: '생활/쇼핑',
+      merchant: m ? m[0] : '생활/쇼핑'
+    };
+  }
+
+  // Medical / Health
+  if (/병원|의원|내과|이비인후과|치과|안과|피부과|정형외과|한의원|약국|약값|처방전|안경|헬스|헬스장|피트니스|pt|피티|필라테스|요가|영양제|비타민/i.test(clean)) {
+    const m = clean.match(/병원|약국|치과|안과|피부과|한의원|헬스장|헬스|pt|영양제/i);
+    return {
+      category: '의료/건강',
+      merchant: m ? m[0] : '의료/건강'
+    };
+  }
+
+  // Leisure / Culture
+  if (/cgv|롯데시네마|메가박스|영화|콘서트|뮤지컬|연극|공연|전시|미술관|티켓|노래방|코노|pc방|골프|스크린골프|호텔|리조트|펜션|에어비앤비|야놀자|여기어때|숙소|숙박|항공권|비행기|서점|교보문고|도서|책|게임|스팀/i.test(clean)) {
+    const m = clean.match(/cgv|메가박스|롯데시네마|영화|콘서트|뮤지컬|연극|공연|호텔|항공권|교보문고|책/i);
+    return {
+      category: '문화/여가',
+      merchant: m ? m[0] : '문화/여가'
+    };
+  }
+
+  // Utilities / Telecom / Fixed
+  if (/관리비|전기세|전기요금|도시가스|가스비|수도세|수도요금|통신비|휴대폰요금|인터넷요금|월세|임대료|넷플릭스|유튜브|디즈니|티빙|웨이브|스포티파이|멜론|쿠팡와우|네이버플러스|구독/i.test(clean)) {
+    const m = clean.match(/넷플릭스|유튜브|디즈니|티빙|스포티파이|멜론|관리비|월세|전기세|가스비|통신비|구독/i);
+    return {
+      category: '주거/통신',
+      merchant: m ? m[0] : '고정지출'
+    };
+  }
+
+  const title = cleanMerchantTitle(clean, '지출 내역');
+  return {
+    category: '생활/쇼핑',
+    merchant: title !== '지출 내역' ? title : '지출'
+  };
+}
+
+/**
+ * Parses financial natural language input into an array of ParsedItem objects.
+ * Supports multi-item sentences and split-bill / Dutch-Pay arithmetic.
+ *
+ * Example:
+ *   "오늘 말자랑 데이트 식사 2만 원, 커피 15,000원 지출. 식사비는 만 원씩 더치페이"
+ *   -> [
+ *        { date: "2026-10-08", type: "expense", amount: 10000, currency: "KRW", category: "식비", merchant: "식사", note: "식사 20,000원 (더치페이 분담)" },
+ *        { date: "2026-10-08", type: "expense", amount: 15000, currency: "KRW", category: "카페/간식", merchant: "커피" }
+ *      ]
+ */
+export function parseFinancialText(text: string, baseCurrency = 'KRW'): ParsedItem[] {
+  if (!text || !text.trim()) return [];
+
+  const sanitized = anonymizeFinancialInput(text);
+  const commonDate = extractCommonDate(sanitized);
+  const commonCurrency = detectCurrency(sanitized) || baseCurrency;
+
+  // Split sentence into clauses by comma, period, coordinating conjunctions, or newlines
+  const clauses = splitIntoClauses(sanitized);
+
+  // 1. Identify Dutch-Pay modifier clauses
+  const dutchModifiers: DutchPayModifier[] = [];
+  const candidateItemClauses: string[] = [];
+
+  for (const clause of clauses) {
+    const modifier = extractDutchPayModifier(clause);
+    // If it is purely a Dutch-pay modifier clause (e.g. "식사비는 만 원씩 더치페이", "2명 N빵", "반반 더치페이")
+    const isPureModifier = modifier && (
+      clause.length <= 28 ||
+      /식사비|밥값|회식비|커피값|비용|음식값/i.test(clause) ||
+      !/(?:사먹|먹었|결제|구매|지출|샀음|쇼핑|구입)/i.test(clause.replace(/더치페이|엔빵|n빵|각자|반반/g, ''))
+    );
+
+    if (isPureModifier && modifier) {
+      dutchModifiers.push(modifier);
+    } else {
+      candidateItemClauses.push(clause);
+    }
+  }
+
+  // If no candidate item clauses were found, use all clauses
+  const activeClauses = candidateItemClauses.length > 0 ? candidateItemClauses : clauses;
+  const results: ParsedItem[] = [];
+
+  for (const clause of activeClauses) {
+    const amount = parseKoreanAmount(clause);
+    if (!amount || amount <= 0) continue;
+
+    // Check item type: income vs transfer vs expense
+    let type: 'expense' | 'income' | 'transfer' = 'expense';
+    const isIncome = /월급|급여|보너스|상여금|수당|용돈|배당금|환급|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|벌었|salary|paycheck|bonus|allowance/i.test(clause) &&
+      !/결제|지출|썼|사먹|구입|구매/i.test(clause);
+    const isPurchase = /(?:순두부|찌개|식사|점심|저녁|커피|카페|스타벅스|마트|장보기|다이소|편의점|배달|치킨|피자|파스타|택시|주유|옷|신발|병원|약국)/i.test(clause);
+    const isTransfer = /(?:자동이체|송금|적금|예금|청약|주택청약|저축|통장으로|계좌로|to\s*account|savings)/i.test(clause) && !isPurchase;
+
+    if (isIncome) {
+      type = 'income';
+    } else if (isTransfer) {
+      type = 'transfer';
+    }
+
+    const { category, merchant } = extractItemCategoryAndMerchant(clause, type);
+
+    // Check if an inline Dutch-pay rule exists within this clause (e.g. "식사 2만 원 반반")
+    const inlineModifier = extractDutchPayModifier(clause);
+
+    // Find any matching Dutch-pay rule (either inline or from separate modifier clause)
+    let matchedModifier: DutchPayModifier | null = null;
+    if (inlineModifier) {
+      matchedModifier = inlineModifier;
+    } else if (dutchModifiers.length > 0) {
+      // Find matching modifier by targetKeyword
+      matchedModifier = dutchModifiers.find(dm => {
+        if (!dm.targetKeyword) return false;
+        const target = dm.targetKeyword;
+        return merchant.includes(target) ||
+               target.includes(merchant) ||
+               (target === '식사' && (category === '식비' || merchant.includes('식사')));
+      }) || null;
+
+      // If no targeted modifier matched, but modifier has no specific target, apply if only 1 expense item
+      if (!matchedModifier) {
+        matchedModifier = dutchModifiers.find(dm => !dm.targetKeyword) || null;
+      }
+    }
+
+    // Apply Dutch-Pay Arithmetic Logic
+    let finalAmount = amount;
+    let note: string | undefined = undefined;
+
+    if (type === 'expense' && matchedModifier) {
+      const resolved = applyDutchPayRule(amount, merchant, category, matchedModifier);
+      finalAmount = resolved.amount;
+      note = resolved.note;
+    }
+
+    results.push({
+      date: commonDate,
+      type,
+      amount: finalAmount,
+      currency: commonCurrency,
+      category,
+      merchant,
+      note
+    });
+  }
+
+  // Fallback if no item matched (e.g. single raw string)
+  if (results.length === 0) {
+    const rawAmt = parseKoreanAmount(sanitized) || 10000;
+    const isInc = /월급|급여|보너스|상여금|수당|용돈|배당금|환급|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|벌었/i.test(sanitized);
+    const rawType = isInc ? 'income' : 'expense';
+    const { category, merchant } = extractItemCategoryAndMerchant(sanitized, rawType);
+
+    results.push({
+      date: commonDate,
+      type: rawType,
+      amount: rawAmt,
+      currency: commonCurrency,
+      category,
+      merchant
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Fallback parser using Gemini API when enabled.
+ * Instructs LLM to return ParsedItem[] with user net cost explicitly calculated for Dutch-pay scenarios.
+ */
+export async function parseFinancialTextWithGeminiFallback(
+  text: string,
+  apiKey?: string,
+  baseCurrency = 'KRW'
+): Promise<ParsedItem[]> {
+  try {
+    if (typeof fetch !== 'undefined') {
+      const res = await fetch('/api/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          engineConfig: apiKey ? { engineType: 'byok', provider: 'gemini', apiKey } : undefined
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.items) && data.items.length > 0) {
+          return data.items;
+        }
+        if (Array.isArray(data.transactions) && data.transactions.length > 0) {
+          return data.transactions.map((t: any) => ({
+            date: t.date?.slice(0, 10) || getTodayIsoDate(),
+            type: (t.type?.toLowerCase() === 'income' ? 'income' : t.type?.toLowerCase() === 'transfer' ? 'transfer' : 'expense') as 'expense' | 'income' | 'transfer',
+            amount: Math.abs(Number(t.amount)) || 0,
+            currency: t.currency || baseCurrency,
+            category: t.category || '생활/쇼핑',
+            merchant: t.merchant || t.description || '지출',
+            note: t.note
+          }));
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Gemini API fetch error, falling back to local deterministic:', err);
+  }
+
+  return parseFinancialText(text, baseCurrency);
+}
+
+/**
  * Parses full natural language string deterministically into structured transactions.
  */
 export function parseFinancialInputDeterministically(rawPrompt: string, debts: DebtItem[] = []): ParsedTransactionResult[] {
@@ -835,33 +1297,56 @@ export function parseFinancialInputDeterministically(rawPrompt: string, debts: D
     return results;
   }
 
-  // 4. Multi-item clauses separated by commas, "그리고", "하고", "and"
-  // Example: "쿠팡에서 화장지 2만원, 영양제 3만원 결제함"
-  const clauses = sanitized.split(/(?:, 그리고|그리고|고\s*,|,\s*|\band\b)/i);
-  if (clauses.length > 1) {
-    for (const clause of clauses) {
-      const trimmed = clause.trim();
-      if (!trimmed) continue;
-      const amount = parseKoreanAmount(trimmed);
-      if (amount && amount > 0) {
-        const { category, subCategory, merchant, confidence } = inferCategoryAndMerchant(trimmed);
-        const itemPaymentMethod = detectPaymentMethod(trimmed) !== '카드' ? detectPaymentMethod(trimmed) : paymentMethod;
-        const cleanDesc = cleanMerchantTitle(trimmed, merchant || '구매 항목');
+  // 4. Multi-item clauses and Dutch-Pay Arithmetic via parseFinancialText
+  const parsedItems = parseFinancialText(sanitized, currency);
+  if (parsedItems.length > 1 || (parsedItems.length === 1 && (parsedItems[0].note || /더치페이|엔빵|n빵|각자|반반|반띵/i.test(sanitized)))) {
+    for (const item of parsedItems) {
+      let mappedCategory = 'Living';
+      let mappedSubCategory = 'General';
 
-        results.push({
-          type: 'EXPENSE',
-          amount,
-          currency,
-          category,
-          subCategory,
-          description: cleanDesc,
-          merchant: cleanDesc,
-          date: now,
-          paymentMethod: itemPaymentMethod,
-          confidenceScore: confidence,
-          rawClause: trimmed
-        });
+      if (item.category.includes('식비') || item.category === 'Food') {
+        mappedCategory = 'Food';
+        mappedSubCategory = 'Dining';
+      } else if (item.category.includes('카페') || item.category.includes('간식')) {
+        mappedCategory = 'Food';
+        mappedSubCategory = 'Cafe';
+      } else if (item.category.includes('교통') || item.category === 'Transport') {
+        mappedCategory = 'Transport';
+        mappedSubCategory = 'Public Transport';
+      } else if (item.category.includes('생활') || item.category.includes('쇼핑') || item.category === 'Living') {
+        mappedCategory = 'Living';
+        mappedSubCategory = 'Shopping';
+      } else if (item.category.includes('의료') || item.category.includes('건강') || item.category === 'Health') {
+        mappedCategory = 'Health';
+        mappedSubCategory = 'Medical';
+      } else if (item.category.includes('문화') || item.category.includes('여가') || item.category === 'Leisure') {
+        mappedCategory = 'Leisure';
+        mappedSubCategory = 'Entertainment';
+      } else if (item.category.includes('주거') || item.category.includes('통신') || item.category === 'Fixed') {
+        mappedCategory = 'Fixed';
+        mappedSubCategory = 'Utilities';
+      } else if (item.category.includes('급여') || item.category.includes('수입')) {
+        mappedCategory = '급여';
+        mappedSubCategory = '정기수입';
+      } else if (item.category.includes('이체') || item.category.includes('저축')) {
+        mappedCategory = 'Fixed';
+        mappedSubCategory = 'Savings';
       }
+
+      results.push({
+        type: item.type === 'income' ? 'INCOME' : item.type === 'transfer' ? 'TRANSFER' : 'EXPENSE',
+        amount: item.amount,
+        currency: (item.currency as CurrencyCode) || currency,
+        category: mappedCategory,
+        subCategory: mappedSubCategory,
+        description: item.merchant || '지출 항목',
+        merchant: item.merchant || '지출 항목',
+        date: item.date ? new Date(item.date).toISOString() : now,
+        paymentMethod: item.type === 'income' ? detectPaymentMethod(sanitized, true) : paymentMethod,
+        confidenceScore: 0.95,
+        rawClause: sanitized,
+        originalTotal: item.note ? (item.amount * 2) : undefined
+      });
     }
     if (results.length > 0) return results;
   }

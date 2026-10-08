@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { 
   parseFinancialInputDeterministically, 
+  parseFinancialText,
   parseKoreanAmount, 
-  anonymizeFinancialInput 
+  anonymizeFinancialInput,
+  getTodayIsoDate 
 } from '../src/financialParser';
 
 describe('Financial Parser Deterministic Engine', () => {
@@ -15,6 +17,8 @@ describe('Financial Parser Deterministic Engine', () => {
     expect(parseKoreanAmount('20k')).toBe(20000);
     expect(parseKoreanAmount('$35')).toBe(35);
     expect(parseKoreanAmount('1억 2천만원')).toBe(120000000);
+    expect(parseKoreanAmount('만 원씩')).toBe(10000);
+    expect(parseKoreanAmount('만 원')).toBe(10000);
   });
 
   it('anonymizes and strips sensitive PII (card, phone, RRN)', () => {
@@ -73,5 +77,71 @@ describe('Financial Parser Deterministic Engine', () => {
     const transferResult = parseFinancialInputDeterministically('주택청약 통장으로 150만원 자동이체');
     expect(transferResult[0].type).toBe('TRANSFER');
     expect(transferResult[0].amount).toBe(1500000);
+  });
+
+  describe('Multi-Item Parsing and Dutch-Pay Arithmetic (parseFinancialText)', () => {
+    it('accurately parses multi-item sentences with trailing Dutch-pay portion instructions', () => {
+      const prompt = '오늘 말자랑 데이트 식사 2만 원, 커피 15,000원 지출. 식사비는 만 원씩 더치페이';
+      const items = parseFinancialText(prompt);
+
+      expect(items).toHaveLength(2);
+
+      // Segment 1: 식사 2만 원 -> 식비, 10000 (after Dutch-pay portion deduction)
+      expect(items[0].category).toBe('식비');
+      expect(items[0].merchant).toBe('식사');
+      expect(items[0].amount).toBe(10000);
+      expect(items[0].type).toBe('expense');
+      expect(items[0].currency).toBe('KRW');
+      expect(items[0].note).toBe('식사 20,000원 (더치페이 분담)');
+      expect(items[0].date).toBe(getTodayIsoDate());
+
+      // Segment 2: 커피 15,000원 -> 카페/간식, 15000
+      expect(items[1].category).toBe('카페/간식');
+      expect(items[1].merchant).toBe('커피');
+      expect(items[1].amount).toBe(15000);
+      expect(items[1].type).toBe('expense');
+      expect(items[1].currency).toBe('KRW');
+      expect(items[1].note).toBeUndefined();
+      expect(items[1].date).toBe(getTodayIsoDate());
+    });
+
+    it('correctly handles "2명 N빵" and "반반" arithmetic', () => {
+      const nSplitPrompt = '오늘 삼겹살 4만원 2명 N빵';
+      const nItems = parseFinancialText(nSplitPrompt);
+      expect(nItems).toHaveLength(1);
+      expect(nItems[0].amount).toBe(20000);
+      expect(nItems[0].category).toBe('식비');
+      expect(nItems[0].note).toBe('삼겹살 40,000원 (더치페이 분담)');
+
+      const banbanPrompt = '파스타 3만원 반반';
+      const banbanItems = parseFinancialText(banbanPrompt);
+      expect(banbanItems).toHaveLength(1);
+      expect(banbanItems[0].amount).toBe(15000);
+      expect(banbanItems[0].note).toBe('파스타 30,000원 (더치페이 분담)');
+    });
+
+    it('correctly splits by coordinating conjunctions (그리고, 및, +)', () => {
+      const prompt = '식사 2만원 및 커피 5천원 그리고 택시 12,000원';
+      const items = parseFinancialText(prompt);
+      expect(items).toHaveLength(3);
+      expect(items[0].category).toBe('식비');
+      expect(items[0].amount).toBe(20000);
+      expect(items[1].category).toBe('카페/간식');
+      expect(items[1].amount).toBe(5000);
+      expect(items[2].category).toBe('교통');
+      expect(items[2].amount).toBe(12000);
+    });
+
+    it('correctly calculates 3명 엔빵 and companion Dutch-pay', () => {
+      const threeSplit = parseFinancialText('식사 3만원 3명 엔빵');
+      expect(threeSplit).toHaveLength(1);
+      expect(threeSplit[0].amount).toBe(10000);
+      expect(threeSplit[0].note).toBe('식사 30,000원 (더치페이 분담)');
+
+      const companionSplit = parseFinancialText('친구랑 식사 4만원 더치페이');
+      expect(companionSplit).toHaveLength(1);
+      expect(companionSplit[0].amount).toBe(20000);
+      expect(companionSplit[0].note).toBe('식사 40,000원 (더치페이 분담)');
+    });
   });
 });

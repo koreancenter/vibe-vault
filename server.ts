@@ -4,6 +4,7 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import { 
   parseFinancialInputDeterministically, 
+  parseFinancialText,
   anonymizeFinancialInput, 
   inferCategoryAndMerchant 
 } from './src/financialParser';
@@ -646,7 +647,8 @@ Never output full resident identity numbers, personal passwords, or full unmaske
       // If in on-device mode or without an API key, use the robust deterministic local parsing engine
       if (engineConfig?.engineType === 'local' || !apiKey) {
         const localParsed = parseFinancialInputDeterministically(sanitizedPrompt);
-        return res.json({ transactions: localParsed });
+        const localItems = parseFinancialText(sanitizedPrompt);
+        return res.json({ transactions: localParsed, items: localItems });
       }
 
       try {
@@ -659,75 +661,60 @@ Never output full resident identity numbers, personal passwords, or full unmaske
           }
         });
 
+        const today = new Date().toISOString().slice(0, 10);
         const response = await ai.models.generateContent({
           model: 'gemini-3.8-flash',
           contents: sanitizedPrompt,
           config: {
-            systemInstruction: `You are 'Vibe Ledger AI', an ultra-lightweight, privacy-focused, highly accurate global personal finance assistant.
-Your mission is to parse messy natural language inputs (Korean or English) into structured financial transactions.
+            systemInstruction: `You are 'Vibe Ledger AI', an expert NLP financial logic parser.
+Your mission is to parse natural language inputs (Korean or English) into structured financial transactions.
 
-CRITICAL RULES:
-1. Transaction Type (type):
-   - "INCOME": Salaries, wages, bonuses, allowances, side income, interest, dividends, deposits, incoming money (e.g. "월급", "급여", "상여금", "보너스", "수당", "용돈", "입금", "들어옴", "수입", "벌었음", "salary", "paycheck", "allowance", "bonus", "deposited").
-     * CRITICAL: Inputs like "오늘 월급 800만원 들어옴", "월급 들어옴", "급여 350만원 입금", "용돈 10만원 받음" MUST ALWAYS BE type: "INCOME"!
-     * Category for INCOME must be "Fixed", subCategory: "Salary" (or "Bonus", "Allowance", etc.). NEVER classify as "EXPENSE" or "Living"!
-   - "EXPENSE": Any money spent on goods, dining, shopping, bills, services (e.g. "결제", "샀음", "지출", "먹었음").
-   - "TRANSFER": Moving money between accounts, credit card bill payments, savings/investment deposits (e.g. "주택청약 150만원 자동이체", "적금 통장으로 50만원 송금", "현대카드 결제대금 145만원 출금", "신한에서 토스로 송금").
-     * CRITICAL: Always set isInternalTransfer: true for transfers and card settlements to prevent inflating monthly spending!
-   - "SETTLEMENT": Dutch-pay reimbursements, or receiving lent money back from borrowers (e.g. "정산받음", "더치페이로 2만원 받음", "김민수 5만원 입금", "빌려준 돈 받음").
-     * CRITICAL: Receiving money lent to someone back MUST be "SETTLEMENT" with isInternalTransfer: true, NEVER "INCOME"!
+CRITICAL INSTRUCTIONS:
+Always return a JSON array of ParsedItem objects.
 
-2. Smart Debt & Loan Split Detection:
-   - When an SMS or notification says "[Bank Name] Loan Repayment 1,000,000 KRW" or "대출 원리금 100만원 납입":
-     Split into:
-     1) type: "TRANSFER", isInternalTransfer: true, category: "Fixed", subCategory: "원금상환", description: "대출 원금 상환"
-     2) type: "EXPENSE", isInternalTransfer: false, category: "Fixed", subCategory: "대출이자", description: "대출 이자 비용"
+Schema for each ParsedItem:
+{
+  "date": "YYYY-MM-DD",
+  "type": "expense" | "income" | "transfer",
+  "amount": number (positive numeric net cost for the user),
+  "currency": string (e.g. "KRW", "USD"),
+  "category": string (e.g. "식비", "카페/간식", "교통", "생활/쇼핑", "문화/여가", "의료/건강", "주거/통신", "급여/수입", "이체/저축"),
+  "merchant": string,
+  "note": string (optional, e.g. "식사 20,000원 (더치페이 분담)")
+}
 
-3. Credit Card Bill Settlement Deduplication:
-   - Credit card bill debits (e.g. "현대카드 결제대금 1,450,000원 출금", "신한카드 대금 결제"):
-     Mark strictly as type: "TRANSFER" with isInternalTransfer: true and subCategory: "카드대금". NEVER mark as "EXPENSE" because individual purchases were already tracked!
+1. MULTI-ITEM EXTRACTION:
+   - Split composite sentences by commas, periods, or coordinating conjunctions (그리고, 및, +).
+   - Extract EACH item as a separate ParsedItem entry.
+   - Preserve common metadata (e.g., 오늘 -> current date ${today}) across all extracted items in that prompt.
 
-4. Korean Number Unit Semantics:
-   - "만" or "만원" = 10,000 (e.g. "800만원" -> 8000000, "4만원" -> 40000, "1.5만" -> 15000, "350만원" -> 3500000). NEVER parse "800만원" as 800 or 8!
-   - "천" or "천원" = 1,000 (e.g. "5천원" -> 5000, "4만5천원" -> 45000).
-   - "억" or "억원" = 100,000,000 (e.g. "1억" -> 100000000, "1억 2천만원" -> 120000000).
-   - Amounts MUST ALWAYS be positive numbers (> 0). Never output negative numbers.
+2. SPLIT BILL & DUTCH-PAY ARITHMETIC:
+   - Detect keywords: 더치페이, 엔빵, N빵, 각자, 만 원씩, 반반, 반띵.
+   - ALWAYS explicitly calculate the user's actual NET COST:
+     * If a specific portion is mentioned (e.g., "식사 2만 원... 만 원씩 더치페이"), user expense is 10000 with note "식사 20,000원 (더치페이 분담)".
+     * If "2명 N빵 / 반반" is specified on an amount, divide the item amount accordingly (e.g. 20000 / 2 = 10000), with note "<merchant> <totalAmount>원 (더치페이 분담)".
 
-5. Dutch Pay & Split Expense Handling:
-   - If user paid a group bill and received money back (e.g. "민수랑 파스타 4만원 더치페이하고 토스로 2만원 받음"):
-     Produce TWO entries with matching groupId:
-     1) type: "EXPENSE", amount: 40000, description: "파스타 더치페이"
-     2) type: "SETTLEMENT", amount: 20000, paymentMethod: "Toss", description: "더치페이 정산 (파스타)"
+3. NUMBER UNITS IN KOREAN:
+   - "만" / "만원" = 10,000. Standalone "만 원씩" = 10,000.
+   - "천" / "천원" = 1,000.
+   - "억" / "억원" = 100,000,000.
 
-6. Category Mapping:
-   - Fixed: Salary/Income (월급, 급여, 상여), Subscriptions (넷플릭스, 유튜브), Utilities (관리비, 전기세, 통신비), Finance (주택청약, 적금, 보험, 대출이자, 원금상환, 카드대금)
-   - Food: Grocery (이마트, 컬리, 마트), Dining (순두부, 파스타, 식당, 점심, 저녁), Cafe (스타벅스, 투썸, 메가커피, 커피), Delivery (배민, 요기요)
-   - Living: Daily Supplies (다이소, 올리브영, 화장지), Shopping (쿠팡, 네이버쇼핑), Convenience (GS25, CU), Fashion (무신사, 유니클로)
-   - Transport: Public Transport (지하철, 버스), Taxi (카카오T, 택시), Vehicle (주유소, 주차)
-   - Health: Medical (병원, 약국), Fitness (헬스, PT)
-   - Leisure: Entertainment (영화, CGV), Travel (호텔, 항공)
-   - Do NOT use "Uncategorized" for recognizable brands or common household items.
-
-Output a JSON array of parsed transactions.`,
+Output a strict JSON array of ParsedItem objects.`,
             responseMimeType: "application/json",
             responseSchema: {
               type: Type.ARRAY,
               items: {
                 type: Type.OBJECT,
                 properties: {
-                  type: { type: Type.STRING, description: "INCOME, EXPENSE, TRANSFER, or SETTLEMENT" },
-                  amount: { type: Type.NUMBER, description: "Positive numeric transaction amount" },
-                  currency: { type: Type.STRING, description: "Currency code, e.g. KRW, USD, EUR, JPY" },
-                  category: { type: Type.STRING, description: "Main category (Fixed, Food, Living, Transport, Health, Leisure)" },
-                  subCategory: { type: Type.STRING, description: "Sub category" },
-                  description: { type: Type.STRING, description: "Cleaned up description without payment or amount tokens" },
-                  date: { type: Type.STRING, description: "ISO date string of transaction, default to today if not specified" },
-                  paymentMethod: { type: Type.STRING, description: "Payment method (e.g. Card, Cash, Kakao Pay, Toss, etc.)" },
-                  groupId: { type: Type.STRING, description: "Optional matching group ID linking dutch-pay pairs or split transactions together" },
-                  originalTotal: { type: Type.NUMBER, description: "Optional initial gross bill amount before split" },
-                  isInternalTransfer: { type: Type.BOOLEAN, description: "True if internal transfer, card bill settlement, or lent money recovery to avoid budget double counting" }
+                  date: { type: Type.STRING, description: "YYYY-MM-DD format" },
+                  type: { type: Type.STRING, description: "expense, income, or transfer" },
+                  amount: { type: Type.NUMBER, description: "Positive numeric net expense for user" },
+                  currency: { type: Type.STRING, description: "Currency code, e.g. KRW, USD" },
+                  category: { type: Type.STRING, description: "Category in Korean, e.g. 식비, 카페/간식, 교통, etc." },
+                  merchant: { type: Type.STRING, description: "Clean merchant or item title" },
+                  note: { type: Type.STRING, description: "Optional note for split-bill explanation" }
                 },
-                required: ["type", "amount", "currency", "category", "description", "date"]
+                required: ["date", "type", "amount", "currency", "category", "merchant"]
               }
             }
           }
@@ -805,11 +792,16 @@ Output a JSON array of parsed transactions.`,
           validatedTransactions = parseFinancialInputDeterministically(sanitizedPrompt);
         }
 
-        res.json({ transactions: validatedTransactions });
+        const parsedItems = (Array.isArray(rawParsed) && rawParsed.length > 0)
+          ? rawParsed
+          : parseFinancialText(sanitizedPrompt);
+
+        res.json({ transactions: validatedTransactions, items: parsedItems });
       } catch (geminiError: any) {
         console.warn("Gemini parsing error, falling back to deterministic rules:", geminiError.message);
         const fallbackParsed = parseFinancialInputDeterministically(sanitizedPrompt);
-        res.json({ transactions: fallbackParsed });
+        const fallbackItems = parseFinancialText(sanitizedPrompt);
+        res.json({ transactions: fallbackParsed, items: fallbackItems });
       }
     } catch (error: any) {
       console.error(error);
