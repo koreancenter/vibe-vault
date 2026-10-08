@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ShieldCheck, 
   Landmark, 
@@ -1440,128 +1441,140 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       </div>
 
       {/* QUICK BALANCE EDIT MODAL */}
-      <AnimatePresence>
-        {editingBalanceAccount && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              className={`relative w-full max-w-sm rounded-2xl p-6 shadow-2xl border ${
-                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#121318]/95 backdrop-blur-xl text-white border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-normal text-slate-100">{editingBalanceAccount.accountName}</h3>
-                  <p className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {editingBalanceAccount.institution} 잔고 수정
-                  </p>
-                </div>
+      {editingBalanceAccount && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setEditingBalanceAccount(null)}
+        >
+          <div 
+            className={`w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl border transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#0E1524]/95 backdrop-blur-2xl text-white border-white/10 shadow-2xl'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Mobile drag handle */}
+            <div className={`w-12 h-1 rounded-full mx-auto -mt-2 mb-3 sm:hidden shrink-0 ${isLight ? 'bg-slate-300' : 'bg-white/20'}`} />
+
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-100">{editingBalanceAccount.accountName}</h3>
+                <p className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {editingBalanceAccount.institution} 잔고 수정
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingBalanceAccount(null)}
+                className="p-1 text-slate-400 hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-light block mb-1.5 text-slate-400">
+                  새 잔고 금액 ({editingBalanceAccount.currency || currentCurrency})
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={newBalanceInput}
+                  onChange={(e) => setNewBalanceInput(e.target.value)}
+                  className={`w-full px-3.5 py-2.5 rounded-xl text-base font-normal tabular-nums outline-none border transition-all ${
+                    isLight
+                      ? 'bg-slate-50 border-slate-300 focus:border-slate-500 text-slate-900'
+                      : 'bg-white/[0.03] border-white/10 focus:border-sky-500/40 text-white'
+                  }`}
+                  placeholder="0"
+                  autoFocus
+                />
+              </div>
+
+              {/* Quick Add Presets */}
+              <div className="flex items-center gap-1.5">
+                {[100000, 500000, 1000000].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      const cur = parseFloat(newBalanceInput) || 0;
+                      setNewBalanceInput((cur + preset).toString());
+                    }}
+                    className="px-2.5 py-1 rounded-full text-xs font-light bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300"
+                  >
+                    +{preset >= 10000 ? `${preset / 10000}만` : preset}
+                  </button>
+                ))}
                 <button
-                  onClick={() => setEditingBalanceAccount(null)}
-                  className="p-1 text-slate-400 hover:text-white"
+                  type="button"
+                  onClick={() => setNewBalanceInput('0')}
+                  className="px-2.5 py-1 rounded-full text-xs font-light bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 ml-auto"
                 >
-                  <X size={18} />
+                  초기화
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-light block mb-1.5 text-slate-400">
-                    새 잔고 금액 ({editingBalanceAccount.currency || currentCurrency})
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={newBalanceInput}
-                    onChange={(e) => setNewBalanceInput(e.target.value)}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-base font-normal tabular-nums outline-none border transition-all ${
-                      isLight
-                        ? 'bg-slate-50 border-slate-300 focus:border-slate-500 text-slate-900'
-                        : 'bg-white/[0.03] border-white/10 focus:border-sky-500/40 text-white'
-                    }`}
-                    placeholder="0"
-                    autoFocus
-                  />
-                </div>
-
-                {/* Quick Add Presets */}
-                <div className="flex items-center gap-1.5">
-                  {[100000, 500000, 1000000].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => {
-                        const cur = parseFloat(newBalanceInput) || 0;
-                        setNewBalanceInput((cur + preset).toString());
-                      }}
-                      className="px-2.5 py-1 rounded-full text-xs font-light bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300"
-                    >
-                      +{preset >= 10000 ? `${preset / 10000}만` : preset}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setNewBalanceInput('0')}
-                    className="px-2.5 py-1 rounded-full text-xs font-light bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 ml-auto"
-                  >
-                    초기화
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingBalanceAccount(null)}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-light bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]"
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveQuickBalance}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 transition-all"
-                  >
-                    잔고 저장
-                  </button>
-                </div>
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingBalanceAccount(null)}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-light bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveQuickBalance}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 transition-all"
+                >
+                  잔고 저장
+                </button>
               </div>
-            </motion.div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>,
+        document.body
+      )}
 
       {/* GEMINI MULTIMODAL SCREENSHOT SCANNER MODAL */}
-      <AnimatePresence>
-        {showScanModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className={`relative w-full max-w-md rounded-2xl p-6 shadow-2xl border ${
-                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#121318]/95 backdrop-blur-xl text-white border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-base font-bold">계좌/증권 잔고 캡처 스캔</h3>
-                  <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    Gemini 멀티모달 AI가 스크린샷에서 잔고를 자동 추출합니다.
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowScanModal(false);
-                    setScannedResult(null);
-                    setScanPreviewUrl(null);
-                  }}
-                  className="p-1 text-slate-400 hover:text-white"
-                >
-                  <X size={18} />
-                </button>
+      {showScanModal && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => {
+            setShowScanModal(false);
+            setScannedResult(null);
+            setScanPreviewUrl(null);
+          }}
+        >
+          <div 
+            className={`relative w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[85dvh] flex flex-col p-6 shadow-2xl border overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#0E1524]/95 backdrop-blur-2xl text-white border-white/10 shadow-2xl'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Mobile drag handle */}
+            <div className={`w-12 h-1 rounded-full mx-auto -mt-2 mb-3 sm:hidden shrink-0 ${isLight ? 'bg-slate-300' : 'bg-white/20'}`} />
+
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-bold">계좌/증권 잔고 캡처 스캔</h3>
+                <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Gemini 멀티모달 AI가 스크린샷에서 잔고를 자동 추출합니다.
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowScanModal(false);
+                  setScannedResult(null);
+                  setScanPreviewUrl(null);
+                }}
+                className="p-1 text-slate-400 hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
               {!scannedResult ? (
                 <div className="space-y-4">
@@ -1743,50 +1756,60 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                   </div>
                 </div>
               )}
-            </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>,
+        document.body
+      )}
 
       {/* ACCOUNT-TO-ACCOUNT TRANSFER MODAL */}
-      <AnimatePresence>
-        {showTransferModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className={`relative w-full max-w-sm rounded-2xl p-6 shadow-2xl border ${
-                isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#121318]/95 backdrop-blur-xl text-white border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-base font-medium">계좌 간 자산 이체</h3>
-                  <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    내 계좌 간 이체는 가계부 소비 지출에서 제외됩니다.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowTransferModal(false)}
-                  className="p-1 text-slate-400 hover:text-white"
-                >
-                  <X size={18} />
-                </button>
-              </div>
+      {showTransferModal && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setShowTransferModal(false)}
+        >
+          <div 
+            className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88dvh] overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+              isLight ? 'bg-white border-slate-200 text-slate-900 shadow-slate-300/40' : 'bg-[#0E1524]/95 border-white/10 text-white shadow-2xl backdrop-blur-2xl'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Mobile drag handle */}
+            <div className={`w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 ${isLight ? 'bg-slate-300' : 'bg-white/20'}`} />
 
-              <form onSubmit={handleExecuteTransfer} className="space-y-3.5">
+            <div className={`flex justify-between items-center px-6 py-4 border-b shrink-0 transition-colors ${
+              isLight ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-white/[0.02]'
+            }`}>
+              <div>
+                <h3 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>계좌 간 자산 이체</h3>
+                <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
+                  내 계좌 간 이체는 가계부 소비 지출에서 제외됩니다.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTransferModal(false)}
+                className={`p-2 rounded-xl transition-colors ${
+                  isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-white/10 text-white/70'
+                }`}
+                aria-label="닫기"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleExecuteTransfer} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3.5 overscroll-contain">
                 <div>
-                  <label className="text-xs font-semibold block mb-1 text-slate-400">출금 계좌 (보내는 곳)</label>
+                  <label className={`text-xs font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>출금 계좌 (보내는 곳)</label>
                   <select
                     value={transferForm.sourceId}
                     onChange={(e) => setTransferForm({ ...transferForm, sourceId: e.target.value })}
-                    className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white'
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium outline-none border transition-colors ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white' : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622]'
                     }`}
                   >
                     {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id} className="bg-[#08090D] text-white">
+                      <option key={acc.id} value={acc.id} className={isLight ? 'bg-white text-slate-900' : 'bg-[#0E1524] text-white'}>
                         {acc.institution} - {acc.accountName} (잔고 ₩{acc.currentBalance.toLocaleString()})
                       </option>
                     ))}
@@ -1794,16 +1817,16 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold block mb-1 text-slate-400">입금 계좌 (받는 곳)</label>
+                  <label className={`text-xs font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>입금 계좌 (받는 곳)</label>
                   <select
                     value={transferForm.targetId}
                     onChange={(e) => setTransferForm({ ...transferForm, targetId: e.target.value })}
-                    className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white'
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium outline-none border transition-colors ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white' : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622]'
                     }`}
                   >
                     {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id} className="bg-[#08090D] text-white">
+                      <option key={acc.id} value={acc.id} className={isLight ? 'bg-white text-slate-900' : 'bg-[#0E1524] text-white'}>
                         {acc.institution} - {acc.accountName} (잔고 ₩{acc.currentBalance.toLocaleString()})
                       </option>
                     ))}
@@ -1811,7 +1834,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold block mb-1 text-slate-400">이체 금액 ({currentCurrency})</label>
+                  <label className={`text-xs font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>이체 금액 ({currentCurrency})</label>
                   <input
                     type="number"
                     step="any"
@@ -1819,210 +1842,270 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
                     placeholder="1000000"
                     required
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-medium outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-sky-500/40'
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium outline-none border transition-colors tabular-nums ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400' : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
                     }`}
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold block mb-1 text-slate-400">이체 메모 (선택)</label>
+                  <label className={`text-xs font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>이체 메모 (선택)</label>
                   <input
                     type="text"
                     value={transferForm.note}
                     onChange={(e) => setTransferForm({ ...transferForm, note: e.target.value })}
                     placeholder="예: 미국주식 매수용 예수금 이체"
-                    className={`w-full px-3 py-2 rounded-xl text-xs outline-none border ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white'
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm outline-none border transition-colors ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400' : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
                     }`}
                   />
                 </div>
-
-                <div className="flex items-center gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowTransferModal(false)}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]"
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 transition-all"
-                  >
-                    이체 실행
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ADD ACCOUNT MODAL */}
-      <AnimatePresence>
-        {showAddModal && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md"
-          onClick={() => setShowAddModal(false)}
-        >
-          {/* Modal Dialog Window */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="w-full max-w-md max-h-[90vh] flex flex-col bg-[#0E1015] border border-white/[0.08] rounded-3xl shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Sticky Modal Header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06] shrink-0">
-              <div>
-                <h3 className="text-base font-medium text-white">새 자산 계좌 추가</h3>
-                <p className="text-xs text-neutral-400 mt-0.5">증권, 은행, 가상자산, 부동산 등</p>
-              </div>
-              <button 
-                type="button"
-                onClick={() => setShowAddModal(false)}
-                className="p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
-                aria-label="닫기"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Scrollable Form Body & Sticky Action Footer */}
-            <form onSubmit={handleCreateAccount} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              {/* Scrollable Form Body */}
-              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 overscroll-contain">
-                {/* Form fields: 자산 유형, 기관명, 계좌명, 현재 잔고, 메모 */}
-                <div>
-                  <label className="text-xs font-semibold block mb-1.5 text-neutral-400">자산 유형</label>
-                  <select
-                    value={newAccountForm.assetType}
-                    onChange={(e) => setNewAccountForm({ ...newAccountForm, assetType: e.target.value as AssetCategoryType })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium outline-none border bg-white/[0.03] border-white/10 text-white focus:border-white/30"
-                  >
-                    {assetCategories.map((c) => (
-                      <option key={c.type} value={c.type} className="bg-[#08090D] text-white">
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold block mb-1.5 text-neutral-400">기관명</label>
-                  <input
-                    type="text"
-                    value={newAccountForm.institution}
-                    onChange={(e) => setNewAccountForm({ ...newAccountForm, institution: e.target.value })}
-                    placeholder="토스증권, 카카오페이증권, 업비트 등"
-                    required
-                    className="w-full px-3.5 py-2.5 rounded-xl text-xs outline-none border bg-white/[0.03] border-white/10 text-white focus:border-white/30 placeholder:text-neutral-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold block mb-1.5 text-neutral-400">계좌명 / 포트폴리오 별칭</label>
-                  <input
-                    type="text"
-                    value={newAccountForm.accountName}
-                    onChange={(e) => setNewAccountForm({ ...newAccountForm, accountName: e.target.value })}
-                    placeholder="해외주식 종합계좌, 비트코인 적립 등"
-                    required
-                    className="w-full px-3.5 py-2.5 rounded-xl text-xs outline-none border bg-white/[0.03] border-white/10 text-white focus:border-white/30 placeholder:text-neutral-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold block mb-1.5 text-neutral-400">현재 잔고 / 평가액</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={newAccountForm.balance}
-                    onChange={(e) => setNewAccountForm({ ...newAccountForm, balance: e.target.value })}
-                    placeholder="10000000"
-                    required
-                    className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium outline-none border bg-white/[0.03] border-white/10 text-white focus:border-white/30 placeholder:text-neutral-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold block mb-1.5 text-neutral-400">메모 (선택)</label>
-                  <input
-                    type="text"
-                    value={newAccountForm.note}
-                    onChange={(e) => setNewAccountForm({ ...newAccountForm, note: e.target.value })}
-                    placeholder="S&P 500, 배당주 위주"
-                    className="w-full px-3.5 py-2.5 rounded-xl text-xs outline-none border bg-white/[0.03] border-white/10 text-white focus:border-white/30 placeholder:text-neutral-500"
-                  />
-                </div>
               </div>
 
-              {/* Sticky Action Footer */}
-              <div className="grid grid-cols-2 gap-3 px-6 py-4 border-t border-white/[0.06] bg-[#0E1015] shrink-0">
+              <div className={`flex gap-3 px-6 py-4 border-t shrink-0 transition-colors ${
+                isLight ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-white/[0.02]'
+              }`}>
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="w-full py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 text-sm font-medium transition-all"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="w-full py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all shadow-sm"
-                >
-                  계좌 추가
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
-
-        {/* Delete Account Confirmation Modal (Iframe & Cross-Origin Safe) */}
-        {deletingAccount && (
-          <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
-            onClick={() => setDeletingAccount(null)}
-          >
-            <div 
-              className={`w-full max-w-xs rounded-2xl border p-4 shadow-2xl space-y-3 animate-in zoom-in-95 duration-150 ${
-                isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#121318]/95 backdrop-blur-xl border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`p-1.5 rounded-xl ${isLight ? 'bg-rose-100 text-rose-600' : 'bg-rose-500/20 text-rose-400'}`}>
-                  <Trash2 size={16} />
-                </div>
-                <h4 className="text-xs font-bold">자산 계좌 삭제</h4>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                <span className="font-semibold text-white">'{deletingAccount.name}'</span> 자산 계좌를 삭제하시겠습니까? 계좌 잔고 및 연결 데이터가 목록에서 제외됩니다.
-              </p>
-              <div className="flex justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setDeletingAccount(null)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
-                    isLight ? 'border-slate-200 text-slate-600 hover:bg-slate-50' : 'border-white/10 text-slate-400 hover:bg-white/5'
+                  onClick={() => setShowTransferModal(false)}
+                  className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-colors ${
+                    isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 text-white/80'
                   }`}
                 >
                   취소
                 </button>
                 <button
-                  type="button"
-                  onClick={handleConfirmDeleteAccount}
-                  className="px-3 py-1.5 rounded-xl text-xs font-medium bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-all active:scale-95"
+                  type="submit"
+                  className="flex-1 py-3 px-4 rounded-xl font-medium text-sm bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 transition-all active:scale-98"
                 >
-                  삭제하기
+                  <ArrowLeftRight size={16} />
+                  이체 실행
                 </button>
               </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ADD ACCOUNT MODAL */}
+      {showAddModal && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setShowAddModal(false)}
+        >
+          {/* Modal Dialog Window */}
+          <div 
+            className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88dvh] overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+              isLight 
+                ? 'bg-white border-slate-200 text-slate-900 shadow-slate-300/40' 
+                : 'bg-[#0E1524]/95 border-white/10 text-white shadow-2xl backdrop-blur-2xl'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+              {/* Mobile drag handle */}
+              <div className={`w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 ${isLight ? 'bg-slate-300' : 'bg-white/20'}`} />
+
+              {/* Sticky Modal Header */}
+              <div className={`flex justify-between items-center px-6 py-4 border-b shrink-0 transition-colors ${
+                isLight ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-white/[0.02]'
+              }`}>
+                <div>
+                  <h2 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                    새 자산 계좌 추가
+                  </h2>
+                  <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
+                    증권, 은행, 가상자산, 부동산 등
+                  </p>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className={`p-2 rounded-xl transition-colors ${
+                    isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-white/10 text-white/70'
+                  }`}
+                  aria-label="닫기"
+                  title="닫기"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Scrollable Form Body & Sticky Action Footer */}
+              <form onSubmit={handleCreateAccount} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                {/* Scrollable Form Body */}
+                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3.5 overscroll-contain">
+                  {/* 자산 유형 */}
+                  <div>
+                    <label className={`text-xs font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                      자산 유형
+                    </label>
+                    <select
+                      value={newAccountForm.assetType}
+                      onChange={(e) => setNewAccountForm({ ...newAccountForm, assetType: e.target.value as AssetCategoryType })}
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium outline-none border transition-colors ${
+                        isLight
+                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white'
+                          : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622]'
+                      }`}
+                    >
+                      {assetCategories.map((c) => (
+                        <option key={c.type} value={c.type} className={isLight ? 'bg-white text-slate-900' : 'bg-[#0E1524] text-white'}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 기관명 */}
+                  <div>
+                    <label className={`text-xs font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                      기관명
+                    </label>
+                    <input
+                      type="text"
+                      value={newAccountForm.institution}
+                      onChange={(e) => setNewAccountForm({ ...newAccountForm, institution: e.target.value })}
+                      placeholder="토스증권, 카카오페이증권, 업비트 등"
+                      required
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm outline-none border transition-colors ${
+                        isLight
+                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400'
+                          : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
+                      }`}
+                    />
+                  </div>
+
+                  {/* 계좌명 / 포트폴리오 별칭 */}
+                  <div>
+                    <label className={`text-xs font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                      계좌명 / 포트폴리오 별칭
+                    </label>
+                    <input
+                      type="text"
+                      value={newAccountForm.accountName}
+                      onChange={(e) => setNewAccountForm({ ...newAccountForm, accountName: e.target.value })}
+                      placeholder="해외주식 종합계좌, 비트코인 적립 등"
+                      required
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm outline-none border transition-colors ${
+                        isLight
+                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400'
+                          : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
+                      }`}
+                    />
+                  </div>
+
+                  {/* 현재 잔고 / 평가액 */}
+                  <div>
+                    <label className={`text-xs font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                      현재 잔고 / 평가액 ({currentCurrency})
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={newAccountForm.balance}
+                      onChange={(e) => setNewAccountForm({ ...newAccountForm, balance: e.target.value })}
+                      placeholder="10000000"
+                      required
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium outline-none border transition-colors tabular-nums ${
+                        isLight
+                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400'
+                          : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
+                      }`}
+                    />
+                  </div>
+
+                  {/* 메모 (선택) */}
+                  <div>
+                    <label className={`text-xs font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                      메모 (선택)
+                    </label>
+                    <input
+                      type="text"
+                      value={newAccountForm.note}
+                      onChange={(e) => setNewAccountForm({ ...newAccountForm, note: e.target.value })}
+                      placeholder="S&P 500, 배당주 위주"
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm outline-none border transition-colors ${
+                        isLight
+                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400'
+                          : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Sticky Action Footer */}
+                <div className={`flex gap-3 px-6 py-4 border-t shrink-0 transition-colors ${
+                  isLight ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-white/[0.02]'
+                }`}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-colors ${
+                      isLight 
+                        ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' 
+                        : 'bg-white/5 hover:bg-white/10 text-white/80'
+                    }`}
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 px-4 rounded-xl font-medium text-sm bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 transition-all active:scale-98"
+                  >
+                    <Check size={16} />
+                    계좌 추가
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Delete Account Confirmation Modal (Iframe & Cross-Origin Safe) */}
+      {deletingAccount && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          onClick={() => setDeletingAccount(null)}
+        >
+          <div 
+            className={`w-full max-w-xs rounded-2xl border p-4 shadow-2xl space-y-3 animate-in zoom-in-95 duration-150 ${
+              isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#121318]/95 backdrop-blur-xl border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2">
+              <div className={`p-1.5 rounded-xl ${isLight ? 'bg-rose-100 text-rose-600' : 'bg-rose-500/20 text-rose-400'}`}>
+                <Trash2 size={16} />
+              </div>
+              <h4 className="text-xs font-bold">자산 계좌 삭제</h4>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              <span className="font-semibold text-white">'{deletingAccount.name}'</span> 자산 계좌를 삭제하시겠습니까? 계좌 잔고 및 연결 데이터가 목록에서 제외됩니다.
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setDeletingAccount(null)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
+                  isLight ? 'border-slate-200 text-slate-600 hover:bg-slate-50' : 'border-white/10 text-slate-400 hover:bg-white/5'
+                }`}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteAccount}
+                className="px-3 py-1.5 rounded-xl text-xs font-medium bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-all active:scale-95"
+              >
+                삭제하기
+              </button>
             </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
