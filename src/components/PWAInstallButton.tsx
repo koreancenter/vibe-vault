@@ -151,14 +151,11 @@ export const PWAInstallButton: React.FC<PWAInstallProps> = ({
     if (isInstalled) {
       return (
         <div className={`p-3 rounded-xl border flex items-center justify-between ${
-          isLight ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-sky-500/10 border-sky-500/20 text-sky-400'
+          isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-white/[0.03] border-white/10 text-white'
         } ${className}`}>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-sky-400 shrink-0" />
-            <div className="text-xs">
-              <span className="font-bold">PWA 독립 앱으로 설치되어 실행 중</span>
-              <p className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>오프라인 캐싱 및 전체화면 모드가 활성화되어 있습니다.</p>
-            </div>
+          <div className="text-xs">
+            <span className="font-semibold text-white">독립 앱으로 설치되어 실행 중</span>
+            <p className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>오프라인 캐싱 및 전체화면 모드가 활성화되어 있습니다.</p>
           </div>
         </div>
       );
@@ -169,16 +166,11 @@ export const PWAInstallButton: React.FC<PWAInstallProps> = ({
         <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 ${
           isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-white/[0.03] border-white/10 text-white'
         } ${className}`}>
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
-              <Download size={15} />
-            </div>
-            <div className="min-w-0">
-              <span className="text-xs font-bold block truncate">PWA 홈 화면 / 데스크톱 앱 설치</span>
-              <p className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                브라우저 주소창 없이 네이티브 앱처럼 실행하세요.
-              </p>
-            </div>
+          <div className="min-w-0">
+            <span className="text-xs font-semibold text-white block truncate">홈 화면 / 데스크톱 앱 설치</span>
+            <p className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
+              브라우저 주소창 없이 네이티브 앱처럼 실행하세요.
+            </p>
           </div>
 
           <div className="shrink-0">
@@ -189,18 +181,16 @@ export const PWAInstallButton: React.FC<PWAInstallProps> = ({
                   const success = await install();
                   if (success && onInstalled) onInstalled();
                 }}
-                className="px-3.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                className="px-3.5 py-1.5 rounded-xl bg-white text-black hover:bg-neutral-200 font-medium text-xs flex items-center gap-1.5 shadow-xs active:scale-95 transition-all"
               >
-                <Download size={13} />
                 <span>앱 설치</span>
               </button>
             ) : isIOS ? (
               <button
                 type="button"
                 onClick={() => setShowIOSModal(true)}
-                className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                className="px-3.5 py-1.5 rounded-xl bg-white text-black hover:bg-neutral-200 font-medium text-xs flex items-center gap-1.5 shadow-xs active:scale-95 transition-all"
               >
-                <Share2 size={13} />
                 <span>iOS 설치 안내</span>
               </button>
             ) : (
@@ -212,8 +202,8 @@ export const PWAInstallButton: React.FC<PWAInstallProps> = ({
                     setShowIOSModal(true);
                   }
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
-                  isLight ? 'border-slate-300 text-slate-700 hover:bg-slate-100' : 'border-white/15 text-slate-200 hover:bg-white/10'
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all active:scale-95 ${
+                  isLight ? 'border-slate-300 text-slate-700 hover:bg-slate-100' : 'border-white/10 text-neutral-300 hover:text-white hover:bg-white/[0.06]'
                 }`}
               >
                 <span>설치 가이드</span>

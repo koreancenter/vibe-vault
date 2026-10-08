@@ -21,7 +21,6 @@ import {
   ArrowRight,
   TrendingDown,
   Info,
-  Clock,
   CreditCard
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -142,7 +141,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
       );
     }
     return (
-      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-sky-500/15 text-sky-400 border border-sky-500/30">
+      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/10 text-neutral-300 border border-white/10">
         결제 완료
       </span>
     );
@@ -198,8 +197,8 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
             <span className={`text-[11px] font-medium block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               연간 환산 고정비
             </span>
-            <span className={`text-lg font-black tracking-tight mt-0.5 block ${
-              isLight ? 'text-sky-700' : 'text-[#38bdf8]'
+            <span className={`text-lg font-bold tracking-tight mt-0.5 block ${
+              isLight ? 'text-slate-900' : 'text-white'
             } ${isStealth ? 'blur-sm select-none' : ''}`}>
               {currSymbol}{annualizedTotal.toLocaleString()}
             </span>
@@ -223,13 +222,12 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
 
         {subscriptions.length === 0 ? (
           <div className={`p-6 text-center ${
-            isLight ? 'text-slate-500' : 'text-slate-400'
+            isLight ? 'text-slate-500' : 'text-neutral-400'
           }`}>
-            <Clock size={24} className="mx-auto mb-2 opacity-40" />
-            <p className="text-xs font-semibold">
+            <p className="text-xs font-medium text-neutral-300">
               감지된 정기 구독이 아직 없습니다
             </p>
-            <p className="text-[11px] mt-0.5 opacity-80">
+            <p className="text-[11px] mt-0.5 text-neutral-500">
               가계부에 2회 이상 정기 결제 내역이 등록되거나, 우측 상단 '구독 직접 추가'를 통해 등록하세요.
             </p>
           </div>
@@ -303,7 +301,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
                         title={sub.isActive ? '구독 일시중지' : '구독 다시 활성화'}
                         className={`p-1.5 rounded-lg transition-colors ${
                           sub.isActive
-                            ? isLight ? 'hover:bg-slate-100 text-sky-600' : 'hover:bg-white/10 text-[#38bdf8]'
+                            ? isLight ? 'hover:bg-slate-100 text-slate-700' : 'hover:bg-white/10 text-neutral-300'
                             : isLight ? 'hover:bg-slate-100 text-slate-400' : 'hover:bg-white/10 text-slate-500'
                         }`}
                       >
@@ -328,19 +326,19 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
 
       {/* Manual Add Subscription Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className={`w-full max-w-sm rounded-3xl p-5 border shadow-2xl space-y-4 ${
-            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0E1526] border-white/10 text-white'
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+          <div className={`w-full max-w-sm rounded-2xl sm:rounded-3xl p-5 border shadow-2xl space-y-4 ${
+            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#111217] border-white/10 text-white'
           }`}>
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold flex items-center gap-1.5">
-                <Sparkles size={16} className={isLight ? 'text-sky-600' : 'text-[#38bdf8]'} />
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+              <h4 className="text-sm font-semibold flex items-center gap-1.5 text-white">
+                <Sparkles size={15} className="text-white" />
                 <span>정기 구독 직접 추가</span>
               </h4>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-xs text-slate-400 hover:text-white"
+                className="text-xs text-neutral-400 hover:text-white p-1 rounded-md"
               >
                 닫기
               </button>
@@ -348,54 +346,54 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
 
             <form onSubmit={handleAddManual} className="space-y-3 text-xs">
               <div>
-                <label className="block text-[11px] font-semibold mb-1 text-slate-400">서비스 / 가맹점명</label>
+                <label className="block text-[11px] font-medium mb-1 text-neutral-400">서비스 / 가맹점명</label>
                 <input
                   type="text"
                   required
                   placeholder="예: 넷플릭스, 유튜브 프리미엄, 통신비"
                   value={newMerchant}
                   onChange={(e) => setNewMerchant(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-xl border outline-none ${
-                    isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
+                  className={`w-full px-3 py-2 rounded-xl border outline-none transition-colors ${
+                    isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-white/30'
                   }`}
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold mb-1 text-slate-400">정기 결제 금액 ({currSymbol})</label>
+                <label className="block text-[11px] font-medium mb-1 text-neutral-400">정기 결제 금액 ({currSymbol})</label>
                 <input
                   type="number"
                   required
                   placeholder="예: 14900"
                   value={newAmount}
                   onChange={(e) => setNewAmount(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-xl border outline-none font-bold ${
-                    isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
+                  className={`w-full px-3 py-2 rounded-xl border outline-none font-semibold transition-colors ${
+                    isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-white/30'
                   }`}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[11px] font-semibold mb-1 text-slate-400">결제 주기(일)</label>
+                  <label className="block text-[11px] font-medium mb-1 text-neutral-400">결제 주기(일)</label>
                   <input
                     type="number"
                     value={newCycleDays}
                     onChange={(e) => setNewCycleDays(Number(e.target.value))}
-                    className={`w-full px-3 py-2 rounded-xl border outline-none ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
+                    className={`w-full px-3 py-2 rounded-xl border outline-none transition-colors ${
+                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-white/30'
                     }`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold mb-1 text-slate-400">다음 결제일</label>
+                  <label className="block text-[11px] font-medium mb-1 text-neutral-400">다음 결제일</label>
                   <input
                     type="date"
                     value={newBillingDate}
                     onChange={(e) => setNewBillingDate(e.target.value)}
-                    className={`w-full px-3 py-2 rounded-xl border outline-none ${
-                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
+                    className={`w-full px-3 py-2 rounded-xl border outline-none transition-colors ${
+                      isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white focus:border-white/30'
                     }`}
                   />
                 </div>
@@ -405,13 +403,13 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 py-2 rounded-xl border border-slate-700 text-slate-400 font-semibold"
+                  className="flex-1 py-2 rounded-xl border border-white/10 text-neutral-300 hover:text-white hover:bg-white/[0.04] font-normal transition-colors"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-[#38bdf8] to-[#60a5fa] text-slate-950 font-bold"
+                  className="flex-1 py-2 rounded-xl bg-white text-black hover:bg-neutral-200 font-medium active:scale-95 transition-all shadow-xs"
                 >
                   추가하기
                 </button>

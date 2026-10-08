@@ -1006,29 +1006,29 @@ export function App() {
                     theme={userPrefs.theme || 'dark'}
                     isMultiCurrencyMode={isMultiCurrencyMode}
                     secondaryCurrency={activeCurrencies.find(c => c.toUpperCase() !== (activeSpace.currency || currentCurrency).toUpperCase())}
+                    activeSpace={activeSpace}
                   />
 
                   {/* In Event Ledger mode: Event Budget Summary & Korean Settlement Action Button */}
                   {activeSpace.id !== 'default' && (
                     <div className="p-5 rounded-2xl border backdrop-blur-2xl bg-white/[0.03] border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] space-y-3.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-sky-400 flex items-center gap-1.5">
-                          <span>✦</span> 프로젝트·행사 정산 관리
+                        <span className="text-xs font-semibold text-white">
+                          프로젝트·행사 정산 관리
                         </span>
-                        <span className="text-xs text-slate-400 font-light tabular-nums">
+                        <span className="text-xs text-neutral-400 font-light tabular-nums">
                           {activeSpace.memberCount ? `${activeSpace.memberCount}명 정산` : '참여자 미지정'}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-300 font-light leading-relaxed">
+                      <p className="text-xs text-neutral-300 font-light leading-relaxed">
                         공동 회비 및 지출 영수증을 취합하여 대한민국 표준 정산 내역서(모임/행사/워크숍)를 생성합니다.
                       </p>
                       <button
                         id="event-settlement-report-desktop-btn"
                         type="button"
                         onClick={() => setIsReportModalOpen(true)}
-                        className="w-full py-2.5 px-4 rounded-xl text-xs font-medium bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 flex items-center justify-center gap-2 active:scale-95 transition-all"
+                        className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-white text-neutral-950 hover:bg-neutral-200 active:scale-95 transition-all shadow-xs"
                       >
-                        <span>📄</span>
                         <span>결산서 출력</span>
                       </button>
                     </div>
@@ -1103,36 +1103,17 @@ export function App() {
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                {/* When an event space is active, display the action button */}
-                {activeSpace.id !== 'default' && (
-                  <button
-                    id="event-settlement-report-btn"
-                    type="button"
-                    onClick={() => setIsReportModalOpen(true)}
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all active:scale-95 shadow-xs ${
-                      isLight
-                        ? 'bg-sky-600 hover:bg-sky-700 text-white border border-sky-600'
-                        : 'bg-gradient-to-r from-sky-500/20 to-blue-500/20 text-sky-300 border border-sky-500/40 hover:border-sky-400 hover:bg-sky-500/30'
-                    }`}
-                    title="공식 결산서 출력"
-                  >
-                    <span className="text-xs">📄</span>
-                    <span>결산서 출력</span>
-                  </button>
-                )}
-
                 <button
                   id="export-csv-btn"
                   type="button"
                   onClick={handleExportSpaceCSV}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal shrink-0 transition-all active:scale-95 border ${
+                  className={`px-3 py-1 rounded-full text-xs font-normal shrink-0 transition-all active:scale-95 border ${
                     isLight 
-                      ? 'bg-transparent hover:bg-slate-100 text-slate-700 border-slate-200/80' 
-                      : 'bg-transparent hover:bg-white/[0.04] text-slate-300 border-white/[0.08]'
+                      ? 'bg-transparent hover:bg-neutral-100 text-neutral-700 border-neutral-200' 
+                      : 'bg-transparent hover:bg-white/[0.04] text-neutral-300 border-white/[0.08]'
                   }`}
                   title="CSV 내역 내보내기"
                 >
-                  <Download size={13} className={isLight ? 'text-sky-600' : 'text-sky-400'} />
                   <span>내보내기</span>
                 </button>
               </div>
@@ -1155,7 +1136,7 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setIsReceiptModalOpen(true)}
-                    className="h-8 px-4 rounded-xl font-medium text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 flex items-center justify-center active:scale-95 transition-all shadow-sm cursor-pointer"
+                    className="h-8 px-4 rounded-xl font-semibold text-xs bg-white hover:bg-neutral-200 text-neutral-950 flex items-center justify-center active:scale-95 transition-all shadow-sm cursor-pointer"
                   >
                     <span>영수증 촬영 스캔</span>
                   </button>

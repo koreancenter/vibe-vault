@@ -643,7 +643,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
               activeSection === 'subscriptions'
                 ? 'bg-white/20 text-white'
-                : 'bg-sky-500/20 text-sky-300'
+                : 'bg-white/10 text-neutral-300'
             }`}>
               {subscriptionsCount}
             </span>
@@ -724,7 +724,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
             {banner && (
               <div className={`px-3 py-2 rounded-lg text-xs flex items-center justify-between animate-in fade-in duration-150 ${
                 banner.type === 'success' 
-                  ? (isLight ? 'bg-sky-50 text-sky-800 border border-sky-200' : 'bg-sky-500/10 text-sky-400 border border-sky-500/20')
+                  ? (isLight ? 'bg-slate-100 text-slate-800 border border-slate-300' : 'bg-white/10 text-white border border-white/15')
                   : (isLight ? 'bg-rose-50 text-rose-800 border border-rose-200' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20')
               }`}>
                 <span className="font-medium truncate">{banner.message}</span>
@@ -774,8 +774,8 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                     새 자산 직접 추가
                   </span>
                   {detectedCurrency && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30 flex items-center gap-1 font-medium animate-in fade-in">
-                      <Sparkles size={10} className="text-sky-400" />
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-neutral-200 border border-white/15 flex items-center gap-1 font-medium animate-in fade-in">
+                      <Sparkles size={10} className="text-white" />
                       <span>{detectedCurrency} 자동 감지</span>
                     </span>
                   )}
@@ -847,7 +847,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                     onChange={(e) => handleSelectManualCurrency(e.target.value as SupportedCurrency)}
                     className={`w-full px-2.5 py-1.5 text-xs rounded-xl border outline-none font-semibold transition-all ${
                       detectedCurrency === manualCurrency && !isManualCurrencyOverridden
-                        ? 'bg-sky-500/10 border-sky-500/30 text-sky-400'
+                        ? 'bg-white/10 border-white/20 text-white'
                         : isLight 
                           ? 'bg-white border-slate-200 text-slate-900 focus:border-slate-500' 
                           : 'bg-black/40 border-white/10 text-white focus:border-white/30'
@@ -932,7 +932,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                         className={`px-2 py-0.5 rounded-lg text-[11px] font-mono transition-all flex items-center gap-1 active:scale-95 ${
                           isSelected
                             ? isDetected
-                              ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold'
+                              ? 'bg-white text-black border border-white font-bold'
                               : 'bg-white/20 text-white border border-white/30 font-bold'
                             : 'bg-white/[0.04] text-slate-400 hover:text-white border border-white/5'
                         }`}
@@ -1064,7 +1064,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                             onChange={(e) => handleSelectEditCurrency(e.target.value as SupportedCurrency)}
                             className={`text-xs px-2 py-1 rounded-lg border outline-none font-semibold ${
                               detectedEditCurrency === editCurrency
-                                ? 'bg-sky-500/10 border-sky-500/30 text-sky-400'
+                                ? 'bg-white/10 border-white/20 text-white'
                                 : isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-white/20 text-white'
                             }`}
                           >
@@ -1171,13 +1171,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
 
                         {/* Currency Tag */}
                         {asset.currency && (
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded whitespace-nowrap border ${
-                            asset.currency === 'IDR'
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                              : asset.currency === 'USD'
-                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                : 'bg-sky-500/10 text-sky-400 border-sky-500/20'
-                          }`}>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded whitespace-nowrap border bg-white/[0.04] text-neutral-300 border-white/10">
                             {asset.currency}
                           </span>
                         )}
@@ -1224,7 +1218,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                           onClick={() => handleToggleAsset(asset.id)}
                           className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none p-0.5 ${
                             asset.enabled
-                              ? (isLight ? 'bg-sky-600' : 'bg-sky-500')
+                              ? 'bg-white'
                               : (isLight ? 'bg-slate-300' : 'bg-slate-700')
                           }`}
                           title={asset.enabled ? '추적 끄기' : '추적 켜기'}
@@ -1232,8 +1226,8 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                         >
                           <span
                             className={`pointer-events-none inline-block h-3 w-3 transform rounded-full shadow-sm transition duration-200 ease-in-out ${
-                              asset.enabled ? 'translate-x-3' : 'translate-x-0'
-                            } bg-white`}
+                              asset.enabled ? 'translate-x-3 bg-black' : 'translate-x-0 bg-white'
+                            }`}
                           />
                         </button>
 

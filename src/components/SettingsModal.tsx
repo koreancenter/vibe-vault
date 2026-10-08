@@ -4,13 +4,11 @@ import {
   Eye, 
   EyeOff, 
   ShieldCheck, 
-  Cpu, 
   KeyRound, 
   Lock, 
   Sliders, 
   Database, 
   Download, 
-  Upload, 
   AlertTriangle, 
   Check, 
   Loader2,
@@ -21,7 +19,6 @@ import {
   Minus,
   Trash2,
   Wallet,
-  Sparkles,
   ExternalLink
 } from 'lucide-react';
 import { 
@@ -56,6 +53,7 @@ import {
   loadSampleData,
   resetAllDataToZero,
   getSpaces,
+  createSpace,
   deleteSpace,
   DEFAULT_SPACE
 } from '../db';
@@ -179,8 +177,8 @@ const CustomDarkSelect: React.FC<CustomSelectProps> = ({
         <ChevronDown 
           size={isSm ? 12 : 14} 
           className={`transition-transform duration-200 shrink-0 ml-1 ${
-            isLight ? 'text-slate-500' : 'text-slate-400'
-          } ${isOpen ? 'rotate-180 text-sky-500' : ''}`} 
+            isLight ? 'text-slate-500' : 'text-neutral-400'
+          } ${isOpen ? 'rotate-180 text-white' : ''}`} 
         />
       </button>
 
@@ -188,7 +186,7 @@ const CustomDarkSelect: React.FC<CustomSelectProps> = ({
         <div className={`absolute right-0 min-w-full top-full mt-1 backdrop-blur-md rounded-xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto py-1 animate-in fade-in zoom-in-95 duration-150 scrollbar-none ${
           isLight
             ? 'bg-white border border-slate-300 text-slate-800'
-            : 'bg-slate-900/95 border border-slate-700/80 text-slate-100'
+            : 'bg-[#111217] border border-white/10 text-white'
         }`}>
           {options.map((opt) => {
             const isSelected = opt.value === value;
@@ -205,22 +203,22 @@ const CustomDarkSelect: React.FC<CustomSelectProps> = ({
                 } ${
                   isSelected 
                     ? isLight
-                      ? 'bg-sky-50 text-sky-700 font-bold'
-                      : 'bg-sky-500/15 text-sky-400 font-semibold' 
+                      ? 'bg-neutral-100 text-black font-semibold'
+                      : 'bg-white/10 text-white font-medium' 
                     : isLight
                       ? 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
-                      : 'text-slate-200 hover:bg-slate-800/80 hover:text-white'
+                      : 'text-neutral-300 hover:bg-white/[0.06] hover:text-white'
                 }`}
               >
                 <div className="truncate pr-2">
                   <span className="block truncate font-medium">{opt.label}</span>
                   {opt.sublabel && (
-                    <span className={`text-[11px] block truncate font-normal ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <span className={`text-[11px] block truncate font-normal ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
                       {opt.sublabel}
                     </span>
                   )}
                 </div>
-                {isSelected && <Check size={isSm ? 12 : 14} className={isLight ? 'text-sky-600 shrink-0' : 'text-sky-400 shrink-0'} />}
+                {isSelected && <Check size={isSm ? 12 : 14} className={isLight ? 'text-black shrink-0' : 'text-white shrink-0'} />}
               </button>
             );
           })}
@@ -289,6 +287,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const handleCreateSpaceInline = async () => {
+    const trimmed = newSpaceNameInput.trim();
+    if (!trimmed) return;
+    const newSp: LedgerSpace = {
+      id: `space-${Date.now()}`,
+      name: trimmed,
+      currency: (currencySymbol as SupportedCurrency) || 'KRW',
+      createdAt: new Date().toISOString(),
+    };
+    await createSpace(newSp);
+    const updated = await getSpaces();
+    setInternalSpaces(updated);
+    setNewSpaceNameInput('');
+    if (onSelectSpace) onSelectSpace(newSp);
+    if (onDataChanged) onDataChanged();
+  };
+
   // 4-Tab Segmented Control: [ 스마트 자산 | AI 엔진 | 일반 설정 | 데이터 관리 ]
   const [activeTab, setActiveTab] = useState<'assets' | 'engine' | 'preferences' | 'privacy'>(resolveSafeTab(initialTab));
   const [subTab, setSubTab] = useState<'assets' | 'budget' | 'subscriptions'>(initialSubTab || 'assets');
@@ -332,6 +347,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   });
   const [newCurrencyInput, setNewCurrencyInput] = useState('');
   const [currencyError, setCurrencyError] = useState<string | null>(null);
+  const [newSpaceNameInput, setNewSpaceNameInput] = useState('');
 
   // Sync active currencies if changed externally or in storage
   useEffect(() => {
@@ -982,10 +998,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             id="tab-assets"
             onClick={() => setActiveTab('assets')}
-            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
               activeTab === 'assets'
-                ? 'border-b border-sky-400 text-white font-medium'
-                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
+                ? 'border-b-2 border-white text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
             }`}
           >
             자산 관리
@@ -994,10 +1010,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             id="tab-ai-engine"
             onClick={() => setActiveTab('engine')}
-            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
               activeTab === 'engine'
-                ? 'border-b border-sky-400 text-white font-medium'
-                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
+                ? 'border-b-2 border-white text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
             }`}
           >
             AI 엔진
@@ -1006,10 +1022,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             id="tab-prefs"
             onClick={() => setActiveTab('preferences')}
-            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
               activeTab === 'preferences'
-                ? 'border-b border-sky-400 text-white font-medium'
-                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
+                ? 'border-b-2 border-white text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
             }`}
           >
             일반 설정
@@ -1018,10 +1034,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             id="tab-data"
             onClick={() => setActiveTab('privacy')}
-            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2 ${
+            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
               activeTab === 'privacy'
-                ? 'border-b border-sky-400 text-white font-medium'
-                : 'text-neutral-400 hover:text-white font-normal border-b border-transparent'
+                ? 'border-b-2 border-white text-white font-medium'
+                : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
             }`}
           >
             데이터 관리
@@ -1031,7 +1047,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Status Toast inside Modal */}
         {statusMessage && (
           <div className={`mx-6 mt-2 px-3.5 py-2 rounded-xl text-xs flex items-center justify-between shrink-0 ${
-            statusMessage.type === 'success' ? 'bg-sky-500/10 border border-sky-500/25 text-sky-400' : 'bg-rose-500/10 border border-rose-500/25 text-rose-400'
+            statusMessage.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/25 text-rose-400'
           }`}>
             <span className="truncate">{statusMessage.text}</span>
             <button onClick={() => setStatusMessage(null)} className="ml-1 text-sm font-bold">×</button>
@@ -1066,27 +1082,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     setEngineType('byok');
                     setProvider('gemini');
                   }}
-                  className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 active:scale-[0.99] ${
+                  className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center active:scale-[0.99] ${
                     engineType === 'byok'
                       ? 'bg-white/10 text-white shadow-xs font-semibold'
                       : 'text-neutral-400 hover:text-white'
                   }`}
                 >
-                  <KeyRound size={13} className={engineType === 'byok' ? 'text-sky-400' : ''} />
-                  <span className="truncate">클라우드 AI (Gemini, 권장)</span>
+                  <span className="truncate">클라우드 AI</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setEngineType('local')}
-                  className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 active:scale-[0.99] ${
+                  className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center active:scale-[0.99] ${
                     engineType === 'local'
                       ? 'bg-white/10 text-white shadow-xs font-semibold'
                       : 'text-neutral-400 hover:text-white'
                   }`}
                 >
-                  <Cpu size={13} className={engineType === 'local' ? 'text-amber-400' : ''} />
-                  <span className="truncate">온디바이스 로컬 AI (오프라인)</span>
+                  <span className="truncate">온디바이스 로컬 AI</span>
                 </button>
               </div>
 
@@ -1101,7 +1115,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       href="https://aistudio.google.com/app/apikey"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[11px] font-normal text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors"
+                      className="text-[11px] font-normal text-neutral-400 hover:text-white flex items-center gap-1 transition-colors"
                     >
                       <span>Google AI Studio에서 키 발급</span>
                       <ExternalLink size={10} />
@@ -1121,7 +1135,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         placeholder="AIzaSy... (Gemini API 키)"
                         autoComplete="off"
                         spellCheck={false}
-                        className="w-full rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border bg-white/[0.03] border-white/10 text-neutral-100 placeholder:text-neutral-600 focus:border-sky-500/50"
+                        className="w-full rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border bg-white/[0.03] border-white/10 text-neutral-100 placeholder:text-neutral-600 focus:border-white/30"
                       />
                       <button
                         type="button"
@@ -1158,7 +1172,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {testResult.status && (
                     <div className={`text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 ${
                       testResult.status === 'valid' 
-                        ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20 font-normal' 
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-normal' 
                         : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                     }`}>
                       {testResult.status === 'valid' ? <CheckCircle2 size={13} className="shrink-0" /> : <XCircle size={13} className="shrink-0" />}
@@ -1187,8 +1201,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           <Loader2 size={10} className="animate-spin" /> WebGPU 확인 중
                         </span>
                       ) : webGpuStatus.supported ? (
-                        <span className="text-[10px] font-normal flex items-center gap-1 text-sky-400">
-                          <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+                        <span className="text-[10px] font-normal flex items-center gap-1 text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                           WebGPU 가속 지원
                         </span>
                       ) : (
@@ -1216,7 +1230,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
                       <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                         <div 
-                          className="h-full bg-sky-400 transition-all duration-200"
+                          className="h-full bg-white transition-all duration-200"
                           style={{ width: `${downloadProgress.progress}%` }}
                         />
                       </div>
@@ -1255,7 +1269,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       )
                     ) : (
                       <div className="flex items-center justify-between gap-2 w-full">
-                        <div className="text-[11px] text-sky-400 font-normal flex items-center gap-1">
+                        <div className="text-[11px] text-emerald-400 font-normal flex items-center gap-1">
                           <CheckCircle2 size={13} />
                           <span>오프라인 추론 사용 가능 (캐시 보관 중)</span>
                         </div>
@@ -1410,7 +1424,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                           activeCurrenciesList.length > 1
-                            ? 'bg-sky-500/15 text-sky-400 border border-sky-500/25'
+                            ? 'bg-white/10 text-white border border-white/20'
                             : 'bg-white/[0.04] text-neutral-400 border border-white/5'
                         }`}>
                           {activeCurrenciesList.length > 1 ? '다중 통화 모드' : '단일 통화 모드'}
@@ -1428,8 +1442,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                               key={code}
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition-all ${
                                 isBase
-                                  ? 'bg-sky-500/15 border-sky-500/35 text-sky-300 font-semibold'
-                                  : 'bg-white/[0.04] border-white/5 text-slate-300 hover:border-white/10'
+                                  ? 'bg-white/15 border-white/30 text-white font-medium'
+                                  : 'bg-white/[0.04] border-white/5 text-neutral-300 hover:border-white/10'
                               }`}
                             >
                               <button
@@ -1446,12 +1460,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 <span className="font-mono font-bold">{code}</span>
                                 <span className="text-[11px] opacity-80">({sym})</span>
                                 {info && (
-                                  <span className="text-[10px] text-slate-400 hidden sm:inline ml-0.5">
+                                  <span className="text-[10px] text-neutral-400 hidden sm:inline ml-0.5">
                                     {info.nameKo}
                                   </span>
                                 )}
                                 {isBase && (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-sky-400/20 text-sky-300 font-normal ml-0.5">
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/20 text-white font-normal ml-0.5">
                                     기준
                                   </span>
                                 )}
@@ -1462,7 +1476,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveActiveCurrency(code)}
-                                  className="text-slate-400 hover:text-rose-400 transition-colors p-0.5 ml-0.5 rounded"
+                                  className="text-neutral-400 hover:text-rose-400 transition-colors p-0.5 ml-0.5 rounded"
                                   title={`${code} 활성 통화에서 제거`}
                                   aria-label={`${code} 활성 통화에서 제거`}
                                 >
@@ -1476,8 +1490,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                       {/* Subtle Prompt when only 1 currency is present */}
                       {activeCurrenciesList.length <= 1 && (
-                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-sky-500/[0.06] border border-sky-500/15 text-[11px] text-slate-300 animate-in fade-in duration-150">
-                          <Sparkles size={13} className="text-sky-400 shrink-0" />
+                        <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[11px] text-neutral-300 animate-in fade-in duration-150">
                           <span>새 통화를 추가하면 다중 통화 비교 모드가 자동으로 활성화됩니다.</span>
                         </div>
                       )}
@@ -1516,13 +1529,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             }}
                             maxLength={3}
                             placeholder="3자리 통화 코드 (예: SGD, VND, AUD)..."
-                            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-hidden focus:border-sky-400/50 transition-all"
+                            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-neutral-200 placeholder:text-neutral-500 focus:outline-hidden focus:border-white/30 transition-all"
                           />
                           <button
                             type="button"
                             onClick={() => handleAddActiveCurrency(newCurrencyInput)}
                             disabled={!newCurrencyInput.trim()}
-                            className="px-3 py-1.5 rounded-xl bg-sky-500/20 border border-sky-500/30 text-sky-300 hover:bg-sky-500/30 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
+                            className="px-3 py-1.5 rounded-xl bg-white text-black hover:bg-neutral-200 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 shadow-xs"
                           >
                             <Plus size={12} strokeWidth={2.5} />
                             <span>추가</span>
@@ -1549,32 +1562,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     }}
                     className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.04] cursor-pointer select-none group"
                   >
-                    <div className="flex items-center gap-2">
-                      {stealthMode ? (
-                        <EyeOff size={15} className="text-sky-400 shrink-0" />
-                      ) : (
-                        <Eye size={15} className="text-neutral-400 group-hover:text-white transition-colors shrink-0" />
-                      )}
-                      <div>
-                        <span className="text-xs font-semibold group-hover:text-sky-400 transition-colors text-slate-200 block">
-                          스텔스 모드 (금액 숨김)
-                        </span>
-                        <span className="text-[11px] text-neutral-500 font-light block">
-                          {stealthMode ? '모든 잔고 및 금액이 마스킹되어 보호 중입니다' : '화면에 모든 금액이 표시됩니다'}
-                        </span>
-                      </div>
+                    <div>
+                      <span className="text-xs font-medium group-hover:text-white transition-colors text-white block">
+                        스텔스 모드 (금액 숨김)
+                      </span>
+                      <span className="text-[11px] text-neutral-400 font-light block">
+                        {stealthMode ? '모든 잔고 및 금액이 마스킹되어 보호 중입니다' : '화면에 모든 금액이 표시됩니다'}
+                      </span>
                     </div>
                     <button
                       id="toggle-stealth-mode"
                       type="button"
                       aria-label="스텔스 모드 토글"
                       className={`w-9 h-5 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 pointer-events-none ${
-                        stealthMode ? 'bg-sky-400' : 'bg-slate-700'
+                        stealthMode ? 'bg-white' : 'bg-neutral-800'
                       }`}
                     >
                       <span
-                        className={`w-4 h-4 rounded-full bg-white shadow-xs transition-transform transform ${
-                          stealthMode ? 'translate-x-4' : 'translate-x-0'
+                        className={`w-4 h-4 rounded-full shadow-xs transition-transform transform ${
+                          stealthMode ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white'
                         }`}
                       />
                     </button>
@@ -1614,24 +1620,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* Group 4: 장부 공간 관리 */}
-              <div className="space-y-3 pt-3 border-t border-white/[0.04]">
+              {/* Group 4: 새 장부 만들기 */}
+              <div className="space-y-2.5 pt-3 border-t border-white/[0.04]">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-semibold text-white block">
-                      장부 공간 관리
-                    </span>
-                    <span className="text-[11px] text-neutral-400 font-light block">
-                      일상 가계부와 분리된 프로젝트·행사 전용 정산 장부
-                    </span>
-                  </div>
+                  <span className="text-xs font-semibold text-white">
+                    새 장부 만들기
+                  </span>
+                  {onOpenNewSpace && (
+                    <button
+                      type="button"
+                      onClick={handleCreateNewSpace}
+                      className="text-[11px] text-neutral-400 hover:text-white transition-colors"
+                      title="행사/정산 등 상세 옵션으로 새 장부 만들기"
+                    >
+                      상세 옵션
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={newSpaceNameInput}
+                    onChange={(e) => setNewSpaceNameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleCreateSpaceInline();
+                      }
+                    }}
+                    placeholder="장부 이름"
+                    className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-neutral-200 placeholder:text-neutral-500 focus:outline-hidden focus:border-white/30 transition-all"
+                  />
                   <button
                     type="button"
-                    onClick={handleCreateNewSpace}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-normal bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] transition-all active:scale-95 shrink-0"
+                    onClick={handleCreateSpaceInline}
+                    disabled={!newSpaceNameInput.trim()}
+                    className="px-3.5 py-1.5 rounded-xl bg-white text-black hover:bg-neutral-200 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none shrink-0 shadow-xs"
                   >
-                    <Plus size={12} />
-                    <span>새 장부 만들기</span>
+                    <span>만들기</span>
                   </button>
                 </div>
 
@@ -1647,7 +1674,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         key={sp.id}
                         className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
                           isCurrent
-                            ? 'bg-sky-500/10 border-sky-500/25 text-white'
+                            ? 'bg-white/[0.06] border-white/20 text-white'
                             : 'bg-white/[0.02] border-white/[0.06] text-neutral-300 hover:border-white/10'
                         }`}
                       >
@@ -1661,12 +1688,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 </span>
                               )}
                               {isEvent && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 font-normal border border-indigo-500/25">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-white font-normal border border-white/15">
                                   행사/정산
                                 </span>
                               )}
                               {isCurrent && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-400 font-normal border border-sky-500/25 flex items-center gap-1">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-white font-normal border border-white/20 flex items-center gap-1">
                                   <Check size={10} />
                                   <span>현재 활성</span>
                                 </span>
@@ -1741,7 +1768,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-neutral-400 font-light">보안 PIN</span>
                       {isPinSet ? (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                           설정됨
                         </span>
                       ) : (
@@ -1846,18 +1873,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={handleOpenExportModal}
-                    className="py-2.5 px-3 rounded-xl text-xs font-normal bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 text-neutral-200 hover:text-white flex items-center justify-center gap-2 transition-all active:scale-98"
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 text-neutral-200 hover:text-white flex items-center justify-center transition-all active:scale-98"
                   >
-                    <Download size={13} className="shrink-0 text-neutral-400" />
                     <span>백업 파일 내보내기</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="py-2.5 px-3 rounded-xl text-xs font-normal bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 text-neutral-200 hover:text-white flex items-center justify-center gap-2 transition-all active:scale-98"
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 text-neutral-200 hover:text-white flex items-center justify-center transition-all active:scale-98"
                   >
-                    <Upload size={13} className="shrink-0 text-neutral-400" />
                     <span>백업 파일 가져오기/복원</span>
                   </button>
                   <input
@@ -1883,10 +1908,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     id="load-sample-data-btn"
                     onClick={handleLoadSampleData}
                     disabled={isClearingData}
-                    className="py-2.5 px-3 rounded-xl text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 bg-white/[0.05] hover:bg-white/[0.09] text-neutral-200 hover:text-white border border-white/10"
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal flex items-center justify-center transition-all active:scale-98 disabled:opacity-50 bg-white/[0.05] hover:bg-white/[0.09] text-neutral-200 hover:text-white border border-white/10"
                   >
-                    <Sparkles size={13} className="text-neutral-400 shrink-0" />
-                    <span>✦ 샘플 데이터 불러오기</span>
+                    <span>샘플 데이터 불러오기</span>
                   </button>
 
                   <button
@@ -1894,9 +1918,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     id="reset-all-data-btn"
                     onClick={handleResetAllData}
                     disabled={isClearingData}
-                    className="py-2.5 px-3 rounded-xl text-xs font-normal flex items-center justify-center gap-1.5 transition-all active:scale-98 disabled:opacity-50 bg-rose-500/10 hover:bg-rose-500/15 text-rose-400 border border-rose-500/20"
+                    className="py-2.5 px-3 rounded-xl text-xs font-normal flex items-center justify-center transition-all active:scale-98 disabled:opacity-50 bg-rose-500/10 hover:bg-rose-500/15 text-rose-400 border border-rose-500/20"
                   >
-                    <Trash2 size={13} className="text-rose-400 shrink-0" />
                     <span>전체 데이터 초기화</span>
                   </button>
                 </div>
@@ -1947,7 +1970,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-white/[0.05] text-sky-400 border border-white/10">
+              <div className="p-2 rounded-xl bg-white/[0.05] text-white border border-white/10">
                 <Download size={18} />
               </div>
               <div>
@@ -1971,11 +1994,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 onClick={() => setEnablePasswordProtection(!enablePasswordProtection)}
                 className={`w-11 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 ${
-                  enablePasswordProtection ? 'bg-sky-400' : 'bg-white/10'
+                  enablePasswordProtection ? 'bg-white' : 'bg-neutral-800'
                 }`}
               >
-                <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform transform ${
-                  enablePasswordProtection ? 'translate-x-5' : 'translate-x-0'
+                <div className={`w-5 h-5 rounded-full shadow-md transition-transform transform ${
+                  enablePasswordProtection ? 'translate-x-5 bg-black' : 'translate-x-0 bg-white'
                 }`} />
               </button>
             </div>
@@ -1990,7 +2013,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   value={exportPassphrase}
                   onChange={(e) => setExportPassphrase(e.target.value)}
                   placeholder="8자 이상의 안전한 비밀번호 입력"
-                  className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-sky-500/50"
+                  className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-white/30"
                 />
               </div>
             )}
@@ -2049,7 +2072,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={(e) => setDecryptPassphrase(e.target.value)}
                 placeholder="비밀번호 입력"
                 autoFocus
-                className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-sky-500/50"
+                className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/10 text-white placeholder:text-neutral-600 focus:border-white/30"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handlePerformDecryption();
                 }}
@@ -2110,9 +2133,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleExecuteRestore('merge')}
-                className="w-full p-3 rounded-xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/15 text-white text-left transition-all flex flex-col gap-1"
+                className="w-full p-3 rounded-xl border border-white/20 bg-white/[0.06] hover:bg-white/[0.1] text-white text-left transition-all flex flex-col gap-1"
               >
-                <div className="flex items-center gap-1.5 font-medium text-xs text-sky-400">
+                <div className="flex items-center gap-1.5 font-medium text-xs text-white">
                   <CheckCircle2 size={14} />
                   <span>스마트 중복 제외 병합 (권장)</span>
                 </div>
@@ -2187,7 +2210,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       value={pinInput}
                       onChange={(e) => setPinInput(e.target.value)}
                       placeholder="새 PIN 번호 입력"
-                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-sky-500/50"
+                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-white/30"
                       autoFocus
                     />
                   </div>
@@ -2201,7 +2224,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       value={pinConfirmInput}
                       onChange={(e) => setPinConfirmInput(e.target.value)}
                       placeholder="새 PIN 번호 다시 입력"
-                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-sky-500/50"
+                      className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-white/30"
                     />
                   </div>
                 </>
@@ -2216,7 +2239,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     value={currentPinInput}
                     onChange={(e) => setCurrentPinInput(e.target.value)}
                     placeholder="현재 PIN 번호 입력"
-                    className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-sky-500/50"
+                    className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-white/30"
                     autoFocus
                   />
                 </div>
