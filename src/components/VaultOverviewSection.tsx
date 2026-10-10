@@ -986,8 +986,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] hover:border-white/[1.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl'
                 }`}
               >
-                {/* Header: Full width institution and account title */}
-                <div className="flex items-start justify-between gap-2.5 mb-3">
+                {/* Header: Institution/Account info (Left) & Balance (Right) */}
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span
@@ -1013,8 +1013,35 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     </p>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-1 flex-none opacity-60 group-hover:opacity-100 transition-opacity">
+                  {/* Right: Balance strictly right-aligned */}
+                  <div className="flex-none text-right">
+                    <div className={`text-fluid-title font-medium tracking-tight tabular-nums text-right ${
+                      acc.assetType === 'LIABILITY' ? 'text-rose-400/90' : isLight ? 'text-slate-900' : 'text-neutral-100'
+                    } ${stealthMode ? 'blur-sm select-none' : ''}`}>
+                      {formatCurrency(converted, currentCurrency)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sub row 2 lines down: Account details / Note (Left) & Edit/Delete Actions (Right) */}
+                <div className="flex items-center justify-between gap-2 mt-2">
+                  <div className="min-w-0 flex-1">
+                    {(acc.accountNumberMasked || acc.note) ? (
+                      <p
+                        className={`text-[11px] font-light truncate ${
+                          isLight ? 'text-slate-400' : 'text-neutral-500'
+                        }`}
+                        title={acc.accountNumberMasked || acc.note}
+                      >
+                        {acc.accountNumberMasked || acc.note}
+                      </p>
+                    ) : (
+                      <div />
+                    )}
+                  </div>
+
+                  {/* Actions (수정 & 삭제) moved 2 lines down */}
+                  <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -1022,7 +1049,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                         setNewBalanceInput(acc.currentBalance.toString());
                       }}
                       title="잔고 수정"
-                      className={`p-1.5 rounded-lg transition-colors ${
+                      className={`p-1 rounded-lg transition-colors ${
                         isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-white/10 text-neutral-400'
                       }`}
                     >
@@ -1032,49 +1059,13 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       type="button"
                       onClick={() => handleDeleteAccount(acc.id, acc.accountName)}
                       title="계좌 삭제"
-                      className={`p-1.5 rounded-lg transition-colors text-rose-400/80 hover:text-rose-400 ${
+                      className={`p-1 rounded-lg transition-colors text-rose-400/80 hover:text-rose-400 ${
                         isLight ? 'hover:bg-rose-50' : 'hover:bg-rose-500/10'
                       }`}
                     >
                       <Trash2 size={12} />
                     </button>
                   </div>
-                </div>
-
-                {/* Account Number / Note without nested dark boxes */}
-                {(acc.accountNumberMasked || acc.note) && (
-                  <div className={`text-fluid-caption font-light mb-3 truncate pl-2 border-l ${
-                    isLight ? 'border-slate-300 text-slate-600' : 'border-white/10 text-neutral-400'
-                  }`}>
-                    {acc.accountNumberMasked || acc.note}
-                  </div>
-                )}
-
-                {/* Balance & Quick Update Prompt */}
-                <div className={`pt-3 border-t flex items-end justify-between ${
-                  isLight ? 'border-slate-200/60' : 'border-t border-white/[0.04]'
-                }`}>
-                  <div>
-                    <span className={`text-fluid-caption font-light block ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
-                      현재 잔고
-                    </span>
-                    <div className={`text-fluid-title font-medium tracking-tight tabular-nums mt-0.5 ${
-                      acc.assetType === 'LIABILITY' ? 'text-rose-400/90' : isLight ? 'text-slate-900' : 'text-neutral-100'
-                    } ${stealthMode ? 'blur-sm select-none' : ''}`}>
-                      {formatCurrency(converted, currentCurrency)}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingBalanceAccount(acc);
-                      setNewBalanceInput(acc.currentBalance.toString());
-                    }}
-                    className="bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] rounded-full px-3 py-1 text-fluid-caption transition-all active:scale-95 text-center"
-                  >
-                    <span>수정</span>
-                  </button>
                 </div>
 
                 {/* Holdings Sub-List if available with hairline dividers */}
@@ -1348,37 +1339,38 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       {/* QUICK BALANCE EDIT MODAL */}
       {editingBalanceAccount && typeof document !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200 p-0 sm:p-4"
           onClick={() => setEditingBalanceAccount(null)}
         >
           <div 
-            className={`w-full max-w-sm rounded-t-3xl sm:rounded-2xl card-fluid-padding shadow-2xl border transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
-              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#0E1524]/95 backdrop-blur-2xl text-white border-white/10 shadow-2xl'
+            className={`w-full max-w-sm rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#0D0F14] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Mobile drag handle */}
-            <div className={`w-12 h-1 rounded-full mx-auto -mt-2 mb-3 sm:hidden shrink-0 ${isLight ? 'bg-slate-300' : 'bg-white/20'}`} />
+            <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.06]">
               <div>
-                <h3 className="text-fluid-title font-semibold text-slate-100">{editingBalanceAccount.accountName}</h3>
-                <p className={`text-fluid-caption font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <h3 className="text-sm sm:text-base font-semibold text-white">{editingBalanceAccount.accountName}</h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
                   {editingBalanceAccount.institution} 잔고 수정
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingBalanceAccount(null)}
-                className="p-1 text-slate-400 hover:text-white"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+                aria-label="닫기"
               >
-                <X size={18} />
+                <X size={17} />
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="p-5 sm:p-6 space-y-4">
               <div>
-                <label className="text-fluid-caption font-light block mb-1.5 text-slate-400">
+                <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
                   새 잔고 금액 ({editingBalanceAccount.currency || currentCurrency})
                 </label>
                 <input
@@ -1386,11 +1378,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                   step="any"
                   value={newBalanceInput}
                   onChange={(e) => setNewBalanceInput(e.target.value)}
-                  className={`w-full px-3.5 py-2.5 rounded-xl text-fluid-body font-normal tabular-nums outline-none border transition-all ${
-                    isLight
-                      ? 'bg-slate-50 border-slate-300 focus:border-slate-500 text-slate-900'
-                      : 'bg-white/[0.03] border-white/10 focus:border-sky-500/40 text-white'
-                  }`}
+                  className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all tabular-nums"
                   placeholder="0"
                   autoFocus
                 />
@@ -1406,7 +1394,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       const cur = parseFloat(newBalanceInput) || 0;
                       setNewBalanceInput((cur + preset).toString());
                     }}
-                    className="px-2.5 py-1 rounded-full text-fluid-caption font-light bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300"
+                    className="px-2.5 py-1 rounded-full text-xs font-normal bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-neutral-300 transition-colors"
                   >
                     +{preset >= 10000 ? `${preset / 10000}만` : preset}
                   </button>
@@ -1414,24 +1402,24 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setNewBalanceInput('0')}
-                  className="px-2.5 py-1 rounded-full text-fluid-caption font-light bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 ml-auto"
+                  className="px-2.5 py-1 rounded-full text-xs font-normal bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 ml-auto transition-colors"
                 >
                   초기화
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex items-center gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => setEditingBalanceAccount(null)}
-                  className="flex-1 py-2.5 rounded-xl text-fluid-caption font-light bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]"
+                  className="w-full py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 text-sm font-medium transition-all"
                 >
                   취소
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveQuickBalance}
-                  className="flex-1 py-2.5 rounded-xl text-fluid-caption font-medium bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 transition-all"
+                  className="w-full py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all shadow-sm active:scale-[0.99]"
                 >
                   잔고 저장
                 </button>
@@ -1445,7 +1433,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       {/* GEMINI MULTIMODAL SCREENSHOT SCANNER MODAL */}
       {showScanModal && typeof document !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200 p-0 sm:p-4"
           onClick={() => {
             setShowScanModal(false);
             setScannedResult(null);
@@ -1453,18 +1441,18 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           }}
         >
           <div 
-            className={`relative w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[85dvh] flex flex-col card-fluid-padding shadow-2xl border overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
-              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#0E1524]/95 backdrop-blur-2xl text-white border-white/10 shadow-2xl'
+            className={`w-full max-w-md max-h-[90dvh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#0D0F14] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Mobile drag handle */}
-            <div className={`w-12 h-1 rounded-full mx-auto -mt-2 mb-3 sm:hidden shrink-0 ${isLight ? 'bg-slate-300' : 'bg-white/20'}`} />
+            <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.06] shrink-0">
               <div>
-                <h3 className="text-fluid-title font-bold">계좌/증권 잔고 캡처 스캔</h3>
-                <p className={`text-fluid-caption ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <h3 className="text-sm sm:text-base font-semibold text-white">계좌/증권 잔고 캡처 스캔</h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
                   Gemini 멀티모달 AI가 스크린샷에서 잔고를 자동 추출합니다.
                 </p>
               </div>
@@ -1475,29 +1463,25 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                   setScannedResult(null);
                   setScanPreviewUrl(null);
                 }}
-                className="p-1 text-slate-400 hover:text-white"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+                aria-label="닫기"
               >
-                <X size={18} />
+                <X size={17} />
               </button>
             </div>
 
+            <div className="p-5 sm:px-6 sm:py-5 overflow-y-auto">
               {!scannedResult ? (
                 <div className="space-y-4">
-                  {/* Upload Drop Zone */}
+                  {/* Upload Drop Zone: Elegant Frosted Dropzone */}
                   <div
                     onDragEnter={handleScreenshotDragEnter}
                     onDragOver={handleScreenshotDragOver}
                     onDragLeave={handleScreenshotDragLeave}
                     onDrop={handleScreenshotDrop}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-2xl card-fluid-padding text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 ${
-                      isScreenshotDraggingOver
-                        ? isLight
-                          ? 'border-blue-600 bg-blue-50/80 ring-4 ring-blue-500/20 scale-[1.01]'
-                          : 'border-blue-400 bg-blue-500/10 ring-4 ring-blue-400/20 scale-[1.01]'
-                        : isLight
-                          ? 'border-slate-300 hover:border-blue-500 bg-slate-50'
-                          : 'border-white/15 hover:border-blue-500 bg-white/[0.02]'
+                    className={`border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20 rounded-2xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                      isScreenshotDraggingOver ? 'border-white/40 bg-white/[0.06] scale-[1.01]' : ''
                     }`}
                   >
                     <input
@@ -1509,13 +1493,13 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     />
 
                     {isScanning ? (
-                      <div className="py-8 flex flex-col items-center gap-3">
-                        <Loader2 size={32} className="animate-spin text-blue-400" />
-                        <span className="text-fluid-body font-bold text-blue-400">
+                      <div className="py-6 flex flex-col items-center gap-3">
+                        <Loader2 size={30} className="animate-spin text-white" />
+                        <span className="text-sm font-semibold text-white">
                           Gemini 3.8 Flash가 계좌 잔고를 분석하고 있습니다...
                         </span>
-                        <span className="text-fluid-caption text-slate-400">
-                          (1280px 자동 압축 · 위치/EXIF 메타데이터 자동 제거 완료)
+                        <span className="text-xs text-neutral-400">
+                          (1280px 자동 압축 · 메타데이터 자동 제거 완료)
                         </span>
                       </div>
                     ) : scanPreviewUrl ? (
@@ -1524,80 +1508,88 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       </div>
                     ) : (
                       <>
-                        <div className={`w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center transition-transform ${
+                        <div className={`w-12 h-12 rounded-full bg-white/[0.04] border border-white/[0.08] text-neutral-300 flex items-center justify-center mx-auto mb-3 transition-transform ${
                           isScreenshotDraggingOver ? 'scale-110' : ''
                         }`}>
-                          <UploadCloud size={24} className={isScreenshotDraggingOver ? 'animate-bounce' : ''} />
+                          <UploadCloud size={20} className={isScreenshotDraggingOver ? 'animate-bounce' : ''} />
                         </div>
-                        <div>
-                          <p className="text-fluid-body font-bold">
-                            {isScreenshotDraggingOver ? '여기에 스크린샷을 놓으세요' : '토스증권, 카카오페이증권, 은행 앱 캡처 업로드'}
-                          </p>
-                          <p className={`text-fluid-caption mt-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                            드래그 앤 드롭 · 파일 선택 · 클립보드 붙여넣기(Cmd+V) 지원 (최대 15MB)
-                          </p>
-                        </div>
+                        <p className="text-sm font-semibold text-white">
+                          {isScreenshotDraggingOver ? '여기에 스크린샷을 놓으세요' : '토스증권, 카카오페이증권, 은행 앱 캡처 업로드'}
+                        </p>
+                        <p className="text-xs text-neutral-400 mt-1">
+                          드래그 앤 드롭 · 파일 선택 · 클립보드 붙여넣기(Cmd+V) 지원 (최대 15MB)
+                        </p>
                       </>
                     )}
                   </div>
 
-                  <div className={`p-3 rounded-xl text-fluid-caption flex items-start gap-2 border ${
-                    isLight ? 'bg-blue-50 text-blue-800 border-blue-100' : 'bg-blue-500/10 text-blue-300 border-blue-500/20'
-                  }`}>
-                    <Lock size={14} className="shrink-0 mt-0.5" />
-                    <span>
-                      <strong>프라이버시 보장</strong>: 주민등록번호, 계좌 비밀번호 등 민감 식별자는 자동 정제되며 서버에 원본 파일이 영구 저장되지 않습니다.
-                    </span>
+                  {/* Privacy Notice: Clean single-line text */}
+                  <p className="text-[11px] text-neutral-500 text-center mt-3">
+                    프라이버시 보장: 계좌번호·주민번호 등 민감 정보는 자동 마스킹되며 서버에 보관되지 않습니다.
+                  </p>
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowScanModal(false);
+                        setScannedResult(null);
+                        setScanPreviewUrl(null);
+                      }}
+                      className="w-full py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 text-sm font-medium transition-all"
+                    >
+                      취소
+                    </button>
                   </div>
                 </div>
               ) : (
                 /* Scanned Result Confirmation */
                 <div className="space-y-4">
-                  <div className={`p-4 rounded-2xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/[0.04] border-white/10'}`}>
+                  <div className="p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02]">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-sky-400 flex items-center gap-1">
+                      <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
                         <Check size={14} /> AI 잔고 감지 완료
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-semibold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-neutral-300 font-medium">
                         정확도 {Math.round(scannedResult.confidenceScore * 100)}%
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 mt-3">
                       <div>
-                        <span className="text-[10px] text-slate-400 block">금융기관</span>
-                        <span className="text-xs font-bold">{scannedResult.institution}</span>
+                        <span className="text-[10px] text-neutral-400 block">금융기관</span>
+                        <span className="text-xs font-semibold text-white">{scannedResult.institution}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 block">계좌명</span>
-                        <span className="text-xs font-bold">{scannedResult.accountName}</span>
+                        <span className="text-[10px] text-neutral-400 block">계좌명</span>
+                        <span className="text-xs font-semibold text-white">{scannedResult.accountName}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 block">자산 유형</span>
-                        <span className="text-xs font-bold">{getAssetCategoryKo(scannedResult.assetType)}</span>
+                        <span className="text-[10px] text-neutral-400 block">자산 유형</span>
+                        <span className="text-xs font-semibold text-white">{getAssetCategoryKo(scannedResult.assetType)}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 block">추출된 총 잔고</span>
-                        <span className="text-sm font-extrabold text-blue-400">
+                        <span className="text-[10px] text-neutral-400 block">추출된 총 잔고</span>
+                        <span className="text-sm font-semibold text-white">
                           {formatCurrency(scannedResult.currentBalance, scannedResult.currency || currentCurrency)}
                         </span>
                       </div>
                     </div>
 
                     {(scannedResult.cashBalance !== undefined || scannedResult.investedAssets !== undefined) && (
-                      <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-white/10 text-xs">
+                      <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-white/[0.06] text-xs">
                         {scannedResult.investedAssets !== undefined && (
                           <div>
-                            <span className="text-[10px] text-slate-400 block">투자 자산 평가액</span>
-                            <span className="font-bold text-sky-400">
+                            <span className="text-[10px] text-neutral-400 block">투자 자산 평가액</span>
+                            <span className="font-semibold text-emerald-400">
                               {formatCurrency(scannedResult.investedAssets, scannedResult.currency || currentCurrency)}
                             </span>
                           </div>
                         )}
                         {scannedResult.cashBalance !== undefined && (
                           <div>
-                            <span className="text-[10px] text-slate-400 block">예수금 / 현금</span>
-                            <span className="font-bold text-amber-400">
+                            <span className="text-[10px] text-neutral-400 block">예수금 / 현금</span>
+                            <span className="font-semibold text-sky-400">
                               {formatCurrency(scannedResult.cashBalance, scannedResult.currency || currentCurrency)}
                             </span>
                           </div>
@@ -1606,13 +1598,13 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     )}
 
                     {scannedResult.holdings && scannedResult.holdings.length > 0 && (
-                      <div className="mt-3 pt-2 border-t border-white/10">
-                        <span className="text-[10px] text-slate-400 block mb-1">인식된 보유 종목 ({scannedResult.holdings.length})</span>
-                        <div className="text-[11px] space-y-0.5 text-slate-300">
+                      <div className="mt-3 pt-2 border-t border-white/[0.06]">
+                        <span className="text-[10px] text-neutral-400 block mb-1">인식된 보유 종목 ({scannedResult.holdings.length})</span>
+                        <div className="text-[11px] space-y-0.5 text-neutral-300">
                           {scannedResult.holdings.slice(0, 3).map((h: any, i: number) => (
                             <div key={i} className="flex justify-between">
                               <span>{h.name}</span>
-                              <span className="font-semibold">{formatCurrency(h.valuation, currentCurrency)}</span>
+                              <span className="font-medium text-white">{formatCurrency(h.valuation, currentCurrency)}</span>
                             </div>
                           ))}
                         </div>
@@ -1622,45 +1614,42 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
                   {/* Target Account Selection */}
                   <div>
-                    <label className="text-xs font-semibold block mb-1.5 text-slate-400">
+                    <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
                       반영할 대상 계좌 선택
                     </label>
                     <select
                       value={scanTargetAccountId}
                       onChange={(e) => setScanTargetAccountId(e.target.value)}
-                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold outline-none border ${
-                        isLight
-                          ? 'bg-slate-50 border-slate-300 text-slate-900'
-                          : 'bg-white/[0.03] border-white/10 text-white'
-                      }`}
+                      className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white focus:border-white/25 focus:ring-0 outline-none transition-all"
                     >
-                      <option value="new">+ 신규 계좌로 등록하기</option>
+                      <option value="new" className="bg-[#0D0F14] text-white">+ 신규 계좌로 등록하기</option>
                       {accounts.map((acc) => (
-                        <option key={acc.id} value={acc.id} className="bg-[#08090D] text-white">
+                        <option key={acc.id} value={acc.id} className="bg-[#0D0F14] text-white">
                           {acc.institution} - {acc.accountName} (기존 ₩{acc.currentBalance.toLocaleString()})
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2">
+                  <div className="flex items-center gap-2.5 pt-2">
                     <button
                       type="button"
                       onClick={() => setScannedResult(null)}
-                      className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]"
+                      className="w-full py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 text-sm font-medium transition-all"
                     >
                       다시 스캔
                     </button>
                     <button
                       type="button"
                       onClick={handleConfirmScannedAsset}
-                      className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 transition-all"
+                      className="w-full py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all shadow-sm active:scale-[0.99]"
                     >
                       잔고 반영 확정
                     </button>
                   </div>
                 </div>
               )}
+            </div>
           </div>
         </div>,
         document.body
@@ -1669,52 +1658,46 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       {/* ACCOUNT-TO-ACCOUNT TRANSFER MODAL */}
       {showTransferModal && typeof document !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200 p-0 sm:p-4"
           onClick={() => setShowTransferModal(false)}
         >
           <div 
-            className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88dvh] overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
-              isLight ? 'bg-white border-slate-200 text-slate-900 shadow-slate-300/40' : 'bg-[#0E1524]/95 border-white/10 text-white shadow-2xl backdrop-blur-2xl'
+            className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88dvh] overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#0D0F14] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Mobile drag handle */}
-            <div className={`w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 ${isLight ? 'bg-slate-300' : 'bg-white/20'}`} />
+            <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
-            <div className={`flex justify-between items-center px-6 py-4 border-b shrink-0 transition-colors ${
-              isLight ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-white/[0.02]'
-            }`}>
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.06] shrink-0">
               <div>
-                <h3 className={`text-fluid-title font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>계좌 간 자산 이체</h3>
-                <p className={`text-fluid-caption ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
+                <h3 className="text-sm sm:text-base font-semibold text-white">계좌 간 자산 이체</h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
                   내 계좌 간 이체는 가계부 소비 지출에서 제외됩니다.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowTransferModal(false)}
-                className={`p-2 rounded-xl transition-colors ${
-                  isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-white/10 text-white/70'
-                }`}
+                className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors"
                 aria-label="닫기"
               >
-                <X size={18} />
+                <X size={17} />
               </button>
             </div>
 
             <form onSubmit={handleExecuteTransfer} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3.5 overscroll-contain">
+              <div className="flex-1 overflow-y-auto p-5 sm:px-6 sm:py-5 space-y-4 overscroll-contain">
                 <div>
-                  <label className={`text-fluid-caption font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>출금 계좌 (보내는 곳)</label>
+                  <label className="text-xs font-medium text-neutral-400 mb-1.5 block">출금 계좌 (보내는 곳)</label>
                   <select
                     value={transferForm.sourceId}
                     onChange={(e) => setTransferForm({ ...transferForm, sourceId: e.target.value })}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-fluid-body font-medium outline-none border transition-colors ${
-                      isLight ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white' : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622]'
-                    }`}
+                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white focus:border-white/25 focus:ring-0 outline-none transition-all"
                   >
                     {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id} className={isLight ? 'bg-white text-slate-900' : 'bg-[#0E1524] text-white'}>
+                      <option key={acc.id} value={acc.id} className="bg-[#0D0F14] text-white">
                         {acc.institution} - {acc.accountName} (잔고 ₩{acc.currentBalance.toLocaleString()})
                       </option>
                     ))}
@@ -1722,16 +1705,14 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 </div>
 
                 <div>
-                  <label className={`text-fluid-caption font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>입금 계좌 (받는 곳)</label>
+                  <label className="text-xs font-medium text-neutral-400 mb-1.5 block">입금 계좌 (받는 곳)</label>
                   <select
                     value={transferForm.targetId}
                     onChange={(e) => setTransferForm({ ...transferForm, targetId: e.target.value })}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-fluid-body font-medium outline-none border transition-colors ${
-                      isLight ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white' : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622]'
-                    }`}
+                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white focus:border-white/25 focus:ring-0 outline-none transition-all"
                   >
                     {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id} className={isLight ? 'bg-white text-slate-900' : 'bg-[#0E1524] text-white'}>
+                      <option key={acc.id} value={acc.id} className="bg-[#0D0F14] text-white">
                         {acc.institution} - {acc.accountName} (잔고 ₩{acc.currentBalance.toLocaleString()})
                       </option>
                     ))}
@@ -1739,7 +1720,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 </div>
 
                 <div>
-                  <label className={`text-fluid-caption font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>이체 금액 ({currentCurrency})</label>
+                  <label className="text-xs font-medium text-neutral-400 mb-1.5 block">이체 금액 ({currentCurrency})</label>
                   <input
                     type="number"
                     step="any"
@@ -1747,43 +1728,35 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
                     placeholder="1000000"
                     required
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-fluid-body font-medium outline-none border transition-colors tabular-nums ${
-                      isLight ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400' : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
-                    }`}
+                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className={`text-fluid-caption font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>이체 메모 (선택)</label>
+                  <label className="text-xs font-medium text-neutral-400 mb-1.5 block">이체 메모 (선택)</label>
                   <input
                     type="text"
                     value={transferForm.note}
                     onChange={(e) => setTransferForm({ ...transferForm, note: e.target.value })}
                     placeholder="예: 미국주식 매수용 예수금 이체"
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-fluid-body outline-none border transition-colors ${
-                      isLight ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400' : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
-                    }`}
+                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all"
                   />
                 </div>
               </div>
 
-              <div className={`flex gap-3 px-6 py-4 border-t shrink-0 transition-colors ${
-                isLight ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-white/[0.02]'
-              }`}>
+              <div className="flex items-center gap-2.5 p-5 sm:px-6 sm:py-4 border-t border-white/[0.06] shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowTransferModal(false)}
-                  className={`flex-1 py-3 px-4 rounded-xl font-medium text-fluid-body transition-colors ${
-                    isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 text-white/80'
-                  }`}
+                  className="w-full py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 text-sm font-medium transition-all"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 px-4 rounded-xl font-medium text-fluid-body bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 transition-all active:scale-98"
+                  className="w-full py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all shadow-sm active:scale-[0.99] flex items-center justify-center gap-1.5"
                 >
-                  <ArrowLeftRight size={16} />
+                  <ArrowLeftRight size={15} />
                   이체 실행
                 </button>
               </div>
@@ -1796,66 +1769,58 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       {/* ADD ACCOUNT MODAL */}
       {showAddModal && typeof document !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200 p-0 sm:p-4"
           onClick={() => setShowAddModal(false)}
         >
           {/* Modal Dialog Window */}
           <div 
-            className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88dvh] overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+            className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88dvh] overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
               isLight 
-                ? 'bg-white border-slate-200 text-slate-900 shadow-slate-300/40' 
-                : 'bg-[#0E1524]/95 border-white/10 text-white shadow-2xl backdrop-blur-2xl'
+                ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' 
+                : 'bg-[#0D0F14] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
               {/* Mobile drag handle */}
-              <div className={`w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 ${isLight ? 'bg-slate-300' : 'bg-white/20'}`} />
+              <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
-              {/* Sticky Modal Header */}
-              <div className={`flex justify-between items-center px-6 py-4 border-b shrink-0 transition-colors ${
-                isLight ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-white/[0.02]'
-              }`}>
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.06] shrink-0">
                 <div>
-                  <h2 className={`text-fluid-title font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  <h3 className="text-sm sm:text-base font-semibold text-white">
                     새 자산 계좌 추가
-                  </h2>
-                  <p className={`text-fluid-caption ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
+                  </h3>
+                  <p className="text-xs text-neutral-400 mt-0.5">
                     증권, 은행, 가상자산, 부동산 등
                   </p>
                 </div>
                 <button 
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className={`p-2 rounded-xl transition-colors ${
-                    isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-white/10 text-white/70'
-                  }`}
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors"
                   aria-label="닫기"
                   title="닫기"
                 >
-                  <X size={18} />
+                  <X size={17} />
                 </button>
               </div>
 
               {/* Scrollable Form Body & Sticky Action Footer */}
               <form onSubmit={handleCreateAccount} className="flex flex-col flex-1 min-h-0 overflow-hidden">
                 {/* Scrollable Form Body */}
-                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3.5 overscroll-contain">
+                <div className="flex-1 overflow-y-auto p-5 sm:px-6 sm:py-5 space-y-4 overscroll-contain">
                   {/* 자산 유형 */}
                   <div>
-                    <label className={`text-fluid-caption font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                    <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
                       자산 유형
                     </label>
                     <select
                       value={newAccountForm.assetType}
                       onChange={(e) => setNewAccountForm({ ...newAccountForm, assetType: e.target.value as AssetCategoryType })}
-                      className={`w-full px-3.5 py-2.5 rounded-xl text-fluid-body font-medium outline-none border transition-colors ${
-                        isLight
-                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white'
-                          : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622]'
-                      }`}
+                      className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white focus:border-white/25 focus:ring-0 outline-none transition-all"
                     >
                       {assetCategories.map((c) => (
-                        <option key={c.type} value={c.type} className={isLight ? 'bg-white text-slate-900' : 'bg-[#0E1524] text-white'}>
+                        <option key={c.type} value={c.type} className="bg-[#0D0F14] text-white">
                           {c.label}
                         </option>
                       ))}
@@ -1864,7 +1829,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
                   {/* 기관명 */}
                   <div>
-                    <label className={`text-fluid-caption font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                    <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
                       기관명
                     </label>
                     <input
@@ -1873,17 +1838,13 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       onChange={(e) => setNewAccountForm({ ...newAccountForm, institution: e.target.value })}
                       placeholder="토스증권, 카카오페이증권, 업비트 등"
                       required
-                      className={`w-full px-3.5 py-2.5 rounded-xl text-fluid-body outline-none border transition-colors ${
-                        isLight
-                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400'
-                          : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
-                      }`}
+                      className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all"
                     />
                   </div>
 
                   {/* 계좌명 / 포트폴리오 별칭 */}
                   <div>
-                    <label className={`text-fluid-caption font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                    <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
                       계좌명 / 포트폴리오 별칭
                     </label>
                     <input
@@ -1892,17 +1853,13 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       onChange={(e) => setNewAccountForm({ ...newAccountForm, accountName: e.target.value })}
                       placeholder="해외주식 종합계좌, 비트코인 적립 등"
                       required
-                      className={`w-full px-3.5 py-2.5 rounded-xl text-fluid-body outline-none border transition-colors ${
-                        isLight
-                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400'
-                          : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
-                      }`}
+                      className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all"
                     />
                   </div>
 
                   {/* 현재 잔고 / 평가액 */}
                   <div>
-                    <label className={`text-fluid-caption font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                    <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
                       현재 잔고 / 평가액 ({currentCurrency})
                     </label>
                     <input
@@ -1912,17 +1869,13 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       onChange={(e) => setNewAccountForm({ ...newAccountForm, balance: e.target.value })}
                       placeholder="10000000"
                       required
-                      className={`w-full px-3.5 py-2.5 rounded-xl text-fluid-body font-medium outline-none border transition-colors tabular-nums ${
-                        isLight
-                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400'
-                          : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
-                      }`}
+                      className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all tabular-nums"
                     />
                   </div>
 
                   {/* 메모 (선택) */}
                   <div>
-                    <label className={`text-fluid-caption font-semibold block mb-1.5 ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                    <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
                       메모 (선택)
                     </label>
                     <input
@@ -1930,33 +1883,23 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       value={newAccountForm.note}
                       onChange={(e) => setNewAccountForm({ ...newAccountForm, note: e.target.value })}
                       placeholder="S&P 500, 배당주 위주"
-                      className={`w-full px-3.5 py-2.5 rounded-xl text-fluid-body outline-none border transition-colors ${
-                        isLight
-                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-400 focus:bg-white placeholder:text-slate-400'
-                          : 'bg-white/[0.04] border-white/10 text-white focus:border-white/30 focus:bg-[#121622] placeholder:text-neutral-500'
-                      }`}
+                      className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all"
                     />
                   </div>
                 </div>
 
                 {/* Sticky Action Footer */}
-                <div className={`flex gap-3 px-6 py-4 border-t shrink-0 transition-colors ${
-                  isLight ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-white/[0.02]'
-                }`}>
+                <div className="flex items-center gap-2.5 p-5 sm:px-6 sm:py-4 border-t border-white/[0.06] shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className={`flex-1 py-3 px-4 rounded-xl font-medium text-fluid-body transition-colors ${
-                      isLight 
-                        ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' 
-                        : 'bg-white/5 hover:bg-white/10 text-white/80'
-                    }`}
+                    className="w-full py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 text-sm font-medium transition-all"
                   >
                     취소
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 px-4 rounded-xl font-medium text-fluid-body bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 transition-all active:scale-98"
+                    className="w-full py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all shadow-sm active:scale-[0.99] flex items-center justify-center gap-1.5"
                   >
                     <Check size={16} />
                     계좌 추가
@@ -1968,41 +1911,42 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           document.body
         )}
 
-      {/* Delete Account Confirmation Modal (Iframe & Cross-Origin Safe) */}
+      {/* Delete Account Confirmation Modal */}
       {deletingAccount && typeof document !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-150"
           onClick={() => setDeletingAccount(null)}
         >
           <div 
-            className={`w-full max-w-xs rounded-2xl border card-fluid-padding shadow-2xl space-y-3 animate-in zoom-in-95 duration-150 ${
-              isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#121318]/95 backdrop-blur-xl border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
+            className={`w-full max-w-sm rounded-3xl border border-white/[0.08] p-5 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 ${
+              isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#0D0F14] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2">
-              <div className={`p-1.5 rounded-xl ${isLight ? 'bg-rose-100 text-rose-600' : 'bg-rose-500/20 text-rose-400'}`}>
-                <Trash2 size={16} />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+                <Trash2 size={18} />
               </div>
-              <h4 className="text-fluid-body font-bold">자산 계좌 삭제</h4>
+              <div>
+                <h4 className="text-sm sm:text-base font-semibold text-white">자산 계좌 삭제</h4>
+                <p className="text-xs text-neutral-400 mt-0.5">계좌 잔고 및 연결 데이터 제거</p>
+              </div>
             </div>
-            <p className="text-fluid-caption text-slate-400 leading-relaxed">
-              <span className="font-semibold text-white">'{deletingAccount.name}'</span> 자산 계좌를 삭제하시겠습니까? 계좌 잔고 및 연결 데이터가 목록에서 제외됩니다.
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              <span className="font-semibold text-white">'{deletingAccount.name}'</span> 계좌를 삭제하시겠습니까? 계좌 잔고 및 연결 데이터가 목록에서 완전히 제외됩니다.
             </p>
-            <div className="flex justify-end gap-2 pt-1">
+            <div className="flex items-center gap-2.5 pt-1">
               <button
                 type="button"
                 onClick={() => setDeletingAccount(null)}
-                className={`px-3 py-1.5 rounded-xl text-fluid-caption font-medium border transition-colors ${
-                  isLight ? 'border-slate-200 text-slate-600 hover:bg-slate-50' : 'border-white/10 text-slate-400 hover:bg-white/5'
-                }`}
+                className="w-full py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 text-sm font-medium transition-all"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDeleteAccount}
-                className="px-3 py-1.5 rounded-xl text-fluid-caption font-medium bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-all active:scale-95"
+                className="w-full py-2.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-white text-sm font-semibold transition-all shadow-sm active:scale-[0.99]"
               >
                 삭제하기
               </button>

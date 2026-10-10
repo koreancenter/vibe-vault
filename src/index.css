@@ -64,6 +64,18 @@ body, #root {
   font-variant-numeric: tabular-nums;
 }
 
+/* Remove number input spin buttons (up/down arrows) universally so users only input via keyboard */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
 /* Universal high-end obsidian smoky glass surface classes with hairline sheen */
 .glass-card,
 .glass-surface {
