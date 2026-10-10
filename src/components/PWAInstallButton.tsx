@@ -50,7 +50,7 @@ export const IOSInstallModal: React.FC<{
                 <Smartphone className="w-5 h-5 stroke-[1.5]" />
               </div>
               <div>
-                <h3 className="text-base font-medium text-white">홈 화면에 추가하기</h3>
+                <h2 className="text-base font-medium text-white">홈 화면에 추가하기</h2>
                 <p className="text-xs text-neutral-400 font-light mt-0.5">
                   iOS Safari 전용 앱 설치 안내
                 </p>

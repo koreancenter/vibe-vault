@@ -58,10 +58,12 @@
     <title>Vibe Vault</title>
     <meta name="description" content="A privacy-first, local-encrypted asset vault and multi-brokerage portfolio dashboard with built-in daily expense ledger." />
     <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://vibevault.goguma.app/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Vibe Vault" />
     <meta property="og:title" content="Vibe Vault" />
     <meta property="og:description" content="A privacy-first, local-encrypted asset vault and multi-brokerage portfolio dashboard with built-in daily expense ledger." />
+    <meta property="og:url" content="https://vibevault.goguma.app/" />
     <meta property="og:image" content="/pwa-512x512.png" />
     <meta property="og:image:width" content="512" />
     <meta property="og:image:height" content="512" />
@@ -81,7 +83,15 @@
     <link rel="alternate icon" href="/pwa-192x192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link 
+      rel="stylesheet" 
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" 
+      media="print" 
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+    </noscript>
   </head>
   <body class="bg-gradient-to-b from-[#0B0F17] via-[#0E1524] to-[#111827] text-slate-100 antialiased overflow-hidden select-none font-sans min-h-screen">
     <div id="root" class="h-[100dvh] w-full bg-transparent"></div>

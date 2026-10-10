@@ -1084,11 +1084,11 @@ export function App() {
               {/* Empty State / Recommended Prompts */}
               {currentSpaceTransactions.length === 0 ? (
                 <div className="p-6 sm:p-8 rounded-2xl border text-center space-y-4 my-2 transition-all bg-white/[0.03] backdrop-blur-2xl border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white">
-                  <h3 className="text-base font-medium tracking-tight text-white">
+                  <h2 className="text-base font-medium tracking-tight text-white">
                     {activeSpace.id !== 'default' 
                       ? `[${activeSpace.name}] 기록된 내역이 없습니다`
                       : '기록된 거래 내역이 없습니다'}
-                  </h3>
+                  </h2>
 
                   <div className="flex items-center justify-center flex-wrap gap-2 pt-1">
                     <button
@@ -1233,7 +1233,7 @@ export function App() {
                               const sign = t.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+');
 
                               return (
-                                <span className={`text-[11px] font-light mt-0.5 tabular-nums whitespace-nowrap text-slate-500 ${isStealth ? 'blur-xs select-none' : ''}`}>
+                                <span className={`text-[11px] font-light mt-0.5 tabular-nums whitespace-nowrap text-slate-400 ${isStealth ? 'blur-xs select-none' : ''}`}>
                                   ≈ {sign}{secSym}{formattedSec}
                                 </span>
                               );

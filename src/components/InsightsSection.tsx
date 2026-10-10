@@ -436,9 +436,9 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           </div>
 
           {/* Direct Answer */}
-          <h4 className="text-base sm:text-lg font-semibold tracking-tight text-white">
+          <h2 className="text-base sm:text-lg font-semibold tracking-tight text-white">
             {queryResult.directAnswer}
-          </h4>
+          </h2>
 
           {/* Two-Sentence Synthesis Explanation */}
           <p className="mt-2 text-xs sm:text-sm font-light leading-relaxed text-slate-300">
@@ -601,9 +601,9 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           </div>
 
           {/* Executive Diagnosis Title */}
-          <h3 className="text-base sm:text-lg font-semibold tracking-tight text-white">
+          <h2 className="text-base sm:text-lg font-semibold tracking-tight text-white">
             {integratedDiagnosis.title}
-          </h3>
+          </h2>
 
           {/* Executive Summary */}
           <p className="text-xs sm:text-sm font-light leading-relaxed text-slate-300">
@@ -628,12 +628,12 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold tracking-tight text-white">
+            <h2 className="text-sm font-semibold tracking-tight text-white">
               카테고리별 지출 분석
-            </h3>
+            </h2>
             <p className="text-xs font-light text-slate-400 mt-0.5">
               {format(selectedMonth, 'yyyy년 M월')} 총 지출: <span className="font-medium text-slate-200 tabular-nums">{formatMoney(monthExpense)}</span>
-              {monthExpenseCount > 0 && <span className="text-slate-500 ml-1">({monthExpenseCount}건)</span>}
+              {monthExpenseCount > 0 && <span className="text-slate-400 ml-1">({monthExpenseCount}건)</span>}
             </p>
           </div>
           {selectedCategory && (
@@ -700,9 +700,9 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
-            <h3 className="text-sm font-semibold tracking-tight text-white">
+            <h2 className="text-sm font-semibold tracking-tight text-white">
               일별 지출 추이
-            </h3>
+            </h2>
             <p className="text-xs font-light text-slate-400 mt-0.5">
               {format(selectedMonth, 'yyyy년 M월')} · 일평균 <span className="text-slate-200 tabular-nums">{formatMoney(dailyAverage)}</span>
             </p>
@@ -715,8 +715,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         </div>
 
         {!hasDailyData ? (
-          <div className="w-full h-52 min-h-[200px] flex flex-col items-center justify-center text-center text-slate-500 text-xs font-light space-y-1">
-            <span className="text-slate-400 font-normal">일별 지출 데이터 없음</span>
+          <div className="w-full h-52 min-h-[200px] flex flex-col items-center justify-center text-center text-slate-400 text-xs font-light space-y-1">
+            <span className="text-slate-300 font-normal">일별 지출 데이터 없음</span>
             <span>선택하신 기간 동안 발생한 지출 내역이 없습니다.</span>
           </div>
         ) : (
@@ -802,9 +802,9 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
-            <h3 className="text-sm font-semibold tracking-tight text-white">
+            <h2 className="text-sm font-semibold tracking-tight text-white">
               월간 현금흐름 궤적 & 유동성 예측
-            </h3>
+            </h2>
             <p className="text-xs font-light text-slate-400 mt-0.5">
               자율 지출 궤적 분석 및 월말 잔액 시뮬레이션
             </p>

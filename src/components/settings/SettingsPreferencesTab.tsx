@@ -72,7 +72,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
 
       {/* Group 1: 화면 설정 (기본 시작 화면) */}
       <div className="space-y-3">
-        <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-500">
+        <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-400">
           화면 설정
         </span>
         
@@ -149,7 +149,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
 
       {/* Group 2: 표시 및 통화 (Display & Currency) */}
       <div className="space-y-3">
-        <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-500">
+        <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-400">
           표시 및 통화
         </span>
         
@@ -307,7 +307,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     }}
                     maxLength={3}
                     placeholder="3자리 통화 코드 (예: SGD, VND, AUD)..."
-                    className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-neutral-200 placeholder:text-neutral-500 focus:outline-hidden focus:border-white/30 transition-all"
+                    className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-neutral-200 placeholder:text-neutral-400 focus:outline-hidden focus:border-white/30 transition-all"
                   />
                   <button
                     type="button"
@@ -433,7 +433,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               }
             }}
             placeholder="장부 이름"
-            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-neutral-200 placeholder:text-neutral-500 focus:outline-hidden focus:border-white/30 transition-all"
+            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-neutral-200 placeholder:text-neutral-400 focus:outline-hidden focus:border-white/30 transition-all"
           />
           <button
             type="button"

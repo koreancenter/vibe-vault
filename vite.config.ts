@@ -146,6 +146,7 @@ export default defineConfig({
     },
     build: {
       target: 'esnext',
+      minify: 'esbuild',
       sourcemap: false,
       chunkSizeWarningLimit: 600,
       rollupOptions: {
@@ -153,6 +154,7 @@ export default defineConfig({
           manualChunks: {
             'vendor-react': ['react', 'react-dom'],
             'vendor-charts': ['recharts'],
+            'vendor-d3': ['d3'],
             'vendor-icons': ['lucide-react'],
           },
         },

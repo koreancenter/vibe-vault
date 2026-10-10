@@ -363,12 +363,12 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
                 </button>
               )}
 
-              <p className="text-[10px] sm:text-[11px] text-neutral-500 mt-0.5 text-center">
+              <p className="text-[10px] sm:text-[11px] text-neutral-400 mt-0.5 text-center">
                 온디바이스 로컬 금고 ·{' '}
                 <button
                   type="button"
                   onClick={() => setLegalOpen(true)}
-                  className="underline hover:text-neutral-400 transition-colors cursor-pointer"
+                  className="underline hover:text-white transition-colors cursor-pointer"
                 >
                   법적 고지 및 면책
                 </button>
@@ -385,12 +385,12 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
                 {isSubmitting ? '잠금 해제 중...' : '잠금 해제'}
               </button>
 
-              <p className="text-[10px] sm:text-[11px] text-neutral-500 mt-0.5 text-center">
+              <p className="text-[10px] sm:text-[11px] text-neutral-400 mt-0.5 text-center">
                 온디바이스 로컬 금고 ·{' '}
                 <button
                   type="button"
                   onClick={() => setLegalOpen(true)}
-                  className="underline hover:text-neutral-400 transition-colors cursor-pointer"
+                  className="underline hover:text-white transition-colors cursor-pointer"
                 >
                   법적 고지 및 면책
                 </button>

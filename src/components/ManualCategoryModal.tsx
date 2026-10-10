@@ -268,7 +268,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
                     <span className="text-xl shrink-0">{cat.emoji}</span>
                     <div className="min-w-0">
                       <span className="text-xs font-semibold block truncate">{cat.nameKo}</span>
-                      <span className={`text-[10px] block truncate ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                      <span className={`text-[10px] block truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                         {cat.key}
                       </span>
                     </div>

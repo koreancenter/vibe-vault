@@ -155,11 +155,11 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         <div className="flex items-center justify-between pb-3.5">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className={`text-fluid-heading font-normal tracking-wide ${
+              <h2 className={`text-fluid-heading font-normal tracking-wide ${
                 isLight ? 'text-slate-800' : 'text-neutral-200'
               }`}>
                 재무 요약
-              </h3>
+              </h2>
               <span className="text-white/20 font-light text-xs">·</span>
               <span className={`text-fluid-label font-light ${
                 isLight ? 'text-slate-500' : 'text-neutral-400'
@@ -349,11 +349,11 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
       <div className="flex items-center justify-between pb-3.5">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className={`text-fluid-heading font-normal tracking-wide ${
+            <h2 className={`text-fluid-heading font-normal tracking-wide ${
               isLight ? 'text-slate-800' : 'text-neutral-200'
             }`}>
               재무 요약
-            </h3>
+            </h2>
             <span className="text-white/20 font-light text-xs">·</span>
             <span className={`text-fluid-label font-light ${
               isLight ? 'text-slate-500' : 'text-neutral-400'

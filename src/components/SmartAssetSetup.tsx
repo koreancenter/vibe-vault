@@ -695,7 +695,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
             </div>
 
             <div className="flex items-center justify-between gap-2">
-              <span className={`text-[11px] truncate ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                 결제 문자나 문장을 입력하면 AI가 통화 및 자산을 자동 등록합니다
               </span>
               <button
@@ -739,7 +739,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
               isLight ? 'bg-slate-100 text-slate-700' : 'bg-white/[0.03] text-slate-300'
             }`}>
               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none min-w-0">
-                <span className="text-[11px] font-medium shrink-0 text-slate-500">거래 감지:</span>
+                <span className="text-[11px] font-medium shrink-0 text-slate-400">거래 감지:</span>
                 {discoveredMethods.map((m) => {
                   const detected = detectCurrencyFromInstitution(m);
                   return (
@@ -868,7 +868,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                 {/* 4. Visual Balance Display: Prefix / Placeholder immediately adapt to detected currency */}
                 <div className="relative flex items-center">
                   <span className={`absolute left-3 text-xs font-semibold select-none pointer-events-none ${
-                    isLight ? 'text-slate-400' : 'text-slate-500'
+                    isLight ? 'text-slate-500' : 'text-slate-400'
                   }`}>
                     {getBalancePrefix(manualCurrency)}
                   </span>
@@ -918,7 +918,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
               {/* Currency Quick-Pills for Fast Manual Switching / Override */}
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-white/[0.04]">
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
-                  <span className={`text-[10px] uppercase font-bold tracking-wider ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <span className={`text-[10px] uppercase font-bold tracking-wider ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                     통화 선택:
                   </span>
                   {['KRW', 'IDR', 'USD', 'JPY', 'EUR'].map((code) => {
@@ -978,7 +978,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                 <span className={`text-xs font-semibold ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
                   등록된 자산 목록
                 </span>
-                <span className={`text-[11px] font-medium ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                <span className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   {assets.filter(a => a.enabled).length}/{assets.length}
                 </span>
               </div>
@@ -999,7 +999,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                   onClick={handleResetDefaults}
                   title="기본 설정으로 복원"
                   className={`text-[11px] p-0.5 transition-colors ${
-                    isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'
+                    isLight ? 'text-slate-500 hover:text-slate-700' : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <RotateCcw size={11} />
@@ -1078,7 +1078,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                           {/* Balance Input with dynamic prefix & placeholder */}
                           <div className="relative flex items-center min-w-[110px]">
                             <span className={`absolute left-2 text-xs font-semibold select-none pointer-events-none ${
-                              isLight ? 'text-slate-400' : 'text-slate-500'
+                              isLight ? 'text-slate-500' : 'text-slate-400'
                             }`}>
                               {getBalancePrefix(editCurrency)}
                             </span>
@@ -1188,7 +1188,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                         {/* Billing Day (e.g. 14일) */}
                         {asset.billingDay && (
                           <span className={`text-[11px] whitespace-nowrap shrink-0 font-normal ${
-                            isLight ? 'text-slate-400' : 'text-slate-500'
+                            isLight ? 'text-slate-500' : 'text-slate-400'
                           }`}>
                             ({asset.billingDay}일)
                           </span>
@@ -1199,7 +1199,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                           type="button"
                           onClick={() => handleStartEdit(asset)}
                           className={`p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ${
-                            isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'
+                            isLight ? 'text-slate-500 hover:text-slate-700' : 'text-slate-400 hover:text-slate-200'
                           }`}
                           title="수정"
                         >
@@ -1269,7 +1269,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
               <div className={`p-1.5 rounded-xl ${isLight ? 'bg-amber-100 text-amber-600' : 'bg-amber-500/20 text-amber-400'}`}>
                 <RotateCcw size={16} />
               </div>
-              <h4 className="text-xs font-bold">기본 자산 목록 복원</h4>
+              <h3 className="text-xs font-bold">기본 자산 목록 복원</h3>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
               기본 자산 목록으로 복원하시겠습니까? 현재 등록된 커스텀 결제수단 및 카드 설정이 초기 권장값으로 재설정됩니다.

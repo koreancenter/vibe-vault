@@ -438,9 +438,9 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:gap-3 print-break-inside-avoid">
               {/* Bottom Settlement Summary Box */}
               <div className="p-5 rounded-2xl border border-white/10 print:border-black bg-white/[0.02] print:bg-white space-y-3">
-                <h3 className="text-xs font-bold text-slate-300 print:text-black border-b border-white/10 print:border-gray-300 pb-2">
+                <h2 className="text-xs font-bold text-slate-300 print:text-black border-b border-white/10 print:border-gray-300 pb-2">
                   <span>공식 결산 총계 요약</span>
-                </h3>
+                </h2>
 
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center text-slate-300 print:text-gray-700">
@@ -474,12 +474,12 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
 
               {/* 1인당 정산 내역 (N-Split Box) */}
               <div className="p-5 rounded-2xl border-2 border-sky-500/30 print:border-black bg-sky-500/[0.03] print:bg-gray-50 space-y-3">
-                <h3 className="text-xs font-bold text-sky-400 print:text-black flex items-center justify-between border-b border-sky-500/20 print:border-gray-300 pb-2">
+                <h2 className="text-xs font-bold text-sky-400 print:text-black flex items-center justify-between border-b border-sky-500/20 print:border-gray-300 pb-2">
                   <span>1인당 정산 내역 ({activeMembers}인 균등 분할)</span>
                   <span className="text-[10px] font-normal text-slate-400 print:text-gray-600">
                     총 참여 {activeMembers}명
                   </span>
-                </h3>
+                </h2>
 
                 <div className="space-y-2 text-xs">
                   {/* Per-person expense */}
@@ -521,7 +521,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
             </div>
 
             {/* Document Signature & Verification Footer */}
-            <div className="mt-8 pt-6 border-t border-white/10 print:border-gray-400 flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-500 print:text-gray-600 gap-2">
+            <div className="mt-8 pt-6 border-t border-white/10 print:border-gray-400 flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-400 print:text-gray-600 gap-2">
               <div>
                 <span>본 보고서는 Vibe Vault 로컬 암호화 장부에서 직접 생성 및 검증된 공식 결산서입니다.</span>
               </div>

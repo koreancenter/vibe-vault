@@ -308,7 +308,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h3 className="text-sm font-bold tracking-tight">AI 영수증 스캐너</h3>
+                <h2 className="text-sm font-bold tracking-tight">AI 영수증 스캐너</h2>
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
                   isLight ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'
                 }`}>

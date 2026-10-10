@@ -71,9 +71,9 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
           : 'bg-white/[0.02] text-white'
       }`}>
         <div className="pb-3">
-          <h3 className={`text-xs sm:text-sm font-bold truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>
+          <h2 className={`text-xs sm:text-sm font-bold truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>
             예측 현금흐름
-          </h3>
+          </h2>
         </div>
 
         {/* 3-Metric KPI Row: Clean Flat Surface (No divide-x lines) */}

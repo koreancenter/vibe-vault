@@ -257,7 +257,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="1000000"
                   required
-                  className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all tabular-nums"
+                  className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-400 focus:border-white/25 focus:ring-0 outline-none transition-all tabular-nums"
                 />
               </div>
 
@@ -268,7 +268,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="예: 미국주식 매수용 예수금 이체"
-                  className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all"
+                  className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-400 focus:border-white/25 focus:ring-0 outline-none transition-all"
                 />
               </div>
             </div>
@@ -823,7 +823,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 {formattedNetWorth}
               </div>
             </div>
-            <span className="text-[11px] font-light text-neutral-500 tabular-nums pt-0.5">
+            <span className="text-[11px] font-light text-neutral-400 tabular-nums pt-0.5">
               {accounts.length}개 계좌
             </span>
           </div>
@@ -971,9 +971,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             ? 'bg-white/80 backdrop-blur-2xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
             : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
         }`}>
-          <h3 className={`text-sm font-medium tracking-tight ${isLight ? 'text-slate-900' : 'text-neutral-200'}`}>
+          <h2 className={`text-sm font-medium tracking-tight ${isLight ? 'text-slate-900' : 'text-neutral-200'}`}>
             등록된 계좌가 없습니다
-          </h3>
+          </h2>
 
           <div className="flex items-center justify-center gap-2 pt-1">
             <button
@@ -1070,7 +1070,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     {(acc.accountNumberMasked || acc.note) ? (
                       <p
                         className={`text-[11px] font-light truncate ${
-                          isLight ? 'text-slate-400' : 'text-neutral-500'
+                          isLight ? 'text-slate-500' : 'text-neutral-400'
                         }`}
                         title={acc.accountNumberMasked || acc.note}
                       >
@@ -1151,9 +1151,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
       }`}>
         <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
-          <h3 className="text-sm font-medium tracking-wide text-slate-200">
+          <h2 className="text-sm font-medium tracking-wide text-slate-200">
             최근 거래
-          </h3>
+          </h2>
           {onNavigateToLedger && (
             <button
               type="button"
@@ -1258,7 +1258,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                   step="any"
                   value={newBalanceInput}
                   onChange={(e) => setNewBalanceInput(e.target.value)}
-                  className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all tabular-nums"
+                  className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-400 focus:border-white/25 focus:ring-0 outline-none transition-all tabular-nums"
                   placeholder="0"
                   autoFocus
                 />
@@ -1404,7 +1404,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                   </div>
 
                   {/* Privacy Notice */}
-                  <p className="text-[11px] text-neutral-500 text-center mt-3">
+                  <p className="text-[11px] text-neutral-400 text-center mt-3">
                     프라이버시 보장: 계좌번호·주민번호 등 민감 정보는 자동 마스킹되며 서버에 보관되지 않습니다.
                   </p>
 
@@ -1605,7 +1605,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, institution: e.target.value })}
                     placeholder="토스증권, 카카오페이증권, 업비트 등"
                     required
-                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all"
+                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-400 focus:border-white/25 focus:ring-0 outline-none transition-all"
                   />
                 </div>
 
@@ -1620,7 +1620,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, accountName: e.target.value })}
                     placeholder="해외주식 종합계좌, 비트코인 적립 등"
                     required
-                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all"
+                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-400 focus:border-white/25 focus:ring-0 outline-none transition-all"
                   />
                 </div>
 
@@ -1636,7 +1636,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, balance: e.target.value })}
                     placeholder="10000000"
                     required
-                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all tabular-nums"
+                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-400 focus:border-white/25 focus:ring-0 outline-none transition-all tabular-nums"
                   />
                 </div>
 
@@ -1650,7 +1650,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     value={newAccountForm.note}
                     onChange={(e) => setNewAccountForm({ ...newAccountForm, note: e.target.value })}
                     placeholder="S&P 500, 배당주 위주"
-                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/25 focus:ring-0 outline-none transition-all"
+                    className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-400 focus:border-white/25 focus:ring-0 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -1695,7 +1695,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 <Trash2 size={18} />
               </div>
               <div>
-                <h4 className="text-sm sm:text-base font-semibold text-white">자산 계좌 삭제</h4>
+                <h3 className="text-sm sm:text-base font-semibold text-white">자산 계좌 삭제</h3>
                 <p className="text-xs text-neutral-400 mt-0.5">계좌 잔고 및 연결 데이터 제거</p>
               </div>
             </div>

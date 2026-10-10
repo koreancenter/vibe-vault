@@ -156,9 +156,9 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
       }`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
           <div>
-            <h3 className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            <h2 className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
               정기 구독 & 고정 지출 레이더
-            </h3>
+            </h2>
           </div>
 
           <button
@@ -301,7 +301,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
                         className={`p-1.5 rounded-lg transition-colors ${
                           sub.isActive
                             ? isLight ? 'hover:bg-slate-100 text-slate-700' : 'hover:bg-white/10 text-neutral-300'
-                            : isLight ? 'hover:bg-slate-100 text-slate-400' : 'hover:bg-white/10 text-slate-500'
+                            : isLight ? 'hover:bg-slate-100 text-slate-400' : 'hover:bg-white/10 text-slate-400'
                         }`}
                       >
                         {sub.isActive ? <CheckCircle2 size={16} /> : <PauseCircle size={16} />}
@@ -330,9 +330,9 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
             isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#111217] border-white/10 text-white'
           }`}>
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-              <h4 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-semibold text-white">
                 정기 구독 직접 추가
-              </h4>
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}

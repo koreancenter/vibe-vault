@@ -204,9 +204,9 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
         <div className="flex items-center gap-2 min-w-0">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <h4 className="text-xs font-semibold tracking-tight text-white">
+              <h2 className="text-xs font-semibold tracking-tight text-white">
                 월간 예산
-              </h4>
+              </h2>
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                 isLight ? 'bg-neutral-200 text-neutral-800' : 'bg-white/[0.08] text-neutral-300 border border-white/10'
               }`}>
@@ -502,9 +502,9 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
           isLight ? 'bg-slate-50 border-slate-200 shadow-sm' : 'bg-[#111217] border-white/10 shadow-xl'
         }`}>
           <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.08]">
-            <h5 className="text-xs font-semibold text-white">
+            <h3 className="text-xs font-semibold text-white">
               새 카테고리 예산 설정
-            </h5>
+            </h3>
             <button
               type="button"
               onClick={() => setShowAddModal(false)}
