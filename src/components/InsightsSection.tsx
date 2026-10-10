@@ -474,79 +474,93 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         </div>
       )}
 
-      {/* 2. 4-Metric KPI Strip (Net worth, Savings rate, Spending rate, Runway months - flat hairline borders) */}
-      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl overflow-hidden grid grid-cols-2 md:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.04] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      {/* 2. 4-Metric KPI Strip: Vertically stacked sections to prevent overlap and text clipping */}
+      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl overflow-hidden flex flex-col divide-y divide-white/[0.04] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         {/* 1. 총 순자산 */}
-        <div className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-light text-slate-400">총 순자산</span>
-            <ShieldCheck size={14} className="text-blue-400" />
+        <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck size={15} className="text-blue-400 shrink-0" />
+              <span className="text-xs font-light text-slate-300">총 순자산</span>
+            </div>
+            <span className="mt-1 text-[11px] font-light text-slate-400">
+              총 자산 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(totalAssets)}</span>
+            </span>
           </div>
-          <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums block text-white ${isStealth ? 'blur-sm select-none' : ''}`}>
-            {formatMoney(netWorth)}
-          </span>
-          <div className="mt-1.5 text-[11px] font-light text-slate-400 truncate">
-            <span>총 자산: {formatMoney(totalAssets)}</span>
+          <div className="text-right shrink-0">
+            <span className={`text-xl sm:text-2xl font-light tracking-tight tabular-nums block text-white ${isStealth ? 'blur-sm select-none' : ''}`}>
+              {formatMoney(netWorth)}
+            </span>
           </div>
         </div>
 
         {/* 2. 이번 달 저축률 */}
-        <div className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-light text-slate-400">이번 달 저축률</span>
-            <TrendingUp size={14} className="text-sky-400" />
+        <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5">
+              <TrendingUp size={15} className="text-sky-400 shrink-0" />
+              <span className="text-xs font-light text-slate-300">이번 달 저축률</span>
+            </div>
+            <div className="mt-1 text-[11px] font-light text-slate-400 flex items-center gap-1.5 flex-wrap">
+              <span>수입 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(monthIncome)}</span> 대비</span>
+              <span className="opacity-30">·</span>
+              <span>{monthNet >= 0 ? '순흑자' : '순적자'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(Math.abs(monthNet))}</span></span>
+            </div>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums ${
+          <div className="text-right shrink-0">
+            <span className={`text-xl sm:text-2xl font-light tracking-tight tabular-nums block ${
               savingsRate >= 30 ? 'text-sky-400' : savingsRate >= 0 ? 'text-slate-200' : 'text-rose-400'
             }`}>
               {savingsRate}%
             </span>
-            <span className="text-[11px] font-light text-slate-400">
-              ({formatMoney(monthNet)})
-            </span>
-          </div>
-          <div className="mt-1.5 text-[11px] font-light text-slate-400 truncate">
-            수입 {formatMoney(monthIncome)} 대비
           </div>
         </div>
 
         {/* 3. 순자산 대비 소비 */}
-        <div className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-light text-slate-400">순자산 대비 소비</span>
-            <Wallet size={14} className="text-purple-400" />
+        <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Wallet size={15} className="text-purple-400 shrink-0" />
+              <span className="text-xs font-light text-slate-300">순자산 대비 소비</span>
+            </div>
+            <span className="mt-1 text-[11px] font-light text-slate-400">
+              월 지출 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(monthExpense)}</span>
+            </span>
           </div>
-          <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums block ${
-            parseFloat(String(burnRateToNetWorth)) < 3 
-              ? 'text-sky-400' 
-              : parseFloat(String(burnRateToNetWorth)) < 7 
-              ? 'text-white' 
-              : 'text-amber-400'
-          }`}>
-            {burnRateToNetWorth}%
-          </span>
-          <div className="mt-1.5 text-[11px] font-light text-slate-400 truncate">
-            월 지출 {formatMoney(monthExpense)}
+          <div className="text-right shrink-0">
+            <span className={`text-xl sm:text-2xl font-light tracking-tight tabular-nums block ${
+              parseFloat(String(burnRateToNetWorth)) < 3 
+                ? 'text-sky-400' 
+                : parseFloat(String(burnRateToNetWorth)) < 7 
+                ? 'text-white' 
+                : 'text-amber-400'
+            }`}>
+              {burnRateToNetWorth}%
+            </span>
           </div>
         </div>
 
         {/* 4. 비상 유동성 완충 */}
-        <div className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-light text-slate-400">비상 유동성 완충</span>
-            <Banknote size={14} className="text-sky-300" />
+        <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Banknote size={15} className="text-sky-300 shrink-0" />
+              <span className="text-xs font-light text-slate-300">비상 유동성 완충</span>
+            </div>
+            <span className="mt-1 text-[11px] font-light text-slate-400">
+              현금·예금 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(liquidAssets)}</span>
+            </span>
           </div>
-          <div className="flex items-baseline gap-1">
+          <div className="text-right shrink-0">
             {monthExpense === 0 ? (
-              <span className={`text-xl md:text-2xl font-light tracking-tight ${
+              <span className={`text-xl sm:text-2xl font-light tracking-tight ${
                 liquidAssets > 0 ? 'text-sky-400' : 'text-neutral-400'
               }`}>
                 {liquidAssets > 0 ? '충분' : '-'}
               </span>
             ) : (
-              <>
-                <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums ${
+              <div className="flex items-baseline justify-end gap-1">
+                <span className={`text-xl sm:text-2xl font-light tracking-tight tabular-nums ${
                   parseFloat(runwayMonths) >= 6 ? 'text-sky-400' : parseFloat(runwayMonths) >= 3 ? 'text-amber-400' : 'text-rose-400'
                 }`}>
                   {parseFloat(runwayMonths) > 99 ? '99+' : runwayMonths}
@@ -554,11 +568,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 <span className="text-xs font-light text-slate-400">
                   개월
                 </span>
-              </>
+              </div>
             )}
-          </div>
-          <div className="mt-1.5 text-[11px] font-light text-slate-400 truncate">
-            현금·예금 {formatMoney(liquidAssets)}
           </div>
         </div>
       </div>
@@ -655,11 +666,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span 
-                        className="w-2 h-2 rounded-full inline-block shrink-0" 
-                        style={{ backgroundColor: item.color }} 
-                      />
+                    <div className="flex items-center gap-1.5">
                       <span className="font-medium text-slate-200">{item.name}</span>
                       <span className="text-[11px] font-light text-slate-400">({item.count}건)</span>
                     </div>

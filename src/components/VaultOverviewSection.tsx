@@ -881,12 +881,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             {portfolioRows.map((item) => (
               <div key={item.type} className="group">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-1.5 h-1.5 rounded-full ${item.dotColor} shrink-0`} />
-                    <span className={`text-xs font-medium ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
-                      {item.label}
-                    </span>
-                  </div>
+                  <span className={`text-xs font-medium ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                    {item.label}
+                  </span>
                   <div className="flex items-center gap-2.5">
                     <span className={`text-xs tabular-nums font-mono ${
                       isLight ? 'text-slate-900' : 'text-white'
@@ -1173,21 +1170,16 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               const isIncome = t.type === 'INCOME';
               return (
                 <div key={t.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      isIncome ? 'bg-sky-400' : isExpense ? 'bg-rose-400' : 'bg-blue-400'
-                    }`} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-normal text-neutral-200 truncate">{t.description}</span>
-                        <span className="text-[11px] text-neutral-400 font-light shrink-0">
-                          {t.category ? getCategoryKo(t.category) : ''}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-neutral-400 font-light mt-0.5">
-                        <span>{format(parseISO(t.date), 'M.d HH:mm')}</span>
-                        {t.paymentMethod && <span className="ml-1.5 opacity-70">· {t.paymentMethod}</span>}
-                      </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-normal text-neutral-200 truncate">{t.description}</span>
+                      <span className="text-[11px] text-neutral-400 font-light shrink-0">
+                        {t.category ? getCategoryKo(t.category) : ''}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-neutral-400 font-light mt-0.5">
+                      <span>{format(parseISO(t.date), 'M.d HH:mm')}</span>
+                      {t.paymentMethod && <span className="ml-1.5 opacity-70">· {t.paymentMethod}</span>}
                     </div>
                   </div>
                   <div className={`font-medium tabular-nums whitespace-nowrap text-xs ${
