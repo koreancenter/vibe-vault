@@ -59,8 +59,11 @@ import {
   ASSET_CATEGORY_NAMES_KO, 
   AIEngineConfig, 
   getAIEngineConfig,
-  computeFinancialAggregates
+  computeFinancialAggregates,
+  getUserAssets,
+  RECOMMENDED_USER_ASSETS
 } from '../utils';
+import { detectCreditCardSettlement } from '../financialParser';
 import {
   sanitizeAndProcessImage,
   extractImageFileFromClipboard,
@@ -395,6 +398,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
     const handleDataChange = () => {
       loadVaultData();
+      getAllTransactions().then(txs => {
+        if (txs) setLocalTransactions(txs);
+      }).catch(() => {});
     };
 
     window.addEventListener('vibe-vault-data-changed', handleDataChange);
@@ -406,6 +412,197 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
     };
   }, []);
 
+  // Transactions sync
+  const [localTransactions, setLocalTransactions] = useState<Transaction[]>(propTransactions || []);
+
+  useEffect(() => {
+    if (propTransactions && propTransactions.length > 0) {
+      setLocalTransactions(propTransactions);
+    } else {
+      getAllTransactions().then(txs => {
+        if (txs && txs.length > 0) setLocalTransactions(txs);
+      }).catch(() => {});
+    }
+  }, [propTransactions]);
+
+  // Reconcile offsets state (persisted to localStorage)
+  const [reconcileOffsets, setReconcileOffsets] = useState<Record<string, number>>(() => {
+    try {
+      const stored = localStorage.getItem('vibe_card_reconcile_offsets');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const saveReconcileOffset = (cardName: string, offset: number) => {
+    const updated = { ...reconcileOffsets, [cardName]: offset };
+    setReconcileOffsets(updated);
+    try {
+      localStorage.setItem('vibe_card_reconcile_offsets', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to persist card reconcile offset', e);
+    }
+  };
+
+  // Modal state for Credit Card Reconciliation
+  const [reconcilingCard, setReconcilingCard] = useState<any | null>(null);
+  const [reconcileTargetInput, setReconcileTargetInput] = useState<string>('');
+
+  const handleOpenReconcile = (card: any) => {
+    setReconcilingCard(card);
+    setReconcileTargetInput(card.unpaidLiability.toString());
+  };
+
+  const handleApplyReconciliation = async () => {
+    if (!reconcilingCard) return;
+    const targetNum = parseFloat(reconcileTargetInput.replace(/,/g, ''));
+    if (isNaN(targetNum) || targetNum < 0) {
+      showToast('올바른 조정 금액을 입력해주세요.', 'error');
+      return;
+    }
+
+    // newOffset = targetNum - rawRunningBalance
+    const newOffset = Math.round(targetNum - reconcilingCard.rawRunningBalance);
+    saveReconcileOffset(reconcilingCard.name, newOffset);
+
+    // If mapped to an AssetAccount with LIABILITY type, update its balance in IndexedDB as well
+    if (reconcilingCard.associatedAccountId) {
+      try {
+        await updateAssetAccountBalance(reconcilingCard.associatedAccountId, targetNum);
+        await loadAccounts();
+      } catch (e) {
+        console.warn('Failed to update associated account balance:', e);
+      }
+    }
+
+    showToast(`${reconcilingCard.name} 미결제 잔액이 ${formatCurrency(targetNum, currentCurrency)}으로 정상 조정(Reconcile)되었습니다.`);
+    setReconcilingCard(null);
+  };
+
+  // Credit Card Liability Tracking
+  const trackedCreditCards = useMemo(() => {
+    const userAssets = getUserAssets();
+    const cardMap = new Map<string, { id?: string; name: string; billingDay?: number; accountId?: string }>();
+
+    // 1. User configured CARD assets
+    const cardAssets = userAssets.filter(a => a.type === 'CARD');
+    for (const ca of cardAssets) {
+      cardMap.set(ca.name.trim(), {
+        id: ca.id,
+        name: ca.name.trim(),
+        billingDay: ca.billingDay
+      });
+    }
+
+    // 2. Accounts with LIABILITY or card in name
+    for (const acc of accounts) {
+      if (acc.assetType === 'LIABILITY' || /카드|card/i.test(acc.institution) || /카드|card/i.test(acc.accountName)) {
+        const name = (acc.institution || acc.accountName).trim();
+        if (!cardMap.has(name)) {
+          cardMap.set(name, {
+            id: acc.id,
+            name: name,
+            accountId: acc.id
+          });
+        } else {
+          const existing = cardMap.get(name)!;
+          existing.accountId = acc.id;
+        }
+      }
+    }
+
+    // 3. Transactions with card payment methods
+    for (const tx of localTransactions) {
+      const method = (tx.paymentMethod || '').trim();
+      if (method && (/카드|card/i.test(method)) && !/체크카드/i.test(method)) {
+        if (!cardMap.has(method)) {
+          cardMap.set(method, {
+            name: method
+          });
+        }
+      }
+    }
+
+    // 4. Default fallback if nothing exists yet
+    if (cardMap.size === 0) {
+      const rec = RECOMMENDED_USER_ASSETS.find(a => a.type === 'CARD');
+      if (rec) {
+        cardMap.set(rec.name, { id: rec.id, name: rec.name, billingDay: rec.billingDay });
+      }
+    }
+
+    const isMatchingCard = (txMethodOrDesc?: string, targetCardName?: string): boolean => {
+      if (!txMethodOrDesc || !targetCardName) return false;
+      const t = txMethodOrDesc.toLowerCase().replace(/[\s\-_]/g, '');
+      const c = targetCardName.toLowerCase().replace(/[\s\-_]/g, '');
+      if (t === c) return true;
+      if (t.includes(c) || c.includes(t)) return true;
+      const baseCard = c.replace(/카드|card|신용카드|creditcard/gi, '');
+      const baseTx = t.replace(/카드|card|신용카드|creditcard/gi, '');
+      if (baseCard.length >= 2 && (t.includes(baseCard) || baseTx.includes(baseCard))) {
+        return true;
+      }
+      return false;
+    };
+
+    const isCardSettlementTx = (tx: Transaction): boolean => {
+      if (tx.subCategory === '카드대금 납부' || tx.subCategory === '카드대금') return true;
+      if (tx.type === 'TRANSFER' && detectCreditCardSettlement(tx.description || '') !== null) return true;
+      return false;
+    };
+
+    return Array.from(cardMap.values()).map(card => {
+      let totalExpenses = 0;
+      let totalPayments = 0;
+      let totalRefunds = 0;
+
+      for (const t of localTransactions) {
+        const amt = convertCurrency(t.amount, t.currency || 'KRW', currentCurrency, fxRates);
+
+        // 1. EXPENSE on this card: add to liability
+        if (t.type === 'EXPENSE' && isMatchingCard(t.paymentMethod, card.name)) {
+          totalExpenses += amt;
+        }
+
+        // 2. TRANSFER settlement payment: deduct from liability
+        if (t.type === 'TRANSFER' && isCardSettlementTx(t)) {
+          if (isMatchingCard(t.paymentMethod, card.name) || isMatchingCard(t.description, card.name) || cardMap.size === 1) {
+            totalPayments += amt;
+          }
+        }
+
+        // 3. SETTLEMENT / refund on this card
+        if (t.type === 'SETTLEMENT' && isMatchingCard(t.paymentMethod, card.name)) {
+          totalRefunds += amt;
+        }
+      }
+
+      const offset = reconcileOffsets[card.name] || 0;
+      const rawRunningBalance = totalExpenses - totalPayments - totalRefunds;
+      const unpaidLiability = Math.max(0, rawRunningBalance + offset);
+      const hasMismatch = Math.abs(rawRunningBalance) > 0 || offset !== 0;
+
+      return {
+        id: card.id || `card-${card.name}`,
+        name: card.name,
+        billingDay: card.billingDay,
+        totalExpenses,
+        totalPayments,
+        totalRefunds,
+        reconcileOffset: offset,
+        rawRunningBalance,
+        unpaidLiability,
+        hasMismatch,
+        associatedAccountId: card.accountId
+      };
+    });
+  }, [accounts, localTransactions, currentCurrency, fxRates, reconcileOffsets]);
+
+  const totalCardLiabilities = useMemo(() => {
+    return trackedCreditCards.reduce((sum, c) => sum + c.unpaidLiability, 0);
+  }, [trackedCreditCards]);
+
   // Aggregated Net Worth Calculations (Unified with InsightsSection)
   const { totalAssets, totalLiabilities, netWorth, categoryTotals } = useMemo(() => {
     const aggregates = computeFinancialAggregates(
@@ -415,13 +612,25 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       fxRates
     );
 
+    // Sum unlinked credit card running liability (cards not already registered as an AssetAccount of type LIABILITY)
+    let unlinkedCardLiability = 0;
+    for (const card of trackedCreditCards) {
+      const isAccountMapped = accounts.some(a => a.id === card.associatedAccountId && a.assetType === 'LIABILITY');
+      if (!isAccountMapped) {
+        unlinkedCardLiability += card.unpaidLiability;
+      }
+    }
+
+    const effectiveTotalLiabilities = aggregates.totalLiabilities + unlinkedCardLiability;
+    const effectiveNetWorth = aggregates.totalAssets - effectiveTotalLiabilities;
+
     const catMap: Record<AssetCategoryType, number> = {
       BROKERAGE: 0,
       BANK: 0,
       CRYPTO: 0,
       REAL_ESTATE: 0,
       CASH: 0,
-      LIABILITY: 0,
+      LIABILITY: unlinkedCardLiability,
     };
 
     for (const acc of accounts) {
@@ -441,11 +650,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
     return {
       totalAssets: aggregates.totalAssets,
-      totalLiabilities: aggregates.totalLiabilities,
-      netWorth: aggregates.netWorth,
+      totalLiabilities: effectiveTotalLiabilities,
+      netWorth: effectiveNetWorth,
       categoryTotals: catMap,
     };
-  }, [accounts, debts, currentCurrency, fxRates]);
+  }, [accounts, debts, currentCurrency, fxRates, trackedCreditCards]);
 
   const formattedNetWorth = useMemo(() => {
     return formatCurrency(Math.round(netWorth), currentCurrency);
@@ -455,19 +664,6 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
   const dualCurrency = useMemo(() => {
     return getDualCurrencyComparison(Math.round(netWorth), currentCurrency, fxRates);
   }, [netWorth, currentCurrency, fxRates]);
-
-  // Transactions sync
-  const [localTransactions, setLocalTransactions] = useState<Transaction[]>(propTransactions || []);
-
-  useEffect(() => {
-    if (propTransactions && propTransactions.length > 0) {
-      setLocalTransactions(propTransactions);
-    } else {
-      getAllTransactions().then(txs => {
-        if (txs && txs.length > 0) setLocalTransactions(txs);
-      }).catch(() => {});
-    }
-  }, [propTransactions]);
 
   // Portfolio Ratio Bars Calculation
   const portfolioRows = useMemo(() => {
@@ -1159,7 +1355,107 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         </div>
       )}
 
-      {/* 6. Recent Transactions Preview (최근 거래) */}
+      {/* 6. Credit Card Liability Tracking & Settlement Section (신용카드 미결제 잔액 관리) */}
+      <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
+        isLight
+          ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
+          : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
+      }`}>
+        <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+              <CreditCard size={13} />
+            </div>
+            <div>
+              <h2 className={`text-sm font-medium tracking-wide ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
+                신용카드 미결제 잔액 관리
+              </h2>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className={`text-xs font-mono font-medium tabular-nums ${
+              totalCardLiabilities > 0 ? 'text-rose-400/90' : isLight ? 'text-slate-600' : 'text-neutral-400'
+            } ${stealthMode ? 'blur-xs select-none' : ''}`}>
+              총 {formatCurrency(totalCardLiabilities, currentCurrency)}
+            </span>
+          </div>
+        </div>
+
+        {trackedCreditCards.length === 0 ? (
+          <div className="py-5 text-center text-xs font-light text-slate-400">
+            기록된 신용카드 사용 내역이 없습니다.
+          </div>
+        ) : (
+          <div className="divide-y divide-white/[0.04]">
+            {trackedCreditCards.map((card) => {
+              const isSettled = card.unpaidLiability === 0;
+              return (
+                <div key={card.id} className="py-3.5 first:pt-3 last:pb-1 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-xs font-medium ${isLight ? 'text-slate-900' : 'text-neutral-100'}`}>
+                          {card.name}
+                        </span>
+                        {card.billingDay && (
+                          <span className="text-[10px] text-neutral-400 font-light">
+                            매월 {card.billingDay}일 결제
+                          </span>
+                        )}
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          isSettled
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}>
+                          {isSettled ? '정산 완료' : '청구 예정'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-neutral-400 font-light mt-1 flex-wrap">
+                        <span>카드 지출 +{formatCurrency(card.totalExpenses, currentCurrency)}</span>
+                        <span>·</span>
+                        <span>납부 차감 -{formatCurrency(card.totalPayments, currentCurrency)}</span>
+                        {card.reconcileOffset !== 0 && (
+                          <>
+                            <span>·</span>
+                            <span className="text-sky-400">
+                              조정 {card.reconcileOffset > 0 ? '+' : ''}{formatCurrency(card.reconcileOffset, currentCurrency)}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className={`text-sm font-semibold tabular-nums text-right ${
+                        card.unpaidLiability > 0
+                          ? 'text-rose-400'
+                          : isLight ? 'text-slate-800' : 'text-neutral-200'
+                      } ${stealthMode ? 'blur-xs select-none' : ''}`}>
+                        {formatCurrency(card.unpaidLiability, currentCurrency)}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenReconcile(card)}
+                        className={`mt-1.5 inline-flex items-center gap-1 text-[11px] font-normal px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                          isLight
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                            : 'bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border-white/[0.08]'
+                        }`}
+                        title="청구할인, 해외수수료, 할부 차액 조정"
+                      >
+                        <RefreshCw size={10} />
+                        <span>차액 조정 (Reconcile)</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 7. Recent Transactions Preview (최근 거래) */}
       <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
         isLight 
           ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
@@ -1732,6 +2028,111 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               >
                 삭제하기
               </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* CREDIT CARD RECONCILIATION MODAL */}
+      {reconcilingCard && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200 p-0 sm:p-4"
+          onClick={() => setReconcilingCard(null)}
+        >
+          <div 
+            className={`w-full max-w-sm rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#111217] text-neutral-100'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Mobile drag handle */}
+            <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
+
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.06]">
+              <div>
+                <h3 className="text-sm sm:text-base font-semibold text-white">
+                  {reconcilingCard.name} 차액 조정 (Reconcile)
+                </h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  청구할인 · 해외수수료 · 할부 차액 정산
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReconcilingCard(null)}
+                className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+                aria-label="닫기"
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6 space-y-4">
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2 text-xs">
+                <div className="flex justify-between text-neutral-400">
+                  <span>누적 카드 지출 합계</span>
+                  <span className="font-mono text-neutral-200">+{formatCurrency(reconcilingCard.totalExpenses, currentCurrency)}</span>
+                </div>
+                <div className="flex justify-between text-neutral-400">
+                  <span>카드대금 납부(출금) 합계</span>
+                  <span className="font-mono text-neutral-200">-{formatCurrency(reconcilingCard.totalPayments, currentCurrency)}</span>
+                </div>
+                <div className="pt-1.5 border-t border-white/[0.04] flex justify-between font-medium">
+                  <span className="text-neutral-300">현재 계산된 장부 잔액</span>
+                  <span className="font-mono text-rose-400">{formatCurrency(reconcilingCard.unpaidLiability, currentCurrency)}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
+                  조정 후 맞출 미결제 잔액 ({currentCurrency})
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={reconcileTargetInput}
+                  onChange={(e) => setReconcileTargetInput(e.target.value)}
+                  className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white placeholder:text-neutral-400 focus:border-white/25 focus:ring-0 outline-none transition-all tabular-nums"
+                  placeholder="0"
+                  autoFocus
+                />
+              </div>
+
+              {/* Quick Actions */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReconcileTargetInput('0')}
+                  className="flex-1 py-1.5 px-2 rounded-lg text-xs font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 transition-colors text-center cursor-pointer"
+                >
+                  0원으로 맞춤 (완납/청구할인)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReconcileTargetInput(reconcilingCard.rawRunningBalance.toString())}
+                  className="py-1.5 px-2.5 rounded-lg text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 border border-white/[0.08] transition-colors cursor-pointer"
+                >
+                  원래 계산값
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReconcilingCard(null)}
+                  className="w-full py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 text-sm font-medium transition-all cursor-pointer"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyReconciliation}
+                  className="w-full py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all shadow-sm active:scale-[0.99] cursor-pointer"
+                >
+                  조정 반영 확정
+                </button>
+              </div>
             </div>
           </div>
         </div>,

@@ -800,7 +800,7 @@ export function App() {
           subCategory = 'Salary';
         } else if (rawCat.includes('이체') || rawCat.includes('저축') || type === 'TRANSFER') {
           category = 'Fixed';
-          subCategory = 'Savings';
+          subCategory = t.subCategory || 'Savings';
         } else if (!t.category || t.category === 'Uncategorized' || t.category === '미분류') {
           const inferred = inferCategoryAndMerchant(t.description || textToProcess);
           category = inferred.category;

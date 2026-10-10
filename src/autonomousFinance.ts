@@ -893,7 +893,7 @@ export async function orchestrateAutonomousFinancialText(
 
   const loanSplit = localResults.find(r => r.loanSplitSuggestion)?.loanSplitSuggestion;
   const receivableRecovery = localResults.find(r => r.receivableRecoverySuggestion)?.receivableRecoverySuggestion;
-  const hasCardSettlement = localResults.some(r => r.type === 'TRANSFER' && r.subCategory === '카드대금');
+  const hasCardSettlement = localResults.some(r => r.type === 'TRANSFER' && (r.subCategory === '카드대금 납부' || r.subCategory === '카드대금'));
 
   // If local parser detected high-confidence debt split or card settlement, return immediately
   if (loanSplit || receivableRecovery || hasCardSettlement) {
@@ -936,7 +936,7 @@ export async function orchestrateAutonomousFinancialText(
         if (txs.length > 0) {
           const aiLoanSplit = txs.find(t => t.loanSplitSuggestion)?.loanSplitSuggestion;
           const aiReceivable = txs.find(t => t.receivableRecoverySuggestion)?.receivableRecoverySuggestion;
-          const aiCardSettlement = txs.some(t => t.type === 'TRANSFER' && (t.subCategory === '카드대금' || t.isInternalTransfer));
+          const aiCardSettlement = txs.some(t => t.type === 'TRANSFER' && (t.subCategory === '카드대금 납부' || t.subCategory === '카드대금' || t.isInternalTransfer));
 
           return {
             transactions: txs,

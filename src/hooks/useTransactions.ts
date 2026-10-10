@@ -106,6 +106,18 @@ export function useTransactions(): UseTransactionsReturn {
           changed = true;
         }
 
+        // Repair card bill payment transactions to TRANSFER with isInternalTransfer
+        if (
+          updated.subCategory === '카드대금' ||
+          (updated.subCategory === '카드대금 납부' && (updated.type !== 'TRANSFER' || !updated.isInternalTransfer)) ||
+          (updated.type === 'EXPENSE' && /(?:결제대금\s*출금|대금\s*자동이체|카드대금\s*납부|card\s*bill\s*payment)/i.test(updated.description || ''))
+        ) {
+          updated.type = 'TRANSFER';
+          updated.subCategory = '카드대금 납부';
+          updated.isInternalTransfer = true;
+          changed = true;
+        }
+
         if (changed) {
           updateTransaction(updated).catch((e) => console.warn('Failed to persist transaction auto-repair:', e));
           return updated;

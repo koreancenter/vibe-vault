@@ -264,4 +264,60 @@ describe('Financial Parser Deterministic Engine', () => {
       expect(parseKoreanAmount('1억 2천만원')).toBe(120000000);
     });
   });
+
+  describe('Credit Card Settlement & Reconciliation Rules', () => {
+    it('strictly categorizes "현대카드 결제대금 출금 850,000원" as TRANSFER with subCategory "카드대금 납부" and isInternalTransfer true', () => {
+      const results = parseFinancialInputDeterministically('현대카드 결제대금 출금 850,000원');
+      expect(results).toHaveLength(1);
+      const res = results[0];
+      expect(res.type).toBe('TRANSFER');
+      expect(res.subCategory).toBe('카드대금 납부');
+      expect(res.isInternalTransfer).toBe(true);
+      expect(res.amount).toBe(850000);
+      expect(res.paymentMethod).toContain('현대카드');
+    });
+
+    it('strictly categorizes "신한카드 대금 자동이체 1,200,000원" as TRANSFER with subCategory "카드대금 납부" and isInternalTransfer true', () => {
+      const results = parseFinancialInputDeterministically('신한카드 대금 자동이체 1,200,000원');
+      expect(results).toHaveLength(1);
+      const res = results[0];
+      expect(res.type).toBe('TRANSFER');
+      expect(res.subCategory).toBe('카드대금 납부');
+      expect(res.isInternalTransfer).toBe(true);
+      expect(res.amount).toBe(1200000);
+      expect(res.paymentMethod).toContain('신한카드');
+    });
+
+    it('strictly categorizes English "Card bill payment 500 USD" as TRANSFER with subCategory "카드대금 납부" and isInternalTransfer true', () => {
+      const results = parseFinancialInputDeterministically('Card bill payment $500');
+      expect(results).toHaveLength(1);
+      const res = results[0];
+      expect(res.type).toBe('TRANSFER');
+      expect(res.subCategory).toBe('카드대금 납부');
+      expect(res.isInternalTransfer).toBe(true);
+      expect(res.amount).toBe(500);
+    });
+
+    it('ensures card settlement transfers do not inflate total monthly expense metrics', () => {
+      // Simulate 2 daily expenses followed by a monthly bill debit
+      const exp1 = parseFinancialInputDeterministically('스타벅스 커피 5,500원 현대카드 결제')[0];
+      const exp2 = parseFinancialInputDeterministically('이마트 장보기 67,200원 현대카드')[0];
+      const settlement = parseFinancialInputDeterministically('현대카드 결제대금 출금 72,700원')[0];
+
+      expect(exp1.type).toBe('EXPENSE');
+      expect(exp2.type).toBe('EXPENSE');
+      expect(settlement.type).toBe('TRANSFER');
+      expect(settlement.isInternalTransfer).toBe(true);
+      expect(settlement.subCategory).toBe('카드대금 납부');
+
+      // Calculation of monthly expenses (excluding isInternalTransfer or TRANSFER)
+      const transactions = [exp1, exp2, settlement];
+      const totalExpense = transactions
+        .filter(t => t.type === 'EXPENSE' && !t.isInternalTransfer)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      // Total expense must equal 5500 + 67200 = 72700, NOT double-counted with the settlement (145,400)
+      expect(totalExpense).toBe(72700);
+    });
+  });
 });

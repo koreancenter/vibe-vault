@@ -446,18 +446,27 @@ export function detectCreditCardSettlement(text: string): {
   amount?: number;
   description: string;
 } | null {
-  const isCardBilling = /(?:카드\s*(?:결제\s*대금|대금\s*결제|결제금액|청구\s*금액|결제일|이용대금|대금\s*출금|대금|납부|청구서)|(?:신용카드|체크카드)\s*대금|(?:후불교통|후불교통비)\s*출금)/i.test(text);
+  const isCardBilling = /(?:카드\s*(?:결제\s*대금|대금\s*결제|결제\s*금액|청구\s*금액|결제일|이용\s*대금|대금\s*출금|대금|납부|청구서|값(?:\s*출금|\s*납부)?)|(?:신용카드|체크카드)\s*(?:대금|납부|출금|결제|청구)|(?:후불교통|후불교통비)\s*출금|card\s*bill(?:\s*payment|\s*auto\s*debit|\s*debit|\s*settlement)?|credit\s*card\s*(?:bill(?:\s*payment)?|payment|settlement)|card\s*payment)/i.test(text);
   if (!isCardBilling) return null;
 
-  const cardMatch = text.match(/(현대카드|신한카드|국민카드|KB국민카드|삼성카드|롯데카드|우리카드|하나카드|NH농협카드|농협카드|BC카드|씨티카드|토스카드|카카오페이카드|카카오뱅크카드|[가-힣a-zA-Z0-9]+카드)/i);
-  const cardName = cardMatch ? cardMatch[1].trim() : '신용카드';
+  const cardMatch = text.match(/(현대카드|신한카드|국민카드|KB국민카드|삼성카드|롯데카드|우리카드|하나카드|NH농협카드|농협카드|BC카드|씨티카드|토스카드|카카오페이카드|카카오뱅크카드|[가-힣a-zA-Z0-9]+카드|Hyundai\s*Card|Shinhan\s*Card|KB\s*Card|Samsung\s*Card|Lotte\s*Card|Woori\s*Card|Hana\s*Card|NH\s*Card|BC\s*Card|Toss\s*Card|Kakao\s*Card|Chase\s*(?:Sapphire|Freedom|Card)?|Amex|Apple\s*Card|Credit\s*Card)/i);
+  let cardName = cardMatch ? cardMatch[1].trim() : (/card\s*bill|credit\s*card/i.test(text) ? 'Card' : '신용카드');
   const amount = parseKoreanAmount(text);
+
+  let desc = `${cardName} 결제대금 출금`;
+  if (/자동이체/i.test(text)) {
+    desc = `${cardName} 대금 자동이체`;
+  } else if (/납부/i.test(text)) {
+    desc = `${cardName} 카드대금 납부`;
+  } else if (/card\s*bill\s*payment/i.test(text)) {
+    desc = `${cardName} bill payment`;
+  }
 
   return {
     isCardSettlement: true,
     cardName,
     amount: amount || undefined,
-    description: `${cardName} 결제대금 출금 (예산 중복 집계 방지 TRANSFER)`
+    description: desc
   };
 }
 
@@ -803,6 +812,10 @@ export function extractItemCategoryAndMerchant(
     return { category: '급여/수입', merchant: cleanMerchantTitle(clause, '급여 수입') };
   }
   if (type === 'transfer') {
+    const cardSettlement = detectCreditCardSettlement(clause);
+    if (cardSettlement) {
+      return { category: 'Fixed', merchant: cardSettlement.description };
+    }
     return { category: '이체/저축', merchant: cleanMerchantTitle(clause, '계좌 이체') };
   }
 
@@ -932,8 +945,9 @@ export function parseFinancialText(text: string, baseCurrency = 'KRW'): ParsedIt
     let type: 'expense' | 'income' | 'transfer' = 'expense';
     const isIncome = /월급|급여|보너스|상여금|수당|용돈|배당금|환급|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|벌었|salary|paycheck|bonus|allowance/i.test(clause) &&
       !/결제|지출|썼|사먹|구입|구매/i.test(clause);
+    const cardSettlementMatch = detectCreditCardSettlement(clause);
     const isPurchase = /(?:순두부|찌개|식사|점심|저녁|커피|카페|스타벅스|마트|장보기|다이소|편의점|배달|치킨|피자|파스타|택시|주유|옷|신발|병원|약국)/i.test(clause);
-    const isTransfer = /(?:자동이체|송금|적금|예금|청약|주택청약|저축|통장으로|계좌로|to\s*account|savings)/i.test(clause) && !isPurchase;
+    const isTransfer = (cardSettlementMatch !== null || /(?:자동이체|송금|적금|예금|청약|주택청약|저축|통장으로|계좌로|to\s*account|savings)/i.test(clause)) && !isPurchase;
 
     if (isIncome) {
       type = 'income';
@@ -1136,7 +1150,7 @@ export function parseFinancialInputDeterministically(rawPrompt: string, debts: D
         amount,
         currency,
         category: 'Fixed',
-        subCategory: '카드대금',
+        subCategory: '카드대금 납부',
         description: cardSettlement.description,
         date: now,
         paymentMethod: cardSettlement.cardName,
