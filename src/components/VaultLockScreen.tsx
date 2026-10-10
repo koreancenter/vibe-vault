@@ -238,10 +238,10 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
         <div className="w-full flex flex-col items-center pt-0.5 sm:pt-1">
           {!isPinSet ? (
             <>
-              <h2 className="text-fluid-title font-light text-white tracking-tight">
+              <h2 className="text-fluid-title font-light text-white tracking-tight h-[31.7969px] flex items-center justify-center">
                 {setupStep === 'create' ? '프라이빗 금고 시작하기' : 'PIN 번호 확인'}
               </h2>
-              <p className="text-fluid-caption text-neutral-400 mt-0.5 font-light leading-snug break-keep px-2">
+              <p className="text-fluid-caption text-neutral-400 mt-0.5 font-light leading-snug break-keep px-2 h-[22.375px]">
                 {setupStep === 'create'
                   ? '기기 내부에 암호화 보관될 4~6자리 마스터 PIN을 설정하세요'
                   : '확인을 위해 동일한 PIN 번호를 다시 입력해주세요'}
@@ -249,17 +249,17 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
             </>
           ) : (
             <>
-              <h2 className="text-fluid-title font-light text-white tracking-tight">
+              <h2 className="text-fluid-title font-light text-white tracking-tight h-[31.7969px] flex items-center justify-center">
                 Vibe Vault
               </h2>
-              <p className="text-fluid-caption text-neutral-400 mt-0.5 font-light leading-snug break-keep px-2">
+              <p className="text-fluid-caption text-neutral-400 mt-0.5 font-light leading-snug break-keep px-2 h-[22.375px]">
                 자산 및 장부 데이터를 확인하려면 PIN 번호를 입력하세요
               </p>
             </>
           )}
 
           {/* PIN Dots */}
-          <div className="mt-2 sm:mt-2.5 flex justify-center gap-2 sm:gap-2.5">
+          <div className="mt-2 sm:mt-2.5 flex justify-center gap-2 sm:gap-2.5 h-[27px] items-center">
             {[0, 1, 2, 3, 4, 5].map((idx) => {
               const isFilled = idx < activeInput.length;
               return (
@@ -329,7 +329,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
         {/* Footer Action */}
         <div className="w-full max-w-[230px] sm:max-w-[250px] mx-auto space-y-1 sm:space-y-1.5">
           {!isPinSet ? (
-            <div className="space-y-1 sm:space-y-1.5">
+            <div className="space-y-1 sm:space-y-1.5 h-[80.2344px] pl-0">
               <button
                 type="button"
                 onClick={handleCompleteSetup}
@@ -349,7 +349,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
                     setConfirmPin('');
                     setError(null);
                   }}
-                  className="w-full text-fluid-caption text-neutral-400 hover:text-white transition-colors py-0.5 cursor-pointer"
+                  className="w-full text-fluid-caption text-neutral-400 hover:text-white transition-colors py-0.5 cursor-pointer h-[32.3906px] flex items-center justify-center"
                 >
                   이전 단계로 돌아가기
                 </button>
@@ -357,7 +357,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
                 <button
                   type="button"
                   onClick={handleSkipSetup}
-                  className="w-full text-fluid-caption text-neutral-400 hover:text-white transition-colors py-0.5 cursor-pointer"
+                  className="w-full text-fluid-caption text-neutral-400 hover:text-white transition-colors py-0.5 cursor-pointer h-[32.3906px] flex items-center justify-center"
                 >
                   나중에 설정하기 (게스트 모드)
                 </button>
@@ -375,7 +375,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ onUnlocked }) 
               </p>
             </div>
           ) : (
-            <div className="space-y-1 sm:space-y-1.5">
+            <div className="space-y-1 sm:space-y-1.5 h-[80.2344px] pl-0">
               <button
                 type="button"
                 onClick={() => handleAttemptUnlock(pin)}

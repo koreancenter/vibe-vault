@@ -290,34 +290,59 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
     }
   }, [propTransactions]);
 
-  // Dynamic Donut Arc Calculation for Left Column (Col 1-4)
-  const donutSlices = useMemo(() => {
-    if (totalAssets <= 0) return [];
-    const radius = 42;
-    const circumference = 2 * Math.PI * radius; // ≈ 263.89
-    
-    const validCategories = [
-      { type: 'BROKERAGE' as AssetCategoryType, label: '증권/투자', color: '#60a5fa', amount: categoryTotals.BROKERAGE || 0 },
-      { type: 'BANK' as AssetCategoryType, label: '은행/예적금', color: '#38bdf8', amount: categoryTotals.BANK || 0 },
-      { type: 'CRYPTO' as AssetCategoryType, label: '가상자산', color: '#fbbf24', amount: categoryTotals.CRYPTO || 0 },
-      { type: 'REAL_ESTATE' as AssetCategoryType, label: '부동산/실물', color: '#c084fc', amount: categoryTotals.REAL_ESTATE || 0 },
-      { type: 'CASH' as AssetCategoryType, label: '현금/비상금', color: '#2dd4bf', amount: categoryTotals.CASH || 0 },
-    ].filter(c => c.amount > 0);
-
-    let cumulativePercentage = 0;
-    return validCategories.map((c) => {
-      const pct = (c.amount / totalAssets);
-      const dashLength = pct * circumference;
-      const dashOffset = cumulativePercentage * circumference;
-      cumulativePercentage += pct;
-      return {
-        ...c,
-        percentage: pct * 100,
-        dashLength,
-        dashOffset,
-      };
-    });
-  }, [categoryTotals, totalAssets]);
+  // Clean 6-Item Portfolio Ratio Bars Calculation for Left Column
+  const portfolioRows = useMemo(() => {
+    return [
+      {
+        type: 'BROKERAGE' as AssetCategoryType,
+        label: '투자',
+        amount: categoryTotals.BROKERAGE || 0,
+        percentage: totalAssets > 0 ? ((categoryTotals.BROKERAGE || 0) / totalAssets) * 100 : 0,
+        barColor: 'bg-emerald-400',
+        dotColor: 'bg-emerald-400',
+      },
+      {
+        type: 'BANK' as AssetCategoryType,
+        label: '예적금',
+        amount: categoryTotals.BANK || 0,
+        percentage: totalAssets > 0 ? ((categoryTotals.BANK || 0) / totalAssets) * 100 : 0,
+        barColor: 'bg-sky-400',
+        dotColor: 'bg-sky-400',
+      },
+      {
+        type: 'CRYPTO' as AssetCategoryType,
+        label: '가상자산',
+        amount: categoryTotals.CRYPTO || 0,
+        percentage: totalAssets > 0 ? ((categoryTotals.CRYPTO || 0) / totalAssets) * 100 : 0,
+        barColor: 'bg-amber-400',
+        dotColor: 'bg-amber-400',
+      },
+      {
+        type: 'CASH' as AssetCategoryType,
+        label: '현금',
+        amount: categoryTotals.CASH || 0,
+        percentage: totalAssets > 0 ? ((categoryTotals.CASH || 0) / totalAssets) * 100 : 0,
+        barColor: 'bg-teal-400',
+        dotColor: 'bg-teal-400',
+      },
+      {
+        type: 'REAL_ESTATE' as AssetCategoryType,
+        label: '부동산',
+        amount: categoryTotals.REAL_ESTATE || 0,
+        percentage: totalAssets > 0 ? ((categoryTotals.REAL_ESTATE || 0) / totalAssets) * 100 : 0,
+        barColor: 'bg-purple-400',
+        dotColor: 'bg-purple-400',
+      },
+      {
+        type: 'LIABILITY' as AssetCategoryType,
+        label: '부채',
+        amount: categoryTotals.LIABILITY || totalLiabilities || 0,
+        percentage: totalAssets > 0 ? ((categoryTotals.LIABILITY || totalLiabilities || 0) / totalAssets) * 100 : 0,
+        barColor: 'bg-rose-400/80',
+        dotColor: 'bg-rose-400/80',
+      },
+    ];
+  }, [categoryTotals, totalAssets, totalLiabilities]);
 
   // Micro FX Calculator state & computation for Right Column (Col 10-12)
   const [fxCalcAmount, setFxCalcAmount] = useState<string>('100000');
@@ -793,121 +818,58 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
           : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-2xl text-white'
       }`}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3.5">
           <div className="flex items-center gap-2">
-            <h2 className="text-fluid-title font-normal tracking-wide text-slate-200">자산 포트폴리오 비중</h2>
+            <h2 className={`text-fluid-title font-normal tracking-wide ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+              자산 포트폴리오 비중
+            </h2>
           </div>
           <span className={`text-fluid-caption font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
             총 {accounts.length}개 계좌
           </span>
         </div>
 
-        {/* Dynamic Donut / Asset Pie & Class Breakdown */}
-        {totalAssets > 0 ? (
-          <div className="space-y-4">
-            {/* SVG Donut Ring Chart with centered summary */}
-            <div className="flex items-center justify-center pt-1 pb-1">
-              <div className="relative w-36 h-36 flex items-center justify-center">
-                <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90 transform">
-                  {/* Subtle track */}
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="42"
-                    fill="none"
-                    stroke="rgba(255, 255, 255, 0.05)"
-                    strokeWidth="12"
+        {/* 6-Item Clean Horizontal Bar Rows */}
+        {totalAssets > 0 || totalLiabilities > 0 ? (
+          <div className="space-y-3 px-1 py-2">
+            {portfolioRows.map((item) => (
+              <div key={item.type} className="group">
+                {/* Label & Badges */}
+                <div className="flex items-center justify-between">
+                  {/* Left: Category name with a subtle muted dot */}
+                  <div className="flex items-center gap-2">
+                    <span className={`w-1.5 h-1.5 rounded-full ${item.dotColor} shrink-0`} />
+                    <span className={`text-xs font-medium ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                      {item.label}
+                    </span>
+                  </div>
+
+                  {/* Right: Formatted currency amount and percentage */}
+                  <div className="flex items-center gap-2.5">
+                    <span className={`text-xs tabular-nums font-mono ${
+                      isLight ? 'text-slate-900' : 'text-white'
+                    } ${stealthMode && item.amount > 0 ? 'blur-xs' : ''}`}>
+                      {formatCurrency(item.amount, currentCurrency)}
+                    </span>
+                    <span className={`text-xs font-mono w-10 text-right ${
+                      isLight ? 'text-slate-500' : 'text-neutral-400'
+                    }`}>
+                      {item.percentage > 0 ? `${item.percentage.toFixed(0)}%` : '0%'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress Track */}
+                <div className={`w-full h-1.5 rounded-full overflow-hidden mt-1.5 ${
+                  isLight ? 'bg-slate-200/80' : 'bg-white/[0.06]'
+                }`}>
+                  <div
+                    style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }}
+                    className={`h-full ${item.barColor} rounded-full transition-all duration-500`}
                   />
-                  {/* Category Arcs */}
-                  {donutSlices.map((slice) => (
-                    <circle
-                      key={slice.type}
-                      cx="60"
-                      cy="60"
-                      r="42"
-                      fill="none"
-                      stroke={slice.color}
-                      strokeWidth="12"
-                      strokeDasharray={`${slice.dashLength} 263.89`}
-                      strokeDashoffset={-slice.dashOffset}
-                      strokeLinecap="round"
-                      className="transition-all duration-300 hover:opacity-100 opacity-90"
-                    />
-                  ))}
-                </svg>
-                {/* Center metric: clean account summary indicator without redundant net worth figure */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                  <span className="text-fluid-caption font-light text-neutral-400">포트폴리오</span>
-                  <span className="text-fluid-body font-medium text-white tracking-tight mt-0.5">
-                    {accounts.length}개 계좌
-                  </span>
                 </div>
               </div>
-            </div>
-
-            {/* Dynamic Proportion Bar: Subtle, refined hairline track */}
-            <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-white/[0.04] border border-white/[0.04]">
-              {assetCategories.map((cat) => {
-                const amount = categoryTotals[cat.type] || 0;
-                if (amount <= 0 || cat.type === 'LIABILITY') return null;
-                const pct = (amount / totalAssets) * 100;
-                return (
-                  <div
-                    key={cat.type}
-                    style={{ width: `${pct}%` }}
-                    className={`h-full bg-gradient-to-r ${cat.color} transition-all relative group cursor-pointer opacity-85 hover:opacity-100`}
-                    title={`${cat.label}: ${pct.toFixed(1)}%`}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Single flat parent card separated by subtle hairline dividers (No Box-in-Box) */}
-            <div className={`rounded-xl border grid grid-cols-2 sm:grid-cols-3 divide-y sm:divide-y-0 divide-x overflow-hidden ${
-              isLight 
-                ? 'bg-slate-50/70 border-slate-200/80 divide-slate-200/60' 
-                : 'bg-transparent border-white/[0.05] divide-white/[0.04]'
-            }`}>
-              {assetCategories.map((cat) => {
-                const amount = categoryTotals[cat.type] || 0;
-                const pct = totalAssets > 0 ? (amount / totalAssets) * 100 : 0;
-                const isZero = amount <= 0;
-
-                return (
-                  <div
-                    key={cat.type}
-                    className={`p-2.5 transition-colors ${
-                      isZero ? (isLight ? 'opacity-40' : 'opacity-30') : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                        cat.type === 'BROKERAGE' ? 'bg-blue-400' :
-                        cat.type === 'BANK' ? 'bg-sky-400' :
-                        cat.type === 'CRYPTO' ? 'bg-amber-400' :
-                        cat.type === 'REAL_ESTATE' ? 'bg-purple-400' :
-                        cat.type === 'CASH' ? 'bg-sky-300' : 'bg-rose-400'
-                      }`} />
-                      <span className={`text-fluid-caption font-light truncate ${isZero ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {cat.label}
-                      </span>
-                    </div>
-                    <div className="flex items-baseline justify-between gap-1 mt-1">
-                      <span className={`text-fluid-body font-normal tabular-nums ${isZero ? 'text-slate-500' : (isLight ? 'text-slate-900' : 'text-slate-200')} ${stealthMode && !isZero ? 'blur-xs' : ''}`}>
-                        {formatCurrency(amount, currentCurrency)}
-                      </span>
-                      <span className={`text-fluid-caption font-light ${
-                        isZero
-                          ? 'text-slate-500/50'
-                          : isLight ? 'text-slate-500' : 'text-slate-400'
-                      }`}>
-                        {pct > 0 ? `${pct.toFixed(0)}%` : '0%'}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            ))}
           </div>
         ) : (
           <div className="py-4 text-center text-fluid-caption font-light text-slate-400">
