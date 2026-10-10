@@ -26,15 +26,13 @@ export const IOSInstallModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   theme?: string;
-}> = ({ isOpen, onClose, theme = 'dark' }) => {
+}> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
-
-  const isLight = theme === 'light';
 
   return (
     <AnimatePresence>
       <div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
         onClick={onClose}
       >
         <motion.div
@@ -42,90 +40,81 @@ export const IOSInstallModal: React.FC<{
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className={`relative w-full max-w-sm rounded-3xl p-6 shadow-2xl border ${
-            isLight
-              ? 'bg-white text-slate-900 border-slate-200'
-              : 'bg-[#0F172A] text-white border-white/10'
-          }`}
+          className="w-full max-w-sm flex flex-col bg-[#0E1015] border border-white/[0.08] rounded-3xl shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
-                <Smartphone size={20} />
+          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/[0.06] shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
+                <Smartphone className="w-5 h-5 stroke-[1.5]" />
               </div>
               <div>
-                <h3 className="text-base font-bold tracking-tight">홈 화면에 추가하기</h3>
-                <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  iOS Safari 앱 설치 안내
+                <h3 className="text-base font-medium text-white">홈 화면에 추가하기</h3>
+                <p className="text-xs text-neutral-400 font-light mt-0.5">
+                  iOS Safari 전용 앱 설치 안내
                 </p>
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className={`p-1.5 rounded-full transition-colors ${
-                isLight 
-                  ? 'hover:bg-slate-100 text-slate-400 hover:text-slate-700' 
-                  : 'hover:bg-white/10 text-slate-400 hover:text-white'
-              }`}
+              className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
               aria-label="닫기"
             >
-              <X size={18} />
+              <X size={17} />
             </button>
           </div>
 
-          {/* Step list */}
-          <div className="space-y-3 my-4">
-            <div className={`p-3 rounded-2xl flex items-start gap-3 border ${
-              isLight ? 'bg-slate-50 border-slate-100' : 'bg-white/[0.03] border-white/5'
-            }`}>
-              <div className="w-6 h-6 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+          {/* Clean Minimalist Steps */}
+          <div className="space-y-4 px-6 py-5">
+            {/* Step 1 */}
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] font-mono text-neutral-300 flex items-center justify-center shrink-0 mt-0.5">
                 1
               </div>
-              <div className="text-xs leading-relaxed">
+              <p className="text-xs text-neutral-300 font-light leading-relaxed">
                 Safari 브라우저 하단(또는 상단)의{' '}
-                <span className="inline-flex items-center gap-1 font-semibold text-blue-400 mx-0.5">
-                  <Share2 size={12} className="inline" /> 공유
-                </span>{' '}
-                아이콘을 탭합니다.
-              </div>
+                <strong className="font-medium text-white">공유 아이콘(Share)</strong>
+                <Share2 className="w-3.5 h-3.5 inline text-neutral-300 ml-1" />
+                을 탭합니다.
+              </p>
             </div>
 
-            <div className={`p-3 rounded-2xl flex items-start gap-3 border ${
-              isLight ? 'bg-slate-50 border-slate-100' : 'bg-white/[0.03] border-white/5'
-            }`}>
-              <div className="w-6 h-6 rounded-full bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+            {/* Step 2 */}
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] font-mono text-neutral-300 flex items-center justify-center shrink-0 mt-0.5">
                 2
               </div>
-              <div className="text-xs leading-relaxed">
+              <p className="text-xs text-neutral-300 font-light leading-relaxed">
                 메뉴 목록을 아래로 스크롤하여{' '}
-                <span className="inline-flex items-center gap-1 font-semibold text-sky-400 mx-0.5">
-                  <PlusSquare size={12} className="inline" /> 홈 화면에 추가
-                </span>{' '}
+                <strong className="font-medium text-white">'홈 화면에 추가'</strong>
+                <PlusSquare className="w-3.5 h-3.5 inline text-neutral-300 ml-1" />
                 를 선택합니다.
-              </div>
+              </p>
             </div>
 
-            <div className={`p-3 rounded-2xl flex items-start gap-3 border ${
-              isLight ? 'bg-slate-50 border-slate-100' : 'bg-white/[0.03] border-white/5'
-            }`}>
-              <div className="w-6 h-6 rounded-full bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+            {/* Step 3 */}
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] font-mono text-neutral-300 flex items-center justify-center shrink-0 mt-0.5">
                 3
               </div>
-              <div className="text-xs leading-relaxed">
-                우측 상단의 <strong className="text-purple-400">추가</strong>를 누르면 오프라인 캐싱과 전체 화면 독립 앱으로 구동됩니다.
-              </div>
+              <p className="text-xs text-neutral-300 font-light leading-relaxed">
+                우측 상단 <strong className="font-medium text-white">'추가'</strong>를 누르면 오프라인 캐싱과 전체 화면 독립 앱으로 실행됩니다.
+              </p>
             </div>
           </div>
 
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 rounded-xl font-bold text-xs transition-all active:scale-98 bg-sky-500 hover:bg-sky-600 text-slate-950 shadow-lg shadow-sky-500/20"
-          >
-            확인 완료
-          </button>
+          {/* Cohesive Action Button */}
+          <div className="px-6 pb-6 pt-1 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-3 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-semibold transition-all shadow-sm active:scale-[0.99] cursor-pointer"
+            >
+              확인 완료
+            </button>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>
@@ -323,10 +312,10 @@ export const PWAInstallBanner: React.FC<{
               </div>
               <div className="flex flex-col truncate">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold tracking-tight truncate">Vibe Vault 앱 설치</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/20 text-sky-400 font-semibold">PWA</span>
+                  <span className="text-xs font-semibold tracking-tight truncate text-white">Vibe Vault 앱 설치</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-neutral-300 font-mono">PWA</span>
                 </div>
-                <span className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <span className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
                   홈 화면에서 더 빠르고 편리하게 사용하세요
                 </span>
               </div>
@@ -344,7 +333,7 @@ export const PWAInstallBanner: React.FC<{
                       onInstalled();
                     }
                   }}
-                  className="h-8 px-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center gap-1 transition-all active:scale-95 shadow-md shadow-sky-500/20"
+                  className="h-8 px-3 rounded-xl bg-white hover:bg-neutral-200 text-black font-semibold text-xs flex items-center gap-1 transition-all active:scale-95 shadow-xs cursor-pointer"
                 >
                   <Download size={13} />
                   <span>설치</span>
@@ -354,7 +343,7 @@ export const PWAInstallBanner: React.FC<{
                   id="pwa-banner-ios-btn"
                   type="button"
                   onClick={() => setShowIOSModal(true)}
-                  className="h-8 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1 transition-all active:scale-95 shadow-md shadow-blue-600/20"
+                  className="h-8 px-3 rounded-xl bg-white hover:bg-neutral-200 text-black font-semibold text-xs flex items-center gap-1 transition-all active:scale-95 shadow-xs cursor-pointer"
                 >
                   <Share2 size={13} />
                   <span>설치 방법</span>
@@ -366,10 +355,10 @@ export const PWAInstallBanner: React.FC<{
                 type="button"
                 onClick={dismiss}
                 title="닫기"
-                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
                   isLight 
                     ? 'text-slate-400 hover:bg-slate-100 hover:text-slate-700' 
-                    : 'text-slate-400 hover:bg-white/10 hover:text-white'
+                    : 'text-neutral-400 hover:bg-white/10 hover:text-white'
                 }`}
                 aria-label="알림 닫기"
               >
