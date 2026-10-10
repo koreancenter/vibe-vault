@@ -368,29 +368,29 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
 
   return (
     <div className="w-full flex flex-col gap-4 pb-24 px-4 pt-2 animate-in fade-in duration-200">
-      {/* 1. Month Navigator (< 2026년 10월 >) */}
-      <div className="w-full p-4 rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl text-white flex items-center justify-between gap-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
-        <div className="flex items-center gap-1.5">
+      {/* 1. Month Navigator (< 2026년 10월 >) - Clean Centered Layout without box-in-box card */}
+      <div className="w-full relative flex items-center justify-center py-2 text-white">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handlePrevMonth}
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-all bg-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.08] active:scale-95 cursor-pointer"
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all text-slate-400 hover:text-white hover:bg-white/[0.06] active:scale-95 cursor-pointer"
             aria-label="이전 달"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={18} />
           </button>
 
-          <span className="text-sm sm:text-base font-medium px-2 tracking-tight text-white tabular-nums">
+          <span className="text-base sm:text-lg font-medium px-2 tracking-tight text-white tabular-nums select-none">
             {format(selectedMonth, 'yyyy년 M월')}
           </span>
 
           <button
             type="button"
             onClick={handleNextMonth}
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-all bg-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.08] active:scale-95 cursor-pointer"
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all text-slate-400 hover:text-white hover:bg-white/[0.06] active:scale-95 cursor-pointer"
             aria-label="다음 달"
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={18} />
           </button>
         </div>
 
@@ -398,7 +398,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           <button
             type="button"
             onClick={handleResetToCurrentMonth}
-            className="px-3 py-1 rounded-full text-xs font-normal transition-all active:scale-95 bg-sky-500/10 text-sky-300 border border-sky-500/20 hover:bg-sky-500/20 cursor-pointer"
+            className="absolute right-0 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-full text-xs font-normal transition-all active:scale-95 bg-sky-500/10 text-sky-300 border border-sky-500/20 hover:bg-sky-500/20 cursor-pointer"
           >
             이번 달
           </button>
