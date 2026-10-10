@@ -174,7 +174,7 @@ describe('Cryptographic Backup Hardening (VVLT_V1 / AES-GCM-256 / PBKDF2-SHA-256
       await decryptBackupData(tamperedPayload, masterPassphrase);
     } catch (err: any) {
       expect(err).toBeInstanceOf(CryptoBackupError);
-      expect(err.code).toBe('INVALID_PASSPHRASE');
+      expect(err.code).toBe('TAMPERED_PAYLOAD');
     }
   });
 
@@ -352,5 +352,226 @@ describe('Cryptographic Backup Hardening (VVLT_V1 / AES-GCM-256 / PBKDF2-SHA-256
 
     // Verify preventUnencryptedExport blocks unencrypted exports
     expect(() => preventUnencryptedExport()).toThrow(CryptoBackupError);
+  });
+
+  describe('Comprehensive Regression & Resilience: Multi-Currency & Tamper Hardening', () => {
+    function generateMixedMultiCurrencyDataset(count = 55): Transaction[] {
+      const currencies: Transaction['currency'][] = [
+        'KRW', 'USD', 'EUR', 'JPY', 'GBP', 'CAD', 'AUD', 'CHF', 'SGD', 'HKD'
+      ];
+      const types: Transaction['type'][] = ['EXPENSE', 'INCOME', 'TRANSFER', 'SETTLEMENT'];
+      const categories = ['Food', 'Transport', 'Living', 'Fixed', 'Health', 'Leisure', '급여'];
+      const paymentMethods = ['신한카드', '현대카드 M3', 'Toss', 'Kakao Pay', 'Apple Pay', 'Cash', 'Bank Transfer'];
+
+      const transactions: Transaction[] = [];
+      for (let i = 1; i <= count; i++) {
+        const currency = currencies[i % currencies.length];
+        const type = types[i % types.length];
+        const category = categories[i % categories.length];
+        const paymentMethod = paymentMethods[i % paymentMethods.length];
+
+        let amount = 10000;
+        if (currency === 'KRW') amount = 5000 + i * 2500;
+        else if (currency === 'USD') amount = +(15.5 + i * 2.75).toFixed(2);
+        else if (currency === 'EUR') amount = +(12.0 + i * 1.85).toFixed(2);
+        else if (currency === 'JPY') amount = 1200 + i * 350;
+        else amount = +(20.0 + i * 3.1).toFixed(2);
+
+        transactions.push({
+          id: `tx-multicurrency-${String(i).padStart(3, '0')}`,
+          date: new Date(Date.UTC(2026, 8, (i % 28) + 1, 10, i % 60, 0)).toISOString(),
+          amount,
+          type,
+          category,
+          description: `Transaction #${i} (${currency} ${type} - ${category})`,
+          subCategory: `Sub_${category}_${i}`,
+          paymentMethod,
+          currency,
+          note: i % 3 === 0 ? `Auto-generated test note ${i}` : undefined,
+          originalTotal: type === 'SETTLEMENT' ? amount * 2 : undefined
+        });
+      }
+      return transactions;
+    }
+
+    it('successfully encrypts and decrypts a large payload with 50+ mixed multi-currency transactions (Round-trip fidelity)', async () => {
+      const dataset = generateMixedMultiCurrencyDataset(55);
+      expect(dataset.length).toBeGreaterThanOrEqual(50);
+
+      const largePayload: UnencryptedBackupPayloadV2 = {
+        version: '2.0',
+        format: 'vibe-backup-v2',
+        createdAt: new Date().toISOString(),
+        transactions: dataset,
+        preferences: {
+          theme: 'dark',
+          defaultCurrency: 'KRW'
+        },
+        subscriptions: [
+          {
+            id: 'sub-netflix',
+            merchant: 'Netflix Korea',
+            amount: 17000,
+            currency: 'KRW',
+            category: 'Leisure',
+            cycleDays: 30,
+            lastBillingDate: '2026-09-01',
+            nextBillingDate: '2026-10-01',
+            dDay: 12,
+            confidence: 1,
+            occurrencesCount: 12,
+            isActive: true
+          },
+          {
+            id: 'sub-chatgpt',
+            merchant: 'OpenAI ChatGPT Plus',
+            amount: 22.0,
+            currency: 'USD',
+            category: 'Fixed',
+            cycleDays: 30,
+            lastBillingDate: '2026-09-05',
+            nextBillingDate: '2026-10-05',
+            dDay: 16,
+            confidence: 0.98,
+            occurrencesCount: 6,
+            isActive: true
+          }
+        ]
+      };
+
+      // 1. Armored JSON cycle
+      const encrypted = await encryptBackupData(largePayload, masterPassphrase, { iterations: 2000 });
+      expect(encrypted.cipher).toBe('AES-GCM-256');
+      expect(encrypted.magic).toBe(MAGIC_HEADER);
+      expect(encrypted.keyVerifier).toBeDefined();
+
+      const decrypted = await decryptBackupData(encrypted, masterPassphrase);
+
+      // Verify transaction count and exact fidelity across all 55 multi-currency entries
+      expect(decrypted.transactions).toHaveLength(55);
+      for (let i = 0; i < 55; i++) {
+        expect(decrypted.transactions[i].id).toBe(dataset[i].id);
+        expect(decrypted.transactions[i].amount).toBe(dataset[i].amount);
+        expect(decrypted.transactions[i].currency).toBe(dataset[i].currency);
+        expect(decrypted.transactions[i].type).toBe(dataset[i].type);
+        expect(decrypted.transactions[i].category).toBe(dataset[i].category);
+        expect(decrypted.transactions[i].description).toBe(dataset[i].description);
+        expect(decrypted.transactions[i].paymentMethod).toBe(dataset[i].paymentMethod);
+      }
+
+      // Verify metadata & subscriptions preservation
+      expect(decrypted.subscriptions).toHaveLength(2);
+      expect(decrypted.subscriptions?.[1].currency).toBe('USD');
+      expect(decrypted.preferences?.theme).toBe('dark');
+
+      // 2. Binary blob cycle with the same 55 transactions
+      const binaryBlob = await encryptBackupToBinary(largePayload, masterPassphrase, { iterations: 2000 });
+      expect(isBinaryEnvelope(binaryBlob)).toBe(true);
+
+      const decryptedBinary = await decryptBackupData(binaryBlob, masterPassphrase);
+      expect(decryptedBinary.transactions).toHaveLength(55);
+      expect(decryptedBinary.transactions[0].id).toBe(dataset[0].id);
+      expect(decryptedBinary.transactions[54].id).toBe(dataset[54].id);
+    });
+
+    it('strictly rejects tampered ciphertext injection with CryptoBackupError ("TAMPERED_PAYLOAD")', async () => {
+      const dataset = generateMixedMultiCurrencyDataset(52);
+      const payload: UnencryptedBackupPayloadV2 = {
+        version: '2.0',
+        format: 'vibe-backup-v2',
+        createdAt: new Date().toISOString(),
+        transactions: dataset
+      };
+
+      const encrypted = await encryptBackupData(payload, masterPassphrase, { iterations: 2000 });
+
+      // Scenario A: Bit flip in ciphertext body
+      const rawCiphertext = base64ToBuffer(encrypted.ciphertext);
+      const tamperedBytes = new Uint8Array(rawCiphertext);
+      tamperedBytes[Math.floor(tamperedBytes.length / 2)] ^= 0x5a; // flip multiple bits
+
+      const tamperedPayloadA = {
+        ...encrypted,
+        ciphertext: bufferToBase64(tamperedBytes)
+      };
+
+      await expect(
+        decryptBackupData(tamperedPayloadA, masterPassphrase)
+      ).rejects.toThrow(CryptoBackupError);
+
+      try {
+        await decryptBackupData(tamperedPayloadA, masterPassphrase);
+        expect.unreachable('Should have thrown CryptoBackupError');
+      } catch (err: any) {
+        expect(err).toBeInstanceOf(CryptoBackupError);
+        expect(err.code).toBe('TAMPERED_PAYLOAD');
+      }
+
+      // Scenario B: Tampered ciphertext passed as stringified JSON
+      const stringifiedTampered = JSON.stringify(tamperedPayloadA);
+      await expect(
+        decryptBackupData(stringifiedTampered, masterPassphrase)
+      ).rejects.toThrow(CryptoBackupError);
+
+      try {
+        await decryptBackupData(stringifiedTampered, masterPassphrase);
+        expect.unreachable('Should have thrown CryptoBackupError');
+      } catch (err: any) {
+        expect(err).toBeInstanceOf(CryptoBackupError);
+        expect(err.code).toBe('TAMPERED_PAYLOAD');
+      }
+    });
+
+    it('strictly fails decryption when an invalid passphrase is provided', async () => {
+      const dataset = generateMixedMultiCurrencyDataset(50);
+      const payload: UnencryptedBackupPayloadV2 = {
+        version: '2.0',
+        format: 'vibe-backup-v2',
+        createdAt: new Date().toISOString(),
+        transactions: dataset
+      };
+
+      const encrypted = await encryptBackupData(payload, masterPassphrase, { iterations: 2000 });
+
+      // Case 1: Completely incorrect passphrase
+      await expect(
+        decryptBackupData(encrypted, 'CompletelyWrongPassphrase999!')
+      ).rejects.toThrow(CryptoBackupError);
+
+      try {
+        await decryptBackupData(encrypted, 'CompletelyWrongPassphrase999!');
+        expect.unreachable('Should have thrown');
+      } catch (err: any) {
+        expect(err).toBeInstanceOf(CryptoBackupError);
+        expect(err.code).toBe('INVALID_PASSPHRASE');
+      }
+
+      // Case 2: 1-character typo passphrase
+      const typoPassphrase = masterPassphrase + '!';
+      await expect(
+        decryptBackupData(encrypted, typoPassphrase)
+      ).rejects.toThrow(CryptoBackupError);
+
+      try {
+        await decryptBackupData(encrypted, typoPassphrase);
+        expect.unreachable('Should have thrown');
+      } catch (err: any) {
+        expect(err).toBeInstanceOf(CryptoBackupError);
+        expect(err.code).toBe('INVALID_PASSPHRASE');
+      }
+
+      // Case 3: Empty passphrase
+      await expect(
+        decryptBackupData(encrypted, '')
+      ).rejects.toThrow(CryptoBackupError);
+
+      try {
+        await decryptBackupData(encrypted, '   ');
+        expect.unreachable('Should have thrown');
+      } catch (err: any) {
+        expect(err).toBeInstanceOf(CryptoBackupError);
+        expect(err.code).toBe('EMPTY_PASSPHRASE');
+      }
+    });
   });
 });

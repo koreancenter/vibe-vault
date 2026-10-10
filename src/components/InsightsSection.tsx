@@ -1,11 +1,10 @@
-import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, lazy, useRef } from 'react';
 import { 
   Transaction, 
   SupportedCurrency, 
   FxRates, 
   AssetAccount,
   DebtItem,
-  AssetCategoryType,
   FinancialQueryResult
 } from '../types';
 import { 
@@ -14,53 +13,41 @@ import {
   addMonths, 
   isSameMonth, 
   isSameYear, 
-  parseISO 
+  parseISO,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  getDate,
+  isSameDay
 } from 'date-fns';
 import { 
   ChevronLeft, 
   ChevronRight, 
   Sparkles, 
   TrendingUp, 
-  TrendingDown, 
-  Calendar,
-  ShieldCheck,
-  Wallet,
-  ArrowUpRight,
-  ArrowDownRight,
-  PieChart as PieChartIcon,
-  Activity,
-  Layers,
-  Landmark,
-  Building,
-  Bitcoin,
+  ShieldCheck, 
+  Wallet, 
   Banknote,
-  CreditCard,
-  AlertTriangle,
-  ArrowRight,
-  X,
-  Loader2
+  X
 } from 'lucide-react';
 import { 
   calculateCashflowForecast, 
-  detectSubscriptions,
-  executeFinancialQuery
+  detectSubscriptions 
 } from '../autonomousFinance';
 import { 
   getCurrencySymbol, 
   getCategoryKo, 
-  convertCurrency, 
-  formatCurrency,
-  getAssetCategoryKo,
-  ASSET_CATEGORY_NAMES_KO 
+  convertCurrency 
 } from '../utils';
 import { getAllAssetAccounts, getAllDebts } from '../db';
+import { LUXURY_CATEGORY_COLORS } from './CategoryDonutChart';
 
 const CategoryDonutChart = lazy(() => import('./CategoryDonutChart'));
-const MonthlyTrendsChart = lazy(() => import('./MonthlyTrendsChart'));
-const YearlyTrendsChart = lazy(() => import('./YearlyTrendsChart'));
+
 import {
   ResponsiveContainer,
   ComposedChart,
+  AreaChart,
   Area,
   Line,
   XAxis,
@@ -79,6 +66,8 @@ export interface InsightsSectionProps {
   onOpenThemeSettings?: () => void;
   onNavigateToVault?: () => void;
   onNavigateToLedger?: () => void;
+  queryResult?: FinancialQueryResult | null;
+  onDismissQueryResult?: () => void;
 }
 
 export const InsightsSection: React.FC<InsightsSectionProps> = ({
@@ -86,72 +75,41 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
   currentCurrency,
   fxRates,
   isStealth = false,
-  onOpenThemeSettings,
-  onNavigateToVault,
-  onNavigateToLedger
+  queryResult: externalQueryResult,
+  onDismissQueryResult,
 }) => {
-  const isLight = false;
   const currSymbol = getCurrencySymbol(currentCurrency);
+  const briefingCardRef = useRef<HTMLDivElement | null>(null);
 
   // 1. Period Control State (Defaults to current month)
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
-  const [activeTab, setActiveTab] = useState<'all' | 'assets' | 'spending' | 'cashflow'>('all');
-  const [trendSubTab, setTrendSubTab] = useState<'daily' | 'monthly'>('daily');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Asset accounts & debts state
   const [accounts, setAccounts] = useState<AssetAccount[]>([]);
   const [debts, setDebts] = useState<DebtItem[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(false);
-
-  // Conversational Financial Query ("Ask AI Vault") State
-  const [naturalQuery, setNaturalQuery] = useState('');
-  const [isQuerying, setIsQuerying] = useState(false);
-  const [queryResult, setQueryResult] = useState<FinancialQueryResult | null>(null);
-  const [queryError, setQueryError] = useState<string | null>(null);
-
-  const handleRunQuery = async (queryText?: string) => {
-    const textToRun = (typeof queryText === 'string' ? queryText : naturalQuery).trim();
-    if (!textToRun || isQuerying) return;
-    setIsQuerying(true);
-    setQueryError(null);
-    try {
-      const res = await executeFinancialQuery(
-        textToRun,
-        transactions,
-        accounts,
-        fxRates,
-        currentCurrency
-      );
-      setQueryResult(res);
-      setNaturalQuery('');
-    } catch (err: any) {
-      console.error('Financial query error:', err);
-      setQueryError(err.message || '금융 질문을 분석하는 중 오류가 발생했습니다.');
-    } finally {
-      setIsQuerying(false);
-    }
-  };
 
   // Load Asset Accounts and Debts for integrated analysis
-  const loadVaultData = async () => {
-    try {
-      setIsLoadingData(true);
-      const [accs, dbs] = await Promise.all([
-        getAllAssetAccounts(),
-        getAllDebts()
-      ]);
-      setAccounts(accs || []);
-      setDebts(dbs || []);
-    } catch (err) {
-      console.error('Failed to load asset & debt data for insights:', err);
-    } finally {
-      setIsLoadingData(false);
-    }
-  };
-
   useEffect(() => {
+    let isMounted = true;
+    const loadVaultData = async () => {
+      try {
+        const [accs, dbs] = await Promise.all([
+          getAllAssetAccounts(),
+          getAllDebts()
+        ]);
+        if (isMounted) {
+          setAccounts(accs || []);
+          setDebts(dbs || []);
+        }
+      } catch (err) {
+        console.error('Failed to load asset & debt data for insights:', err);
+      }
+    };
     loadVaultData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const isCurrentMonth = useMemo(() => {
@@ -181,9 +139,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
     let exp = 0;
     for (const t of monthTransactions) {
       const amt = convertCurrency(t.amount, t.currency || 'KRW', currentCurrency, fxRates);
-      if (t.type === 'INCOME') inc += amt;
+      if (t.type === 'INCOME' || t.type === 'SETTLEMENT') inc += amt;
       else if (t.type === 'EXPENSE') exp += amt;
-      else if (t.type === 'SETTLEMENT') inc += amt;
     }
     return {
       monthIncome: inc,
@@ -193,18 +150,10 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
   }, [monthTransactions, currentCurrency, fxRates]);
 
   // Asset calculations
-  const { totalAssets, totalLiabilities, netWorth, categoryTotals, liquidAssets } = useMemo(() => {
+  const { totalAssets, totalLiabilities, netWorth, liquidAssets } = useMemo(() => {
     let assetsSum = 0;
     let liabilitiesSum = 0;
     let liquid = 0;
-    const catMap: Record<AssetCategoryType, number> = {
-      BROKERAGE: 0,
-      BANK: 0,
-      CRYPTO: 0,
-      REAL_ESTATE: 0,
-      CASH: 0,
-      LIABILITY: 0,
-    };
 
     for (const acc of accounts) {
       const converted = convertCurrency(
@@ -216,17 +165,14 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
 
       if (acc.assetType === 'LIABILITY') {
         liabilitiesSum += converted;
-        catMap.LIABILITY += converted;
       } else {
         assetsSum += converted;
-        catMap[acc.assetType] = (catMap[acc.assetType] || 0) + converted;
         if (acc.assetType === 'BANK' || acc.assetType === 'CASH') {
           liquid += converted;
         }
       }
     }
 
-    // Include debts
     for (const d of debts) {
       if (!d.isActive) continue;
       const converted = convertCurrency(
@@ -239,7 +185,6 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         assetsSum += converted;
       } else {
         liabilitiesSum += converted;
-        catMap.LIABILITY += converted;
       }
     }
 
@@ -247,7 +192,6 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       totalAssets: assetsSum,
       totalLiabilities: liabilitiesSum,
       netWorth: assetsSum - liabilitiesSum,
-      categoryTotals: catMap,
       liquidAssets: liquid
     };
   }, [accounts, debts, currentCurrency, fxRates]);
@@ -285,6 +229,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
   // AI Integrated Financial Diagnosis
   const integratedDiagnosis = useMemo(() => {
     let status: 'EXCELLENT' | 'HEALTHY' | 'MODERATE' | 'ATTENTION' = 'HEALTHY';
+    let statusLabel = '안정';
     let title = '안정적인 자산-소비 균형';
     let summary = '';
     let recommendation = '';
@@ -294,27 +239,31 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
 
     if (netWorth > 0 && savingsRate >= 40 && numRunway >= 6) {
       status = 'EXCELLENT';
+      statusLabel = '최상';
       title = '최상급 재정 건전성 & 자본 축적';
       summary = `순자산 ${currSymbol}${Math.round(netWorth).toLocaleString()} 대비 월간 소비율이 ${numBurn}%로 매우 낮으며, 저축률(${savingsRate}%)이 높아 자본 축적 속도가 탁월합니다.`;
       recommendation = `비상금 완충 여력이 ${numRunway}개월로 충분하므로, 월 잉여현금을 연금저축/ISA 또는 적립식 글로벌 ETF로 운용하여 복리 효과를 극대화하세요.`;
     } else if (netWorth > 0 && monthNet >= 0 && debtRatio < 40) {
       status = 'HEALTHY';
+      statusLabel = '안정';
       title = '건전한 현금흐름 유지 중';
       summary = `이번 달 순흑자(${currSymbol}${Math.round(monthNet).toLocaleString()})를 기록하며 순자산이 지속 증가하고 있습니다. 부채 비율 또한 ${debtRatio}%로 안정적입니다.`;
       recommendation = `현재의 저축률(${savingsRate}%)을 유지하면서 정기 고정비(${subscriptions.length}건)를 점검하고 불필요한 구독을 절감하면 자산 증식 속도를 더욱 높일 수 있습니다.`;
     } else if (monthNet < 0 || debtRatio >= 50) {
       status = 'ATTENTION';
+      statusLabel = '주의 필요';
       title = '지출 관리 및 유동성 완충 필요';
       summary = `이번 달 지출이 수입을 초과(적자 ${currSymbol}${Math.round(Math.abs(monthNet)).toLocaleString()})하거나 부채 비율(${debtRatio}%)이 다소 높습니다.`;
       recommendation = `현금성 완충 자산(${currSymbol}${Math.round(liquidAssets).toLocaleString()})을 확보하고, 고금리 부채 우선 상환 및 변동성 소비 항목을 우선 조정하십시오.`;
     } else {
       status = 'MODERATE';
+      statusLabel = '적정';
       title = '적정 수준의 재정 밸런스';
       summary = `총 자산 대비 지출 흐름이 완만한 균형을 이루고 있습니다.`;
       recommendation = `지속적인 장부 기록과 자산 계좌 동기화를 통해 예측 정확도를 높이세요.`;
     }
 
-    return { status, title, summary, recommendation };
+    return { status, statusLabel, title, summary, recommendation };
   }, [netWorth, savingsRate, runwayMonths, burnRateToNetWorth, monthNet, debtRatio, subscriptions.length, liquidAssets, currSymbol]);
 
   const formatMoney = (val: number) => {
@@ -323,58 +272,117 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
     return isNeg ? `-${currSymbol}${absVal}` : `${currSymbol}${absVal}`;
   };
 
-  // Asset breakdown items with percentages
-  const assetBreakdownList = useMemo(() => {
-    const items = [
-      { key: 'BANK', name: '예적금 / 입출금', icon: Landmark, color: '#3B82F6', amount: categoryTotals.BANK || 0 },
-      { key: 'BROKERAGE', name: '주식 / 투자', icon: TrendingUp, color: '#0284c7', amount: categoryTotals.BROKERAGE || 0 },
-      { key: 'REAL_ESTATE', name: '부동산', icon: Building, color: '#8B5CF6', amount: categoryTotals.REAL_ESTATE || 0 },
-      { key: 'CRYPTO', name: '가상자산', icon: Bitcoin, color: '#F59E0B', amount: categoryTotals.CRYPTO || 0 },
-      { key: 'CASH', name: '현금', icon: Banknote, color: '#06B6D4', amount: categoryTotals.CASH || 0 },
-    ];
-    const totalPositive = totalAssets > 0 ? totalAssets : 1;
-    return items.map(item => ({
-      ...item,
-      percentage: Math.round((item.amount / totalPositive) * 100)
-    })).filter(i => i.amount > 0 || totalAssets === 0);
-  }, [categoryTotals, totalAssets]);
+  // 4. Spending Category Breakdown Data (For Donut & Horizontal Ratio Bars)
+  const categoryBreakdownList = useMemo(() => {
+    const expenses = monthTransactions.filter((t) => t.type === 'EXPENSE');
+    const catMap: Record<string, { total: number; count: number }> = {};
+    let totalExpenseSum = 0;
+
+    for (const t of expenses) {
+      const cat = t.category || 'Uncategorized';
+      const converted = convertCurrency(t.amount, t.currency || 'KRW', currentCurrency, fxRates);
+      if (!catMap[cat]) {
+        catMap[cat] = { total: 0, count: 0 };
+      }
+      catMap[cat].total += converted;
+      catMap[cat].count += 1;
+      totalExpenseSum += converted;
+    }
+
+    const totalPos = totalExpenseSum > 0 ? totalExpenseSum : 1;
+    return Object.entries(catMap)
+      .map(([category, info]) => ({
+        category,
+        name: getCategoryKo(category),
+        amount: info.total,
+        count: info.count,
+        percentage: Math.round((info.total / totalPos) * 100),
+        color: LUXURY_CATEGORY_COLORS[category] || LUXURY_CATEGORY_COLORS['Uncategorized'] || '#94a3b8'
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [monthTransactions, currentCurrency, fxRates]);
+
+  // 5. Daily Spending Trend Data for Selected Month
+  const { dailySpendingChartData, dailyAverage, highestSpendingDay } = useMemo(() => {
+    const monthStart = startOfMonth(selectedMonth);
+    const monthEnd = endOfMonth(selectedMonth);
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    const now = new Date();
+
+    const currentMonthExpenses = monthTransactions.filter((t) => t.type === 'EXPENSE');
+
+    let maxDaySpend = 0;
+    let peakDay = 0;
+    let totalSpend = 0;
+    let activeDays = 0;
+
+    const data = daysInMonth.map((dayDate) => {
+      const dayNumber = getDate(dayDate);
+      const dayTransactions = currentMonthExpenses.filter((t) => {
+        try {
+          return isSameDay(parseISO(t.date), dayDate);
+        } catch {
+          return false;
+        }
+      });
+
+      const dayTotal = dayTransactions.reduce((sum, t) => {
+        return sum + convertCurrency(t.amount, t.currency || 'KRW', currentCurrency, fxRates);
+      }, 0);
+
+      totalSpend += dayTotal;
+      if (dayTotal > 0) activeDays += 1;
+      if (dayTotal > maxDaySpend) {
+        maxDaySpend = dayTotal;
+        peakDay = dayNumber;
+      }
+
+      return {
+        day: dayNumber,
+        dateLabel: format(dayDate, 'M월 d일'),
+        shortLabel: `${dayNumber}`,
+        amount: Math.round(dayTotal),
+        count: dayTransactions.length,
+        isToday: isSameMonth(selectedMonth, now) && isSameYear(selectedMonth, now) && dayNumber === getDate(now)
+      };
+    });
+
+    return {
+      dailySpendingChartData: data,
+      dailyAverage: activeDays > 0 ? Math.round(totalSpend / activeDays) : 0,
+      highestSpendingDay: { day: peakDay, amount: maxDaySpend }
+    };
+  }, [selectedMonth, monthTransactions, currentCurrency, fxRates]);
+
+  // Auto-scroll to Dismissible AI Briefing Card when active query result exists
+  useEffect(() => {
+    if (externalQueryResult && briefingCardRef.current) {
+      briefingCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [externalQueryResult]);
 
   return (
-    <div className="space-y-4 pb-8 animate-in fade-in duration-200">
-      {/* 1. Header & Period Control */}
-      <div className={`p-4 rounded-2xl flex items-center justify-between gap-3 ${
-        isLight 
-          ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 text-slate-900 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)]' 
-          : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-      }`}>
+    <div className="w-full flex flex-col gap-4 pb-24 animate-in fade-in duration-200">
+      {/* 1. Period Control Header: Full width (< 2026년 10월 > with clean reset pill) */}
+      <div className="w-full p-4 rounded-2xl border border-white/[0.06] bg-[#121318]/90 backdrop-blur-xl text-white flex items-center justify-between gap-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={handlePrevMonth}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-              isLight 
-                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
-                : 'bg-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.08]'
-            }`}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all bg-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.08] active:scale-95 cursor-pointer"
             aria-label="이전 달"
           >
             <ChevronLeft size={16} />
           </button>
 
-          <span className={`text-sm sm:text-base font-normal px-2 tracking-tight ${
-            isLight ? 'text-slate-900' : 'text-white'
-          }`}>
+          <span className="text-sm sm:text-base font-medium px-2 tracking-tight text-white tabular-nums">
             {format(selectedMonth, 'yyyy년 M월')}
           </span>
 
           <button
             type="button"
             onClick={handleNextMonth}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-              isLight 
-                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
-                : 'bg-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.08]'
-            }`}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all bg-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.08] active:scale-95 cursor-pointer"
             aria-label="다음 달"
           >
             <ChevronRight size={16} />
@@ -386,1088 +394,540 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
             <button
               type="button"
               onClick={handleResetToCurrentMonth}
-              className={`px-3 py-1 rounded-full text-xs font-light transition-all active:scale-95 ${
-                isLight 
-                  ? 'bg-sky-50 text-sky-800 border border-sky-200' 
-                  : 'bg-sky-500/10 text-sky-300 border border-sky-500/20'
-              }`}
+              className="px-3 py-1 rounded-full text-xs font-normal transition-all active:scale-95 bg-sky-500/10 text-sky-300 border border-sky-500/20 hover:bg-sky-500/20 cursor-pointer"
             >
               이번 달
             </button>
           )}
 
-          <span className={`text-xs font-light hidden sm:inline-block ${
-            isLight ? 'text-slate-500' : 'text-slate-400'
-          }`}>
-            통합 자산·장부 분석
+          <span className="text-xs font-light text-slate-400 hidden sm:inline-block">
+            통합 재정 인텔리전스
           </span>
         </div>
       </div>
 
-      {/* Ask AI Vault Conversational Query Bar & Briefing Card */}
-      <div className="space-y-3">
-        {/* Minimalist Glassmorphic Query Input Bar */}
-        <div className={`p-3.5 sm:p-4 rounded-xl border transition-all ${
-          isLight
-            ? 'bg-white/80 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]'
-            : 'bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.3)]'
-        }`}>
-          <div className="flex items-center gap-2.5">
-            <div className="shrink-0 p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
-              <Sparkles size={16} className={isQuerying ? 'animate-spin' : ''} />
+      {/* Dismissible AI Briefing Card: Rendered prominently at the TOP when an active query result exists */}
+      {externalQueryResult && (
+        <div 
+          ref={briefingCardRef}
+          className="w-full p-5 sm:p-6 rounded-2xl border border-indigo-500/30 bg-[#121318]/95 backdrop-blur-2xl text-white shadow-[0_4px_24px_rgba(99,102,241,0.12)] animate-in fade-in slide-in-from-top-2 duration-200"
+        >
+          {/* Card Header with Question Tag & Dismiss Button */}
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-indigo-500/20 bg-indigo-500/10 text-indigo-300 shrink-0">
+                <Sparkles size={12} />
+                <span>AI 재정 브리핑</span>
+              </span>
+              <span className="text-xs font-light text-slate-400 truncate">
+                "{externalQueryResult.query}"
+              </span>
             </div>
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={naturalQuery}
-                onChange={(e) => setNaturalQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleRunQuery(naturalQuery);
-                  }
-                }}
-                disabled={isQuerying}
-                placeholder="재정 데이터 질문 (예: 9월 달러 환차익, 식비 총합, 주말 지출)"
-                className={`w-full bg-transparent text-xs sm:text-sm font-light outline-none transition-all placeholder:text-slate-500 ${
-                  isLight ? 'text-slate-900 placeholder:text-slate-400' : 'text-slate-100 placeholder:text-slate-500'
-                }`}
-              />
-            </div>
-            {naturalQuery && (
-              <button
-                type="button"
-                onClick={() => setNaturalQuery('')}
-                className="p-1 text-slate-400 hover:text-slate-200 text-xs rounded-full"
-                aria-label="입력 지우기"
-              >
-                <X size={14} />
-              </button>
-            )}
             <button
               type="button"
-              onClick={() => handleRunQuery(naturalQuery)}
-              disabled={isQuerying || !naturalQuery.trim()}
-              className={`p-2 rounded-xl transition-all flex items-center justify-center shrink-0 active:scale-95 ${
-                naturalQuery.trim() && !isQuerying
-                  ? isLight
-                    ? 'bg-slate-900 text-white hover:bg-slate-800'
-                    : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                  : isLight
-                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                    : 'bg-white/[0.04] text-slate-500 cursor-not-allowed'
-              }`}
-              aria-label="질문 실행"
+              onClick={onDismissQueryResult}
+              className="p-1.5 rounded-full transition-all hover:bg-white/[0.08] text-slate-400 hover:text-white active:scale-95 cursor-pointer shrink-0"
+              aria-label="브리핑 닫기"
             >
-              {isQuerying ? (
-                <Loader2 size={15} className="animate-spin text-indigo-400" />
-              ) : (
-                <ArrowRight size={15} />
-              )}
+              <X size={16} />
             </button>
           </div>
 
-          {/* Quick Chip Suggestions */}
-          <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-white/[0.04] flex-wrap">
-            <span className={`text-[11px] font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              추천 질문:
-            </span>
-            <button
-              type="button"
-              onClick={() => handleRunQuery('9월 환차익')}
-              disabled={isQuerying}
-              className={`text-xs font-light px-2.5 py-1 rounded-full transition-all active:scale-95 border ${
-                isLight 
-                  ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' 
-                  : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.06] text-slate-300 hover:text-white'
-              }`}
-            >
-              9월 환차익
-            </button>
-            <button
-              type="button"
-              onClick={() => handleRunQuery('식비 분석')}
-              disabled={isQuerying}
-              className={`text-xs font-light px-2.5 py-1 rounded-full transition-all active:scale-95 border ${
-                isLight 
-                  ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' 
-                  : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.06] text-slate-300 hover:text-white'
-              }`}
-            >
-              식비 분석
-            </button>
-            <button
-              type="button"
-              onClick={() => handleRunQuery('주말 지출')}
-              disabled={isQuerying}
-              className={`text-xs font-light px-2.5 py-1 rounded-full transition-all active:scale-95 border ${
-                isLight 
-                  ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' 
-                  : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.06] text-slate-300 hover:text-white'
-              }`}
-            >
-              주말 지출
-            </button>
+          {/* Direct Answer */}
+          <h4 className="text-base sm:text-lg font-semibold tracking-tight text-white">
+            {externalQueryResult.directAnswer}
+          </h4>
+
+          {/* Two-Sentence Synthesis Explanation */}
+          <p className="mt-2 text-xs sm:text-sm font-light leading-relaxed text-slate-300">
+            {externalQueryResult.summarySentence}
+          </p>
+
+          {/* Calculation Breakdown Pills */}
+          {externalQueryResult.breakdownPills && externalQueryResult.breakdownPills.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-3.5 border-t border-white/[0.06]">
+              {externalQueryResult.breakdownPills.map((pill, idx) => (
+                <div
+                  key={idx}
+                  className={`p-3 rounded-xl border flex flex-col justify-between ${
+                    pill.highlight
+                      ? 'bg-sky-500/10 border-sky-500/20 text-sky-300'
+                      : 'bg-white/[0.02] border-white/[0.04] text-slate-200'
+                  }`}
+                >
+                  <span className={`text-[11px] font-light ${
+                    pill.highlight ? 'text-sky-400' : 'text-slate-400'
+                  }`}>
+                    {pill.label}
+                  </span>
+                  <span className={`text-xs sm:text-sm font-semibold tabular-nums mt-1 ${
+                    pill.highlight ? 'text-sky-200' : 'text-slate-100'
+                  }`}>
+                    {pill.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 2. Core 4-Metric KPI Strip: Full-Width 4-Stat Layout */}
+      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#121318]/90 backdrop-blur-2xl overflow-hidden grid grid-cols-2 md:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.04] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+        {/* 1. 총 순자산 */}
+        <div className="p-4 sm:p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-light text-slate-400">총 순자산</span>
+            <ShieldCheck size={14} className="text-blue-400" />
+          </div>
+          <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums block text-white ${isStealth ? 'blur-sm select-none' : ''}`}>
+            {formatMoney(netWorth)}
+          </span>
+          <div className="mt-1.5 text-[11px] font-light text-slate-400 truncate">
+            <span>총 자산: {formatMoney(totalAssets)}</span>
           </div>
         </div>
 
-        {/* Query Loading State */}
-        {isQuerying && (
-          <div className={`p-4 rounded-xl border flex items-center justify-center gap-3 animate-pulse ${
-            isLight ? 'bg-white/80 border-slate-200/80 text-slate-600' : 'bg-white/[0.02] border-white/[0.06] text-slate-300'
-          }`}>
-            <Loader2 size={16} className="animate-spin text-indigo-400" />
-            <span className="text-xs font-light">
-              로컬 장부 및 자산 데이터를 분석 중입니다...
+        {/* 2. 이번 달 저축률 */}
+        <div className="p-4 sm:p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-light text-slate-400">이번 달 저축률</span>
+            <TrendingUp size={14} className="text-sky-400" />
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums ${
+              savingsRate >= 30 ? 'text-sky-400' : savingsRate >= 0 ? 'text-slate-200' : 'text-rose-400'
+            }`}>
+              {savingsRate}%
+            </span>
+            <span className="text-[11px] font-light text-slate-400">
+              ({formatMoney(monthNet)})
             </span>
           </div>
-        )}
-
-        {/* Error State */}
-        {queryError && (
-          <div className="p-3.5 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-xs flex items-center justify-between">
-            <span>{queryError}</span>
-            <button type="button" onClick={() => setQueryError(null)} className="p-1 hover:text-white">
-              <X size={14} />
-            </button>
+          <div className="mt-1.5 text-[11px] font-light text-slate-400 truncate">
+            수입 {formatMoney(monthIncome)} 대비
           </div>
-        )}
+        </div>
 
-        {/* 3. Dismissible AI Briefing Card */}
-        {queryResult && !isQuerying && (
-          <div className={`p-5 sm:p-6 rounded-2xl border transition-all animate-in fade-in slide-in-from-top-2 duration-200 ${
-            isLight
-              ? 'bg-white/90 backdrop-blur-xl border-slate-200/80 text-slate-900 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)]'
-              : 'bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
+        {/* 3. 순자산 대비 소비 */}
+        <div className="p-4 sm:p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-light text-slate-400">순자산 대비 소비</span>
+            <Wallet size={14} className="text-purple-400" />
+          </div>
+          <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums block ${
+            parseFloat(String(burnRateToNetWorth)) < 3 
+              ? 'text-sky-400' 
+              : parseFloat(String(burnRateToNetWorth)) < 7 
+              ? 'text-white' 
+              : 'text-amber-400'
           }`}>
-            {/* Card Header with Question Tag & Dismiss Button */}
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-normal border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                  <span>재정 브리핑</span>
-                </span>
-                <span className={`text-xs font-light truncate max-w-[200px] sm:max-w-xs ${
-                  isLight ? 'text-slate-500' : 'text-slate-400'
+            {burnRateToNetWorth}%
+          </span>
+          <div className="mt-1.5 text-[11px] font-light text-slate-400 truncate">
+            월 지출 {formatMoney(monthExpense)}
+          </div>
+        </div>
+
+        {/* 4. 비상 유동성 완충 */}
+        <div className="p-4 sm:p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-light text-slate-400">비상 유동성 완충</span>
+            <Banknote size={14} className="text-sky-300" />
+          </div>
+          <div className="flex items-baseline gap-1">
+            {monthExpense === 0 ? (
+              <span className={`text-xl md:text-2xl font-light tracking-tight ${
+                liquidAssets > 0 ? 'text-sky-400' : 'text-neutral-400'
+              }`}>
+                {liquidAssets > 0 ? '충분' : '-'}
+              </span>
+            ) : (
+              <>
+                <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums ${
+                  parseFloat(runwayMonths) >= 6 ? 'text-sky-400' : parseFloat(runwayMonths) >= 3 ? 'text-amber-400' : 'text-rose-400'
                 }`}>
-                  "{queryResult.query}"
+                  {parseFloat(runwayMonths) > 99 ? '99+' : runwayMonths}
                 </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setQueryResult(null)}
-                className={`p-1.5 rounded-full transition-all active:scale-95 ${
-                  isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-white/[0.08] text-slate-400 hover:text-white'
-                }`}
-                aria-label="브리핑 닫기"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Direct Answer */}
-            <h4 className={`text-base sm:text-lg font-normal tracking-tight ${
-              isLight ? 'text-slate-900' : 'text-white'
-            }`}>
-              {queryResult.directAnswer}
-            </h4>
-
-            {/* Two-Sentence Synthesis Explanation */}
-            <p className={`mt-2 text-xs sm:text-sm font-light leading-relaxed ${
-              isLight ? 'text-slate-600' : 'text-slate-300'
-            }`}>
-              {queryResult.summarySentence}
-            </p>
-
-            {/* Calculation Breakdown Pills */}
-            {queryResult.breakdownPills && queryResult.breakdownPills.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-3.5 border-t border-white/[0.04]">
-                {queryResult.breakdownPills.map((pill, idx) => (
-                  <div
-                    key={idx}
-                    className={`p-3 rounded-xl border flex flex-col justify-between ${
-                      pill.highlight
-                        ? isLight
-                          ? 'bg-sky-50/80 border-sky-200 text-sky-900'
-                          : 'bg-sky-500/10 border-sky-500/20 text-sky-300'
-                        : isLight
-                          ? 'bg-slate-50 border-slate-200/60 text-slate-800'
-                          : 'bg-white/[0.02] border-white/[0.04] text-slate-200'
-                    }`}
-                  >
-                    <span className={`text-[11px] font-light ${
-                      pill.highlight 
-                        ? (isLight ? 'text-sky-700' : 'text-sky-400') 
-                        : (isLight ? 'text-slate-500' : 'text-slate-400')
-                    }`}>
-                      {pill.label}
-                    </span>
-                    <span className={`text-xs sm:text-sm font-normal tabular-nums mt-1 ${
-                      pill.highlight
-                        ? (isLight ? 'text-sky-900 font-medium' : 'text-sky-200')
-                        : (isLight ? 'text-slate-900' : 'text-slate-100')
-                    }`}>
-                      {pill.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                <span className="text-xs font-light text-slate-400">
+                  개월
+                </span>
+              </>
             )}
           </div>
-        )}
+          <div className="mt-1.5 text-[11px] font-light text-slate-400 truncate">
+            현금·예금 {formatMoney(liquidAssets)}
+          </div>
+        </div>
       </div>
 
-      {/* 2. Primary Sub-tab Segment Control: Clean, Pill-shaped with gentle active outlines */}
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('all')}
-          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center ${
-            activeTab === 'all'
-              ? isLight
-                ? 'bg-slate-900 text-white border border-slate-900'
-                : 'bg-white/[0.08] text-white border border-white/20'
-              : isLight ? 'text-slate-600 hover:text-slate-950 border border-transparent' : 'text-slate-400 hover:text-white border border-transparent'
-          }`}
-        >
-          <span>통합 요약</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('assets')}
-          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center ${
-            activeTab === 'assets'
-              ? isLight
-                ? 'bg-slate-900 text-white border border-slate-900'
-                : 'bg-white/[0.08] text-white border border-white/20'
-              : isLight ? 'text-slate-600 hover:text-slate-950 border border-transparent' : 'text-slate-400 hover:text-white border border-transparent'
-          }`}
-        >
-          <span>자산 포트폴리오</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('spending')}
-          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center ${
-            activeTab === 'spending'
-              ? isLight
-                ? 'bg-slate-900 text-white border border-slate-900'
-                : 'bg-white/[0.08] text-white border border-white/20'
-              : isLight ? 'text-slate-600 hover:text-slate-950 border border-transparent' : 'text-slate-400 hover:text-white border border-transparent'
-          }`}
-        >
-          <span>소비·지출</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('cashflow')}
-          className={`py-1.5 px-3.5 rounded-full text-xs font-light transition-all whitespace-nowrap flex items-center justify-center ${
-            activeTab === 'cashflow'
-              ? isLight
-                ? 'bg-slate-900 text-white border border-slate-900'
-                : 'bg-white/[0.08] text-white border border-white/20'
-              : isLight ? 'text-slate-600 hover:text-slate-950 border border-transparent' : 'text-slate-400 hover:text-white border border-transparent'
-          }`}
-        >
-          <span>현금흐름 & 예측</span>
-        </button>
-      </div>
-
-      {/* 3. TAB CONTENT */}
-
-      {/* TAB A: 통합 요약 */}
-      {(activeTab === 'all') && (
-        <div className="space-y-6 animate-in fade-in duration-150">
-          {/* Core Integrated KPI Strip: Full-Width 4-Column Luxury Hairline Grid */}
-          <div className={`rounded-2xl border overflow-hidden grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 divide-x transition-all backdrop-blur-2xl ${
-            isLight 
-              ? 'bg-white/85 border-slate-200/80 divide-slate-200/60 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]' 
-              : 'bg-[#121318]/90 border-white/[0.06] divide-white/[0.04] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
-          }`}>
-            {/* 1. 총 순자산 */}
-            <div className="p-4 sm:p-5 flex flex-col justify-between">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  총 순자산
-                </span>
-                <ShieldCheck size={14} className="text-blue-400" />
-              </div>
-              <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums block ${
-                isLight ? 'text-slate-900' : 'text-white'
-              } ${isStealth ? 'blur-sm select-none' : ''}`}>
-                {formatMoney(netWorth)}
-              </span>
-              <div className={`mt-1.5 text-[11px] font-light ${
-                isLight ? 'text-slate-500' : 'text-slate-400'
-              }`}>
-                <span>총 자산: {formatMoney(totalAssets)}</span>
-              </div>
-            </div>
-
-            {/* 2. 이번 달 저축률 */}
-            <div className="p-4 sm:p-5 flex flex-col justify-between">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  이번 달 저축률
-                </span>
-                <TrendingUp size={14} className="text-sky-400/90" />
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums ${
-                  savingsRate >= 30 ? (isLight ? 'text-sky-700' : 'text-sky-400/90') : savingsRate >= 0 ? (isLight ? 'text-slate-800' : 'text-slate-200') : 'text-rose-400/90'
-                }`}>
-                  {savingsRate}%
-                </span>
-                <span className={`text-[11px] font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  ({formatMoney(monthNet)})
-                </span>
-              </div>
-              <div className={`mt-1.5 text-[11px] font-light truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                수입 {formatMoney(monthIncome)} 대비
-              </div>
-            </div>
-
-            {/* 3. 자산 대비 월 소비율 */}
-            <div className="p-4 sm:p-5 flex flex-col justify-between">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  순자산 대비 소비
-                </span>
-                <Wallet size={14} className="text-purple-400" />
-              </div>
-              <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums block ${
-                parseFloat(String(burnRateToNetWorth)) < 3 
-                  ? (isLight ? 'text-sky-700' : 'text-sky-400/90') 
-                  : parseFloat(String(burnRateToNetWorth)) < 7 
-                  ? isLight ? 'text-slate-900' : 'text-white' 
-                  : 'text-amber-400'
-              }`}>
-                {burnRateToNetWorth}%
-              </span>
-              <div className={`mt-1.5 text-[11px] font-light truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                월 지출 {formatMoney(monthExpense)}
-              </div>
-            </div>
-
-            {/* 4. 비상 유동성 완충 */}
-            <div className="p-4 sm:p-5 flex flex-col justify-between">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  비상 유동성 완충
-                </span>
-                <Banknote size={14} className="text-sky-300" />
-              </div>
-              <div className="flex items-baseline gap-1">
-                {monthExpense === 0 ? (
-                  <span className={`text-xl md:text-2xl font-light tracking-tight ${
-                    liquidAssets > 0 ? (isLight ? 'text-sky-700' : 'text-sky-400/90') : 'text-neutral-400'
-                  }`}>
-                    {liquidAssets > 0 ? '충분' : '-'}
-                  </span>
-                ) : (
-                  <>
-                    <span className={`text-xl md:text-2xl font-light tracking-tight tabular-nums ${
-                      parseFloat(runwayMonths) >= 6 ? (isLight ? 'text-sky-700' : 'text-sky-400/90') : parseFloat(runwayMonths) >= 3 ? 'text-amber-400' : 'text-rose-400/90'
-                    }`}>
-                      {parseFloat(runwayMonths) > 99 ? '99+' : runwayMonths}
-                    </span>
-                    <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      개월
-                    </span>
-                  </>
-                )}
-              </div>
-              <div className={`mt-1.5 text-[11px] font-light truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                현금 및 예금 {formatMoney(liquidAssets)}
-              </div>
-            </div>
+      {/* 3. AI Comprehensive Financial Diagnosis Card: Full width, clean unboxed typography without ugly "box-in-box" borders */}
+      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#121318]/90 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+        <div className="space-y-3">
+          {/* Clean unboxed typographic status */}
+          <div className="flex items-center gap-2 text-xs">
+            <span className={`font-semibold ${
+              integratedDiagnosis.status === 'EXCELLENT'
+                ? 'text-sky-400'
+                : integratedDiagnosis.status === 'HEALTHY'
+                ? 'text-blue-400'
+                : integratedDiagnosis.status === 'MODERATE'
+                ? 'text-slate-300'
+                : 'text-rose-400'
+            }`}>
+              {integratedDiagnosis.statusLabel}
+            </span>
+            <span className="opacity-30">·</span>
+            <span className="font-light text-slate-400">
+              종합 재정 진단
+            </span>
+            <span className="opacity-30">·</span>
+            <span className="font-light text-slate-400 tabular-nums">
+              {format(selectedMonth, 'yyyy년 M월')}
+            </span>
           </div>
 
-          {/* 2-Column Responsive Financial Insights Canvas */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-            {/* Left Column (lg:col-span-5): CFO Executive Summary & Harmony Card */}
-            <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-4">
-              {/* Integrated AI CFO Diagnosis Card */}
-              <div className={`p-5 sm:p-6 rounded-2xl transition-all border ${
-                isLight 
-                  ? 'bg-white/90 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
-                  : 'bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]'
-              }`}>
-                <div className="space-y-2.5">
-                  {/* Clean unboxed typographic kicker & status */}
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className={`font-medium ${
-                      integratedDiagnosis.status === 'EXCELLENT'
-                        ? isLight ? 'text-sky-700' : 'text-sky-400'
-                        : integratedDiagnosis.status === 'HEALTHY'
-                        ? isLight ? 'text-blue-700' : 'text-blue-400'
-                        : integratedDiagnosis.status === 'MODERATE'
-                        ? isLight ? 'text-slate-600' : 'text-slate-400'
-                        : isLight ? 'text-rose-700' : 'text-rose-400'
-                    }`}>
-                      {integratedDiagnosis.status === 'EXCELLENT'
-                        ? '최상'
-                        : integratedDiagnosis.status === 'HEALTHY'
-                        ? '안정'
-                        : integratedDiagnosis.status === 'MODERATE'
-                        ? '적정'
-                        : '주의 필요'}
-                    </span>
-                    <span className="opacity-30">·</span>
-                    <span className={`font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      재정 밸런스 진단
-                    </span>
-                  </div>
+          {/* Clean Primary Title */}
+          <h3 className="text-base sm:text-lg font-semibold tracking-tight text-white">
+            {integratedDiagnosis.title}
+          </h3>
 
-                  {/* Clean Primary Title */}
-                  <h3 className={`text-base font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                    {integratedDiagnosis.title}
-                  </h3>
+          {/* Summary Text */}
+          <p className="text-xs sm:text-sm font-light leading-relaxed text-slate-300">
+            {integratedDiagnosis.summary}
+          </p>
 
-                  {/* Summary Text */}
-                  <p className={`text-xs sm:text-sm font-light leading-relaxed ${
-                    isLight ? 'text-slate-600' : 'text-slate-300'
-                  }`}>
-                    {integratedDiagnosis.summary}
-                  </p>
-
-                  {/* Quiet Recommendation Footer (No decorative icons, clean divider) */}
-                  {integratedDiagnosis.recommendation && (
-                    <div className={`pt-3 border-t text-xs font-light leading-relaxed ${
-                      isLight ? 'border-slate-200/60 text-slate-600' : 'border-white/[0.06] text-slate-400'
-                    }`}>
-                      <span className={`font-medium mr-1.5 ${isLight ? 'text-sky-700' : 'text-sky-400'}`}>
-                        가이드
-                      </span>
-                      <span>{integratedDiagnosis.recommendation}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Integrated Balance Sheet & Spending Harmony Card */}
-              <div className={`p-5 sm:p-6 rounded-2xl transition-all ${
-                isLight 
-                  ? 'bg-white/85 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)]' 
-                  : 'bg-white/[0.025] backdrop-blur-xl border border-white/[0.06] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-              }`}>
-            <div className="flex items-center justify-between mb-3.5">
-              <div>
-                <h3 className={`text-xs font-normal tracking-wide ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
-                  자산 & 소비 구조 밸런스
-                </h3>
-                <p className={`text-xs font-light mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  보유 자산 배분과 이번 달 소비/저축의 유기적 상관관계
-                </p>
-              </div>
+          {/* Quiet Recommendation Footer */}
+          {integratedDiagnosis.recommendation && (
+            <div className="pt-3.5 border-t border-white/[0.06] text-xs font-light leading-relaxed text-slate-400 flex items-start gap-2">
+              <span className="font-medium text-sky-400 shrink-0">
+                가이드
+              </span>
+              <span>{integratedDiagnosis.recommendation}</span>
             </div>
+          )}
+        </div>
+      </div>
 
-            {/* Visual Balance Bar */}
-            <div className="space-y-4 pt-1">
-              <div>
-                <div className="flex items-center justify-between text-xs font-light mb-1.5">
-                  <span className={isLight ? 'text-slate-600' : 'text-slate-300'}>
-                    자산 구성비
-                  </span>
-                  <span className="text-xs text-blue-400">
-                    총 {accounts.length}개 계좌
-                  </span>
-                </div>
-                {/* Thin multi-segment stacked progress bar */}
-                <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-white/[0.04]">
-                  {assetBreakdownList.map((item) => (
-                    item.percentage > 0 ? (
-                      <div
-                        key={item.key}
-                        style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                        title={`${item.name}: ${item.percentage}% (${formatMoney(item.amount)})`}
-                        className="h-full transition-all opacity-85"
+      {/* 4. Spending Category Breakdown Card: Full width, embedded donut chart + horizontal ratio bars */}
+      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#121318]/90 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold tracking-tight text-white">
+              카테고리별 지출 분석
+            </h3>
+            <p className="text-xs font-light text-slate-400 mt-0.5">
+              {format(selectedMonth, 'yyyy년 M월')} 총 지출: <span className="font-medium text-slate-200 tabular-nums">{formatMoney(monthExpense)}</span>
+            </p>
+          </div>
+          {selectedCategory && (
+            <button
+              type="button"
+              onClick={() => setSelectedCategory(null)}
+              className="text-xs font-normal px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 hover:bg-sky-500/20 transition-all cursor-pointer"
+            >
+              {getCategoryKo(selectedCategory)} 해제 ×
+            </button>
+          )}
+        </div>
+
+        {/* Cleanly scaled donut chart */}
+        <div className="w-full flex justify-center py-2">
+          <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 로딩 중...</div>}>
+            <CategoryDonutChart
+              transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              currencySymbol={currentCurrency}
+              isStealth={isStealth}
+              embedded={true}
+            />
+          </Suspense>
+        </div>
+
+        {/* Horizontal Category Ratio Bars */}
+        <div className="mt-4 pt-4 border-t border-white/[0.06] space-y-3">
+          {categoryBreakdownList.length === 0 ? (
+            <p className="text-xs font-light text-slate-500 text-center py-3">
+              이 달에는 기록된 지출 내역이 없습니다.
+            </p>
+          ) : (
+            categoryBreakdownList.map((item) => {
+              const isSelected = selectedCategory === item.category;
+              return (
+                <div
+                  key={item.category}
+                  onClick={() => setSelectedCategory(isSelected ? null : item.category)}
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    isSelected ? 'bg-white/[0.06] border border-white/20' : 'hover:bg-white/[0.03]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-xs mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span 
+                        className="w-2 h-2 rounded-full inline-block shrink-0" 
+                        style={{ backgroundColor: item.color }} 
                       />
-                    ) : null
-                  ))}
-                </div>
-                {/* Legend Chips */}
-                <div className="flex items-center gap-3.5 flex-wrap mt-2.5">
-                  {assetBreakdownList.slice(0, 4).map((item) => (
-                    <div key={item.key} className="flex items-center gap-1.5 text-xs font-light">
-                      <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: item.color }} />
-                      <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>{item.name}</span>
-                      <span className={`tabular-nums ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+                      <span className="font-medium text-slate-200">{item.name}</span>
+                      <span className="text-[11px] font-light text-slate-400">({item.count}건)</span>
+                    </div>
+                    <div className="flex items-center gap-2 tabular-nums">
+                      <span className={`font-normal text-slate-200 ${isStealth ? 'blur-sm select-none' : ''}`}>
+                        {formatMoney(item.amount)}
+                      </span>
+                      <span className="text-xs font-medium text-slate-400 min-w-[32px] text-right">
                         {item.percentage}%
                       </span>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Monthly Cash Flow In vs Out */}
-              <div className={`pt-3.5 border-t ${isLight ? 'border-slate-200/60' : 'border-white/[0.04]'}`}>
-                <div className="flex items-center justify-between text-xs font-light mb-2">
-                  <span className={isLight ? 'text-slate-600' : 'text-slate-300'}>
-                    이번 달 수지 대조
-                  </span>
-                  <span className={`tabular-nums ${monthNet >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
-                    순수익: {formatMoney(monthNet)}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className={`p-3 rounded-xl flex items-center justify-between ${
-                    isLight ? 'bg-slate-50 border border-slate-200/60 text-slate-800' : 'bg-white/[0.02] border border-white/[0.04] text-slate-200'
-                  }`}>
-                    <span className="text-xs font-light flex items-center gap-1 text-slate-400">
-                      <ArrowUpRight size={13} className="text-sky-400" /> 수입
-                    </span>
-                    <span className={`font-normal tabular-nums text-sky-400 ${isStealth ? 'blur-sm select-none' : ''}`}>
-                      +{formatMoney(monthIncome)}
-                    </span>
                   </div>
-                  <div className={`p-3 rounded-xl flex items-center justify-between ${
-                    isLight ? 'bg-slate-50 border border-slate-200/60 text-slate-800' : 'bg-white/[0.02] border border-white/[0.04] text-slate-200'
-                  }`}>
-                    <span className="text-xs font-light flex items-center gap-1 text-slate-400">
-                      <ArrowDownRight size={13} className="text-rose-400" /> 지출
-                    </span>
-                    <span className={`font-normal tabular-nums text-slate-200 ${isStealth ? 'blur-sm select-none' : ''}`}>
-                      -{formatMoney(monthExpense)}
-                    </span>
+                  {/* Ratio bar */}
+                  <div className="w-full h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${Math.max(item.percentage, 2)}%`, 
+                        backgroundColor: item.color 
+                      }}
+                    />
                   </div>
                 </div>
-              </div>
-            </div>
+              );
+            })
+          )}
+        </div>
+      </div>
 
-            {/* Quick Action Navigation Buttons */}
-            <div className={`flex items-center gap-2 pt-4 mt-4 border-t ${
-              isLight ? 'border-slate-200/60' : 'border-white/[0.04]'
-            }`}>
-              {onNavigateToVault && (
-                <button
-                  type="button"
-                  onClick={onNavigateToVault}
-                  className={`flex-1 py-2 px-3.5 rounded-full text-xs font-light transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
-                    isLight 
-                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' 
-                      : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]'
-                  }`}
-                >
-                  <ShieldCheck size={14} />
-                  <span>자산 금고 상세</span>
-                  <ArrowRight size={12} />
-                </button>
-              )}
-              {onNavigateToLedger && (
-                <button
-                  type="button"
-                  onClick={onNavigateToLedger}
-                  className={`flex-1 py-2 px-3.5 rounded-full text-xs font-light transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
-                    isLight 
-                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' 
-                      : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]'
-                  }`}
-                >
-                  <Wallet size={14} />
-                  <span>일일 장부 보기</span>
-                  <ArrowRight size={12} />
-                </button>
-              )}
+      {/* 5. Daily Spending Trend Chart: Full width (w-full h-52) with clean, un-squished Recharts curves and visible date ticks */}
+      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#121318]/90 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 className="text-sm font-semibold tracking-tight text-white">
+              일별 지출 추이
+            </h3>
+            <p className="text-xs font-light text-slate-400 mt-0.5">
+              {format(selectedMonth, 'yyyy년 M월')} · 일평균 <span className="text-slate-200 tabular-nums">{formatMoney(dailyAverage)}</span>
+            </p>
+          </div>
+          {highestSpendingDay.amount > 0 && (
+            <div className="text-xs font-light text-slate-400">
+              최대 지출: <span className="text-rose-400 font-medium tabular-nums">{highestSpendingDay.day}일 ({formatMoney(highestSpendingDay.amount)})</span>
             </div>
+          )}
+        </div>
+
+        <div className="w-full h-52 pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={dailySpendingChartData}
+              margin={{ top: 12, right: 12, left: -16, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="dailySpendingCurveGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis
+                dataKey="day"
+                stroke="#64748b"
+                fontSize={10}
+                tickLine={false}
+                axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                tickFormatter={(v) => `${v}일`}
+                interval={Math.max(1, Math.floor(dailySpendingChartData.length / 8))}
+              />
+              <YAxis
+                stroke="#64748b"
+                fontSize={9}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => {
+                  if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
+                  if (v >= 10000) return `${Math.round(v / 10000)}만`;
+                  return `${v}`;
+                }}
+              />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="p-2.5 rounded-xl border border-white/[0.08] bg-[#090A0D]/95 text-xs shadow-xl backdrop-blur-2xl text-white">
+                        <div className="font-medium text-slate-300 border-b border-white/[0.06] pb-1 mb-1">
+                          {data.dateLabel} {data.isToday ? '(오늘)' : ''}
+                        </div>
+                        <div className="flex items-center justify-between gap-3 text-sky-400 font-medium tabular-nums">
+                          <span>지출:</span>
+                          <span className={isStealth ? 'blur-xs select-none' : ''}>
+                            {formatMoney(data.amount)}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          결제 건수: {data.count}건
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              {dailyAverage > 0 && (
+                <ReferenceLine 
+                  y={dailyAverage} 
+                  stroke="#94a3b8" 
+                  strokeDasharray="3 3" 
+                  strokeOpacity={0.4} 
+                />
+              )}
+              <Area
+                type="monotone"
+                dataKey="amount"
+                stroke="#38bdf8"
+                strokeWidth={2}
+                fill="url(#dailySpendingCurveGrad)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* 6. Predictive Cashflow & Liquidity Runway Card: Full width (w-full h-52), unconstrained area chart */}
+      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#121318]/90 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 className="text-sm font-semibold tracking-tight text-white">
+              월간 현금흐름 궤적 & 유동성 예측
+            </h3>
+            <p className="text-xs font-light text-slate-400 mt-0.5">
+              자율 CFO 지출 궤적 분석 및 월말 잔액 시뮬레이션
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-0.5 bg-sky-400 inline-block" />
+              <span>실제 실적</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-0.5 bg-sky-400 border-b border-dashed border-sky-400 inline-block" />
+              <span>월말 예측선</span>
+            </span>
           </div>
         </div>
 
-        {/* Right Column (lg:col-span-7): Category Donut Chart, Monthly Trends, and Cashflow projections */}
-        <div className="lg:col-span-7 space-y-4">
-            {/* Quick Embedded Donut Chart & Cashflow Summary Side-by-Side */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Spending Category Donut */}
-            <div className={`p-5 rounded-2xl transition-all ${
-              isLight 
-                ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 text-slate-900 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)]' 
-                : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-            }`}>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className={`text-xs font-normal tracking-wide ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
-                  이번 달 주요 지출처
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('spending')}
-                  className={`text-xs font-light ${isLight ? 'text-sky-700 hover:underline' : 'text-sky-300 hover:underline'}`}
-                >
-                  상세보기
-                </button>
-              </div>
-              <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 로딩 중...</div>}>
-                <CategoryDonutChart
-                  transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
-                  selectedCategory={selectedCategory}
-                  onSelectCategory={setSelectedCategory}
-                  currencySymbol={currentCurrency}
-                  isStealth={isStealth}
-                  embedded={true}
-                />
-              </Suspense>
-            </div>
-
-            {/* Predictive Cashflow Curve */}
-            <div className={`p-5 rounded-2xl transition-all ${
-              isLight 
-                ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 text-slate-900 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)]' 
-                : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-            }`}>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className={`text-xs font-normal tracking-wide ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
-                  월말 예상 유동성
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('cashflow')}
-                  className={`text-xs font-light ${isLight ? 'text-blue-700 hover:underline' : 'text-blue-400 hover:underline'}`}
-                >
-                  상세보기
-                </button>
-              </div>
-              <div className="h-44 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={forecast.dataPoints} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isLight ? '#f1f5f9' : 'rgba(255,255,255,0.03)'} vertical={false} />
-                    <XAxis dataKey="day" tickLine={false} stroke={isLight ? '#94a3b8' : '#475569'} fontSize={10} tickFormatter={(v) => `${v}일`} />
-                    <YAxis tickLine={false} stroke={isLight ? '#94a3b8' : '#475569'} fontSize={9} tickFormatter={(v) => `${Math.round(v / 10000)}만`} />
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className={`p-2 rounded-xl border text-xs shadow-xl backdrop-blur-2xl ${
-                              isLight ? 'bg-white/95 border-slate-200 text-slate-900' : 'bg-[#08090D]/90 border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
-                            }`}>
-                              <div className="font-normal">{data.day}일 {data.isPast ? '(실적)' : '(예측)'}</div>
-                              <div className="text-sky-400 font-normal tabular-nums">{formatMoney(data.actualBalance ?? data.projectedBalance)}</div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Area type="monotone" dataKey="actualBalance" stroke="#38bdf8" strokeWidth={1.5} fill={isLight ? 'rgba(56, 189, 248, 0.08)' : 'rgba(56, 189, 248, 0.06)'} connectNulls={false} />
-                    <Line type="monotone" dataKey="projectedBalance" stroke="#38bdf8" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+        {/* 3-Metric KPI Row */}
+        <div className="grid grid-cols-3 gap-2 py-2 border-y border-white/[0.04]">
+          <div>
+            <span className="text-[11px] font-light text-slate-400 block truncate">
+              현재 누적
+            </span>
+            <span className={`text-sm sm:text-base font-normal tracking-tight tabular-nums mt-0.5 block truncate ${
+              forecast.currentBalance >= 0 ? 'text-white' : 'text-rose-400'
+            } ${isStealth ? 'blur-sm select-none' : ''}`}>
+              {formatMoney(forecast.currentBalance)}
+            </span>
           </div>
+          <div>
+            <span className="text-[11px] font-light text-slate-400 block truncate">
+              월말 예상 잔액
+            </span>
+            <span className={`text-sm sm:text-base font-normal tracking-tight tabular-nums mt-0.5 block truncate ${
+              forecast.projectedMonthEndBalance >= 0 ? 'text-sky-400' : 'text-rose-400'
+            } ${isStealth ? 'blur-sm select-none' : ''}`}>
+              {formatMoney(forecast.projectedMonthEndBalance)}
+            </span>
+          </div>
+          <div>
+            <span className="text-[11px] font-light text-slate-400 block truncate">
+              예정 고정비
+            </span>
+            <span className={`text-sm sm:text-base font-normal tracking-tight tabular-nums mt-0.5 block truncate text-amber-300 ${
+              isStealth ? 'blur-sm select-none' : ''
+            }`}>
+              {formatMoney(forecast.totalUpcomingSubscriptions)}
+            </span>
+          </div>
+        </div>
 
-          {/* Monthly Trends Chart Card */}
-          <div className={`p-4 sm:p-5 rounded-2xl transition-all ${
-            isLight 
-              ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 text-slate-900 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)]' 
-              : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-          }`}>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className={`text-xs font-normal tracking-wide ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
-                일별 지출 추이
-              </h3>
-              <span className="text-[11px] font-light text-slate-400">
-                {format(selectedMonth, 'yyyy년 M월')}
-              </span>
-            </div>
-            <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 로딩 중...</div>}>
-              <MonthlyTrendsChart
-                transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
-                currencySymbol={currentCurrency}
-                isStealth={isStealth}
-                embedded={true}
+        {/* Unconstrained Area Chart */}
+        <div className="w-full h-52 pt-3">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart 
+              data={forecast.dataPoints} 
+              margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="forecastActualAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+              <XAxis 
+                dataKey="day" 
+                tickLine={false} 
+                stroke="#64748b" 
+                fontSize={10} 
+                tickFormatter={(v) => `${v}일`} 
               />
-            </Suspense>
-          </div>
+              <YAxis 
+                tickLine={false} 
+                stroke="#64748b" 
+                fontSize={9} 
+                tickFormatter={(v) => `${Math.round(v / 10000)}만`} 
+              />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="p-2.5 rounded-xl border border-white/[0.08] bg-[#08090D]/95 text-xs shadow-xl backdrop-blur-2xl text-white">
+                        <div className="font-medium border-b border-white/[0.06] pb-1 mb-1">
+                          {data.day}일 {data.isPast ? '(실제 실적)' : data.isToday ? '(오늘)' : '(예측)'}
+                        </div>
+                        {data.actualBalance !== undefined ? (
+                          <div className="text-sky-400 font-normal tabular-nums">
+                            실제 누적: {formatMoney(data.actualBalance)}
+                          </div>
+                        ) : (
+                          <div className="text-blue-400 font-normal tabular-nums">
+                            예상 누적: {formatMoney(data.projectedBalance)}
+                          </div>
+                        )}
+                        {data.upcomingSubscriptionSum > 0 && (
+                          <div className="text-amber-400 text-[10px] mt-0.5 font-light tabular-nums">
+                            고정비 결제: {formatMoney(data.upcomingSubscriptionSum)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" opacity={0.3} />
+              <Area 
+                type="monotone" 
+                dataKey="actualBalance" 
+                stroke="#38bdf8" 
+                strokeWidth={2} 
+                fill="url(#forecastActualAreaGrad)" 
+                connectNulls={false} 
+              />
+              <Line 
+                type="monotone" 
+                dataKey="projectedBalance" 
+                stroke="#38bdf8" 
+                strokeWidth={2} 
+                strokeDasharray="4 4" 
+                dot={false} 
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>
-    )}
-
-      {/* TAB B: 자산 포트폴리오 분석 (Asset Allocation & Portfolio Deep Dive) */}
-      {(activeTab === 'assets') && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          {/* Asset Net Worth Summary */}
-          <div className={`p-5 sm:p-6 rounded-2xl transition-all border ${
-            isLight 
-              ? 'bg-white/85 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
-              : 'bg-white/[0.025] backdrop-blur-xl border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-          }`}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  순자산 포트폴리오 총액
-                </span>
-                <div className="flex items-baseline mt-1">
-                  <span className="text-xl font-light text-slate-400 mr-1">{getCurrencySymbol(currentCurrency)}</span>
-                  <h2 className={`text-3xl md:text-4xl font-light tracking-tight tabular-nums ${
-                    isLight ? 'text-slate-900' : 'text-white'
-                  } ${isStealth ? 'blur-sm select-none' : ''}`}>
-                    {Math.round(netWorth).toLocaleString()}
-                  </h2>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className={`text-xs font-light block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  부채 비율
-                </span>
-                <span className={`text-sm sm:text-base font-normal tabular-nums ${debtRatio < 40 ? 'text-sky-400' : 'text-amber-400'}`}>
-                  {debtRatio}%
-                </span>
-              </div>
-            </div>
-
-            {/* Category Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {assetBreakdownList.map((item) => {
-                const IconComponent = item.icon;
-                return (
-                  <div
-                    key={item.key}
-                    className={`p-4 rounded-xl border transition-all flex items-center justify-between ${
-                      isLight ? 'bg-slate-50 border-slate-200/60' : 'bg-white/[0.015] border-white/[0.04]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: `${item.color}15`, color: item.color }}
-                      >
-                        <IconComponent size={18} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-xs font-normal ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
-                            {item.name}
-                          </span>
-                          <span className={`text-[10px] px-1.5 py-0.2 rounded font-light ${
-                            isLight ? 'bg-slate-100 text-slate-600' : 'bg-white/5 text-slate-400'
-                          }`}>
-                            {item.percentage}%
-                          </span>
-                        </div>
-                        <span className={`text-sm font-normal tabular-nums block mt-0.5 ${
-                          isLight ? 'text-slate-900' : 'text-slate-100'
-                        } ${isStealth ? 'blur-sm select-none' : ''}`}>
-                          {formatMoney(item.amount)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Liabilities / Debts Card */}
-              <div className={`p-4 rounded-xl border transition-all flex items-center justify-between ${
-                isLight ? 'bg-rose-50/50 border-rose-200/60' : 'bg-rose-500/[0.06] border-rose-500/15'
-              }`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center shrink-0">
-                    <CreditCard size={18} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-normal text-rose-400">
-                        총 부채
-                      </span>
-                    </div>
-                    <span className={`text-sm font-normal tabular-nums block mt-0.5 text-rose-400 ${
-                      isStealth ? 'blur-sm select-none' : ''
-                    }`}>
-                      -{formatMoney(totalLiabilities)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Accounts Breakdown Table */}
-          <div className={`p-5 sm:p-6 rounded-2xl transition-all border ${
-            isLight 
-              ? 'bg-white/80 backdrop-blur-xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.04)] text-slate-900' 
-              : 'bg-white/[0.02] backdrop-blur-xl border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-          }`}>
-            <h3 className={`text-xs font-normal tracking-wide mb-3.5 ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
-              등록 계좌 및 자산 목록
-            </h3>
-            {accounts.length === 0 ? (
-              <p className={`text-xs font-light py-4 text-center ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                등록된 자산 계좌가 없습니다. [자산] 탭에서 계좌를 추가해 보세요.
-              </p>
-            ) : (
-              <div className="space-y-2 divide-y divide-white/[0.03]">
-                {accounts.map((acc) => (
-                  <div 
-                    key={acc.id}
-                    className="pt-2.5 first:pt-0 flex items-center justify-between text-xs"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-normal ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
-                          {acc.institution}
-                        </span>
-                        <span className="text-slate-600 font-light text-xs">·</span>
-                        <span className={`text-[10px] font-light ${
-                          isLight ? 'text-slate-500' : 'text-slate-400'
-                        }`}>
-                          {getAssetCategoryKo(acc.assetType)}
-                        </span>
-                      </div>
-                      <span className={`text-xs font-light block mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {acc.accountName}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className={`font-normal tabular-nums block ${isLight ? 'text-slate-900' : 'text-slate-100'} ${isStealth ? 'blur-sm select-none' : ''}`}>
-                        {formatMoney(convertCurrency(acc.currentBalance, acc.currency || 'KRW', currentCurrency, fxRates))}
-                      </span>
-                      {acc.holdings && acc.holdings.length > 0 && (
-                        <span className="text-[10px] font-light text-sky-400">
-                          종목 {acc.holdings.length}개 보유
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB C: 소비·지출 분석 (Spending Category Donut & Trends) */}
-      {(activeTab === 'spending') && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          {/* Donut Chart Block */}
-          <div className={`p-4 sm:p-6 rounded-2xl transition-all ${
-            isLight 
-              ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 text-slate-900 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)]' 
-              : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-          }`}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className={`text-xs sm:text-sm font-medium tracking-tight ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
-                카테고리별 지출 비중
-              </h3>
-              {selectedCategory && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory(null)}
-                  className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-normal active:scale-95 transition-all border ${
-                    isLight 
-                      ? 'bg-sky-50 text-sky-800 border-sky-200' 
-                      : 'bg-sky-500/10 text-sky-300 border-sky-500/20 hover:bg-sky-500/20'
-                  }`}
-                >
-                  <span>{getCategoryKo(selectedCategory)}</span>
-                  <span className="font-light">×</span>
-                </button>
-              )}
-            </div>
-
-            <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 로딩 중...</div>}>
-              <CategoryDonutChart
-                transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
-                selectedCategory={selectedCategory}
-                onSelectCategory={setSelectedCategory}
-                currencySymbol={currentCurrency}
-                isStealth={isStealth}
-                embedded={true}
-              />
-            </Suspense>
-          </div>
-
-          {/* Trend Deep Dive: 일별 추이 vs 연간 월별 비교 */}
-          <div className="p-4 sm:p-6 rounded-2xl transition-all bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="inline-flex items-center p-0.5 rounded-full gap-0.5 border bg-white/[0.03] border-white/[0.06]">
-                <button
-                  type="button"
-                  onClick={() => setTrendSubTab('daily')}
-                  className={`px-3 py-1 rounded-full text-xs transition-all ${
-                    trendSubTab === 'daily'
-                      ? 'bg-white/10 text-white font-medium border border-white/20'
-                      : 'text-slate-400 hover:text-white font-normal'
-                  }`}
-                >
-                  일별 추이
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTrendSubTab('monthly')}
-                  className={`px-3 py-1 rounded-full text-xs transition-all ${
-                    trendSubTab === 'monthly'
-                      ? 'bg-white/10 text-white font-medium border border-white/20'
-                      : 'text-slate-400 hover:text-white font-normal'
-                  }`}
-                >
-                  월별 비교
-                </button>
-              </div>
-
-              <span className="text-[11px] font-light text-slate-500">
-                {trendSubTab === 'daily' ? '일별 지출 분석' : '연간 12개월 추이'}
-              </span>
-            </div>
-
-            {trendSubTab === 'daily' ? (
-              <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 로딩 중...</div>}>
-                <MonthlyTrendsChart
-                  transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
-                  currencySymbol={currentCurrency}
-                  isStealth={isStealth}
-                  embedded={true}
-                />
-              </Suspense>
-            ) : (
-              <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 로딩 중...</div>}>
-                <YearlyTrendsChart
-                  transactions={transactions}
-                  currencySymbol={currentCurrency}
-                  isStealth={isStealth}
-                  embedded={true}
-                />
-              </Suspense>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB D: 현금흐름 & 예측 (Autonomous CFO Liquidity Trajectory) */}
-      {(activeTab === 'cashflow') && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          {/* CFO Advice Hero Banner */}
-          <div className={`p-4 sm:p-6 rounded-2xl transition-all ${
-            isLight 
-              ? 'bg-white/80 backdrop-blur-xl border border-slate-200/80 text-slate-900 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)]' 
-              : 'bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] text-white shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]'
-          }`}>
-            <div className={`p-3.5 rounded-xl flex items-start mb-4 border ${
-              forecast.status === 'HEALTHY'
-                ? isLight ? 'bg-sky-50/70 text-sky-950 border-sky-200/60' : 'bg-sky-500/[0.06] text-sky-300 border-sky-500/20'
-                : forecast.status === 'MODERATE'
-                  ? isLight ? 'bg-amber-50/70 text-amber-950 border-amber-200/60' : 'bg-amber-500/[0.06] text-amber-300 border-amber-500/20'
-                  : isLight ? 'bg-rose-50/70 text-rose-950 border-rose-200/60' : 'bg-rose-500/[0.06] text-rose-300 border-rose-500/20'
-            }`}>
-              <div className="text-xs">
-                <strong className="block font-medium">자율 CFO 현금흐름 진단</strong>
-                <p className="mt-0.5 leading-relaxed font-light text-[11px] sm:text-xs opacity-90">
-                  {forecast.recommendation}
-                </p>
-              </div>
-            </div>
-
-            {/* 3-Metric KPI Row */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 py-1">
-              <div className="min-w-0">
-                <span className={`text-[10px] sm:text-[11px] font-light block truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  현재 순자금
-                </span>
-                <span className={`text-sm sm:text-base font-normal tracking-tight tabular-nums mt-0.5 block truncate ${
-                  forecast.currentBalance >= 0 ? (isLight ? 'text-slate-900' : 'text-slate-100') : 'text-rose-400'
-                } ${isStealth ? 'blur-sm select-none' : ''}`}>
-                  {formatMoney(forecast.currentBalance)}
-                </span>
-                <span className={`text-[10px] mt-0.5 block font-light truncate ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-                  실시간 집계
-                </span>
-              </div>
-
-              <div className="min-w-0">
-                <span className={`text-[10px] sm:text-[11px] font-light block truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  월말 예상 잔액
-                </span>
-                <span className={`text-sm sm:text-base font-normal tracking-tight tabular-nums mt-0.5 block truncate ${
-                  forecast.projectedMonthEndBalance >= 0 ? (isLight ? 'text-sky-600' : 'text-sky-400') : 'text-rose-400'
-                } ${isStealth ? 'blur-sm select-none' : ''}`}>
-                  {formatMoney(forecast.projectedMonthEndBalance)}
-                </span>
-                <span className={`text-[10px] mt-0.5 block font-light truncate ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-                  잔여 {forecast.daysRemainingInMonth}일 후
-                </span>
-              </div>
-
-              <div className="min-w-0">
-                <span className={`text-[10px] sm:text-[11px] font-light block truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  남은 고정비
-                </span>
-                <span className={`text-sm sm:text-base font-normal tracking-tight tabular-nums mt-0.5 block truncate ${
-                  isLight ? 'text-amber-800' : 'text-amber-300'
-                } ${isStealth ? 'blur-sm select-none' : ''}`}>
-                  {formatMoney(forecast.totalUpcomingSubscriptions)}
-                </span>
-                <span className={`text-[10px] mt-0.5 block font-light truncate ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-                  결제 예정액
-                </span>
-              </div>
-            </div>
-
-            {/* Recharts Predictive Liquidity Curve */}
-            <div className="pt-4 mt-2">
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className={`font-normal ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                  월간 누적 현금흐름 궤적
-                </span>
-                <div className="flex items-center gap-3 text-[10px]">
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" />
-                    <span className={`font-light ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>실제 실적</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2.5 h-0.5 bg-blue-400 border-b border-dashed border-blue-400 inline-block" />
-                    <span className={`font-light ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>월말 예측선</span>
-                  </span>
-                </div>
-              </div>
-
-              <div className="h-44 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={forecast.dataPoints} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isLight ? '#f1f5f9' : 'rgba(255,255,255,0.03)'} vertical={false} />
-                    <XAxis dataKey="day" tickLine={false} stroke={isLight ? '#94a3b8' : '#475569'} fontSize={10} tickFormatter={(v) => `${v}일`} />
-                    <YAxis tickLine={false} stroke={isLight ? '#94a3b8' : '#475569'} fontSize={9} tickFormatter={(v) => `${Math.round(v / 10000)}만`} />
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className={`p-2.5 rounded-xl border text-xs shadow-xl backdrop-blur-2xl ${
-                              isLight ? 'bg-white/95 border-slate-200 text-slate-900' : 'bg-[#08090D]/90 border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
-                            }`}>
-                              <div className="font-medium border-b border-black/5 pb-1 mb-1">
-                                {data.day}일 {data.isPast ? '(실제 실적)' : data.isToday ? '(오늘)' : '(예측)'}
-                              </div>
-                              {data.actualBalance !== undefined ? (
-                                <div className="text-sky-400 font-normal tabular-nums">
-                                  실제 누적: {formatMoney(data.actualBalance)}
-                                </div>
-                              ) : (
-                                <div className="text-blue-400 font-normal tabular-nums">
-                                  예상 누적: {formatMoney(data.projectedBalance)}
-                                </div>
-                              )}
-                              {data.upcomingSubscriptionSum > 0 && (
-                                <div className="text-amber-400 text-[10px] mt-0.5 font-light tabular-nums">
-                                  고정비 결제: {formatMoney(data.upcomingSubscriptionSum)}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" opacity={0.4} />
-                    <Area type="monotone" dataKey="actualBalance" stroke="#38bdf8" strokeWidth={1.5} fill={isLight ? 'rgba(56, 189, 248, 0.08)' : 'rgba(56, 189, 248, 0.06)'} connectNulls={false} />
-                    <Line type="monotone" dataKey="projectedBalance" stroke="#38bdf8" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
   );
 };
+
+export default InsightsSection;

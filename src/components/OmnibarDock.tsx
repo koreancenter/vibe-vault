@@ -5,17 +5,20 @@ import {
   MicOff, 
   X, 
   Send, 
+  Sparkles,
   Loader2 
 } from 'lucide-react';
-import { SupportedCurrency } from '../types';
+import { SupportedCurrency, LaunchScreenMode } from '../types';
 import { getCurrencySymbol, getCategoryKo } from '../utils';
 
-// Quick Suggestion Chips
-const QUICK_CHIPS = [
-  { label: '#커피 4,500원', value: '스타벅스 아메리카노 4500원 카드 결제' },
-  { label: '#식사 12,000원', value: '점심 순두부찌개 12000원 계좌이체' },
-  { label: '#장보기 35,000원', value: '이마트 장보기 35000원 현대카드' },
-  { label: '#택시 14,800원', value: '카카오택시 14800원' }
+// Global Quick Suggestion Chips (Featured analytical query tags + quick ledger entries)
+const SUGGESTION_CHIPS = [
+  { label: '#9월 환차익', value: '9월 환차익', isQuery: true },
+  { label: '#식비 분석', value: '식비 분석', isQuery: true },
+  { label: '#주말 지출', value: '주말 지출', isQuery: true },
+  { label: '#커피 4,500원', value: '스타벅스 아메리카노 4500원 카드 결제', isQuery: false },
+  { label: '#식사 12,000원', value: '점심 순두부찌개 12000원 계좌이체', isQuery: false },
+  { label: '#장보기 35,000원', value: '이마트 장보기 35000원 현대카드', isQuery: false }
 ];
 
 export interface RealtimePreviewData {
@@ -26,7 +29,7 @@ export interface RealtimePreviewData {
   isDutch?: boolean;
 }
 
-interface OmnibarDockProps {
+export interface OmnibarDockProps {
   input: string;
   setInput: (value: string) => void;
   isProcessing: boolean;
@@ -42,6 +45,9 @@ interface OmnibarDockProps {
   onToggleListen?: () => void;
   error?: string | null;
   onClearError?: () => void;
+  mode?: LaunchScreenMode;
+  onRunQuery?: (queryText: string) => void;
+  placeholder?: string;
 }
 
 export const OmnibarDock: React.FC<OmnibarDockProps> = ({
@@ -52,7 +58,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
   currentCurrency,
   isMultiCurrencyMode,
   realtimePreview,
-  engineStatus,
+  engineStatus: _engineStatus,
   onSubmit,
   onOpenReceiptScanner,
   onCycleCurrency,
@@ -60,8 +66,42 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
   onToggleListen,
   error,
   onClearError,
+  mode = 'ledger',
+  onRunQuery,
+  placeholder,
 }) => {
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const isInsightsMode = mode === 'insights';
+
+  const inputPlaceholder = placeholder || (isInsightsMode 
+    ? '재정 데이터 질문 (예: 9월 환차익, 식비 분석, 주말 지출)' 
+    : '예: 점심 9천원 또는 9월 환차익, 식비 분석');
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isProcessing) return;
+    
+    // Check if input is an analytical query
+    const isQueryIntent = /(?:환차익|환손익|환차|환율|외환|분석|총액|얼마|추이|주말\s*지출)/i.test(input) || 
+      /^(?:식비|교통비|생활비)(?:\s*분석)?$/i.test(input) || 
+      isInsightsMode;
+
+    if (isQueryIntent && onRunQuery) {
+      onRunQuery(input);
+    } else {
+      onSubmit();
+    }
+  };
+
+  const handleChipClick = (chip: { label: string; value: string; isQuery: boolean }) => {
+    setInput(chip.value);
+    if (chip.isQuery && onRunQuery) {
+      onRunQuery(chip.value);
+    } else if (!chip.isQuery) {
+      // Focus or prepare for transaction submission
+      onSubmit();
+    }
+  };
 
   return (
     <div className="w-full">
@@ -74,7 +114,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
               type="button" 
               onClick={onClearError} 
               aria-label="오류 알림 닫기"
-              className="text-rose-500 hover:text-rose-700 ml-1 font-bold"
+              className="text-rose-500 hover:text-rose-700 ml-1 font-bold cursor-pointer"
             >
               ×
             </button>
@@ -82,8 +122,8 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
         </div>
       )}
 
-      {/* Real-time Extraction Preview Chips */}
-      {realtimePreview && (
+      {/* Real-time Extraction Preview Chips (Ledger mode only) */}
+      {!isInsightsMode && realtimePreview && (
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1.5 animate-in fade-in duration-150">
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 bg-white/10 text-slate-300">
             실시간 분석
@@ -122,18 +162,22 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
         </div>
       )}
 
-      {/* Quick Tag Chips Row: displayed when input field is focused */}
+      {/* Quick Tag Chips Row: displayed when input field is focused (featuring #9월 환차익, #식비 분석, #주말 지출) */}
       {isInputFocused && (
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1.5 animate-in fade-in slide-in-from-bottom-1 duration-150">
-          {QUICK_CHIPS.map(chip => (
+          {SUGGESTION_CHIPS.map(chip => (
             <button
               key={chip.label}
               type="button"
               onMouseDown={(e) => {
                 e.preventDefault();
-                setInput(chip.value);
+                handleChipClick(chip);
               }}
-              className="shrink-0 px-2.5 py-0.5 rounded-full text-xs transition-colors bg-white/[0.06] hover:bg-white/10 active:bg-white/15 text-slate-300"
+              className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs transition-colors cursor-pointer ${
+                chip.isQuery 
+                  ? 'bg-indigo-500/15 hover:bg-indigo-500/25 active:bg-indigo-500/30 text-indigo-300 border border-indigo-500/20' 
+                  : 'bg-white/[0.06] hover:bg-white/10 active:bg-white/15 text-slate-300'
+              }`}
             >
               {chip.label}
             </button>
@@ -143,13 +187,12 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
 
       {/* Modern AI Search Bar */}
       <form 
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit();
-        }}
+        onSubmit={handleFormSubmit}
         className={`relative rounded-2xl p-[1px] transition-all duration-200 ${
           isInputFocused 
-            ? 'bg-gradient-to-r from-sky-400 via-blue-500 to-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.15)]' 
+            ? isInsightsMode
+              ? 'bg-gradient-to-r from-indigo-500 via-sky-400 to-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)]'
+              : 'bg-gradient-to-r from-sky-400 via-blue-500 to-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.15)]' 
             : 'bg-white/[0.08]'
         }`}
       >
@@ -161,7 +204,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
             onClick={onOpenReceiptScanner}
             title="영수증 AI 스캔"
             aria-label="영수증 AI 스캔"
-            className="w-8 h-8 min-w-[32px] rounded-xl flex items-center justify-center transition-all text-slate-400 hover:text-sky-400 hover:bg-white/5 active:scale-95"
+            className="w-8 h-8 min-w-[32px] rounded-xl flex items-center justify-center transition-all text-slate-400 hover:text-sky-400 hover:bg-white/5 active:scale-95 cursor-pointer"
           >
             <Camera size={16} />
           </button>
@@ -173,7 +216,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
               type="button"
               onClick={onToggleListen}
               aria-label="음성으로 입력하기"
-              className={`w-8 h-8 min-w-[32px] rounded-xl flex items-center justify-center transition-all ${
+              className={`w-8 h-8 min-w-[32px] rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                 isListening
                   ? 'bg-rose-500/20 text-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.5)] animate-pulse'
                   : 'text-slate-400 hover:text-sky-400 hover:bg-white/5 active:scale-95'
@@ -191,7 +234,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
               onClick={onCycleCurrency}
               title="클릭하여 통화 변경"
               aria-label="클릭하여 통화 변경"
-              className="px-2 py-0.5 rounded-lg text-[11px] font-bold shrink-0 transition-all bg-white/[0.06] hover:bg-white/10 text-white"
+              className="px-2 py-0.5 rounded-lg text-[11px] font-bold shrink-0 transition-all bg-white/[0.06] hover:bg-white/10 text-white cursor-pointer"
             >
               {currentCurrency}
             </button>
@@ -205,7 +248,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
             onFocus={() => setIsInputFocused(true)}
             onBlur={() => setIsInputFocused(false)}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="예: 파스타 4만원 또는 $15 Starbucks"
+            placeholder={inputPlaceholder}
             className="w-full bg-transparent text-xs sm:text-sm outline-none transition-colors text-white placeholder:text-slate-400"
           />
 
@@ -227,12 +270,18 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
             id="parse-submit-btn"
             type="submit"
             disabled={isProcessing || !input.trim() || !isOnline}
-            title="기록"
-            aria-label="기록"
-            className="w-8 h-8 min-w-[32px] rounded-xl bg-sky-500/15 hover:bg-sky-500/25 active:scale-95 text-sky-300 border border-sky-500/30 transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center shadow-sm shrink-0 cursor-pointer"
+            title={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
+            aria-label={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
+            className={`w-8 h-8 min-w-[32px] rounded-xl active:scale-95 border transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center shadow-sm shrink-0 cursor-pointer ${
+              isInsightsMode 
+                ? 'bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border-indigo-500/40' 
+                : 'bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border-sky-500/30'
+            }`}
           >
             {isProcessing ? (
               <Loader2 size={14} className="animate-spin text-sky-300" />
+            ) : isInsightsMode ? (
+              <Sparkles size={14} className="text-indigo-300" />
             ) : (
               <Send size={14} className="text-sky-300 translate-x-[0.5px]" />
             )}

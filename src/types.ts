@@ -161,7 +161,8 @@ export type CryptoBackupErrorCode =
   | 'INVALID_PASSPHRASE'
   | 'CORRUPTED_PAYLOAD'
   | 'UNSUPPORTED_VERSION'
-  | 'EMPTY_PASSPHRASE';
+  | 'EMPTY_PASSPHRASE'
+  | 'TAMPERED_PAYLOAD';
 
 export interface EncryptedBackupPayload {
   version: '2.0' | 'VVLT_V1' | string;
@@ -176,11 +177,13 @@ export interface EncryptedBackupPayload {
   magic?: string; // e.g. "VVLT_V1"
   tagLength?: number; // 128
   rawBinaryBase64?: string; // Optional embedded binary envelope in base64
+  keyVerifier?: string; // Hex key commitment
   meta: {
     transactionCount: number;
     appName: string;
     envelope?: 'armored-json' | 'binary-enc';
     checksum?: string;
+    keyVerifier?: string;
     [key: string]: any;
   };
 }

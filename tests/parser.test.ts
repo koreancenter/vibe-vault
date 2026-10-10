@@ -144,4 +144,124 @@ describe('Financial Parser Deterministic Engine', () => {
       expect(companionSplit[0].note).toBe('식사 40,000원 (더치페이 분담)');
     });
   });
+
+  describe('Financial Calculation Core: Multi-Item Parsing Suite', () => {
+    it('parses "쿠팡 화장지 2만원, 영양제 3만원" into 2 distinct transactions with amounts 20000 and 30000 (deterministic engine)', () => {
+      const input = '쿠팡 화장지 2만원, 영양제 3만원';
+      const results = parseFinancialInputDeterministically(input);
+
+      expect(results).toHaveLength(2);
+      expect(results[0].amount).toBe(20000);
+      expect(results[0].type).toBe('EXPENSE');
+      expect(results[0].category).toBe('Living');
+      expect(results[0].merchant).toBe('쿠팡');
+
+      expect(results[1].amount).toBe(30000);
+      expect(results[1].type).toBe('EXPENSE');
+      expect(results[1].category).toBe('Health');
+      expect(results[1].merchant).toBe('영양제');
+    });
+
+    it('parses "쿠팡 화장지 2만원, 영양제 3만원" via parseFinancialText with exact item amounts', () => {
+      const input = '쿠팡 화장지 2만원, 영양제 3만원';
+      const items = parseFinancialText(input);
+
+      expect(items).toHaveLength(2);
+      expect(items[0].amount).toBe(20000);
+      expect(items[0].currency).toBe('KRW');
+      expect(items[0].type).toBe('expense');
+
+      expect(items[1].amount).toBe(30000);
+      expect(items[1].currency).toBe('KRW');
+      expect(items[1].type).toBe('expense');
+    });
+
+    it('handles multi-item compound phrases with different punctuation and conjunctions', () => {
+      const commaSeparated = parseFinancialInputDeterministically('스타벅스 아메리카노 4500원, 김밥천국 6000원');
+      expect(commaSeparated).toHaveLength(2);
+      expect(commaSeparated[0].amount).toBe(4500);
+      expect(commaSeparated[1].amount).toBe(6000);
+
+      const conjunctionSeparated = parseFinancialText('다이소 건전지 3000원 그리고 올리브영 립밤 8000원');
+      expect(conjunctionSeparated).toHaveLength(2);
+      expect(conjunctionSeparated[0].amount).toBe(30000 > 3000 ? 3000 : 3000);
+      expect(conjunctionSeparated[1].amount).toBe(8000);
+    });
+  });
+
+  describe('Financial Calculation Core: Dutch-Pay & Settlement Arithmetic Suite', () => {
+    it('correctly calculates net user expense 20000 and receivable settlement 20000 for "민수랑 파스타 4만원 더치페이하고 2만원 받음"', () => {
+      const input = '민수랑 파스타 4만원 더치페이하고 2만원 받음';
+      const results = parseFinancialInputDeterministically(input);
+
+      expect(results).toHaveLength(2);
+
+      const expense = results.find(r => r.type === 'EXPENSE');
+      const settlement = results.find(r => r.type === 'SETTLEMENT');
+
+      expect(expense).toBeDefined();
+      expect(settlement).toBeDefined();
+
+      // Full original expense on card/account
+      expect(expense!.amount).toBe(40000);
+      expect(expense!.category).toBe('Food');
+
+      // Reimbursement received from counterparty
+      expect(settlement!.amount).toBe(20000);
+
+      // Core arithmetic: Net user expense = total expense (40,000) - receivable settlement (20,000) = 20,000
+      const netUserExpense = expense!.amount - settlement!.amount;
+      expect(netUserExpense).toBe(20000);
+
+      // Receivable settlement amount
+      expect(settlement!.amount).toBe(20000);
+    });
+
+    it('extracts net portion directly in parseFinancialText for Dutch-pay settlement prompts', () => {
+      const input = '민수랑 파스타 4만원 더치페이하고 2만원 받음';
+      const items = parseFinancialText(input);
+
+      expect(items.length).toBeGreaterThanOrEqual(1);
+      // Net user expense portion resolved to 20,000
+      expect(items[0].amount).toBe(20000);
+      expect(items[0].category).toBe('식비');
+    });
+
+    it('correctly processes additional Dutch-pay settlement scenarios', () => {
+      const prompt = '철수랑 고기 6만원 더치페이하고 3만원 받음';
+      const results = parseFinancialInputDeterministically(prompt);
+
+      expect(results).toHaveLength(2);
+      const expense = results.find(r => r.type === 'EXPENSE')!;
+      const settlement = results.find(r => r.type === 'SETTLEMENT')!;
+
+      expect(expense.amount).toBe(60000);
+      expect(settlement.amount).toBe(30000);
+
+      const netUserExpense = expense.amount - settlement.amount;
+      expect(netUserExpense).toBe(30000);
+      expect(settlement.amount).toBe(30000);
+    });
+  });
+
+  describe('Financial Calculation Core: Unit Normalizations Suite', () => {
+    it('ensures "4만원 더치페이" amount normalizes to 40000 (not 4 or -4)', () => {
+      const normalizedAmount = parseKoreanAmount('4만원 더치페이');
+
+      expect(normalizedAmount).toBe(40000);
+      expect(normalizedAmount).not.toBe(4);
+      expect(normalizedAmount).not.toBe(-4);
+      expect(typeof normalizedAmount).toBe('number');
+      expect(Number.isInteger(normalizedAmount)).toBe(true);
+      expect(normalizedAmount! > 0).toBe(true);
+    });
+
+    it('normalizes various Korean currency expressions with Dutch-pay suffixes accurately', () => {
+      expect(parseKoreanAmount('4만원 더치페이')).toBe(40000);
+      expect(parseKoreanAmount('2.5만원 더치페이')).toBe(25000);
+      expect(parseKoreanAmount('10만원 더치페이')).toBe(100000);
+      expect(parseKoreanAmount('5천원 더치페이')).toBe(5000);
+      expect(parseKoreanAmount('1억 2천만원')).toBe(120000000);
+    });
+  });
 });

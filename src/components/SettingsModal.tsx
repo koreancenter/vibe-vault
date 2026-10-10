@@ -626,7 +626,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       let errorText = '복호화에 실패했습니다.';
       if (err instanceof CryptoBackupError) {
         if (err.code === 'INVALID_PASSPHRASE') {
-          errorText = '비밀번호가 올바르지 않거나 데이터가 변조되어 인증 태그 검증에 실패했습니다.';
+          errorText = '비밀번호가 올바르지 않거나 인증 태그 검증에 실패했습니다.';
+        } else if (err.code === 'TAMPERED_PAYLOAD') {
+          errorText = '백업 데이터가 변조되었거나 무결성 검증에 실패했습니다 (TAMPERED_PAYLOAD).';
         } else if (err.code === 'CORRUPTED_PAYLOAD') {
           errorText = '백업 파일이 손상되었거나 형식이 유효하지 않습니다.';
         } else if (err.code === 'UNSUPPORTED_VERSION') {

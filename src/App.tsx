@@ -5,7 +5,7 @@ import {
   ParsedItem,
   inferCategoryAndMerchant
 } from './financialParser';
-import { Transaction, TransactionType, SupportedCurrency, FxRates, ParsedReceiptData, LaunchScreenMode, LedgerSpace } from './types';
+import { Transaction, TransactionType, SupportedCurrency, FxRates, ParsedReceiptData, LaunchScreenMode, LedgerSpace, FinancialQueryResult } from './types';
 import { 
   Settings, 
   Edit2, 
@@ -36,8 +36,8 @@ import {
   getUserActiveCurrencies,
   convertCurrency
 } from './utils';
-import { getAllDebts, loadSampleData, ensureCleanSlateIfGuest, getSpaces, createSpace, deleteSpace, DEFAULT_SPACE } from './db';
-import { commitAutonomousLoanSplit, commitAutonomousReceivableRecovery } from './autonomousFinance';
+import { getAllDebts, getAllAssetAccounts, loadSampleData, ensureCleanSlateIfGuest, getSpaces, createSpace, deleteSpace, DEFAULT_SPACE } from './db';
+import { commitAutonomousLoanSplit, commitAutonomousReceivableRecovery, executeFinancialQuery } from './autonomousFinance';
 
 // Architectural Domain Custom Hooks
 import { useTransactions, LedgerFilterType } from './hooks/useTransactions';
@@ -185,6 +185,8 @@ export function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeQueryResult, setActiveQueryResult] = useState<FinancialQueryResult | null>(null);
+  const [isQuerying, setIsQuerying] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -615,10 +617,68 @@ export function App() {
     }
   }, [isListening]);
 
+  // Conversational Financial Query Execution (Ask AI Vault / Omnibar)
+  const handleRunFinancialQuery = useCallback(async (queryText: string) => {
+    const trimmed = queryText.trim();
+    if (!trimmed || isQuerying) return;
+
+    setIsQuerying(true);
+    setError(null);
+
+    try {
+      const accounts = await getAllAssetAccounts();
+      const result = await executeFinancialQuery(
+        trimmed,
+        transactions,
+        accounts,
+        fxRates,
+        currentCurrency,
+        getAIEngineConfig()
+      );
+      setActiveQueryResult(result);
+      setInput('');
+      setMainMode('insights');
+      showToast(`AI 재정 브리핑 생성 완료`);
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch (err: unknown) {
+      console.error('Financial query error:', err);
+      const msg = err instanceof Error ? err.message : '금융 질문을 분석하는 중 오류가 발생했습니다.';
+      setError(msg);
+    } finally {
+      setIsQuerying(false);
+    }
+  }, [isQuerying, transactions, fxRates, currentCurrency, showToast]);
+
   // AI Omnibar Ingestion Process
   const handleProcessInput = useCallback(async (customText?: string) => {
     const textToProcess = (customText || input).trim();
-    if (!textToProcess || isProcessing) return;
+    if (!textToProcess || isProcessing || isQuerying) return;
+
+    // 1. Detect if standard transaction was entered (e.g. "점심 9천원", "커피 4,500원 결제")
+    const hasExplicitTransactionAmount = /(?:\d+(?:,\d+)*(?:\s*원|\s*만원|\s*천원|\s*KRW|\s*USD|\s*EUR|\s*JPY)|[\$₩€¥]\s*\d+)/i.test(textToProcess);
+    const hasExplicitExpenseAction = /(?:결제|썼음|썼어|사먹|구입|구매|지출함|이체|입금|더치페이)/i.test(textToProcess);
+
+    // 2. Analytical intent keywords (환차익, 분석, 총액, 얼마, 추이, 주말 지출, 식비)
+    const hasAnalyticalKeywords = /(?:환차익|환손익|환차|환율|외환|분석|총액|얼마|추이|주말\s*지출)/i.test(textToProcess);
+    const isCategoryQueryAlone = /^(?:식비|교통비|생활비|고정비|문화비|여가비|의료비)(?:\s*(?:분석|조회|현황|통계))?$/i.test(textToProcess);
+    const isQuestionOrInsightMode = mainMode === 'insights' || textToProcess.endsWith('?') || /알려줘|어때|조회/i.test(textToProcess);
+
+    // If it's a standard transaction like "점심 9천원", proceed to recording as normal
+    const isStandardTransaction = hasExplicitTransactionAmount && !hasAnalyticalKeywords && !isQuestionOrInsightMode;
+
+    const isAnalyticalQuery = !isStandardTransaction && (
+      hasAnalyticalKeywords ||
+      isCategoryQueryAlone ||
+      (textToProcess.includes('식비') && !hasExplicitTransactionAmount) ||
+      isQuestionOrInsightMode
+    );
+
+    if (isAnalyticalQuery) {
+      await handleRunFinancialQuery(textToProcess);
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
@@ -968,6 +1028,8 @@ export function App() {
                 onOpenThemeSettings={() => handleOpenSettingsModal('preferences')}
                 onNavigateToVault={() => setMainMode('vault')}
                 onNavigateToLedger={() => setMainMode('ledger')}
+                queryResult={activeQueryResult}
+                onDismissQueryResult={() => setActiveQueryResult(null)}
               />
             </div>
           )}
@@ -1239,30 +1301,28 @@ export function App() {
         {/* 3. FIXED BOTTOM DOCK (AI Omnibar & Navigation) */}
       <footer className="flex-none backdrop-blur-2xl py-2 z-20 transition-colors border-t bg-[#08090D]/80 border-white/[0.08]">
         <div className="w-full px-4 transition-all duration-300">
-          {mainMode === 'ledger' && (
-            <OmnibarDock
-              input={input}
-              setInput={setInput}
-              isProcessing={isProcessing}
-              isOnline={isOnline}
-              currentCurrency={currentCurrency}
-              isMultiCurrencyMode={isMultiCurrencyMode}
-              realtimePreview={null}
-              engineStatus={engineStatus}
-              onSubmit={handleProcessInput}
-              onOpenReceiptScanner={handleOpenReceiptModal}
-              onCycleCurrency={handleQuickCycleCurrency}
-              isListening={isListening}
-              onToggleListen={toggleListen}
-              error={error}
-              onClearError={() => setError(null)}
-            />
-          )}
+          <OmnibarDock
+            input={input}
+            setInput={setInput}
+            isProcessing={isProcessing || isQuerying}
+            isOnline={isOnline}
+            currentCurrency={currentCurrency}
+            isMultiCurrencyMode={isMultiCurrencyMode}
+            realtimePreview={null}
+            engineStatus={engineStatus}
+            onSubmit={handleProcessInput}
+            onOpenReceiptScanner={handleOpenReceiptModal}
+            onCycleCurrency={handleQuickCycleCurrency}
+            isListening={isListening}
+            onToggleListen={toggleListen}
+            error={error}
+            onClearError={() => setError(null)}
+            mode={mainMode}
+            onRunQuery={handleRunFinancialQuery}
+          />
 
           {/* Persistent Bottom Tab Navigation Switcher */}
-          <div className={`pt-1.5 flex items-center justify-around ${
-            mainMode === 'ledger' ? 'mt-1 border-t border-white/[0.04]' : ''
-          }`}>
+          <div className="pt-1.5 flex items-center justify-around mt-1 border-t border-white/[0.04]">
             <button
               id="bottom-nav-vault-btn"
               type="button"

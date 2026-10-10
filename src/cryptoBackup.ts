@@ -341,6 +341,13 @@ export async function encryptBackupData(
   // 5. Build tamper-evident binary envelope
   const binaryEnvelope = serializeBinaryEnvelope(iterations, salt, iv, ciphertextWithTag);
 
+  // Key verification commitment to distinguish invalid passphrase vs tampered ciphertext
+  const keyVerifierBytes = await subtle.digest(
+    'SHA-256',
+    enc.encode(`${trimmedPass}:${bufferToHex(salt)}`)
+  );
+  const keyVerifier = bufferToHex(keyVerifierBytes);
+
   return {
     version: MAGIC_HEADER,
     format: 'vibe-vault-encrypted-v1',
@@ -354,10 +361,12 @@ export async function encryptBackupData(
     ciphertext: bufferToBase64(ciphertextWithTag),
     rawBinaryBase64: bufferToBase64(binaryEnvelope),
     createdAt: new Date().toISOString(),
+    keyVerifier,
     meta: {
       transactionCount: payload.transactions?.length || 0,
       appName: options?.appName || 'Vibe Vault Pro',
-      envelope: 'armored-json'
+      envelope: 'armored-json',
+      keyVerifier
     }
   };
 }
@@ -546,6 +555,28 @@ export async function decryptBackupData(
     }
 
     iterations = input.iterations || (isLegacyV2 ? 100_000 : DEFAULT_PBKDF2_ITERATIONS);
+
+    // Consistency check: If both ciphertext and rawBinaryBase64 are present, verify they match
+    if (input.ciphertext && input.rawBinaryBase64) {
+      try {
+        const rawBuf = base64ToBuffer(input.rawBinaryBase64);
+        if (isBinaryEnvelope(rawBuf) && rawBuf.length >= BINARY_HEADER_BYTE_LENGTH + 16) {
+          const binaryCiphertext = rawBuf.subarray(BINARY_HEADER_BYTE_LENGTH);
+          const givenCiphertext = base64ToBuffer(input.ciphertext);
+          if (
+            binaryCiphertext.length !== givenCiphertext.length ||
+            !binaryCiphertext.every((b, idx) => b === givenCiphertext[idx])
+          ) {
+            throw new CryptoBackupError(
+              'TAMPERED_PAYLOAD',
+              '암호문 페이로드와 바이너리 엔벨로프가 일치하지 않아 데이터 변조가 감지되었습니다.'
+            );
+          }
+        }
+      } catch (e: any) {
+        if (e instanceof CryptoBackupError) throw e;
+      }
+    }
   } else {
     throw new CryptoBackupError('CORRUPTED_PAYLOAD', '유효하지 않은 백업 입력입니다.');
   }
@@ -559,6 +590,25 @@ export async function decryptBackupData(
   }
   if (ciphertextBytes.length < 16) {
     throw new CryptoBackupError('CORRUPTED_PAYLOAD', '암호문이 손상되었거나 인증 태그가 누락되었습니다.');
+  }
+
+  // 1.5. Validate passphrase against keyVerifier if present in payload
+  let isPassphraseVerified = false;
+  const expectedVerifier = (typeof input === 'object' && input !== null)
+    ? ((input as any).keyVerifier || (input as any).meta?.keyVerifier)
+    : undefined;
+
+  if (expectedVerifier) {
+    const enc = new TextEncoder();
+    const candidateVerifierBytes = await subtle.digest(
+      'SHA-256',
+      enc.encode(`${trimmedPass}:${bufferToHex(saltBytes)}`)
+    );
+    const candidateVerifier = bufferToHex(candidateVerifierBytes);
+    if (candidateVerifier !== expectedVerifier) {
+      throw new CryptoBackupError('INVALID_PASSPHRASE', '비밀번호가 올바르지 않습니다.');
+    }
+    isPassphraseVerified = true;
   }
 
   // 2. Key Derivation with PBKDF2-SHA-256
@@ -578,6 +628,12 @@ export async function decryptBackupData(
     );
   } catch {
     // AEAD MAC tag mismatch triggers OperationError upon wrong password or tampered ciphertext
+    if (isPassphraseVerified) {
+      throw new CryptoBackupError(
+        'TAMPERED_PAYLOAD',
+        '암호화된 데이터가 변조되어 무결성 검증에 실패했습니다 (TAMPERED_PAYLOAD).'
+      );
+    }
     throw new CryptoBackupError(
       'INVALID_PASSPHRASE',
       '비밀번호가 올바르지 않거나 데이터가 변조되어 인증 태그 검증에 실패했습니다.'

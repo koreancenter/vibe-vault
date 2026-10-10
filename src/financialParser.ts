@@ -74,7 +74,7 @@ export function parseKoreanAmount(text: string): number | null {
     if (eokMatch) {
       total += parseFloat(eokMatch[1]) * 100000000;
       hasMatched = true;
-    } else if (/(?:^|[^\d])억/.test(normalized)) {
+    } else if (/(?:^|[^\p{L}\d])억(?:\s*원|\s*씩)/u.test(normalized)) {
       total += 100000000;
       hasMatched = true;
     }
@@ -90,7 +90,7 @@ export function parseKoreanAmount(text: string): number | null {
       if (manMatch) {
         total += parseFloat(manMatch[1]) * 10000;
         hasMatched = true;
-      } else if (/(?:^|[^\d])만(?:\s*원|\s*씩)?/.test(normalized)) {
+      } else if (/(?:^|[^\p{L}\d])만(?:\s*원|\s*씩)/u.test(normalized)) {
         total += 10000;
         hasMatched = true;
       }
@@ -102,7 +102,7 @@ export function parseKoreanAmount(text: string): number | null {
       if (cheonMatch) {
         total += parseFloat(cheonMatch[1]) * 1000;
         hasMatched = true;
-      } else if (/(?:^|[^\d])천(?:\s*원|\s*씩)?/.test(normalized)) {
+      } else if (/(?:^|[^\p{L}\d])천(?:\s*원|\s*씩)/u.test(normalized)) {
         total += 1000;
         hasMatched = true;
       }
