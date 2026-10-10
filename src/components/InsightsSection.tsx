@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, Suspense, lazy, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Transaction, 
   SupportedCurrency, 
@@ -28,8 +28,7 @@ import {
   ShieldCheck, 
   Wallet, 
   Banknote, 
-  X,
-  PieChart as PieChartIcon
+  X
 } from 'lucide-react';
 import { 
   calculateCashflowForecast, 
@@ -42,8 +41,6 @@ import {
 } from '../utils';
 import { getAllAssetAccounts, getAllDebts } from '../db';
 import { LUXURY_CATEGORY_COLORS } from './CategoryDonutChart';
-
-const CategoryDonutChart = lazy(() => import('./CategoryDonutChart'));
 
 import {
   ResponsiveContainer,
@@ -397,21 +394,15 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          {!isCurrentMonth && (
-            <button
-              type="button"
-              onClick={handleResetToCurrentMonth}
-              className="px-3 py-1 rounded-full text-xs font-normal transition-all active:scale-95 bg-sky-500/10 text-sky-300 border border-sky-500/20 hover:bg-sky-500/20 cursor-pointer"
-            >
-              이번 달
-            </button>
-          )}
-
-          <span className="text-xs font-light text-slate-400 hidden sm:inline-block">
-            통합 재정 인텔리전스
-          </span>
-        </div>
+        {!isCurrentMonth && (
+          <button
+            type="button"
+            onClick={handleResetToCurrentMonth}
+            className="px-3 py-1 rounded-full text-xs font-normal transition-all active:scale-95 bg-sky-500/10 text-sky-300 border border-sky-500/20 hover:bg-sky-500/20 cursor-pointer"
+          >
+            이번 달
+          </button>
+        )}
       </div>
 
       {/* Conditionally Rendered Dismissible AI Briefing Card (Retained only when active queryResult is present) */}
@@ -622,13 +613,12 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         </div>
       </div>
 
-      {/* 4. Spending Category Breakdown (Full-width clean horizontal bars or scaled chart) */}
+      {/* 4. Spending Category Breakdown (Full-width clean horizontal bars) */}
       <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold tracking-tight text-white flex items-center gap-1.5">
-              <PieChartIcon size={15} className="text-sky-400" />
-              <span>카테고리별 지출 분석</span>
+            <h3 className="text-sm font-semibold tracking-tight text-white">
+              카테고리별 지출 분석
             </h3>
             <p className="text-xs font-light text-slate-400 mt-0.5">
               {format(selectedMonth, 'yyyy년 M월')} 총 지출: <span className="font-medium text-slate-200 tabular-nums">{formatMoney(monthExpense)}</span>
@@ -646,24 +636,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           )}
         </div>
 
-        {/* Scaled donut chart with graceful zero-state */}
-        {categoryBreakdownList.length > 0 ? (
-          <div className="w-full flex justify-center py-2">
-            <Suspense fallback={<div className="h-44 flex items-center justify-center text-xs text-slate-500">차트 준비 중...</div>}>
-              <CategoryDonutChart
-                transactions={monthTransactions.length > 0 ? monthTransactions : transactions}
-                selectedCategory={selectedCategory}
-                onSelectCategory={setSelectedCategory}
-                currencySymbol={currentCurrency}
-                isStealth={isStealth}
-                embedded={true}
-              />
-            </Suspense>
-          </div>
-        ) : null}
-
         {/* Horizontal Category Ratio Bars with zero-data fallback */}
-        <div className="mt-4 pt-4 border-t border-white/[0.06] space-y-3">
+        <div className="space-y-3">
           {categoryBreakdownList.length === 0 ? (
             <div className="py-8 text-center text-xs font-light text-slate-500 flex flex-col items-center justify-center gap-1">
               <span className="text-slate-400 font-normal">이 달의 지출 내역이 없습니다</span>
