@@ -37,7 +37,8 @@ import {
 import { 
   getCurrencySymbol, 
   getCategoryKo, 
-  convertCurrency 
+  convertCurrency,
+  computeFinancialAggregates
 } from '../utils';
 import { getAllAssetAccounts, getAllDebts } from '../db';
 import { LUXURY_CATEGORY_COLORS } from './CategoryDonutChart';
@@ -181,8 +182,18 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       }
     };
     loadVaultData();
+
+    const handleDataChange = () => {
+      loadVaultData();
+    };
+
+    window.addEventListener('vibe-vault-data-changed', handleDataChange);
+    window.addEventListener('vibe-vault-data-reset', handleDataChange);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('vibe-vault-data-changed', handleDataChange);
+      window.removeEventListener('vibe-vault-data-reset', handleDataChange);
     };
   }, []);
 
@@ -229,49 +240,31 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
     };
   }, [monthTransactions, currentCurrency, fxRates]);
 
-  // Asset calculations
+  // Asset calculations (Unified with VaultOverviewSection)
   const { totalAssets, totalLiabilities, netWorth, liquidAssets } = useMemo(() => {
-    let assetsSum = 0;
-    let liabilitiesSum = 0;
+    const aggregates = computeFinancialAggregates(
+      accounts,
+      debts,
+      currentCurrency,
+      fxRates
+    );
+
     let liquid = 0;
-
     for (const acc of accounts) {
-      const converted = convertCurrency(
-        acc.currentBalance,
-        acc.currency || 'KRW',
-        currentCurrency,
-        fxRates
-      );
-
-      if (acc.assetType === 'LIABILITY') {
-        liabilitiesSum += converted;
-      } else {
-        assetsSum += converted;
-        if (acc.assetType === 'BANK' || acc.assetType === 'CASH') {
-          liquid += converted;
-        }
-      }
-    }
-
-    for (const d of debts) {
-      if (!d.isActive) continue;
-      const converted = convertCurrency(
-        d.remainingPrincipal,
-        d.currency || 'KRW',
-        currentCurrency,
-        fxRates
-      );
-      if (d.type === 'LOAN_RECEIVABLE') {
-        assetsSum += converted;
-      } else {
-        liabilitiesSum += converted;
+      if (acc.assetType === 'BANK' || acc.assetType === 'CASH') {
+        liquid += convertCurrency(
+          acc.currentBalance,
+          acc.currency || 'KRW',
+          currentCurrency,
+          fxRates
+        );
       }
     }
 
     return {
-      totalAssets: assetsSum,
-      totalLiabilities: liabilitiesSum,
-      netWorth: assetsSum - liabilitiesSum,
+      totalAssets: aggregates.totalAssets,
+      totalLiabilities: aggregates.totalLiabilities,
+      netWorth: aggregates.netWorth,
       liquidAssets: liquid
     };
   }, [accounts, debts, currentCurrency, fxRates]);

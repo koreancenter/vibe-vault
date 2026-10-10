@@ -434,6 +434,18 @@ export async function getTransactionsByType(type: 'INCOME' | 'EXPENSE' | 'TRANSF
 }
 
 /**
+ * Dispatches a vault data change event so all active screens (VaultOverview, Insights)
+ * automatically refresh when assets or debts are modified in IndexedDB.
+ */
+export function notifyVaultDataChanged(source?: string): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('vibe-vault-data-changed', {
+      detail: { source: source || 'db_mutation', timestamp: Date.now() }
+    }));
+  }
+}
+
+/**
  * Multi-Brokerage Asset Account Persistence
  */
 export async function getAllAssetAccounts(): Promise<AssetAccount[]> {
@@ -448,6 +460,7 @@ export async function getAllAssetAccounts(): Promise<AssetAccount[]> {
 export async function clearAllAssetAccounts(): Promise<void> {
   const db = await getDB();
   await db.clear('assetAccounts');
+  notifyVaultDataChanged('clearAllAssetAccounts');
 }
 
 export async function saveAssetAccount(account: AssetAccount): Promise<void> {
@@ -455,11 +468,13 @@ export async function saveAssetAccount(account: AssetAccount): Promise<void> {
   const sanitized = sanitizeAssetAccountInput(account) as AssetAccount;
   const encrypted = await encryptAssetAccount(sanitized);
   await db.put('assetAccounts', encrypted);
+  notifyVaultDataChanged('saveAssetAccount');
 }
 
 export async function deleteAssetAccount(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('assetAccounts', id);
+  notifyVaultDataChanged('deleteAssetAccount');
 }
 
 export async function updateAssetAccountBalance(id: string, newBalance: number): Promise<AssetAccount | null> {
@@ -470,6 +485,7 @@ export async function updateAssetAccountBalance(id: string, newBalance: number):
   account.currentBalance = newBalance;
   account.lastUpdated = new Date().toISOString();
   await db.put('assetAccounts', account);
+  notifyVaultDataChanged('updateAssetAccountBalance');
   return decryptAssetAccount(account);
 }
 
@@ -483,6 +499,7 @@ export async function bulkSaveAssetAccounts(accounts: AssetAccount[]): Promise<v
     tx.store.put(acc);
   }
   await tx.done;
+  notifyVaultDataChanged('bulkSaveAssetAccounts');
 }
 
 /**
@@ -547,6 +564,7 @@ export async function executeAccountTransfer(
   tx.objectStore('transactions').put(encryptedTx);
   await tx.done;
 
+  notifyVaultDataChanged('executeAccountTransfer');
   return { transaction: transferTx, sourceAccount: source, targetAccount: target };
 }
 
@@ -565,6 +583,7 @@ export async function getAllDebts(): Promise<DebtItem[]> {
 export async function clearAllDebts(): Promise<void> {
   const db = await getDB();
   await db.clear('debts');
+  notifyVaultDataChanged('clearAllDebts');
 }
 
 export async function saveDebt(debt: DebtItem): Promise<void> {
@@ -572,11 +591,13 @@ export async function saveDebt(debt: DebtItem): Promise<void> {
   const sanitized = sanitizeDebtItemInput(debt) as DebtItem;
   const encrypted = await encryptDebtItem(sanitized);
   await db.put('debts', encrypted);
+  notifyVaultDataChanged('saveDebt');
 }
 
 export async function deleteDebt(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('debts', id);
+  notifyVaultDataChanged('deleteDebt');
 }
 
 export async function updateDebtRemainingPrincipal(id: string, newRemaining: number): Promise<DebtItem | null> {
@@ -590,6 +611,7 @@ export async function updateDebtRemainingPrincipal(id: string, newRemaining: num
   }
   debt.lastUpdated = new Date().toISOString();
   await db.put('debts', debt);
+  notifyVaultDataChanged('updateDebtRemainingPrincipal');
   return decryptDebtItem(debt);
 }
 
@@ -668,6 +690,7 @@ export async function executeLoanRepaymentSplit(
   }
   await tx.done;
 
+  notifyVaultDataChanged('executeLoanRepaymentSplit');
   return {
     interestTransaction: interestTx,
     principalTransaction: principalTx,
@@ -721,6 +744,7 @@ export async function executeReceivableRecovery(
   tx.objectStore('transactions').put(encryptedSettlementTx);
   await tx.done;
 
+  notifyVaultDataChanged('executeReceivableRecovery');
   return {
     settlementTransaction: settlementTx,
     updatedDebt: debt

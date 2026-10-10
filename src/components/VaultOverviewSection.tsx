@@ -36,10 +36,12 @@ import {
   SupportedCurrency, 
   FxRates, 
   HoldingItem,
-  Transaction
+  Transaction,
+  DebtItem
 } from '../types';
 import { 
   getAllAssetAccounts, 
+  getAllDebts,
   saveAssetAccount, 
   deleteAssetAccount, 
   updateAssetAccountBalance, 
@@ -56,7 +58,8 @@ import {
   getCategoryKo,
   ASSET_CATEGORY_NAMES_KO, 
   AIEngineConfig, 
-  getAIEngineConfig 
+  getAIEngineConfig,
+  computeFinancialAggregates
 } from '../utils';
 import {
   sanitizeAndProcessImage,
@@ -325,6 +328,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 }) => {
   const isLight = theme === 'light';
   const [accounts, setAccounts] = useState<AssetAccount[]>([]);
+  const [debts, setDebts] = useState<DebtItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState<'ALL' | AssetCategoryType>('ALL');
 
@@ -369,23 +373,28 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
     setTimeout(() => setNotification(null), 3500);
   };
 
-  const loadAccounts = async () => {
+  const loadVaultData = async () => {
     setIsLoading(true);
     try {
-      const data = await getAllAssetAccounts();
-      setAccounts(data);
+      const [accs, dbs] = await Promise.all([
+        getAllAssetAccounts(),
+        getAllDebts()
+      ]);
+      setAccounts(accs || []);
+      setDebts(dbs || []);
     } catch (e) {
-      console.error('Failed to load asset accounts:', e);
+      console.error('Failed to load asset accounts & debts:', e);
     } finally {
       setIsLoading(false);
     }
   };
+  const loadAccounts = loadVaultData;
 
   useEffect(() => {
-    loadAccounts();
+    loadVaultData();
 
     const handleDataChange = () => {
-      loadAccounts();
+      loadVaultData();
     };
 
     window.addEventListener('vibe-vault-data-changed', handleDataChange);
@@ -397,10 +406,15 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
     };
   }, []);
 
-  // Aggregated Net Worth Calculations
+  // Aggregated Net Worth Calculations (Unified with InsightsSection)
   const { totalAssets, totalLiabilities, netWorth, categoryTotals } = useMemo(() => {
-    let assetsSum = 0;
-    let liabilitiesSum = 0;
+    const aggregates = computeFinancialAggregates(
+      accounts,
+      debts,
+      currentCurrency,
+      fxRates
+    );
+
     const catMap: Record<AssetCategoryType, number> = {
       BROKERAGE: 0,
       BANK: 0,
@@ -419,23 +433,19 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       );
 
       if (acc.assetType === 'LIABILITY') {
-        liabilitiesSum += converted;
         catMap.LIABILITY += converted;
       } else {
-        assetsSum += converted;
         catMap[acc.assetType] = (catMap[acc.assetType] || 0) + converted;
       }
     }
 
-    const net = assetsSum - liabilitiesSum;
-
     return {
-      totalAssets: assetsSum,
-      totalLiabilities: liabilitiesSum,
-      netWorth: net,
+      totalAssets: aggregates.totalAssets,
+      totalLiabilities: aggregates.totalLiabilities,
+      netWorth: aggregates.netWorth,
       categoryTotals: catMap,
     };
-  }, [accounts, currentCurrency, fxRates]);
+  }, [accounts, debts, currentCurrency, fxRates]);
 
   const formattedNetWorth = useMemo(() => {
     return formatCurrency(Math.round(netWorth), currentCurrency);
@@ -505,8 +515,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       {
         type: 'LIABILITY' as AssetCategoryType,
         label: '부채',
-        amount: categoryTotals.LIABILITY || totalLiabilities || 0,
-        percentage: totalAssets > 0 ? ((categoryTotals.LIABILITY || totalLiabilities || 0) / totalAssets) * 100 : 0,
+        amount: totalLiabilities,
+        percentage: totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0,
         barColor: 'bg-rose-400/80',
         dotColor: 'bg-rose-400/80',
       },
@@ -821,6 +831,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 stealthMode ? 'blur-md select-none opacity-60' : 'text-white'
               }`}>
                 {formattedNetWorth}
+              </div>
+              <div className={`mt-1 text-xs font-light text-neutral-400 tabular-nums ${
+                stealthMode ? 'blur-xs select-none' : ''
+              }`}>
+                총 자산 {formatCurrency(Math.round(totalAssets), currentCurrency)}
               </div>
             </div>
             <span className="text-[11px] font-light text-neutral-400 tabular-nums pt-0.5">

@@ -525,6 +525,48 @@ export function getDualCurrencyComparison(
   };
 }
 
+export interface FinancialAggregates {
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+}
+
+/**
+ * Unified Net Worth & Asset Computation:
+ * Shared accounting formula across VaultOverview and Insights
+ */
+export function computeFinancialAggregates(
+  accounts: AssetAccount[],
+  debts: DebtItem[] = [],
+  baseCurrency: string = 'KRW',
+  fxRates: FxRates = DEFAULT_FX_RATES
+): FinancialAggregates {
+  // 1. Total Gross Assets (계좌 합계 + 대여금/받을 채권)
+  const totalAssets = accounts
+    .filter(a => a.assetType !== 'LIABILITY')
+    .reduce((sum, a) => sum + convertCurrency(a.currentBalance, a.currency || 'KRW', baseCurrency, fxRates), 0)
+    + debts
+    .filter(d => d.isActive && d.type === 'LOAN_RECEIVABLE')
+    .reduce((sum, d) => sum + convertCurrency(d.remainingPrincipal, d.currency || 'KRW', baseCurrency, fxRates), 0);
+
+  // 2. Total Liabilities (부채 계좌 + 갚을 채무)
+  const totalLiabilities = accounts
+    .filter(a => a.assetType === 'LIABILITY')
+    .reduce((sum, a) => sum + convertCurrency(a.currentBalance, a.currency || 'KRW', baseCurrency, fxRates), 0)
+    + debts
+    .filter(d => d.isActive && d.type !== 'LOAN_RECEIVABLE')
+    .reduce((sum, d) => sum + convertCurrency(d.remainingPrincipal, d.currency || 'KRW', baseCurrency, fxRates), 0);
+
+  // 3. Net Worth (순자산 = 총자산 - 총부채)
+  const netWorth = totalAssets - totalLiabilities;
+
+  return {
+    totalAssets,
+    totalLiabilities,
+    netWorth,
+  };
+}
+
 export const RECOMMENDED_CATEGORY_BUDGETS: Record<string, number> = {
   Food: 600000,
   Living: 400000,
