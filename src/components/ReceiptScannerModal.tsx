@@ -595,18 +595,82 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className={`text-[11px] block ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>가맹점</span>
-                      <span className="text-sm font-bold block mt-0.5">{parsedResult.merchantName || parsedResult.merchant}</span>
-                      <span className="text-[10px] opacity-60 block">{parsedResult.date}</span>
+                  <div className="space-y-2.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <label className={`text-[10px] block font-medium mb-0.5 ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>가맹점</label>
+                        <input
+                          type="text"
+                          value={parsedResult.merchantName || parsedResult.merchant || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setParsedResult(prev => prev ? { ...prev, merchantName: val, merchant: val } : null);
+                          }}
+                          className={`w-full text-sm font-bold bg-transparent border-b pb-0.5 focus:outline-hidden transition-colors ${
+                            isLight ? 'border-slate-200 focus:border-indigo-600 text-slate-900' : 'border-white/10 focus:border-[#38bdf8] text-white'
+                          }`}
+                          placeholder="가맹점명"
+                        />
+                      </div>
+
+                      <div className="w-28 shrink-0">
+                        <label className={`text-[10px] block font-medium mb-0.5 ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>결제 일자</label>
+                        <input
+                          type="date"
+                          value={parsedResult.date || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setParsedResult(prev => prev ? { ...prev, date: val } : null);
+                          }}
+                          className={`w-full text-xs font-mono bg-transparent border-b pb-0.5 focus:outline-hidden transition-colors ${
+                            isLight ? 'border-slate-200 focus:border-indigo-600 text-slate-800' : 'border-white/10 focus:border-[#38bdf8] text-slate-200'
+                          }`}
+                        />
+                      </div>
                     </div>
 
-                    <div className="text-right">
-                      <span className={`text-[11px] block ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>총 결제 금액</span>
-                      <span className="text-base font-black text-sky-600 dark:text-[#38bdf8] block mt-0.5 font-mono">
-                        {getCurrencySymbol(parsedResult.currency as SupportedCurrency)}{parsedResult.totalAmount.toLocaleString()}
-                      </span>
+                    <div className="flex items-center justify-between gap-3 pt-1">
+                      <div className="flex items-center gap-1.5">
+                        <label className={`text-[10px] font-medium ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>통화</label>
+                        <select
+                          value={parsedResult.currency || currentCurrency}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setParsedResult(prev => prev ? { ...prev, currency: val } : null);
+                          }}
+                          className={`text-xs font-mono font-bold rounded-md px-1.5 py-0.5 border bg-transparent focus:outline-hidden transition-colors ${
+                            isLight ? 'border-slate-200 text-slate-800' : 'border-white/10 text-white bg-white/5'
+                          }`}
+                        >
+                          <option value="KRW" className="bg-[#0E1526] text-white">KRW (₩)</option>
+                          <option value="USD" className="bg-[#0E1526] text-white">USD ($)</option>
+                          <option value="EUR" className="bg-[#0E1526] text-white">EUR (€)</option>
+                          <option value="JPY" className="bg-[#0E1526] text-white">JPY (¥)</option>
+                          <option value="GBP" className="bg-[#0E1526] text-white">GBP (£)</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-1.5 flex-1">
+                        <span className={`text-[10px] font-medium ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>총 결제금액:</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm font-bold text-sky-600 dark:text-[#38bdf8] font-mono">
+                            {getCurrencySymbol(parsedResult.currency as SupportedCurrency)}
+                          </span>
+                          <input
+                            type="number"
+                            step={parsedResult.currency === 'USD' || parsedResult.currency === 'EUR' || parsedResult.currency === 'GBP' ? '0.01' : '1'}
+                            value={isNaN(parsedResult.totalAmount) ? '' : parsedResult.totalAmount}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              setParsedResult(prev => prev ? { ...prev, totalAmount: isNaN(val) ? 0 : val } : null);
+                            }}
+                            className={`w-28 text-right text-base font-black font-mono bg-transparent border-b pb-0.5 text-sky-600 dark:text-[#38bdf8] focus:outline-hidden transition-colors ${
+                              isLight ? 'border-slate-200 focus:border-indigo-600' : 'border-white/10 focus:border-[#38bdf8]'
+                            }`}
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 

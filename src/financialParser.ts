@@ -1423,9 +1423,190 @@ export function extractRealtimePreview(text: string): RealtimePreviewData | null
 }
 
 /**
+ * Robust Multilingual Date Extractor for Receipts:
+ * Supports Korean, ISO (YYYY-MM-DD), Japanese/Chinese (YYYY年MM月DD日),
+ * European (DD/MM/YYYY, DD.MM.YYYY), US (MM/DD/YYYY),
+ * and alphanumeric dates (12 Oct 2026, Oct 12 2026).
+ */
+export function extractReceiptDateLocally(rawText: string, fallbackDate: string): string {
+  const text = rawText;
+
+  // Month mapping for English abbreviations
+  const MONTH_MAP: Record<string, string> = {
+    jan: '01', january: '01',
+    feb: '02', february: '02',
+    mar: '03', march: '03',
+    apr: '04', april: '04',
+    may: '05',
+    jun: '06', june: '06',
+    jul: '07', july: '07',
+    aug: '08', august: '08',
+    sep: '09', sept: '09', september: '09',
+    oct: '10', october: '10',
+    nov: '11', november: '11',
+    dec: '12', december: '12'
+  };
+
+  // Helper to validate and format YYYY-MM-DD
+  const formatIsoDate = (year: number, month: number, day: number): string | null => {
+    if (year < 100) {
+      year += year >= 70 ? 1900 : 2000;
+    }
+    if (year < 2000 || year > 2099) return null;
+    if (month < 1 || month > 12) return null;
+    if (day < 1 || day > 31) return null;
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
+
+  // 1. ISO 8601 & Asian Formats: YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD, YYYY년 MM월 DD일, YYYY年 MM月 DD日
+  const isoMatch = text.match(/\b(20\d{2})[-/.년年]\s*(0?[1-9]|1[0-2])[-/.월月]\s*(0?[1-9]|[12]\d|3[01])(?:\s*[일日])?\b/i);
+  if (isoMatch) {
+    const formatted = formatIsoDate(parseInt(isoMatch[1], 10), parseInt(isoMatch[2], 10), parseInt(isoMatch[3], 10));
+    if (formatted) return formatted;
+  }
+
+  // 2. Short Asian format: YY-MM-DD, YY.MM.DD, YY/MM/DD (e.g., 26-09-19 or 26.09.19)
+  const shortAsianMatch = text.match(/\b([2-3]\d)[-/.년年]\s*(0?[1-9]|1[0-2])[-/.월月]\s*(0?[1-9]|[12]\d|3[01])(?:\s*[일日])?\b/i);
+  if (shortAsianMatch) {
+    const formatted = formatIsoDate(2000 + parseInt(shortAsianMatch[1], 10), parseInt(shortAsianMatch[2], 10), parseInt(shortAsianMatch[3], 10));
+    if (formatted) return formatted;
+  }
+
+  // 3. English Month Name formats: "12 Oct 2026", "12-Oct-2026", "Oct 12, 2026", "October 12 2026"
+  const monthNameDayYear = text.match(/\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[.\s/-]+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?[,\s/-]+(20\d{2})\b/i);
+  if (monthNameDayYear) {
+    const mStr = monthNameDayYear[1].toLowerCase();
+    const month = parseInt(MONTH_MAP[mStr] || '01', 10);
+    const day = parseInt(monthNameDayYear[2], 10);
+    const year = parseInt(monthNameDayYear[3], 10);
+    const formatted = formatIsoDate(year, month, day);
+    if (formatted) return formatted;
+  }
+
+  const dayMonthNameYear = text.match(/\b(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?[.\s/-]+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[.\s/,-]+(20\d{2})\b/i);
+  if (dayMonthNameYear) {
+    const day = parseInt(dayMonthNameYear[1], 10);
+    const mStr = dayMonthNameYear[2].toLowerCase();
+    const month = parseInt(MONTH_MAP[mStr] || '01', 10);
+    const year = parseInt(dayMonthNameYear[3], 10);
+    const formatted = formatIsoDate(year, month, day);
+    if (formatted) return formatted;
+  }
+
+  // 4. European / Latin: DD/MM/YYYY or DD.MM.YYYY
+  const euroMatch = text.match(/\b(0?[1-9]|[12]\d|3[01])[-/.](0?[1-9]|1[0-2])[-/.](20\d{2})\b/);
+  if (euroMatch) {
+    // If first number > 12, it must be DD/MM/YYYY
+    const p1 = parseInt(euroMatch[1], 10);
+    const p2 = parseInt(euroMatch[2], 10);
+    const year = parseInt(euroMatch[3], 10);
+    if (p1 > 12) {
+      const formatted = formatIsoDate(year, p2, p1);
+      if (formatted) return formatted;
+    } else {
+      // Ambiguous DD/MM vs MM/DD: European receipts usually DD/MM/YYYY
+      const formatted = formatIsoDate(year, p2, p1);
+      if (formatted) return formatted;
+    }
+  }
+
+  // 5. US format: MM/DD/YYYY
+  const usMatch = text.match(/\b(0?[1-9]|1[0-2])[-/.](0?[1-9]|[12]\d|3[01])[-/.](20\d{2})\b/);
+  if (usMatch) {
+    const month = parseInt(usMatch[1], 10);
+    const day = parseInt(usMatch[2], 10);
+    const year = parseInt(usMatch[3], 10);
+    const formatted = formatIsoDate(year, month, day);
+    if (formatted) return formatted;
+  }
+
+  return fallbackDate;
+}
+
+/**
+ * Robust Multilingual Total Amount Extractor:
+ * Parses totals across Korean, English, Japanese, French, German, Spanish receipts.
+ * Recognizes keywords, handles decimal currency (USD $42.50, EUR €12.99) and whole currencies (KRW, JPY).
+ */
+export function extractReceiptTotalAmountLocally(
+  lines: string[],
+  fullText: string,
+  currency: CurrencyCode
+): { totalAmount: number; foundTotal: boolean } {
+  // Total keywords ranked by priority
+  const HIGH_PRIORITY_TOTAL_REGEX = /(?:합\s*계|총\s*액|결제\s*금액|승인\s*금액|받을\s*금액|카드\s*승인|total\s*amount|grand\s*total|amount\s*due|balance\s*due|final\s*total|montant\s*total|gesamtbetrag|total\s*ttc|importe\s*total|합계금액|합\s*계\s*금\s*액|총\s*합\s*계|合計|お会計|支払金額)/i;
+  const MEDIUM_PRIORITY_TOTAL_REGEX = /(?:^|\s)(?:total|subtotal|sub-total|amount|summe|netto|brutto|payer|somme)(?:\s*[:：]|\s+|$)/i;
+
+  let bestAmount = 0;
+  let foundExplicit = false;
+
+  const isDecimalCurrency = currency === 'USD' || currency === 'EUR' || currency === 'GBP';
+
+  // Helper to extract numeric amount from a total-candidate line
+  const parseAmountFromLine = (line: string): number | null => {
+    // 1. If Korean units exist (e.g. 1만 5천원, 15,000원)
+    if (/[만천원]/.test(line)) {
+      const ko = parseKoreanAmount(line);
+      if (ko && ko > 0) return ko;
+    }
+
+    // 2. Multilingual currency symbols or words: $45.20, €12.50, £9.99, ¥2,500, 15000 KRW
+    // Match the LAST number or currency pattern on the line (usually the amount column on the right)
+    const patterns = [
+      /(?:[\$€£¥₩]\s*)([\d,]+(?:\.\d{1,2})?)/g,
+      /([\d,]+(?:\.\d{1,2})?)\s*(?:[\$€£¥₩]|krw|usd|eur|jpy|gbp|원|엔|달러|유로)/gi,
+      /(?:[:：]\s*)([\d,]+(?:\.\d{1,2})?)/g,
+      /\b([\d,]+(?:\.\d{1,2})?)\b/g
+    ];
+
+    for (const pat of patterns) {
+      const matches = Array.from(line.matchAll(pat));
+      if (matches.length > 0) {
+        // Look from rightmost match backwards (amounts are right-aligned on receipts)
+        for (let i = matches.length - 1; i >= 0; i--) {
+          const rawNum = matches[i][1] || matches[i][0];
+          const cleaned = rawNum.replace(/,/g, '').trim();
+          const val = parseFloat(cleaned);
+          if (!isNaN(val) && val > 0) {
+            // Guard against year numbers like 2026 or time like 1430
+            if ((val === 2024 || val === 2025 || val === 2026 || val === 2027) && /date|일자|년/i.test(line)) {
+              continue;
+            }
+            return isDecimalCurrency ? Math.round(val * 100) / 100 : Math.round(val);
+          }
+        }
+      }
+    }
+
+    return null;
+  };
+
+  // Search through lines
+  for (const line of lines) {
+    if (HIGH_PRIORITY_TOTAL_REGEX.test(line)) {
+      const parsed = parseAmountFromLine(line);
+      if (parsed && parsed > 0) {
+        bestAmount = parsed;
+        foundExplicit = true;
+        // High priority found, keep searching only if another high priority appears with larger or subsequent value
+      }
+    } else if (!foundExplicit && MEDIUM_PRIORITY_TOTAL_REGEX.test(line)) {
+      const parsed = parseAmountFromLine(line);
+      if (parsed && parsed > 0) {
+        bestAmount = parsed;
+        foundExplicit = true;
+      }
+    }
+  }
+
+  return { totalAmount: bestAmount, foundTotal: foundExplicit };
+}
+
+/**
  * Local Heuristic Receipt Parser:
  * Fallback parser when offline or when Gemini AI is unreachable.
  * Analyzes unstructured receipt text, OCR text lines, or manual receipts.
+ * Fully enhanced for multilingual receipts (Korean, English, Japanese, European).
  */
 export function parseReceiptTextLocally(
   rawText: string,
@@ -1439,74 +1620,63 @@ export function parseReceiptTextLocally(
 
   const today = new Date().toISOString().slice(0, 10);
   let merchantName = '';
-  let date = today;
-  let totalAmount = 0;
+  const date = extractReceiptDateLocally(sanitized, today);
   const currency = detectCurrency(sanitized) || defaultCurrency;
   const items: ReceiptItem[] = [];
 
-  // 1. Extract Date
-  const dateMatch = sanitized.match(/\b(20\d{2})[-/.년]\s*(0?[1-9]|1[0-2])[-/.월]\s*(0?[1-9]|[12]\d|3[01])\b/);
-  if (dateMatch) {
-    const y = dateMatch[1];
-    const m = dateMatch[2].padStart(2, '0');
-    const d = dateMatch[3].padStart(2, '0');
-    date = `${y}-${m}-${d}`;
-  }
-
-  // 2. Line by line parsing for items, total, and merchant
-  let foundTotal = false;
-
+  // Line by line parsing for items & merchant
   for (const line of lines) {
-    // Check for merchant headers like "상호:", "가맹점:", "매장명:"
-    const merchantPrefixMatch = line.match(/(?:상호(?:명)?|가맹점(?:명)?|매장(?:명)?|점포명)\s*[:：]?\s*([가-힣a-zA-Z0-9\s()·\-]+)/i);
+    // Check for merchant headers like "상호:", "가맹점:", "매장명:", "Store:", "Merchant:", "Shop:"
+    const merchantPrefixMatch = line.match(/(?:상호(?:명)?|가맹점(?:명)?|매장(?:명)?|점포명|store(?:\s*name)?|merchant|shop)\s*[:：]?\s*([가-힣a-zA-Z0-9\s()·\-&']+)/i);
     if (merchantPrefixMatch && !merchantName) {
       merchantName = merchantPrefixMatch[1].trim();
       continue;
     }
 
-    // Check for total lines: "합계", "총액", "결제금액", "승인금액", "Total", "Amount"
-    const isTotalLine = /(?:합\s*계|총\s*액|결제\s*금액|승인\s*금액|받을\s*금액|카드\s*승인|total|amount\s*due|subtotal)/i.test(line);
-    if (isTotalLine) {
-      const lineAmount = parseKoreanAmount(line);
-      if (lineAmount && lineAmount > 0) {
-        totalAmount = Math.max(totalAmount, lineAmount);
-        foundTotal = true;
-        continue;
-      }
-    }
-
     // Line item extraction: [Item Name] [Price or Quantity Price]
-    const itemMatch = line.match(/^([가-힣a-zA-Z0-9\s\-_/]+?)\s+(?:(\d+)\s+)?([\d,]{2,10})\s*(?:원)?$/);
-    if (itemMatch && !isTotalLine) {
-      const name = itemMatch[1].trim();
-      const qty = itemMatch[2] ? parseInt(itemMatch[2], 10) : 1;
-      const parsedPrice = parseKoreanAmount(itemMatch[3]);
-      if (parsedPrice && parsedPrice > 0 && name.length >= 2 && !/^(카드|승인|거래|일시|영수증|사업자)/.test(name)) {
-        items.push({
-          name,
-          price: parsedPrice,
-          quantity: isNaN(qty) ? 1 : qty,
-          amount: parsedPrice
-        });
+    // Handles Korean (4,500원), Western ($12.50, 12.50), Japanese (¥1,200)
+    const isExcludedHeader = /(?:합\s*계|총\s*액|결제|승인|거래|일시|영수증|사업자|전화|주소|date|total|tax|subtotal|receipt|tel|vat|gst)/i.test(line);
+    if (!isExcludedHeader) {
+      const itemMatch = line.match(/^([가-힣a-zA-Z0-9\s\-_/&'.]+?)\s+(?:(\d+)\s+)?(?:[\$€£¥₩])?([\d,]+(?:\.\d{1,2})?)\s*(?:원|엔|krw|usd|eur|jpy)?$/i);
+      if (itemMatch) {
+        const name = itemMatch[1].trim();
+        const qty = itemMatch[2] ? parseInt(itemMatch[2], 10) : 1;
+        const rawPriceStr = itemMatch[3].replace(/,/g, '');
+        const parsedPrice = parseFloat(rawPriceStr);
+        if (!isNaN(parsedPrice) && parsedPrice > 0 && name.length >= 2) {
+          items.push({
+            name,
+            price: parsedPrice,
+            quantity: isNaN(qty) ? 1 : qty,
+            amount: parsedPrice
+          });
+        }
       }
     }
   }
+
+  // Extract total amount using multilingual logic
+  const { totalAmount: detectedTotal, foundTotal } = extractReceiptTotalAmountLocally(lines, sanitized, currency);
+  let totalAmount = detectedTotal;
 
   // If no explicit total found, sum up items or find overall amount
   if (!foundTotal && items.length > 0) {
     totalAmount = items.reduce((sum, it) => sum + (it.price * (it.quantity || 1)), 0);
   } else if (totalAmount === 0) {
-    totalAmount = parseKoreanAmount(sanitized) || 0;
+    const rawKoreanFallback = parseKoreanAmount(sanitized);
+    if (rawKoreanFallback) {
+      totalAmount = rawKoreanFallback;
+    }
   }
 
-  // 3. Fallback for merchant name
+  // Fallback for merchant name
   if (!merchantName) {
     const { merchant } = inferCategoryAndMerchant(sanitized);
     if (merchant) {
       merchantName = merchant;
     } else if (lines.length > 0) {
-      const cleanFirst = lines[0].replace(/\[.*?\]|\(.*?\)|영수증|매출전표|고객용/g, '').trim();
-      if (cleanFirst.length >= 2) {
+      const cleanFirst = lines[0].replace(/\[.*?\]|\(.*?\)|영수증|매출전표|고객용|receipt|bill|invoice/gi, '').trim();
+      if (cleanFirst.length >= 2 && !/^\d+$/.test(cleanFirst)) {
         merchantName = cleanFirst;
       } else {
         merchantName = '영수증 결제';
@@ -1516,7 +1686,7 @@ export function parseReceiptTextLocally(
     }
   }
 
-  // 4. Category inference
+  // Category & payment method inference
   const { category } = inferCategoryAndMerchant(sanitized);
   const paymentMethod = detectPaymentMethod(sanitized);
 
@@ -1527,7 +1697,7 @@ export function parseReceiptTextLocally(
     currency: String(currency),
     category: category || 'Food',
     items,
-    confidenceScore: 0.75, // Heuristic score
+    confidenceScore: foundTotal ? 0.85 : 0.75, // Higher heuristic score when explicit total is found
     merchant: merchantName,
     suggestedCategory: category || 'Food',
     paymentMethod: paymentMethod || undefined

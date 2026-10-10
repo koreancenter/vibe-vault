@@ -327,11 +327,16 @@ async function startServer() {
                 }
               },
               {
-                text: `You are an expert OCR receipt parsing AI. Analyze this receipt or bill photo and extract structured transaction details.
-Requirements:
-1. "merchantName": Store or business name (e.g., "스타벅스 강남점", "Costco", "Trader Joe's", "세븐일레븐").
-2. "date": Transaction date in strict ISO-8601 format (YYYY-MM-DD). If missing, year is omitted, or unreadable, fallback to "${today}".
+                text: `You are an expert OCR receipt parsing AI specialized in international and multilingual receipts (Korean, English, Japanese, European, etc.). Analyze this receipt or bill photo and extract structured transaction details.
+
+Multilingual Parsing Rules:
+1. "merchantName": Store or business name (e.g., "스타벅스 강남점", "Costco Wholesale", "Trader Joe's", "セブンイレブン", "Carrefour").
+2. "date": Transaction date in strict ISO-8601 format (YYYY-MM-DD).
+   - Accurately parse Asian formats (YYYY.MM.DD, YYYY/MM/DD, YYYY年MM月DD日), European formats (DD/MM/YYYY, DD.MM.YYYY), US formats (MM/DD/YYYY), or month-word dates (12 Oct 2026, Oct 12 2026).
+   - If missing, year is omitted, or completely unreadable, fallback to "${today}".
 3. "totalAmount": Final total amount paid as a positive number (no commas, currency signs, or negative numbers).
+   - Look for total indicators across languages: 합계, 총액, 결제금액, 승인금액, Total, Grand Total, Amount Due, Balance Due, Montant Total, Gesamtbetrag, Total TTC, 合計, お会計, etc.
+   - For decimal currencies (USD, EUR, GBP), extract decimals accurately (e.g. 42.50). For whole currencies (KRW, JPY), extract integer amounts.
 4. "currency": ISO currency code ("KRW", "USD", "EUR", "JPY", "GBP"). Default to "KRW" if Korean won or not explicitly stated.
 5. "category": Strictly one of ["Food", "Living", "Transport", "Fixed", "Health", "Leisure", "Uncategorized"].
 6. "items": Array of purchased line items with "name", "price" (unit or line price as positive number), and optional "quantity" (positive integer).

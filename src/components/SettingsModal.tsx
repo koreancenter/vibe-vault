@@ -1,35 +1,18 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   X, 
-  Eye, 
-  EyeOff, 
-  ShieldCheck, 
-  KeyRound, 
   Lock, 
-  Database, 
-  Download, 
-  AlertTriangle, 
   Check, 
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  ChevronDown,
-  Plus,
-  Minus,
-  Trash2,
-  Wallet,
-  ExternalLink
+  CheckCircle2, 
+  AlertTriangle
 } from 'lucide-react';
 import { 
   getAIEngineConfig, 
   saveAIEngineConfig, 
-  AIEngineConfig, 
   getUserPreferences, 
   saveUserPreferences, 
   applyTheme,
-  getEffectiveTheme,
   ThemeMode,
-  UserPreferences,
   getUserActiveCurrencies,
   saveUserActiveCurrencies,
   KNOWN_CURRENCY_NAMES,
@@ -37,8 +20,6 @@ import {
 } from '../utils';
 import {
   sanitizeApiKey,
-  maskApiKey,
-  isValidGeminiKeyFormat,
   getSecureGeminiApiKey,
   setSecureGeminiApiKey,
   clearSecureGeminiApiKey,
@@ -56,11 +37,9 @@ import {
   deleteSpace,
   DEFAULT_SPACE
 } from '../db';
-import { PWAInstallButton } from './PWAInstallButton';
-import { Transaction, EncryptedBackupPayload, UnencryptedBackupPayloadV2, SupportedCurrency, LedgerSpace } from '../types';
+import { Transaction, UnencryptedBackupPayloadV2, SupportedCurrency, LedgerSpace } from '../types';
 import { SmartAssetSetup } from './SmartAssetSetup';
 import {
-  encryptBackupData,
   exportEncryptedBackup,
   decryptBackupData,
   mergeTransactionsDeduplicated,
@@ -88,6 +67,10 @@ import {
   ModelDownloadProgress
 } from '../webllmManager';
 import { LegalNoticeModal } from './LegalNoticeModal';
+import { CustomSelectOption } from './settings/CustomDarkSelect';
+import { SettingsAITab } from './settings/SettingsAITab';
+import { SettingsPreferencesTab } from './settings/SettingsPreferencesTab';
+import { SettingsDataTab } from './settings/SettingsDataTab';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -102,132 +85,6 @@ interface SettingsModalProps {
   onDeleteSpace?: (spaceId: string) => void;
   onOpenNewSpace?: () => void;
 }
-
-// Custom Dark Dropdown Component (replaces browser native <select> to fix white scrollbars and OS styling)
-interface CustomSelectOption {
-  value: string;
-  label: string;
-  sublabel?: string;
-}
-
-interface CustomSelectProps {
-  value: string;
-  options: CustomSelectOption[];
-  onChange: (val: string) => void;
-  id?: string;
-  className?: string;
-  theme?: 'dark' | 'light';
-  size?: 'sm' | 'md';
-  showSublabelInTrigger?: boolean;
-}
-
-const CustomDarkSelect: React.FC<CustomSelectProps> = ({ 
-  value, 
-  options, 
-  onChange, 
-  id, 
-  className = '', 
-  theme = 'dark',
-  size = 'md',
-  showSublabelInTrigger = false
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const selectedOption = options.find(o => o.value === value) || options[0];
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
-
-  const isLight = theme === 'light';
-  const isSm = size === 'sm';
-
-  return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
-      <button
-        type="button"
-        id={id}
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full text-left rounded-xl text-xs flex items-center justify-between transition-all focus:outline-none active:scale-[0.99] ${
-          isSm ? 'px-2.5 py-1.5 rounded-lg' : 'px-3.5 py-2.5 rounded-xl'
-        } ${
-          isLight
-            ? 'bg-white border border-slate-300 hover:border-slate-400 text-slate-900 shadow-xs'
-            : 'bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-slate-100'
-        }`}
-      >
-        <span className="truncate font-medium">
-          {selectedOption?.label}
-          {showSublabelInTrigger && selectedOption?.sublabel && (
-            <span className={`text-[11px] ml-2 font-normal ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              {selectedOption.sublabel}
-            </span>
-          )}
-        </span>
-        <ChevronDown 
-          size={isSm ? 12 : 14} 
-          className={`transition-transform duration-200 shrink-0 ml-1 ${
-            isLight ? 'text-slate-500' : 'text-neutral-400'
-          } ${isOpen ? 'rotate-180 text-white' : ''}`} 
-        />
-      </button>
-
-      {isOpen && (
-        <div className={`absolute right-0 min-w-full top-full mt-1 backdrop-blur-md rounded-xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto py-1 animate-in fade-in zoom-in-95 duration-150 scrollbar-none ${
-          isLight
-            ? 'bg-white border border-slate-300 text-slate-800'
-            : 'bg-[#111217] border border-white/10 text-white'
-        }`}>
-          {options.map((opt) => {
-            const isSelected = opt.value === value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  onChange(opt.value);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left text-xs flex items-center justify-between transition-colors ${
-                  isSm ? 'px-2.5 py-1.5' : 'px-3.5 py-2.5'
-                } ${
-                  isSelected 
-                    ? isLight
-                      ? 'bg-neutral-100 text-black font-semibold'
-                      : 'bg-white/10 text-white font-medium' 
-                    : isLight
-                      ? 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
-                      : 'text-neutral-300 hover:bg-white/[0.06] hover:text-white'
-                }`}
-              >
-                <div className="truncate pr-2">
-                  <span className="block truncate font-medium">{opt.label}</span>
-                  {opt.sublabel && (
-                    <span className={`text-[11px] block truncate font-normal ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
-                      {opt.sublabel}
-                    </span>
-                  )}
-                </div>
-                {isSelected && <Check size={isSm ? 12 : 14} className={isLight ? 'text-black shrink-0' : 'text-white shrink-0'} />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
 
 const VALID_SETTINGS_TABS: ('assets' | 'engine' | 'preferences' | 'privacy')[] = ['assets', 'engine', 'preferences', 'privacy'];
 const resolveSafeTab = (tab: unknown): 'assets' | 'engine' | 'preferences' | 'privacy' => {
@@ -340,7 +197,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [budgetStartDay, setBudgetStartDay] = useState<number>(1);
   const [currencySymbol, setCurrencySymbol] = useState<string>('KRW');
   const [stealthMode, setStealthMode] = useState<boolean>(false);
-  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [, setTheme] = useState<ThemeMode>('dark');
   const [autoCategorization, setAutoCategorization] = useState<boolean>(true);
   const [defaultLaunchScreen, setDefaultLaunchScreen] = useState<'vault' | 'insights' | 'ledger'>('vault');
   const [activeCurrenciesList, setActiveCurrenciesList] = useState<string[]>(() => {
@@ -383,7 +240,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // Phase 4: AES-GCM-256 Encrypted Backup & Smart Deduplicated Merge
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportPassphrase, setExportPassphrase] = useState('');
-  const [enablePasswordProtection, setEnablePasswordProtection] = useState(false);
   const [isDecryptModalOpen, setIsDecryptModalOpen] = useState(false);
   const [decryptPassphrase, setDecryptPassphrase] = useState('');
   const [pendingEncryptedData, setPendingEncryptedData] = useState<any>(null);
@@ -435,7 +291,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setAutoLockConfigState(getAutoLockConfig());
       setStatusMessage(null);
     }
-  }, [isOpen]);
+  }, [isOpen, initialTab]);
 
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -470,34 +326,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     } catch (err: any) {
       setPinError(err.message || 'PIN 처리 중 오류가 발생했습니다.');
     }
-  };
-
-  // Provider options
-  const providerOptions: CustomSelectOption[] = [
-    { value: 'gemini', label: 'Google Gemini' },
-    { value: 'openai', label: 'OpenAI' },
-    { value: 'anthropic', label: 'Anthropic' },
-  ];
-
-  // Model tier options dynamically mapped
-  const getModelTierOptions = (): CustomSelectOption[] => {
-    if (provider === 'gemini') {
-      return [
-        { value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', sublabel: '기본 권장, 초고속 멀티모달 인식' },
-        { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite', sublabel: '초경량 초고속' },
-        { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', sublabel: '심층 추론 및 복잡 분석' },
-      ];
-    }
-    if (provider === 'openai') {
-      return [
-        { value: 'gpt-4o-mini', label: 'GPT-4o-mini', sublabel: '경량 및 신속 처리' },
-        { value: 'gpt-4o', label: 'GPT-4o', sublabel: '옴니 플래그십 모델' },
-      ];
-    }
-    return [
-      { value: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet', sublabel: '고정밀 분석' },
-      { value: 'claude-3-haiku', label: 'Claude 3 Haiku', sublabel: '저지연 초고속' },
-    ];
   };
 
   // Local model options
@@ -556,15 +384,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (onDataChanged) onDataChanged();
   };
 
-  const handleProviderChange = (newProvider: string) => {
-    const prov = newProvider as 'gemini' | 'openai' | 'anthropic';
-    setProvider(prov);
-    setTestResult({ status: null, message: '' });
-    if (prov === 'gemini') setModelTier('gemini-3.8-flash');
-    else if (prov === 'openai') setModelTier('gpt-4o-mini');
-    else setModelTier('claude-3-5-sonnet');
-  };
-
   // Clear API Key completely from state and secure storage
   const handleClearKey = () => {
     setApiKey('');
@@ -598,41 +417,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         });
         const data = await res.json();
         if (res.ok && data.valid) {
-          setTestResult({ status: 'valid', message: '🟢 유효한 API 키 확인됨' });
+          setTestResult({ status: 'valid', message: 'API 키가 유효합니다.' });
         } else {
-          setTestResult({ status: 'invalid', message: '🔴 연결 실패 (키를 다시 확인해 주세요)' });
+          setTestResult({ status: 'invalid', message: data.message || 'API 키 검증 실패' });
         }
       }
-    } catch {
-      setTestResult({ status: 'invalid', message: '🔴 연결 실패 (네트워크를 확인해 주세요)' });
+    } catch (err: any) {
+      setTestResult({ status: 'invalid', message: err.message || '검증 서버 통신 실패' });
     } finally {
       setIsTestingKey(false);
     }
   };
 
-  // WebLLM Tier 3 Download & Purge Actions
+  // WebLLM Model Management Handlers
   const handleStartWebLLMDownload = async () => {
-    setDownloadError(null);
     setIsDownloadingModel(true);
-    setDownloadProgress({
-      progress: 0,
-      loadedMB: 0,
-      totalMB: localModel === 'llama3-8b' ? 4500 : 1520,
-      text: '다운로드 준비 중...'
-    });
+    setDownloadError(null);
+    setDownloadProgress({ progress: 0, text: '가중치 다운로드 준비 중...' });
 
     try {
-      await downloadAndInitWebLLM(localModel, (prog) => {
-        setDownloadProgress(prog);
+      await downloadAndInitWebLLM(localModel, (progress) => {
+        setDownloadProgress(progress);
       });
       setIsModelDownloaded(true);
-      setStatusMessage({ type: 'success', text: '온디바이스 AI 모델 가중치가 안전하게 로컬에 준비되었습니다.' });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setDownloadError(msg);
-      setStatusMessage({ type: 'error', text: `다운로드 실패: ${msg}` });
+      setStatusMessage({ type: 'success', text: `${localModel} 모델 가중치가 로컬 캐시에 안전하게 저장되었습니다.` });
+    } catch (err: any) {
+      setDownloadError(err.message || '모델 다운로드 중 문제가 발생했습니다.');
     } finally {
       setIsDownloadingModel(false);
+      setDownloadProgress(null);
     }
   };
 
@@ -644,57 +457,70 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handlePurgeWebLLMCache = async () => {
-    await purgeWebLLMCache();
-    setIsModelDownloaded(false);
-    setDownloadProgress(null);
-    setStatusMessage({ type: 'success', text: '온디바이스 모델 가중치(1.5GB+) 및 캐시가 완전히 삭제되었습니다.' });
+    if (!window.confirm('로컬 저장소에 캐시된 모델 가중치를 삭제하시겠습니까? (약 1.3GB~4.5GB 저장공간 확보)')) {
+      return;
+    }
+    try {
+      await purgeWebLLMCache();
+      setIsModelDownloaded(false);
+      setStatusMessage({ type: 'success', text: '로컬 모델 캐시가 완전히 삭제되었습니다.' });
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: '캐시 삭제 실패: ' + err.message });
+    }
   };
 
-  // Save Settings
+  // Save All Settings
   const handleSaveAll = () => {
-    const cleanKey = sanitizeApiKey(apiKey);
-    const engineConfig: AIEngineConfig = {
-      engineType,
-      localModel,
-      provider,
-      modelTier,
-      apiKey: cleanKey
-    };
-    saveAIEngineConfig(engineConfig);
+    try {
+      const cleanKey = sanitizeApiKey(apiKey);
+      saveAIEngineConfig({
+        engineType,
+        provider,
+        modelTier,
+        localModel,
+        apiKey: cleanKey,
+      });
 
-    if (provider === 'gemini') {
       if (cleanKey) {
         setSecureGeminiApiKey(cleanKey);
       } else {
         clearSecureGeminiApiKey();
       }
+
+      const currentPrefs = getUserPreferences();
+      const updatedPrefs = {
+        ...currentPrefs,
+        budgetStartDay,
+        currencySymbol,
+        stealthMode,
+        theme: 'dark' as ThemeMode,
+        autoCategorization,
+        defaultLaunchScreen,
+      };
+      saveUserPreferences(updatedPrefs);
+      applyTheme('dark');
+
+      setStatusMessage({ type: 'success', text: '모든 설정이 안전하게 저장되었습니다.' });
+
+      if (onDataChanged) {
+        onDataChanged();
+      }
+
+      setTimeout(() => {
+        onClose();
+      }, 400);
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: '설정 저장 중 오류가 발생했습니다: ' + err.message });
     }
-
-    const userPrefs: UserPreferences = {
-      budgetStartDay,
-      currencySymbol,
-      stealthMode,
-      theme: 'dark',
-      autoCategorization,
-      defaultLaunchScreen
-    };
-    saveUserPreferences(userPrefs);
-    applyTheme('dark');
-
-    if (onDataChanged) onDataChanged();
-    setStatusMessage({ type: 'success', text: '모든 설정이 기기에 안전하게 저장되었습니다.' });
-    setTimeout(() => {
-      onClose();
-    }, 300);
   };
 
-  // Phase 4: Export with optional AES-GCM-256 Encryption
+  // Open Export Modal
   const handleOpenExportModal = () => {
     setExportPassphrase('');
-    setEnablePasswordProtection(true);
     setIsExportModalOpen(true);
   };
 
+  // Perform Encrypted Export
   const handlePerformExport = async () => {
     try {
       const txs = await getAllTransactions();
@@ -742,7 +568,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  // Phase 4 / Hardening: Restore File (handles plain JSON, armored .vibe.enc & binary .enc)
+  // Phase 4 / Hardening: Restore File
   const handleRestoreFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -751,7 +577,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const arrayBuffer = await file.arrayBuffer();
       const uint8 = new Uint8Array(arrayBuffer);
 
-      // Check if it starts with the "VVLT_V1" binary magic envelope
       if (isBinaryEnvelope(uint8)) {
         setPendingEncryptedData(uint8);
         setDecryptPassphrase('');
@@ -759,7 +584,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         return;
       }
 
-      // Otherwise attempt to decode as UTF-8 JSON text
       const text = new TextDecoder('utf-8').decode(uint8);
       let json: any;
       try {
@@ -769,7 +593,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         return;
       }
 
-      // Check if file is encrypted (Hardened VVLT_V1 or Legacy v2)
       if (
         json.cipher === 'AES-GCM-256' ||
         json.format === 'vibe-vault-encrypted-v1' ||
@@ -783,7 +606,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         return;
       }
 
-      // Plain JSON backup
       prepareRestore(json);
     } catch (err: any) {
       setStatusMessage({ type: 'error', text: '백업 파일을 읽는 데 실패했습니다: ' + (err.message || String(err)) });
@@ -792,7 +614,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  // Decryption execution with typed CryptoBackupError handling
+  // Decryption execution
   const handlePerformDecryption = async () => {
     if (!decryptPassphrase.trim() || !pendingEncryptedData) return;
     try {
@@ -819,7 +641,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  // Prepare restore payload and prompt for merge choice
   const prepareRestore = (payload: any) => {
     let importedTxs: Transaction[] = [];
     if (Array.isArray(payload.transactions)) {
@@ -837,7 +658,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setIsMergeModalOpen(true);
   };
 
-  // Execute restore with selected mode ('merge' vs 'overwrite')
   const handleExecuteRestore = async (mode: 'merge' | 'overwrite') => {
     if (!pendingRestorePayload) return;
     try {
@@ -861,7 +681,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         await addTransactions(finalTransactions);
       }
 
-      // Restore preferences & assets & subscriptions if present
       if (pendingRestorePayload.preferences) {
         saveUserPreferences(pendingRestorePayload.preferences);
         setBudgetStartDay(pendingRestorePayload.preferences.budgetStartDay ?? 1);
@@ -895,7 +714,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  // Data Utility Action 1: Load Sample Data
   const handleLoadSampleData = async () => {
     setIsClearingData(true);
     try {
@@ -912,7 +730,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  // Data Utility Action 2: Consolidated Reset All Data
   const handleResetAllData = async () => {
     if (!window.confirm('모든 데이터(자산, 대출, 거래 내역, 보안 PIN, 설정)를 완전히 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
       return;
@@ -922,14 +739,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       await resetAllDataToZero();
       await clearAllTransactions().catch(() => {});
 
-      // Clear all related storage
       localStorage.removeItem('vibe_engine_config');
       localStorage.removeItem('vibe_user_preferences');
       localStorage.removeItem('vibe_user_assets');
       localStorage.removeItem('vibe_last_export_date');
       localStorage.removeItem('vibe_saved_subscriptions');
 
-      // Reset local states in modal
       setApiKey('');
       setEngineType('byok');
       setProvider('gemini');
@@ -941,14 +756,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setLastExportedDate('없음');
       setIsPinSet(false);
 
-      // Evict all service worker CacheStorage buckets upon full database reset
       await evictAllServiceWorkerCaches().catch(() => false);
 
       setStatusMessage({ type: 'success', text: '전체 데이터와 설정이 성공적으로 초기화되었습니다.' });
       if (onDataReset) onDataReset();
       if (onDataChanged) onDataChanged();
     } catch (err: any) {
-      setStatusMessage({ type: 'error', text: '데이터 초기화 오류: ' + (err?.message || err) });
+      setStatusMessage({ type: 'error', text: '데이터 초기화 실패: ' + err.message });
     } finally {
       setIsClearingData(false);
     }
@@ -956,36 +770,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isLight = false;
-
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
-        className="bg-[#0B0C0E]/95 backdrop-blur-2xl border border-white/[0.08] shadow-2xl rounded-2xl max-w-lg w-full max-md:rounded-b-none max-md:fixed max-md:bottom-0 max-md:max-h-[90vh] text-neutral-100 flex flex-col h-[84dvh] sm:h-[640px] overflow-hidden animate-in slide-in-from-bottom-6 duration-200"
+        className="w-full max-w-lg rounded-3xl border shadow-2xl flex flex-col max-h-[85vh] transition-all bg-[#0B0C0E]/95 backdrop-blur-2xl border-white/[0.08] text-white"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Mobile drag handle indicator */}
-        <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
-
-        {/* Top Header */}
-        <div className="flex justify-between items-center px-5 sm:px-6 py-3.5 border-b border-white/[0.06] bg-transparent shrink-0">
-          <h2 className="text-sm sm:text-base font-semibold text-white">
-            환경 설정
-          </h2>
+        {/* Modal Header */}
+        <div className="px-5 py-3.5 border-b flex items-center justify-between shrink-0 border-white/[0.06]">
+          <h2 className="text-sm font-semibold tracking-tight text-white">설정</h2>
           <button 
-            onClick={onClose} 
-            className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors"
-            aria-label="설정 창 닫기"
+            type="button" 
+            onClick={onClose}
+            className="p-1 rounded-full text-neutral-400 hover:text-white transition-colors"
+            title="닫기"
+            aria-label="닫기"
           >
-            <X size={17} />
+            <X size={16} />
           </button>
         </div>
 
-        {/* Tab Bar: Minimal text tabs with a subtle sage line */}
-        <div className="flex sm:grid sm:grid-cols-4 border-b border-white/[0.06] shrink-0 px-4 sm:px-6 overflow-x-auto no-scrollbar scrollbar-none pt-2.5 gap-2 sm:gap-0">
+        {/* 4-Tab Navigation */}
+        <div className="px-4 pt-2.5 flex items-center gap-1 border-b overflow-x-auto scrollbar-none shrink-0 border-white/[0.06]">
           <button
             id="tab-assets"
             onClick={() => setActiveTab('assets')}
@@ -995,7 +804,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
             }`}
           >
-            자산 관리
+            스마트 자산
           </button>
 
           <button
@@ -1052,7 +861,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {activeTab === 'assets' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <SmartAssetSetup 
-                theme={theme}
+                theme="dark"
                 currentCurrency={(currencySymbol as SupportedCurrency) || 'KRW'}
                 initialSubTab={subTab}
                 onAssetsUpdated={() => {
@@ -1064,884 +873,93 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           {/* TAB 1: AI ENGINE CONFIGURATION */}
           {activeTab === 'engine' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              {/* Clean Engine Toggle */}
-              <div className="p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] grid grid-cols-2 gap-1 mb-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEngineType('byok');
-                    setProvider('gemini');
-                  }}
-                  className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center active:scale-[0.99] ${
-                    engineType === 'byok'
-                      ? 'bg-white/10 text-white shadow-xs font-semibold'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  <span className="truncate">클라우드 AI</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setEngineType('local')}
-                  className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center active:scale-[0.99] ${
-                    engineType === 'local'
-                      ? 'bg-white/10 text-white shadow-xs font-semibold'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  <span className="truncate">온디바이스 로컬 AI</span>
-                </button>
-              </div>
-
-              {/* Cloud AI (Gemini) Flat Group */}
-              {engineType === 'byok' && (
-                <div className="space-y-3.5 pb-5 mb-5 border-b border-white/[0.06] animate-in fade-in duration-150">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-neutral-200">
-                      Gemini API 키
-                    </label>
-                    <a
-                      href="https://aistudio.google.com/app/apikey"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] font-normal text-neutral-400 hover:text-white flex items-center gap-1 transition-colors"
-                    >
-                      <span>Google AI Studio에서 키 발급</span>
-                      <ExternalLink size={10} />
-                    </a>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type={showKey ? "text" : "password"}
-                        value={apiKey}
-                        onChange={(e) => { 
-                          const sanitized = sanitizeApiKey(e.target.value);
-                          setApiKey(sanitized); 
-                          setTestResult({ status: null, message: '' }); 
-                        }}
-                        placeholder="AIzaSy... (Gemini API 키)"
-                        autoComplete="off"
-                        spellCheck={false}
-                        className="w-full rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border bg-white/[0.03] border-white/10 text-neutral-100 placeholder:text-neutral-600 focus:border-white/30"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowKey(!showKey)}
-                        title={showKey ? "API 키 마스킹" : "API 키 보기"}
-                        className="absolute right-2.5 top-2.5 text-neutral-400 hover:text-neutral-200 transition-colors"
-                      >
-                        {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                      </button>
-                    </div>
-
-                    {apiKey.trim() && (
-                      <button
-                        type="button"
-                        onClick={handleClearKey}
-                        title="API 키 삭제 및 초기화"
-                        className="p-2 rounded-xl text-xs font-medium border shrink-0 transition-all active:scale-95 bg-white/[0.04] hover:bg-rose-500/15 text-neutral-300 hover:text-rose-400 border-white/10"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleTestKey}
-                      disabled={isTestingKey || !apiKey.trim()}
-                      className="px-3 py-2 disabled:opacity-40 rounded-xl text-xs font-normal border shrink-0 transition-all active:scale-95 bg-white/[0.05] hover:bg-white/[0.09] text-white border-white/10"
-                    >
-                      {isTestingKey ? <Loader2 size={13} className="animate-spin" /> : '키 검증'}
-                    </button>
-                  </div>
-
-                  {/* Inline Validation Status Badge */}
-                  {testResult.status && (
-                    <div className={`text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 ${
-                      testResult.status === 'valid' 
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-normal' 
-                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                    }`}>
-                      {testResult.status === 'valid' ? <CheckCircle2 size={13} className="shrink-0" /> : <XCircle size={13} className="shrink-0" />}
-                      <span>{testResult.message}</span>
-                    </div>
-                  )}
-
-                  {/* 1-Line Clean Note */}
-                  <p className="text-[11px] leading-tight text-neutral-400 font-light flex items-center gap-1">
-                    <span>🔒 API 키는 브라우저 내부 암호화 스토리지에만 안전하게 보관됩니다.</span>
-                  </p>
-                </div>
-              )}
-
-              {/* On-Device AI Flat Group */}
-              {engineType === 'local' && (
-                <div className="space-y-3.5 pb-5 mb-5 border-b border-white/[0.06] animate-in fade-in duration-150">
-                  {/* Model Selector & WebGPU status */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-medium text-neutral-200">
-                        온디바이스 로컬 모델
-                      </label>
-                      {webGpuStatus === null ? (
-                        <span className="text-[10px] text-neutral-400 flex items-center gap-1 font-light">
-                          <Loader2 size={10} className="animate-spin" /> WebGPU 확인 중
-                        </span>
-                      ) : webGpuStatus.supported ? (
-                        <span className="text-[10px] font-normal flex items-center gap-1 text-emerald-400">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          WebGPU 가속 지원
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-normal flex items-center gap-1 text-rose-400">
-                          <XCircle size={11} />
-                          WebGPU 미지원 ({webGpuStatus.reason || '가속 불가'})
-                        </span>
-                      )}
-                    </div>
-                    <CustomDarkSelect
-                      value={localModel}
-                      options={localModelOptions}
-                      onChange={(val) => setLocalModel(val as any)}
-                      theme={theme}
-                      size="sm"
-                    />
-                  </div>
-
-                  {/* Progress Bar when downloading */}
-                  {isDownloadingModel && downloadProgress && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[11px] text-neutral-400">
-                        <span>{downloadProgress.text}</span>
-                        <span className="font-mono font-normal">{downloadProgress.progress}%</span>
-                      </div>
-                      <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                        <div 
-                          className="h-full bg-white transition-all duration-200"
-                          style={{ width: `${downloadProgress.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {downloadError && (
-                    <div className="text-[11px] text-rose-400 flex items-center gap-1">
-                      <AlertTriangle size={12} />
-                      <span>{downloadError}</span>
-                    </div>
-                  )}
-
-                  {/* Action Button: Download / Cancel / Purge - Luxury Ghost Button */}
-                  <div className="flex items-center gap-2">
-                    {!isModelDownloaded ? (
-                      isDownloadingModel ? (
-                        <button
-                          type="button"
-                          onClick={handleCancelWebLLMDownload}
-                          className="flex-1 py-2.5 px-3 rounded-xl text-xs font-normal border border-white/10 bg-white/[0.05] hover:bg-white/[0.09] text-rose-300 flex items-center justify-center gap-1.5 transition-colors"
-                        >
-                          <X size={13} />
-                          <span>다운로드 취소</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleStartWebLLMDownload}
-                          disabled={webGpuStatus?.supported === false}
-                          className="w-full bg-white/[0.05] hover:bg-white/[0.09] text-white border border-white/10 rounded-xl py-2.5 flex items-center justify-center gap-1.5 transition-all active:scale-98 text-xs font-medium disabled:opacity-40"
-                        >
-                          <Download size={13} />
-                          <span>모델 다운로드 ({localModel === 'llama3-8b' ? '4.5GB' : '1.5GB'})</span>
-                        </button>
-                      )
-                    ) : (
-                      <div className="flex items-center justify-between gap-2 w-full">
-                        <div className="text-[11px] text-emerald-400 font-normal flex items-center gap-1">
-                          <CheckCircle2 size={13} />
-                          <span>오프라인 추론 사용 가능 (캐시 보관 중)</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handlePurgeWebLLMCache}
-                          title="로컬 저장소 모델 가중치 삭제"
-                          className="py-1.5 px-2.5 rounded-lg text-xs border border-white/10 bg-white/[0.04] text-neutral-300 hover:text-white hover:bg-white/[0.08] font-normal flex items-center gap-1 transition-colors"
-                        >
-                          <Trash2 size={12} />
-                          <span>캐시 삭제</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Condensed Warning Caption below Download Button */}
-                  <p className="text-[10px] leading-relaxed text-neutral-400 font-light">
-                    ⚠️ 모바일 브라우저 환경에서는 대용량 가중치 다운로드 시 메모리 부족(OOM)이나 급격한 배터리 소모가 발생할 수 있습니다.
-                  </p>
-                </div>
-              )}
-            </div>
+            <SettingsAITab
+              engineType={engineType}
+              setEngineType={setEngineType}
+              setProvider={setProvider}
+              apiKey={apiKey}
+              setApiKey={setApiKey}
+              showKey={showKey}
+              setShowKey={setShowKey}
+              handleClearKey={handleClearKey}
+              handleTestKey={handleTestKey}
+              isTestingKey={isTestingKey}
+              testResult={testResult}
+              setTestResult={setTestResult}
+              localModel={localModel}
+              setLocalModel={setLocalModel}
+              webGpuStatus={webGpuStatus}
+              localModelOptions={localModelOptions}
+              isDownloadingModel={isDownloadingModel}
+              downloadProgress={downloadProgress}
+              downloadError={downloadError}
+              isModelDownloaded={isModelDownloaded}
+              handleCancelWebLLMDownload={handleCancelWebLLMDownload}
+              handleStartWebLLMDownload={handleStartWebLLMDownload}
+              handlePurgeWebLLMCache={handlePurgeWebLLMCache}
+            />
           )}
 
-          {/* TAB 2: GENERAL SETTINGS (일반 설정) - Pure Dark Luxury Minimalist Layout */}
+          {/* TAB 2: GENERAL SETTINGS */}
           {activeTab === 'preferences' && (
-            <div className="space-y-5 animate-in fade-in duration-150">
-              
-              {/* PWA 설치 안내 카드 (미설치 상태인 경우) */}
-              <PWAInstallButton variant="settings" theme="dark" />
-
-              {/* Group 1: 화면 설정 (기본 시작 화면) */}
-              <div className="space-y-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-500">
-                  화면 설정
-                </span>
-                
-                <div className="space-y-3 pb-4 border-b border-white/[0.06]">
-                  {/* Row 1: 기본 시작 화면 (자산 | 인사이트 | 장부) */}
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-semibold text-slate-200">
-                      기본 시작 화면
-                    </span>
-                    <div className="flex p-0.5 rounded-xl border bg-black/40 border-white/5">
-                      <button
-                        type="button"
-                        id="launch-screen-vault-btn"
-                        onClick={() => {
-                          setDefaultLaunchScreen('vault');
-                          const prefs = getUserPreferences();
-                          saveUserPreferences({ ...prefs, defaultLaunchScreen: 'vault' });
-                          if (onDataChanged) onDataChanged();
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
-                          defaultLaunchScreen === 'vault'
-                            ? 'bg-white/15 text-white shadow-xs font-bold'
-                            : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        자산
-                      </button>
-                      <button
-                        type="button"
-                        id="launch-screen-insights-btn"
-                        onClick={() => {
-                          setDefaultLaunchScreen('insights');
-                          const prefs = getUserPreferences();
-                          saveUserPreferences({ ...prefs, defaultLaunchScreen: 'insights' });
-                          if (onDataChanged) onDataChanged();
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
-                          defaultLaunchScreen === 'insights'
-                            ? 'bg-white/15 text-white shadow-xs font-bold'
-                            : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        인사이트
-                      </button>
-                      <button
-                        type="button"
-                        id="launch-screen-ledger-btn"
-                        onClick={() => {
-                          setDefaultLaunchScreen('ledger');
-                          const prefs = getUserPreferences();
-                          saveUserPreferences({ ...prefs, defaultLaunchScreen: 'ledger' });
-                          if (onDataChanged) onDataChanged();
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
-                          defaultLaunchScreen === 'ledger'
-                            ? 'bg-white/15 text-white shadow-xs font-bold'
-                            : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        장부
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Group 2: 표시 및 통화 (Display & Currency) */}
-              <div className="space-y-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-500">
-                  표시 및 통화
-                </span>
-                
-                <div className="space-y-3 pb-4 border-b border-white/[0.06]">
-                  {/* Row 1: 기본 통화 & 내 활성 통화 매니저 */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <span className="text-xs font-semibold text-slate-200 block">
-                          기본 기준 통화
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          대시보드 및 모든 자산 평가의 기준
-                        </span>
-                      </div>
-                      <div className="w-36">
-                        <CustomDarkSelect
-                          id="currency-select"
-                          value={currencySymbol}
-                          options={currencyOptions}
-                          onChange={(val) => {
-                            setCurrencySymbol(val);
-                            const prefs = getUserPreferences();
-                            saveUserPreferences({ ...prefs, currencySymbol: val });
-                            if (!activeCurrenciesList.includes(val)) {
-                              const updated = [val, ...activeCurrenciesList];
-                              setActiveCurrenciesList(updated);
-                              saveUserActiveCurrencies(updated);
-                            }
-                            if (onDataChanged) onDataChanged();
-                          }}
-                          theme="dark"
-                          size="sm"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Active Currencies */}
-                    <div className="pt-3 border-t border-white/[0.04] space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-semibold text-slate-200">
-                            활성 통화 관리
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            ({activeCurrenciesList.length})
-                          </span>
-                        </div>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                          activeCurrenciesList.length > 1
-                            ? 'bg-white/10 text-white border border-white/20'
-                            : 'bg-white/[0.04] text-neutral-400 border border-white/5'
-                        }`}>
-                          {activeCurrenciesList.length > 1 ? '다중 통화 모드' : '단일 통화 모드'}
-                        </span>
-                      </div>
-
-                      {/* Active Currencies Chips with Delete / Select */}
-                      <div className="flex flex-wrap gap-2">
-                        {activeCurrenciesList.map((code) => {
-                          const isBase = code === currencySymbol;
-                          const info = KNOWN_CURRENCY_NAMES[code];
-                          const sym = getCurrencySymbol(code);
-                          return (
-                            <div
-                              key={code}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition-all ${
-                                isBase
-                                  ? 'bg-white/15 border-white/30 text-white font-medium'
-                                  : 'bg-white/[0.04] border-white/5 text-neutral-300 hover:border-white/10'
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCurrencySymbol(code);
-                                  const prefs = getUserPreferences();
-                                  saveUserPreferences({ ...prefs, currencySymbol: code });
-                                  if (onDataChanged) onDataChanged();
-                                }}
-                                className="flex items-center gap-1 hover:text-white"
-                                title={isBase ? '현재 기준 통화' : '클릭하여 기본 기준 통화로 설정'}
-                              >
-                                <span className="font-mono font-bold">{code}</span>
-                                <span className="text-[11px] opacity-80">({sym})</span>
-                                {info && (
-                                  <span className="text-[10px] text-neutral-400 hidden sm:inline ml-0.5">
-                                    {info.nameKo}
-                                  </span>
-                                )}
-                                {isBase && (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/20 text-white font-normal ml-0.5">
-                                    기준
-                                  </span>
-                                )}
-                              </button>
-
-                              {/* Remove button (disabled for base currency or when only 1 remains) */}
-                              {!isBase && activeCurrenciesList.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveActiveCurrency(code)}
-                                  className="text-neutral-400 hover:text-rose-400 transition-colors p-0.5 ml-0.5 rounded"
-                                  title={`${code} 활성 통화에서 제거`}
-                                  aria-label={`${code} 활성 통화에서 제거`}
-                                >
-                                  <X size={12} />
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Subtle Prompt when only 1 currency is present */}
-                      {activeCurrenciesList.length <= 1 && (
-                        <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[11px] text-neutral-300 animate-in fade-in duration-150">
-                          <span>새 통화를 추가하면 다중 통화 비교 모드가 자동으로 활성화됩니다.</span>
-                        </div>
-                      )}
-
-                      {/* Quick Add Presets + Custom Inline Input */}
-                      <div className="pt-2 border-t border-white/[0.04] space-y-2">
-                        <div className="flex items-center justify-between text-[11px] text-slate-400">
-                          <span>추천 통화 빠른 추가:</span>
-                          <div className="flex items-center gap-1">
-                            {['USD', 'IDR', 'JPY', 'EUR'].filter(c => !activeCurrenciesList.includes(c)).map(preset => (
-                              <button
-                                key={preset}
-                                type="button"
-                                onClick={() => handleAddActiveCurrency(preset)}
-                                className="px-2 py-0.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[10px] font-mono text-slate-300 border border-white/5 active:scale-95 transition-all"
-                              >
-                                +{preset}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="text"
-                            value={newCurrencyInput}
-                            onChange={(e) => {
-                              setNewCurrencyInput(e.target.value.toUpperCase());
-                              if (currencyError) setCurrencyError(null);
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleAddActiveCurrency(newCurrencyInput);
-                              }
-                            }}
-                            maxLength={3}
-                            placeholder="3자리 통화 코드 (예: SGD, VND, AUD)..."
-                            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-neutral-200 placeholder:text-neutral-500 focus:outline-hidden focus:border-white/30 transition-all"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleAddActiveCurrency(newCurrencyInput)}
-                            disabled={!newCurrencyInput.trim()}
-                            className="px-3 py-1.5 rounded-xl bg-white text-black hover:bg-neutral-200 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 shadow-xs"
-                          >
-                            <Plus size={12} strokeWidth={2.5} />
-                            <span>추가</span>
-                          </button>
-                        </div>
-
-                        {currencyError && (
-                          <p className="text-[11px] text-rose-400 flex items-center gap-1 pt-0.5">
-                            <span>⚠️ {currencyError}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Row 2: 스텔스 모드 (금액 숨김) */}
-                  <div
-                    onClick={() => {
-                      const next = !stealthMode;
-                      setStealthMode(next);
-                      const prefs = getUserPreferences();
-                      saveUserPreferences({ ...prefs, stealthMode: next });
-                      if (onDataChanged) onDataChanged();
-                    }}
-                    className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.04] cursor-pointer select-none group"
-                  >
-                    <div>
-                      <span className="text-xs font-medium group-hover:text-white transition-colors text-white block">
-                        스텔스 모드 (금액 숨김)
-                      </span>
-                      <span className="text-[11px] text-neutral-400 font-light block">
-                        {stealthMode ? '모든 잔고 및 금액이 마스킹되어 보호 중입니다' : '화면에 모든 금액이 표시됩니다'}
-                      </span>
-                    </div>
-                    <button
-                      id="toggle-stealth-mode"
-                      type="button"
-                      aria-label="스텔스 모드 토글"
-                      className={`w-9 h-5 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 pointer-events-none ${
-                        stealthMode ? 'bg-white' : 'bg-neutral-800'
-                      }`}
-                    >
-                      <span
-                        className={`w-4 h-4 rounded-full shadow-xs transition-transform transform ${
-                          stealthMode ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Group 3: 장부 설정 (Ledger Settings) */}
-              <div className="space-y-3 pt-3 border-t border-white/[0.04]">
-                <span className="text-[11px] font-bold uppercase tracking-wider block text-neutral-400">
-                  장부 설정
-                </span>
-                
-                <div className="space-y-3">
-                  {/* Row 1: 예산 시작일 */}
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-semibold text-slate-200">
-                      예산 시작일
-                    </span>
-                    <div className="w-24">
-                      <CustomDarkSelect
-                        id="budget-start-day-select"
-                        value={String(budgetStartDay)}
-                        options={budgetDayOptions}
-                        onChange={(val) => {
-                          const num = parseInt(val, 10) || 1;
-                          setBudgetStartDay(num);
-                          const prefs = getUserPreferences();
-                          saveUserPreferences({ ...prefs, budgetStartDay: num });
-                          if (onDataChanged) onDataChanged();
-                        }}
-                        theme="dark"
-                        size="sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Group 4: 새 장부 만들기 */}
-              <div className="space-y-2.5 pt-3 border-t border-white/[0.04]">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-white">
-                    새 장부 만들기
-                  </span>
-                  {onOpenNewSpace && (
-                    <button
-                      type="button"
-                      onClick={handleCreateNewSpace}
-                      className="text-[11px] text-neutral-400 hover:text-white transition-colors"
-                      title="행사/정산 등 상세 옵션으로 새 장부 만들기"
-                    >
-                      상세 옵션
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    value={newSpaceNameInput}
-                    onChange={(e) => setNewSpaceNameInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleCreateSpaceInline();
-                      }
-                    }}
-                    placeholder="장부 이름"
-                    className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-neutral-200 placeholder:text-neutral-500 focus:outline-hidden focus:border-white/30 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCreateSpaceInline}
-                    disabled={!newSpaceNameInput.trim()}
-                    className="px-3.5 py-1.5 rounded-xl bg-white text-black hover:bg-neutral-200 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none shrink-0 shadow-xs"
-                  >
-                    <span>만들기</span>
-                  </button>
-                </div>
-
-                {/* Spaces List */}
-                <div className="space-y-1.5 pt-1">
-                  {internalSpaces.map((sp) => {
-                    const isCurrent = sp.id === (activeSpaceId || 'default');
-                    const isDefault = sp.id === 'default';
-                    const isEvent = sp.type === 'EVENT' || Boolean(sp.memberCount && sp.memberCount > 1);
-
-                    return (
-                      <div
-                        key={sp.id}
-                        className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
-                          isCurrent
-                            ? 'bg-white/[0.06] border-white/20 text-white'
-                            : 'bg-white/[0.02] border-white/[0.06] text-neutral-300 hover:border-white/10'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className="truncate">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-medium text-xs text-white truncate">{sp.name}</span>
-                              {isDefault && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-neutral-400 font-normal border border-white/[0.08]">
-                                  기본
-                                </span>
-                              )}
-                              {isEvent && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-white font-normal border border-white/15">
-                                  행사/정산
-                                </span>
-                              )}
-                              {isCurrent && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-white font-normal border border-white/20 flex items-center gap-1">
-                                  <Check size={10} />
-                                  <span>현재 활성</span>
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-neutral-400 font-light mt-0.5 flex items-center gap-2">
-                              <span>기준 통화: {sp.currency}</span>
-                              {sp.memberCount && <span>· 정산 인원: {sp.memberCount}명</span>}
-                              {sp.description && <span className="truncate">· {sp.description}</span>}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                          {!isCurrent && (
-                            <button
-                              type="button"
-                              onClick={() => handleSelectSpaceItem(sp)}
-                              className="px-2.5 py-1 rounded-full text-[11px] font-normal border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-neutral-300 hover:text-white transition-all active:scale-95"
-                            >
-                              전환
-                            </button>
-                          )}
-                          {!isDefault && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteSpaceItem(sp.id)}
-                              className="p-1.5 rounded-full hover:bg-rose-500/15 text-neutral-400 hover:text-rose-400 border border-transparent hover:border-rose-500/20 transition-all"
-                              title="장부 삭제"
-                              aria-label={`${sp.name} 장부 삭제`}
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* General Settings Legal Disclaimer Link */}
-              <div className="pt-2 pb-1 text-center">
-                <button
-                  type="button"
-                  onClick={() => setLegalOpen(true)}
-                  className="text-[11px] text-neutral-400 hover:text-white underline underline-offset-4 cursor-pointer transition-colors"
-                >
-                  법적 고지 및 면책 조항
-                </button>
-              </div>
-
-            </div>
+            <SettingsPreferencesTab
+              defaultLaunchScreen={defaultLaunchScreen}
+              setDefaultLaunchScreen={setDefaultLaunchScreen}
+              currencySymbol={currencySymbol}
+              setCurrencySymbol={setCurrencySymbol}
+              currencyOptions={currencyOptions}
+              activeCurrenciesList={activeCurrenciesList}
+              setActiveCurrenciesList={setActiveCurrenciesList}
+              newCurrencyInput={newCurrencyInput}
+              setNewCurrencyInput={setNewCurrencyInput}
+              currencyError={currencyError}
+              setCurrencyError={setCurrencyError}
+              handleAddActiveCurrency={handleAddActiveCurrency}
+              handleRemoveActiveCurrency={handleRemoveActiveCurrency}
+              stealthMode={stealthMode}
+              setStealthMode={setStealthMode}
+              budgetStartDay={budgetStartDay}
+              setBudgetStartDay={setBudgetStartDay}
+              budgetDayOptions={budgetDayOptions}
+              newSpaceNameInput={newSpaceNameInput}
+              setNewSpaceNameInput={setNewSpaceNameInput}
+              handleCreateSpaceInline={handleCreateSpaceInline}
+              handleCreateNewSpace={handleCreateNewSpace}
+              internalSpaces={internalSpaces}
+              activeSpaceId={activeSpaceId}
+              handleSelectSpaceItem={handleSelectSpaceItem}
+              handleDeleteSpaceItem={handleDeleteSpaceItem}
+              setLegalOpen={setLegalOpen}
+              onDataChanged={onDataChanged}
+            />
           )}
 
-          {/* TAB 3: DATA & PRIVACY (LOCAL-FIRST) */}
+          {/* TAB 3: DATA & PRIVACY */}
           {activeTab === 'privacy' && (
-            <div className="space-y-5 animate-in fade-in duration-150">
-              {/* Group 1: 금고 보안 & 자동 잠금 */}
-              <div className="space-y-3.5 border-b border-white/[0.06] pb-5 mb-5">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-medium text-white">
-                    <span>금고 보안 & 자동 잠금</span>
-                  </div>
-                  {isPinSet && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        lockVault();
-                      }}
-                      className="text-[11px] px-2.5 py-1 rounded-full font-normal bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-neutral-300 transition-colors"
-                    >
-                      지금 잠그기
-                    </button>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  {/* PIN 설정 상태 & 버튼 */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-neutral-400 font-light">보안 PIN</span>
-                      {isPinSet ? (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          설정됨
-                        </span>
-                      ) : (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-normal bg-white/[0.04] text-neutral-400 border border-white/[0.06]">
-                          미설정
-                        </span>
-                      )}
-                    </div>
-
-                    {isPinSet ? (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPinModalMode('set');
-                            setPinInput('');
-                            setPinConfirmInput('');
-                            setPinError(null);
-                            setShowPinModal(true);
-                          }}
-                          className="bg-white/[0.05] hover:bg-white/[0.09] text-neutral-200 border border-white/10 rounded-lg px-3 py-1 text-xs font-normal transition-all active:scale-95"
-                        >
-                          PIN 변경
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPinModalMode('remove');
-                            setCurrentPinInput('');
-                            setPinError(null);
-                            setShowPinModal(true);
-                          }}
-                          className="bg-white/[0.05] hover:bg-rose-500/15 text-neutral-300 hover:text-rose-400 border border-white/10 rounded-lg px-3 py-1 text-xs font-normal transition-all active:scale-95"
-                        >
-                          PIN 해제
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPinModalMode('set');
-                          setPinInput('');
-                          setPinConfirmInput('');
-                          setPinError(null);
-                          setShowPinModal(true);
-                        }}
-                        className="bg-white/[0.05] hover:bg-white/[0.09] text-neutral-200 border border-white/10 rounded-lg px-3 py-1 text-xs font-normal transition-all active:scale-95"
-                      >
-                        PIN 설정
-                      </button>
-                    )}
-                  </div>
-
-                  {/* 자동 잠금 드롭다운 */}
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.04]">
-                    <span className="text-xs text-neutral-400 font-light">자동 잠금</span>
-                    <div className="w-28">
-                      <CustomDarkSelect
-                        value={!autoLockConfigState.enabled ? 'disabled' : String(autoLockConfigState.timeoutMinutes)}
-                        options={[
-                          { value: '0', label: '즉시' },
-                          { value: '5', label: '5분' },
-                          { value: '15', label: '15분' },
-                          { value: '30', label: '30분' },
-                          { value: '60', label: '1시간' },
-                          { value: 'disabled', label: '비활성화' },
-                        ]}
-                        onChange={(val) => {
-                          const isDisabled = val === 'disabled';
-                          const mins = isDisabled ? 0 : parseInt(val, 10);
-                          const updated = { 
-                            ...autoLockConfigState, 
-                            timeoutMinutes: mins, 
-                            enabled: !isDisabled,
-                            lockOnVisibilityHidden: !isDisabled && mins === 0
-                          };
-                          setAutoLockConfigState(updated);
-                          saveAutoLockConfig(updated);
-                        }}
-                        theme="dark"
-                        size="sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Group 2: 데이터 백업 및 복원 */}
-              <div className="space-y-3.5 border-b border-white/[0.06] pb-5 mb-5">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-medium text-white">
-                    <span>데이터 백업 및 복원</span>
-                  </div>
-                  <span className="text-[10px] text-neutral-400 font-light">
-                    마지막 백업: <span className="font-normal text-neutral-300">{lastExportedDate}</span>
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={handleOpenExportModal}
-                    className="py-2.5 px-3 rounded-xl text-xs font-normal bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 text-neutral-200 hover:text-white flex items-center justify-center transition-all active:scale-98"
-                  >
-                    <span>백업 파일 내보내기</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="py-2.5 px-3 rounded-xl text-xs font-normal bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 text-neutral-200 hover:text-white flex items-center justify-center transition-all active:scale-98"
-                  >
-                    <span>백업 파일 가져오기/복원</span>
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".json,.enc,.vibe.enc"
-                    className="hidden"
-                    onChange={handleRestoreFile}
-                  />
-                </div>
-              </div>
-
-              {/* Group 3: 데이터 유틸리티 */}
-              <div className="space-y-3">
-                <div className="text-xs font-medium text-white">
-                  <span>데이터 유틸리티</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    id="load-sample-data-btn"
-                    onClick={handleLoadSampleData}
-                    disabled={isClearingData}
-                    className="py-2.5 px-3 rounded-xl text-xs font-normal flex items-center justify-center transition-all active:scale-98 disabled:opacity-50 bg-white/[0.05] hover:bg-white/[0.09] text-neutral-200 hover:text-white border border-white/10"
-                  >
-                    <span>샘플 데이터 불러오기</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    id="reset-all-data-btn"
-                    onClick={handleResetAllData}
-                    disabled={isClearingData}
-                    className="py-2.5 px-3 rounded-xl text-xs font-normal flex items-center justify-center transition-all active:scale-98 disabled:opacity-50 bg-rose-500/10 hover:bg-rose-500/15 text-rose-400 border border-rose-500/20"
-                  >
-                    <span>전체 데이터 초기화</span>
-                  </button>
-                </div>
-
-                <p className="text-[10px] leading-relaxed text-neutral-400 font-light">
-                  ⚠️ 전체 데이터 초기화 시 기기에 암호화되어 저장된 모든 자산, 거래 내역, PIN이 영구 삭제됩니다.
-                </p>
-
-                {/* Privacy & Data Tab Legal Disclaimer Link */}
-                <div className="pt-3 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setLegalOpen(true)}
-                    className="text-[11px] text-neutral-400 hover:text-white underline underline-offset-4 cursor-pointer transition-colors"
-                  >
-                    법적 고지 및 면책 조항
-                  </button>
-                </div>
-              </div>
-            </div>
+            <SettingsDataTab
+              onClose={onClose}
+              isPinSet={isPinSet}
+              autoLockConfigState={autoLockConfigState}
+              setAutoLockConfigState={setAutoLockConfigState}
+              saveAutoLockConfig={saveAutoLockConfig}
+              setPinModalMode={setPinModalMode}
+              setPinInput={setPinInput}
+              setPinConfirmInput={setPinConfirmInput}
+              setCurrentPinInput={setCurrentPinInput}
+              setPinError={setPinError}
+              setShowPinModal={setShowPinModal}
+              lastExportedDate={lastExportedDate}
+              handleOpenExportModal={handleOpenExportModal}
+              fileInputRef={fileInputRef}
+              handleRestoreFile={handleRestoreFile}
+              handleLoadSampleData={handleLoadSampleData}
+              handleResetAllData={handleResetAllData}
+              isClearingData={isClearingData}
+              setLegalOpen={setLegalOpen}
+            />
           )}
 
-          {/* Bottom Action Bar (Apply & Save + Session Logout) */}
+          {/* Bottom Action Bar */}
           <div className="pt-3.5 border-t border-white/[0.06] mt-auto shrink-0 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
@@ -1994,7 +1012,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <p className="text-[11px] text-neutral-400">거래, 구독, 자산 설정 통합 저장</p>
             </div>
 
-            {/* Enforced AES-GCM Encryption Banner */}
             <div className="p-3 rounded-xl border border-sky-500/20 bg-sky-500/[0.04] flex items-center justify-between">
               <div>
                 <span className="text-xs font-medium text-sky-300 flex items-center gap-1.5">
