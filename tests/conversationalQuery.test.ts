@@ -101,6 +101,19 @@ describe('Conversational Financial Query Engine (Ask AI Vault)', () => {
     expect(parameters.month).toBe(9);
   });
 
+  it('extracts intent parameters for "9월 식비 얼마야?" targeting both month and category', async () => {
+    const { parameters } = await extractFinancialQueryIntent('9월 식비 얼마야?');
+    expect(parameters.metric).toBe('category_sum');
+    expect(parameters.month).toBe(9);
+    expect(parameters.category).toBe('Food');
+  });
+
+  it('extracts intent parameters for "달러 환차익 분석" targeting currency and FX metric', async () => {
+    const { parameters } = await extractFinancialQueryIntent('달러 환차익 분석');
+    expect(parameters.metric).toBe('fx_gain_loss');
+    expect(parameters.targetCurrency).toBe('USD');
+  });
+
   it('computes deterministic FX gain/loss with zero math hallucination', () => {
     const params = {
       metric: 'fx_gain_loss' as const,

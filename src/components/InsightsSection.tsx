@@ -73,15 +73,91 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
   currentCurrency,
   fxRates,
   isStealth = false,
-  queryResult,
+  queryResult: externalQueryResult,
   onDismissQueryResult,
 }) => {
   const currSymbol = getCurrencySymbol(currentCurrency);
   const briefingCardRef = useRef<HTMLDivElement | null>(null);
 
+  // Transient AI Executive Briefing State
+  const [internalQueryResult, setInternalQueryResult] = useState<FinancialQueryResult | null>(
+    externalQueryResult ?? null
+  );
+
+  useEffect(() => {
+    setInternalQueryResult(externalQueryResult ?? null);
+  }, [externalQueryResult]);
+
+  const queryResult = internalQueryResult;
+  const setQueryResult = (res: FinancialQueryResult | null) => {
+    setInternalQueryResult(res);
+    if (!res && onDismissQueryResult) {
+      onDismissQueryResult();
+    }
+  };
+
   // 1. Period Control State (Defaults to current month)
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Contextual Chart Auto-Focus: Synchronize selectedMonth & selectedCategory on queryResult change
+  useEffect(() => {
+    if (!queryResult) return;
+
+    // 1. Synchronize Month Selector (selectedMonth)
+    let targetYear = queryResult.parameters?.year;
+    let targetMonth = queryResult.parameters?.month;
+
+    if (!targetMonth && queryResult.parameters?.dateRange) {
+      const parts = queryResult.parameters.dateRange.split('-');
+      if (parts.length === 2) {
+        targetYear = parseInt(parts[0], 10);
+        targetMonth = parseInt(parts[1], 10);
+      }
+    }
+
+    if (!targetMonth && queryResult.query) {
+      const monthMatch = queryResult.query.match(/(?:(\d{4})년\s*)?(\d{1,2})월/);
+      if (monthMatch) {
+        if (monthMatch[1]) targetYear = parseInt(monthMatch[1], 10);
+        targetMonth = parseInt(monthMatch[2], 10);
+      } else if (/지난달|지난\s*달/i.test(queryResult.query)) {
+        const now = new Date();
+        targetMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+        targetYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      }
+    }
+
+    if (targetMonth !== undefined && targetMonth >= 1 && targetMonth <= 12) {
+      setSelectedMonth(prev => {
+        const y = targetYear || prev.getFullYear();
+        return new Date(y, targetMonth - 1, 1);
+      });
+    }
+
+    // 2. Synchronize active category highlight
+    let targetCategory = queryResult.parameters?.category;
+    if (!targetCategory && queryResult.query) {
+      const q = queryResult.query;
+      if (/식비|카페|커피|외식|음식|배달|점심|저녁|마트|장보기|food/i.test(q)) {
+        targetCategory = 'Food';
+      } else if (/교통|지하철|버스|택시|주유|주차|transport/i.test(q)) {
+        targetCategory = 'Transport';
+      } else if (/생활|쇼핑|다이소|쿠팡|올리브영|편의점|living/i.test(q)) {
+        targetCategory = 'Living';
+      } else if (/고정비|월세|관리비|통신비|보험|공과금|fixed/i.test(q)) {
+        targetCategory = 'Fixed';
+      } else if (/의료|병원|약국|헬스|운동|health/i.test(q)) {
+        targetCategory = 'Health';
+      } else if (/여가|문화|영화|여행|숙박|leisure/i.test(q)) {
+        targetCategory = 'Leisure';
+      }
+    }
+
+    if (targetCategory) {
+      setSelectedCategory(targetCategory);
+    }
+  }, [queryResult]);
 
   // Asset accounts & debts state
   const [accounts, setAccounts] = useState<AssetAccount[]>([]);
@@ -313,7 +389,13 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
     const now = new Date();
 
-    const currentMonthExpenses = monthTransactions.filter((t) => t.type === 'EXPENSE');
+    const currentMonthExpenses = monthTransactions.filter((t) => {
+      if (t.type !== 'EXPENSE') return false;
+      if (selectedCategory) {
+        return t.category === selectedCategory || (selectedCategory === 'Food' && /식비|식당|카페|커피|마트|배민/i.test(t.description || ''));
+      }
+      return true;
+    });
 
     let maxDaySpend = 0;
     let peakDay = 0;
@@ -357,7 +439,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       highestSpendingDay: { day: peakDay, amount: maxDaySpend },
       hasDailyData: currentMonthExpenses.length > 0 && totalSpend > 0
     };
-  }, [selectedMonth, monthTransactions, currentCurrency, fxRates]);
+  }, [selectedMonth, monthTransactions, currentCurrency, fxRates, selectedCategory]);
 
   // Auto-scroll to Dismissible AI Briefing Card when active query result exists
   useEffect(() => {
@@ -405,72 +487,44 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         )}
       </div>
 
-      {/* Conditionally Rendered Dismissible AI Briefing Card (Retained only when active queryResult is present) */}
+      {/* Conditionally Rendered Transient AI Briefing Card */}
       {queryResult && (
         <div 
           ref={briefingCardRef}
-          className="w-full p-5 sm:p-6 rounded-2xl border border-indigo-500/30 bg-[#0E1015]/98 backdrop-blur-2xl text-white shadow-[0_4px_24px_rgba(99,102,241,0.12)] animate-in fade-in slide-in-from-top-2 duration-200"
+          className="w-full p-4 rounded-2xl bg-[#121318] border border-white/[0.08] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 space-y-2.5"
         >
-          {/* Header with Query & Dismiss */}
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-300 shrink-0">
-                <Sparkles size={13} className="text-indigo-400" />
-                <span>AI 재정 브리핑</span>
-              </span>
-              <span className="opacity-30">·</span>
-              <span className="text-xs font-light text-slate-400 truncate">
-                "{queryResult.query}"
-              </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs text-sky-400 font-medium">
+              <Sparkles className="w-3.5 h-3.5"/>
+              <span>AI 재정 브리핑</span>
+              <span className="text-neutral-500 font-light">· "{queryResult.query}"</span>
             </div>
-            {onDismissQueryResult && (
-              <button
-                type="button"
-                onClick={onDismissQueryResult}
-                className="p-1.5 rounded-full transition-all hover:bg-white/[0.08] text-slate-400 hover:text-white active:scale-95 cursor-pointer shrink-0"
-                aria-label="브리핑 닫기"
-              >
-                <X size={16} />
-              </button>
-            )}
+            <button 
+              onClick={() => setQueryResult(null)} 
+              className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+              aria-label="브리핑 닫기"
+            >
+              <X className="w-3.5 h-3.5"/>
+            </button>
           </div>
 
-          {/* Direct Answer */}
-          <h2 className="text-base sm:text-lg font-semibold tracking-tight text-white">
+          <div className="text-sm font-medium text-white leading-snug">
             {queryResult.directAnswer}
-          </h2>
+          </div>
 
-          {/* Two-Sentence Synthesis Explanation */}
-          <p className="mt-2 text-xs sm:text-sm font-light leading-relaxed text-slate-300">
+          <p className="text-xs text-neutral-400 font-light leading-relaxed">
             {queryResult.summarySentence}
           </p>
 
-          {/* Calculation Breakdown */}
-          {queryResult.breakdownPills && queryResult.breakdownPills.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-3.5 border-t border-white/[0.06]">
-              {queryResult.breakdownPills.map((pill, idx) => (
-                <div
-                  key={idx}
-                  className={`p-3 rounded-xl border flex flex-col justify-between ${
-                    pill.highlight
-                      ? 'bg-sky-500/10 border-sky-500/20 text-sky-300'
-                      : 'bg-white/[0.02] border-white/[0.04] text-slate-200'
-                  }`}
-                >
-                  <span className={`text-[11px] font-light ${
-                    pill.highlight ? 'text-sky-400' : 'text-slate-400'
-                  }`}>
-                    {pill.label}
-                  </span>
-                  <span className={`text-xs sm:text-sm font-semibold tabular-nums mt-1 ${
-                    pill.highlight ? 'text-sky-200' : 'text-slate-100'
-                  }`}>
-                    {pill.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Metric Breakdown Pills */}
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {queryResult.breakdownPills.map((pill, i) => (
+              <div key={i} className="px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[11px] tabular-nums">
+                <span className="text-neutral-400 mr-1.5">{pill.label}</span>
+                <span className="text-white font-medium">{pill.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -662,16 +716,16 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                   key={item.category}
                   onClick={() => setSelectedCategory(isSelected ? null : item.category)}
                   className={`p-2.5 rounded-xl transition-all cursor-pointer ${
-                    isSelected ? 'bg-white/[0.06] border border-white/20' : 'hover:bg-white/[0.03]'
+                    isSelected ? 'bg-sky-500/10 border border-sky-500/30 shadow-[0_0_12px_rgba(56,189,248,0.12)]' : 'border border-transparent hover:bg-white/[0.03]'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs mb-1.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-medium text-slate-200">{item.name}</span>
+                      <span className={`font-medium ${isSelected ? 'text-sky-300' : 'text-slate-200'}`}>{item.name}</span>
                       <span className="text-[11px] font-light text-slate-400">({item.count}건)</span>
                     </div>
                     <div className="flex items-center gap-2 tabular-nums">
-                      <span className={`font-normal text-slate-200 ${isStealth ? 'blur-sm select-none' : ''}`}>
+                      <span className={`font-normal ${isSelected ? 'text-sky-200' : 'text-slate-200'} ${isStealth ? 'blur-sm select-none' : ''}`}>
                         {formatMoney(item.amount)}
                       </span>
                       <span className="text-xs font-medium text-slate-400 min-w-[32px] text-right">
@@ -700,11 +754,16 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
-            <h2 className="text-sm font-semibold tracking-tight text-white">
-              일별 지출 추이
+            <h2 className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
+              <span>일별 지출 추이</span>
+              {selectedCategory && (
+                <span className="text-[11px] font-normal text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                  {getCategoryKo(selectedCategory)} 포커스
+                </span>
+              )}
             </h2>
             <p className="text-xs font-light text-slate-400 mt-0.5">
-              {format(selectedMonth, 'yyyy년 M월')} · 일평균 <span className="text-slate-200 tabular-nums">{formatMoney(dailyAverage)}</span>
+              {format(selectedMonth, 'yyyy년 M월')} · {selectedCategory ? `${getCategoryKo(selectedCategory)} ` : ''}일평균 <span className="text-slate-200 tabular-nums">{formatMoney(dailyAverage)}</span>
             </p>
           </div>
           {highestSpendingDay.amount > 0 && (
