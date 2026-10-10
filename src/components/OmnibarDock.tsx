@@ -4,7 +4,7 @@ import {
   Mic, 
   MicOff, 
   X, 
-  Sparkles, 
+  Send, 
   Loader2 
 } from 'lucide-react';
 import { SupportedCurrency } from '../types';
@@ -209,17 +209,6 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
             className="w-full bg-transparent text-xs sm:text-sm outline-none transition-colors text-white placeholder:text-slate-400"
           />
 
-          {/* AI Status Readiness Indicator inside Omnibar */}
-          <div 
-            className="flex items-center gap-1 shrink-0 px-1"
-            title={`AI 상태: ${engineStatus} (기기 내 안전 보관)`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0 bg-sky-400" />
-            <span className="hidden md:inline text-[10px] font-normal max-w-[90px] truncate text-slate-400">
-              {engineStatus.split(' ')[0]}
-            </span>
-          </div>
-
           {/* Clear button if text exists */}
           {input && (
             <button
@@ -227,7 +216,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
               onClick={() => setInput('')}
               title="입력 내용 지우기"
               aria-label="입력 내용 지우기"
-              className="p-1 rounded-full text-slate-400 hover:text-white"
+              className="p-1 rounded-full text-slate-400 hover:text-white cursor-pointer shrink-0"
             >
               <X size={13} />
             </button>
@@ -238,15 +227,14 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
             id="parse-submit-btn"
             type="submit"
             disabled={isProcessing || !input.trim() || !isOnline}
-            className="h-8 px-3.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 active:scale-95 text-sky-300 border border-sky-500/30 font-medium text-xs transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1 shadow-sm shrink-0"
+            title="기록"
+            aria-label="기록"
+            className="w-8 h-8 min-w-[32px] rounded-xl bg-sky-500/15 hover:bg-sky-500/25 active:scale-95 text-sky-300 border border-sky-500/30 transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center shadow-sm shrink-0 cursor-pointer"
           >
             {isProcessing ? (
               <Loader2 size={14} className="animate-spin text-sky-300" />
             ) : (
-              <>
-                <Sparkles size={12} />
-                <span>기록</span>
-              </>
+              <Send size={14} className="text-sky-300 translate-x-[0.5px]" />
             )}
           </button>
         </div>
