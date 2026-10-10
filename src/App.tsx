@@ -22,8 +22,7 @@ import {
   ShoppingBag,
   Car,
   UtensilsCrossed,
-  Camera,
-  Globe
+  Camera
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cleanMerchantTitle } from './merchantSanitizer';
@@ -928,46 +927,6 @@ export function App() {
 
             {/* Right action controls */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* Quick-Cycle Currency Chip */}
-              {isMultiCurrencyMode && (
-                <button
-                  id="header-currency-chip"
-                  type="button"
-                  onClick={handleQuickCycleCurrency}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    handleOpenSettingsModal('preferences');
-                  }}
-                  title={`클릭: 등록된 통화 빠른 순환 (${activeCurrencies.join(' → ')}) · 우클릭: 통화 관리`}
-                  className="h-8 px-2.5 rounded-full border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white flex items-center gap-1.5 text-xs transition-all active:scale-95 group cursor-pointer"
-                  aria-label="통화 빠른 전환"
-                >
-                  <Globe size={13} className="text-neutral-400 group-hover:text-sky-400 transition-colors" />
-                  <span className="tabular-nums font-medium tracking-tight whitespace-nowrap">{currentCurrency}</span>
-                  {activeCurrencies.length > 1 && (
-                    <span className="text-[10px] text-neutral-400 font-normal opacity-70 tabular-nums">
-                      ({activeCurrencies.length})
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {/* Stealth Mode Toggle Button */}
-              <button
-                id="stealth-mode-toggle-btn"
-                type="button"
-                onClick={toggleStealthMode}
-                title={isStealth ? "스텔스 모드 해제 (금액 표시)" : "스텔스 모드 활성화 (금액 숨김)"}
-                aria-label={isStealth ? "스텔스 모드 해제" : "스텔스 모드 활성화"}
-                className={`w-8 h-8 rounded-full border transition-all active:scale-95 flex items-center justify-center cursor-pointer ${
-                  isStealth
-                    ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300'
-                    : 'border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white'
-                }`}
-              >
-                {isStealth ? <span className="text-xs">🕶️</span> : <span className="text-xs">👁️</span>}
-              </button>
-
               {/* Settings Gear */}
               <button
                 id="settings-gear-btn"
@@ -1007,6 +966,7 @@ export function App() {
                 currentCurrency={currentCurrency}
                 fxRates={fxRates}
                 stealthMode={isStealth}
+                onToggleStealth={toggleStealthMode}
                 theme={userPrefs.theme || 'dark'}
                 onTransactionAdded={() => loadTransactions()}
                 isMultiCurrencyMode={isMultiCurrencyMode}

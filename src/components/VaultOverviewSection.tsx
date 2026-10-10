@@ -24,8 +24,6 @@ import {
   Loader2,
   Lock,
   ChevronDown,
-  Eye,
-  EyeOff,
   ArrowRight,
   ArrowUpRight,
   ArrowDownRight
@@ -304,6 +302,7 @@ interface VaultOverviewSectionProps {
   currentCurrency: SupportedCurrency;
   fxRates: FxRates;
   stealthMode?: boolean;
+  onToggleStealth?: () => void;
   theme?: 'light' | 'dark' | 'system';
   onTransactionAdded?: () => void;
   isMultiCurrencyMode?: boolean;
@@ -316,6 +315,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
   currentCurrency,
   fxRates,
   stealthMode = false,
+  onToggleStealth,
   theme = 'dark',
   onTransactionAdded,
   isMultiCurrencyMode = false,
@@ -436,6 +436,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       categoryTotals: catMap,
     };
   }, [accounts, currentCurrency, fxRates]);
+
+  const formattedNetWorth = useMemo(() => {
+    return formatCurrency(Math.round(netWorth), currentCurrency);
+  }, [netWorth, currentCurrency]);
 
   // Dual Currency Comparison for Net Worth
   const dualCurrency = useMemo(() => {
@@ -801,33 +805,36 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
       }`}>
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className={`text-xs font-light tracking-wide ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
-              총 순자산
-            </span>
-            <span className="text-[11px] font-light text-neutral-500 tabular-nums">
+          <div className="flex items-start justify-between">
+            <div 
+              onClick={onToggleStealth} 
+              className="cursor-pointer group select-none transition-all"
+              title="탭하여 잔액 숨김/표시"
+            >
+              <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-light">
+                <span>총 순자산</span>
+                <span className="text-[10px] opacity-0 group-hover:opacity-60 transition-opacity">
+                  {stealthMode ? '· 마스킹됨' : '· 탭하여 숨김'}
+                </span>
+              </div>
+              <div className={`mt-1 text-fluid-hero font-light tracking-tight tabular-nums transition-all ${
+                stealthMode ? 'blur-md select-none opacity-60' : 'text-white'
+              }`}>
+                {formattedNetWorth}
+              </div>
+            </div>
+            <span className="text-[11px] font-light text-neutral-500 tabular-nums pt-0.5">
               {accounts.length}개 계좌
             </span>
           </div>
 
-          <div className="flex flex-col justify-start min-w-0">
-            <div className={`flex items-baseline pt-0.5 whitespace-nowrap tabular-nums ${
-              stealthMode ? 'blur-md select-none' : ''
-            }`}>
-              <span className="text-xl font-light text-neutral-400 mr-1.5 whitespace-nowrap">{getCurrencySymbol(currentCurrency)}</span>
-              <h1 className="text-3xl font-light tracking-tight text-white tabular-nums whitespace-nowrap">
-                {Math.round(netWorth).toLocaleString()}
-              </h1>
+          {isMultiCurrencyMode && dualCurrency && (
+            <div className={`mt-1 ${stealthMode ? 'blur-xs select-none opacity-60' : ''}`}>
+              <span className="text-xs font-light text-neutral-400 tracking-wide whitespace-nowrap tabular-nums">
+                ≈ {dualCurrency.secondaryFormatted} · 환율 {dualCurrency.rateText}
+              </span>
             </div>
-
-            {isMultiCurrencyMode && dualCurrency && (
-              <div className={`mt-1 ${stealthMode ? 'blur-xs select-none' : ''}`}>
-                <span className="text-xs font-light text-neutral-400 tracking-wide whitespace-nowrap tabular-nums">
-                  ≈ {dualCurrency.secondaryFormatted} · 환율 {dualCurrency.rateText}
-                </span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
