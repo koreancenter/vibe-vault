@@ -774,20 +774,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-lg rounded-3xl border shadow-2xl flex flex-col max-h-[85vh] transition-all bg-[#0B0C0E]/95 backdrop-blur-2xl border-white/[0.08] text-white"
+        className="w-full max-w-[420px] h-[620px] max-h-[85vh] bg-[#0D0F14] border border-white/[0.08] rounded-3xl shadow-2xl flex flex-col overflow-hidden text-white"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
-        <div className="px-5 py-3.5 border-b flex items-center justify-between shrink-0 border-white/[0.06]">
+        {/* Sticky Header: Fixed h-14 px-5 border-b border-white/[0.06] */}
+        <div className="h-14 px-5 border-b border-white/[0.06] flex items-center justify-between shrink-0">
           <h2 className="text-sm font-semibold tracking-tight text-white">설정</h2>
           <button 
             type="button" 
             onClick={onClose}
-            className="p-1 rounded-full text-neutral-400 hover:text-white transition-colors"
+            className="p-1.5 -mr-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
             title="닫기"
             aria-label="닫기"
           >
@@ -795,60 +795,62 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        {/* 4-Tab Navigation */}
-        <div className="px-4 pt-2.5 flex items-center gap-1 border-b overflow-x-auto scrollbar-none shrink-0 border-white/[0.06]">
-          <button
-            id="tab-assets"
-            onClick={() => setActiveTab('assets')}
-            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
-              activeTab === 'assets'
-                ? 'border-b-2 border-white text-white font-medium'
-                : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
-            }`}
-          >
-            스마트 자산
-          </button>
+        {/* Sticky Tab Bar: Fixed px-5 pt-2 border-b border-white/[0.06] */}
+        <div className="px-5 pt-2 border-b border-white/[0.06] shrink-0">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+            <button
+              id="tab-assets"
+              onClick={() => setActiveTab('assets')}
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
+                activeTab === 'assets'
+                  ? 'border-b-2 border-white text-white font-medium'
+                  : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
+              }`}
+            >
+              스마트 자산
+            </button>
 
-          <button
-            id="tab-ai-engine"
-            onClick={() => setActiveTab('engine')}
-            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
-              activeTab === 'engine'
-                ? 'border-b-2 border-white text-white font-medium'
-                : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
-            }`}
-          >
-            AI 엔진
-          </button>
+            <button
+              id="tab-ai-engine"
+              onClick={() => setActiveTab('engine')}
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
+                activeTab === 'engine'
+                  ? 'border-b-2 border-white text-white font-medium'
+                  : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
+              }`}
+            >
+              AI 엔진
+            </button>
 
-          <button
-            id="tab-prefs"
-            onClick={() => setActiveTab('preferences')}
-            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
-              activeTab === 'preferences'
-                ? 'border-b-2 border-white text-white font-medium'
-                : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
-            }`}
-          >
-            일반 설정
-          </button>
+            <button
+              id="tab-prefs"
+              onClick={() => setActiveTab('preferences')}
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
+                activeTab === 'preferences'
+                  ? 'border-b-2 border-white text-white font-medium'
+                  : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
+              }`}
+            >
+              일반 설정
+            </button>
 
-          <button
-            id="tab-data"
-            onClick={() => setActiveTab('privacy')}
-            className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
-              activeTab === 'privacy'
-                ? 'border-b-2 border-white text-white font-medium'
-                : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
-            }`}
-          >
-            데이터 관리
-          </button>
+            <button
+              id="tab-data"
+              onClick={() => setActiveTab('privacy')}
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 flex-1 pb-2.5 ${
+                activeTab === 'privacy'
+                  ? 'border-b-2 border-white text-white font-medium'
+                  : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
+              }`}
+            >
+              데이터 관리
+            </button>
+          </div>
         </div>
 
         {/* Status Toast inside Modal */}
         {statusMessage && (
-          <div className={`mx-6 mt-2 px-3.5 py-2 rounded-xl text-xs flex items-center justify-between shrink-0 ${
+          <div className={`mx-5 mt-2.5 px-3.5 py-2 rounded-xl text-xs flex items-center justify-between shrink-0 ${
             statusMessage.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/25 text-rose-400'
           }`}>
             <span className="truncate">{statusMessage.text}</span>
@@ -856,9 +858,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         )}
 
-        {/* Tab Body */}
-        <div className="flex-1 px-5 py-4 overflow-y-auto text-sm flex flex-col justify-between scrollbar-none">
-          
+        {/* Main Body: flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4 scrollbar-none */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4 scrollbar-none text-sm">
           {/* TAB 0: SMART ASSET SETUP */}
           {activeTab === 'assets' && (
             <div className="space-y-4 animate-in fade-in duration-150">
@@ -960,41 +961,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               setLegalOpen={setLegalOpen}
             />
           )}
+        </div>
 
-          {/* Bottom Action Bar */}
-          <div className="pt-3.5 border-t border-white/[0.06] mt-auto shrink-0 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  lockVault();
-                }}
-                title="금고 잠그기"
-                className="h-10 px-3.5 rounded-xl font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white"
-              >
-                <Lock size={13} className="shrink-0 text-neutral-400" />
-                <span>금고 잠그기</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setLegalOpen(true)}
-                className="text-[11px] text-neutral-400 hover:text-white underline underline-offset-4 cursor-pointer hidden sm:inline-block"
-              >
-                법적 고지 및 면책 조항
-              </button>
-            </div>
+        {/* Sticky Footer Action Bar: Fixed px-5 py-3.5 border-t border-white/[0.06] bg-[#0A0C10] */}
+        <div className="px-5 py-3.5 border-t border-white/[0.06] bg-[#0A0C10] flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                lockVault();
+              }}
+              title="금고 잠그기"
+              className="h-9 px-3 rounded-xl font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white shrink-0"
+            >
+              <Lock size={13} className="shrink-0 text-neutral-400" />
+              <span>금고 잠그기</span>
+            </button>
 
             <button
               type="button"
-              onClick={handleSaveAll}
-              className="bg-white text-black hover:bg-neutral-200 font-medium rounded-xl px-5 py-2 text-sm transition-all active:scale-95 flex items-center gap-1.5"
+              onClick={() => setLegalOpen(true)}
+              className="text-[11px] text-neutral-400 hover:text-white underline underline-offset-4 cursor-pointer truncate"
             >
-              <Check size={14} />
-              <span>설정 저장</span>
+              법적 고지 및 면책 조항
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={handleSaveAll}
+            className="bg-white text-black hover:bg-neutral-200 font-medium rounded-xl px-4 py-2 text-xs transition-all active:scale-95 flex items-center gap-1.5 shrink-0 shadow-sm"
+          >
+            <Check size={14} />
+            <span>설정 저장</span>
+          </button>
         </div>
 
       </div>

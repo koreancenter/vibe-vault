@@ -220,14 +220,12 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
         </div>
 
         {subscriptions.length === 0 ? (
-          <div className={`p-6 text-center ${
-            isLight ? 'text-slate-500' : 'text-neutral-400'
-          }`}>
-            <p className="text-xs font-medium text-neutral-300">
-              감지된 정기 구독이 아직 없습니다
-            </p>
-            <p className="text-[11px] mt-0.5 text-neutral-400">
-              가계부에 2회 이상 정기 결제 내역이 등록되거나, 우측 상단 '구독 직접 추가'를 통해 등록하세요.
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm py-7 px-4 flex flex-col items-center justify-center text-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-300 shadow-inner">
+              <CreditCard size={15} className="text-slate-300" strokeWidth={1.5} />
+            </div>
+            <p className="text-xs text-neutral-400 font-light">
+              감지된 정기 결제가 없습니다. 우측 상단 '구독 직접 추가'를 통해 등록하세요.
             </p>
           </div>
         ) : (

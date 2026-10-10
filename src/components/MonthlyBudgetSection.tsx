@@ -315,11 +315,13 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
       {/* Category Budget Items List - Flat Borderless Rows */}
       <div className="space-y-1">
         {Object.keys(budgets).length === 0 ? (
-          <div className={`py-6 px-3 text-center ${
-            isLight ? 'text-slate-500' : 'text-neutral-400'
-          }`}>
-            <p className="text-xs font-medium text-neutral-300">설정된 카테고리 예산이 없습니다.</p>
-            <p className="text-[11px] mt-0.5 text-neutral-400">우측 상단 '예산 추가' 또는 '기본값'을 눌러 시작해보세요.</p>
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm py-7 px-4 flex flex-col items-center justify-center text-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-300 shadow-inner">
+              <Sparkles size={15} className="text-slate-300" strokeWidth={1.5} />
+            </div>
+            <p className="text-xs text-neutral-400 font-light">
+              설정된 카테고리 예산이 없습니다. 우측 상단 '예산 추가'를 눌러 시작해보세요.
+            </p>
           </div>
         ) : (
           Object.entries(budgets).map(([category, rawLimit]) => {

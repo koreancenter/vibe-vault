@@ -606,36 +606,43 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
           type="button"
           id="subtab-btn-assets"
           onClick={() => setActiveSection('assets')}
-          className={`rounded-full px-3 py-1 text-xs transition-all whitespace-nowrap border ${
+          className={`h-8 px-3 text-xs rounded-full border transition-all whitespace-nowrap flex items-center gap-1.5 active:scale-95 ${
             activeSection === 'assets'
-              ? 'bg-white/[0.08] text-white font-medium border-white/20'
-              : 'bg-white/[0.02] text-neutral-400 hover:text-white border-white/[0.06]'
+              ? 'bg-white/10 text-white font-medium border-white/20 shadow-xs'
+              : 'bg-white/[0.03] text-neutral-400 hover:text-white border-white/[0.06]'
           }`}
         >
-          보유 자산 ({assets.length})
+          <span>보유 자산</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
+            activeSection === 'assets'
+              ? 'bg-white/20 text-white'
+              : 'bg-white/10 text-neutral-400'
+          }`}>
+            {assets.length}
+          </span>
         </button>
 
         <button
           type="button"
           id="subtab-btn-monthly-budget"
           onClick={() => setActiveSection('budget')}
-          className={`rounded-full px-3 py-1 text-xs transition-all whitespace-nowrap border ${
+          className={`h-8 px-3 text-xs rounded-full border transition-all whitespace-nowrap flex items-center gap-1.5 active:scale-95 ${
             activeSection === 'budget'
-              ? 'bg-white/[0.08] text-white font-medium border-white/20'
-              : 'bg-white/[0.02] text-neutral-400 hover:text-white border-white/[0.06]'
+              ? 'bg-white/10 text-white font-medium border-white/20 shadow-xs'
+              : 'bg-white/[0.03] text-neutral-400 hover:text-white border-white/[0.06]'
           }`}
         >
-          월간 예산 설정
+          <span>월간 예산</span>
         </button>
 
         <button
           type="button"
           id="subtab-btn-subscriptions"
           onClick={() => setActiveSection('subscriptions')}
-          className={`rounded-full px-3 py-1 text-xs transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+          className={`h-8 px-3 text-xs rounded-full border transition-all whitespace-nowrap flex items-center gap-1.5 active:scale-95 ${
             activeSection === 'subscriptions'
-              ? 'bg-white/[0.08] text-white font-medium border-white/20'
-              : 'bg-white/[0.02] text-neutral-400 hover:text-white border-white/[0.06]'
+              ? 'bg-white/10 text-white font-medium border-white/20 shadow-xs'
+              : 'bg-white/[0.03] text-neutral-400 hover:text-white border-white/[0.06]'
           }`}
         >
           <span>고정 구독</span>
@@ -643,7 +650,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
               activeSection === 'subscriptions'
                 ? 'bg-white/20 text-white'
-                : 'bg-white/10 text-neutral-300'
+                : 'bg-white/10 text-neutral-400'
             }`}>
               {subscriptionsCount}
             </span>
@@ -1008,11 +1015,13 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
             </div>
 
             {assets.length === 0 ? (
-              <div className={`py-6 px-4 text-center ${
-                isLight ? 'text-slate-500' : 'text-slate-400'
-              }`}>
-                <p className="text-xs">등록된 자산이 없습니다.</p>
-                <p className="text-[11px] opacity-70 mt-0.5">상단 입력창에 결제 문자나 문장을 입력해 등록하세요.</p>
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm py-7 px-4 flex flex-col items-center justify-center text-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-300 shadow-inner">
+                  <Wallet size={15} className="text-slate-300" strokeWidth={1.5} />
+                </div>
+                <p className="text-xs text-neutral-400 font-light">
+                  등록된 자산이 없습니다. 상단 입력창에 결제 문자나 문장을 입력해 등록하세요.
+                </p>
               </div>
             ) : (
               <div className="space-y-0.5">
