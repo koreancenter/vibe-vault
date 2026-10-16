@@ -1,5 +1,6 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
+import { LazyMotion } from 'motion/react';
 import App from './App.tsx';
 import './index.css';
 
@@ -38,7 +39,16 @@ new MutationObserver((records) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <LazyMotion features={() => import('motion/react').then((mod) => mod.domAnimation)} strict>
+      <App />
+    </LazyMotion>
   </StrictMode>,
 );
 
+
+// Register the service worker after load so it never competes with first render.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }));
+  });
+}

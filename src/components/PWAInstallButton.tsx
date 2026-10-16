@@ -9,7 +9,8 @@ import {
   CheckCircle2,
   ExternalLink
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import { usePWAInstall } from '../usePWAInstall';
 
 interface PWAInstallProps {
@@ -35,7 +36,7 @@ export const IOSInstallModal: React.FC<{
         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
         onClick={onClose}
       >
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -110,7 +111,7 @@ export const IOSInstallModal: React.FC<{
               확인 완료
             </button>
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </AnimatePresence>
   );
@@ -279,7 +280,7 @@ export const PWAInstallBanner: React.FC<{
   return (
     <>
       <AnimatePresence>
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: position === 'bottom' ? 20 : -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: position === 'bottom' ? 20 : -20 }}
@@ -361,7 +362,7 @@ export const PWAInstallBanner: React.FC<{
               </button>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       </AnimatePresence>
 
       <IOSInstallModal
