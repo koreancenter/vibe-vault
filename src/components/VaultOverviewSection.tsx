@@ -1207,7 +1207,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               }`}
             >
               <span>{cat.label}</span>
-              <span className="opacity-60 tabular-nums">({count})</span>
+              <span className="opacity-85 tabular-nums">({count})</span>
             </button>
           );
         })}
