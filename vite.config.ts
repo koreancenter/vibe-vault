@@ -149,15 +149,5 @@ export default defineConfig({
       minify: 'esbuild',
       sourcemap: true,
       chunkSizeWarningLimit: 600,
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom'],
-            'vendor-charts': ['recharts'],
-            'vendor-d3': ['d3'],
-            'vendor-icons': ['lucide-react'],
-          },
-        },
-      },
     },
 });

@@ -239,7 +239,7 @@ async function startServer() {
     res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
     res.setHeader(
       'Content-Security-Policy',
-      "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://generativelanguage.googleapis.com https://huggingface.co https://*.huggingface.co; img-src 'self' data: blob:; worker-src 'self' blob:;",
+      "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://generativelanguage.googleapis.com https://huggingface.co https://*.huggingface.co https://cloudflareinsights.com; img-src 'self' data: blob:; worker-src 'self' blob:;",
     );
 
     if (!isLocalHostname(req.hostname)) {
