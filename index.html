@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Early capture of PWA beforeinstallprompt to ensure it is never missed before React mounts
+      window.deferredPWAInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.deferredPWAInstallPrompt = e;
+        if (typeof window.dispatchPWAInstallEvent === 'function') {
+          window.dispatchPWAInstallEvent(e);
+        }
+      });
+    </script>
+    <script>
+      // Filter out benign HMR WebSocket connection logs in preview iframe (HMR disabled in platform runtime)
+      (function() {
+        function shouldSuppress(args) {
+          try {
+            for (let i = 0; i < args.length; i++) {
+              const arg = args[i];
+              const str = typeof arg === 'string' ? arg : (arg && (arg.message || arg.stack)) || '';
+              if (
+                str.includes('[vite]') ||
+                str.includes('WebSocket') ||
+                str.includes('websocket') ||
+                str.includes('vite-plugin-pwa')
+              ) {
+                return true;
+              }
+            }
+          } catch (e) {}
+          return false;
+        }
+
+        const origError = console.error;
+        console.error = function(...args) {
+          if (shouldSuppress(args)) return;
+          origError.apply(console, args);
+        };
+
+        const origWarn = console.warn;
+        console.warn = function(...args) {
+          if (shouldSuppress(args)) return;
+          origWarn.apply(console, args);
+        };
+
+        window.addEventListener('error', function(event) {
+          if (event && event.message && (event.message.includes('[vite]') || event.message.includes('WebSocket') || event.message.includes('websocket'))) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
+      })();
+    </script>
+    <title>Vibe Vault</title>
+    <meta name="description" content="A privacy-first, local-encrypted asset vault and multi-brokerage portfolio dashboard with built-in daily expense ledger." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://vibevault.goguma.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Vibe Vault" />
+    <meta property="og:title" content="Vibe Vault" />
+    <meta property="og:description" content="A privacy-first, local-encrypted asset vault and multi-brokerage portfolio dashboard with built-in daily expense ledger." />
+    <meta property="og:url" content="https://vibevault.goguma.app/" />
+    <meta property="og:image" content="/pwa-512x512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Vibe Vault" />
+    <meta name="twitter:description" content="A privacy-first, local-encrypted asset vault and multi-brokerage portfolio dashboard with built-in daily expense ledger." />
+    <meta name="twitter:image" content="/pwa-512x512.png" />
+    <meta name="theme-color" content="#0B0F17" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="VibeVault" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="alternate icon" href="/pwa-192x192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link 
+      rel="stylesheet" 
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" 
+      media="print" 
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+    </noscript>
+  </head>
+  <body class="bg-gradient-to-b from-[#0B0F17] via-[#0E1524] to-[#111827] text-slate-100 antialiased overflow-hidden select-none font-sans min-h-screen">
+    <div id="root" class="h-[100dvh] w-full bg-transparent"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

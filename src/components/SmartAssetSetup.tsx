@@ -1,0 +1,1809 @@
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { generateSecureId } from '../identifiers';
+import { 
+  CreditCard, 
+  Landmark, 
+  Banknote, 
+  Wallet, 
+  Check, 
+  X, 
+  Pencil, 
+  Trash2, 
+  Plus, 
+  RotateCcw, 
+  Loader2, 
+  Sparkles,
+  Mic,
+  MicOff,
+  Globe
+} from 'lucide-react';
+import { Asset, AssetType, Transaction, SupportedCurrency, FxRates } from '../types';
+import { 
+  getUserAssets, 
+  saveUserAssets, 
+  getAssetTypeKo, 
+  getAIEngineConfig, 
+  DEFAULT_USER_ASSETS, 
+  DEFAULT_FX_RATES, 
+  getUserPreferences,
+  getUserActiveCurrencies,
+  saveUserActiveCurrencies,
+  getCurrencySymbol,
+  KNOWN_CURRENCY_NAMES,
+  STANDARD_CATEGORIES,
+  getCategoryKo,
+  getCategoryBudgets,
+  saveCategoryBudgets,
+  RECOMMENDED_CATEGORY_BUDGETS,
+  formatCurrency
+} from '../utils';
+import { getAllTransactions } from '../db';
+import { isSameMonth, isSameYear, parseISO, format } from 'date-fns';
+import { SubscriptionManagerSection } from './SubscriptionManagerSection';
+import { detectSubscriptions } from '../autonomousFinance';
+
+/**
+ * 1. Institution Currency Mapping Rule:
+ * Lightweight dictionary / regex detector for institution keywords
+ */
+export const INSTITUTION_CURRENCY_PATTERNS: Array<{
+  currency: SupportedCurrency;
+  pattern: RegExp;
+  label: string;
+}> = [
+  { 
+    currency: 'IDR', 
+    pattern: /(bni|bca|mandiri|bri|cimb niaga|jenius|permata|gopay|ovo|dana)/i,
+    label: '인도네시아 루피아 (IDR)'
+  },
+  { 
+    currency: 'USD', 
+    pattern: /(schwab|chase|boa|bank of america|robinhood|fidelity|wise|paypal)/i,
+    label: '미국 달러 (USD)'
+  },
+  { 
+    currency: 'KRW', 
+    pattern: /(국민|신한|우리|하나|농협|카카오|토스|케이뱅크|기업|우체국|현대|삼성)/i,
+    label: '대한민국 원 (KRW)'
+  },
+];
+
+/**
+ * Automatically detects currency from account / institution keyword
+ */
+export function detectCurrencyFromInstitution(text: string): SupportedCurrency | null {
+  if (!text || typeof text !== 'string') return null;
+  const trimmed = text.trim();
+  for (const item of INSTITUTION_CURRENCY_PATTERNS) {
+    if (item.pattern.test(trimmed)) {
+      return item.currency;
+    }
+  }
+  return null;
+}
+
+/**
+ * Visual balance prefix for currency display
+ */
+export function getBalancePrefix(currency: SupportedCurrency): string {
+  return getCurrencySymbol(currency);
+}
+
+/**
+ * Visual balance placeholder adapted to detected currency
+ * e.g., 'Rp 0' for BNI, '₩0' for 카카오뱅크, '$0' for Chase
+ */
+export function getBalancePlaceholder(currency: SupportedCurrency): string {
+  if (currency === 'IDR') return 'Rp 0';
+  if (currency === 'KRW') return '₩0';
+  if (currency === 'USD') return '$0';
+  const sym = getCurrencySymbol(currency);
+  return `${sym}0`;
+}
+
+/**
+ * Auto-registers currency into the user's active currencies list (userCurrencies)
+ * if not already present. This seamlessly unlocks progressive multi-currency mode.
+ */
+export function ensureCurrencyRegistered(currency: SupportedCurrency): void {
+  try {
+    const upper = currency.toUpperCase();
+    const currentList = getUserActiveCurrencies();
+    if (!currentList.includes(upper)) {
+      const updated = [...currentList, upper];
+      saveUserActiveCurrencies(updated);
+    }
+  } catch (err) {
+    console.error('Failed to register active currency:', err);
+  }
+}
+
+export interface MonthlyBudgetSectionProps {
+  theme?: 'dark' | 'light';
+  currencySymbol?: string;
+  onBudgetChanged?: () => void;
+}
+
+export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
+  theme = 'dark',
+  currencySymbol,
+  onBudgetChanged,
+}) => {
+  const isLight = theme === 'light';
+  const effectiveCurrency = currencySymbol || getUserPreferences().currencySymbol || 'KRW';
+  const currSymbol = effectiveCurrency === 'KRW' ? '₩' : effectiveCurrency === 'USD' ? '$' : `${effectiveCurrency} `;
+
+  const [budgets, setBudgets] = useState<Record<string, number>>({});
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editLimitValue, setEditLimitValue] = useState<string>('');
+  
+  // Add new budget category state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newCategoryKey, setNewCategoryKey] = useState<string>('Food');
+  const [newLimitValue, setNewLimitValue] = useState<string>('300000');
+  const [banner, setBanner] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(null);
+
+  const addBudgetFormRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (showAddModal && addBudgetFormRef.current) {
+      addBudgetFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [showAddModal]);
+
+  const now = new Date();
+  const currentMonthName = format(now, 'M월');
+
+  // Load budgets & transactions
+  const loadData = () => {
+    const loadedBudgets = getCategoryBudgets();
+    setBudgets(loadedBudgets);
+
+    getAllTransactions()
+      .then((txs) => {
+        setTransactions(txs);
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Compute current month expenses per category
+  const spendingPerCategory = useMemo(() => {
+    const currentMonthExpenses = transactions.filter((t) => {
+      try {
+        const d = parseISO(t.date);
+        return t.type === 'EXPENSE' && isSameMonth(d, now) && isSameYear(d, now);
+      } catch {
+        return false;
+      }
+    });
+
+    const mapping: Record<string, number> = {};
+    currentMonthExpenses.forEach((t) => {
+      mapping[t.category] = (mapping[t.category] || 0) + t.amount;
+    });
+
+    return mapping;
+  }, [transactions, now]);
+
+  // Overall totals across all budgeted categories
+  const overallStats = useMemo(() => {
+    const categoriesWithBudget = Object.keys(budgets);
+    const totalBudget = categoriesWithBudget.reduce((sum, cat) => sum + (budgets[cat] || 0), 0);
+    
+    // Spent in budgeted categories
+    const totalSpent = categoriesWithBudget.reduce((sum, cat) => sum + (spendingPerCategory[cat] || 0), 0);
+    const remaining = totalBudget - totalSpent;
+    const spentPercent = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0;
+    const remainingPercent = totalBudget > 0 ? Math.max(0, 100 - Math.round((totalSpent / totalBudget) * 100)) : 0;
+
+    return {
+      totalBudget,
+      totalSpent,
+      remaining,
+      spentPercent,
+      remainingPercent,
+      isOver: remaining < 0,
+    };
+  }, [budgets, spendingPerCategory]);
+
+  const updateBudgetsState = (newBudgets: Record<string, number>) => {
+    setBudgets(newBudgets);
+    saveCategoryBudgets(newBudgets);
+    if (onBudgetChanged) {
+      onBudgetChanged();
+    }
+  };
+
+  // Start inline editing
+  const handleStartEdit = (category: string, currentLimit: number) => {
+    setEditingCategory(category);
+    setEditLimitValue(String(currentLimit));
+  };
+
+  // Save inline edit
+  const handleSaveEdit = (category: string) => {
+    const numeric = parseInt(editLimitValue.replace(/[^0-9]/g, ''), 10);
+    if (isNaN(numeric) || numeric < 0) {
+      setBanner({ type: 'error', message: '올바른 예산 금액을 입력해주세요.' });
+      return;
+    }
+
+    const updated = { ...budgets, [category]: numeric };
+    updateBudgetsState(updated);
+    setEditingCategory(null);
+    setBanner({
+      type: 'success',
+      message: `'${getCategoryKo(category)}' 월간 예산이 ${currSymbol}${numeric.toLocaleString()}으로 변경되었습니다.`
+    });
+  };
+
+  // Quick adjust during edit
+  const handleQuickAdjust = (delta: number) => {
+    const current = parseInt(editLimitValue.replace(/[^0-9]/g, ''), 10) || 0;
+    const nextVal = Math.max(0, current + delta);
+    setEditLimitValue(String(nextVal));
+  };
+
+  // Delete category budget
+  const handleDeleteBudget = (category: string) => {
+    const updated = { ...budgets };
+    delete updated[category];
+    updateBudgetsState(updated);
+    setBanner({
+      type: 'info',
+      message: `'${getCategoryKo(category)}' 예산 설정이 삭제되었습니다.`
+    });
+  };
+
+  // Reset to defaults
+  const handleResetDefaults = () => {
+    updateBudgetsState(RECOMMENDED_CATEGORY_BUDGETS);
+    setBanner({
+      type: 'success',
+      message: '카테고리 예산이 기본 권장값으로 초기화되었습니다.'
+    });
+  };
+
+  // Add new budget
+  const handleAddBudget = () => {
+    const numeric = parseInt(newLimitValue.replace(/[^0-9]/g, ''), 10);
+    if (isNaN(numeric) || numeric <= 0) {
+      setBanner({ type: 'error', message: '0원 이상의 예산 한도를 입력해주세요.' });
+      return;
+    }
+
+    const updated = { ...budgets, [newCategoryKey]: numeric };
+    updateBudgetsState(updated);
+    setShowAddModal(false);
+    setBanner({
+      type: 'success',
+      message: `'${getCategoryKo(newCategoryKey)}' 카테고리에 월 ${currSymbol}${numeric.toLocaleString()} 예산이 설정되었습니다.`
+    });
+  };
+
+  // Find categories not yet budgeted
+  const unbudgetedCategories = STANDARD_CATEGORIES.filter(
+    (cat) => budgets[cat.key] === undefined
+  );
+
+  // Helper for emoji
+  const getCategoryEmoji = (key: string) => {
+    const found = STANDARD_CATEGORIES.find((c) => c.key === key);
+    if (found) return found.emoji;
+    return '📁';
+  };
+
+  return (
+    <div id="monthly-budget-section" className="space-y-3">
+      {/* Header Bar */}
+      <div className="flex items-center justify-between gap-2 pb-1.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h2 className="text-xs font-semibold tracking-tight text-white">
+                월간 예산
+              </h2>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                isLight ? 'bg-neutral-200 text-neutral-800' : 'bg-white/[0.08] text-neutral-300 border border-white/10'
+              }`}>
+                {currentMonthName} 현황
+              </span>
+            </div>
+            <p className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
+              카테고리별 지출 한도 및 잔여 예산 관리
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleResetDefaults}
+            className={`p-1.5 rounded-lg text-xs flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${
+              isLight 
+                ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-900' 
+                : 'hover:bg-white/10 text-neutral-400 hover:text-white'
+            }`}
+            title="권장 기본 예산으로 초기화"
+          >
+            <RotateCcw size={12} />
+            <span className="hidden sm:inline text-[11px]">기본값</span>
+          </button>
+
+          <button
+            type="button"
+            id="btn-add-budget-category"
+            onClick={() => {
+              if (unbudgetedCategories.length > 0) {
+                setNewCategoryKey(unbudgetedCategories[0].key);
+              }
+              setShowAddModal(!showAddModal);
+            }}
+            className="h-8 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-xs font-medium text-white transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus size={13} />
+            <span>직접 추가</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Action feedback banner */}
+      {banner && (
+        <div className={`p-2.5 rounded-xl text-xs flex items-center justify-between animate-in fade-in duration-150 ${
+          banner.type === 'success' 
+            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+            : banner.type === 'error'
+            ? 'bg-white/[0.05] text-neutral-300 border border-white/10'
+            : 'bg-white/10 text-white border border-white/10'
+        }`}>
+          <span className="truncate">{banner.message}</span>
+          <button 
+            type="button"
+            onClick={() => setBanner(null)} 
+            className="ml-2 font-bold hover:opacity-75 cursor-pointer"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Overall Budget Remaining Summary */}
+      <div className="py-2 space-y-1.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className={`font-medium ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+            총 예산 잔여액
+          </span>
+          <span className={`font-semibold tabular-nums ${
+            overallStats.isOver 
+              ? 'text-amber-400' 
+              : 'text-white'
+          }`}>
+            {overallStats.isOver 
+              ? `${currSymbol}${Math.abs(overallStats.remaining).toLocaleString()} 초과!` 
+              : `${currSymbol}${overallStats.remaining.toLocaleString()} 남음 (${overallStats.remainingPercent}%)`}
+          </span>
+        </div>
+
+        {/* Slim 3px Accent Gauge Line */}
+        <div className={`w-full h-[3px] rounded-full overflow-hidden ${
+          isLight ? 'bg-slate-200' : 'bg-white/10'
+        }`}>
+          <div 
+            className={`h-full transition-all duration-500 rounded-full ${
+              overallStats.isOver 
+                ? 'bg-amber-400' 
+                : overallStats.spentPercent > 80 
+                ? 'bg-amber-400' 
+                : isLight ? 'bg-slate-900' : 'bg-white'
+            }`}
+            style={{ width: `${Math.min(100, overallStats.spentPercent)}%` }}
+          />
+        </div>
+
+        <div className={`flex items-center justify-between text-[10px] ${
+          isLight ? 'text-slate-500' : 'text-neutral-400'
+        }`}>
+          <span>총 지출: <strong className={isLight ? 'text-slate-800' : 'text-white'}>{currSymbol}{overallStats.totalSpent.toLocaleString()}</strong></span>
+          <span>총 한도: <strong className={isLight ? 'text-slate-800' : 'text-white'}>{currSymbol}{overallStats.totalBudget.toLocaleString()}</strong></span>
+          <span>소진율: <strong className={overallStats.isOver ? 'text-amber-400' : 'text-neutral-200'}>{overallStats.spentPercent}%</strong></span>
+        </div>
+      </div>
+
+      {/* Category Budget Items List */}
+      <div className="space-y-1">
+        {Object.keys(budgets).length === 0 ? (
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm py-7 px-4 flex flex-col items-center justify-center text-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-300 shadow-inner">
+              <Sparkles size={15} className="text-slate-300" strokeWidth={1.5} />
+            </div>
+            <p className="text-xs text-neutral-400 font-light">
+              설정된 카테고리 예산이 없습니다. 우측 상단 '예산 추가'를 눌러 시작해보세요.
+            </p>
+          </div>
+        ) : (
+          Object.entries(budgets).map(([category, rawLimit]) => {
+            const limit = Number(rawLimit) || 0;
+            const spent = spendingPerCategory[category] || 0;
+            const remaining = limit - spent;
+            const isOver = remaining < 0;
+            const spentPercent = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+            const isEditing = editingCategory === category;
+
+            if (isEditing) {
+              return (
+                <div 
+                  key={category}
+                  className={`py-2 px-1 space-y-2 animate-in fade-in duration-100 ${
+                    isLight ? 'bg-slate-50/80' : 'bg-white/[0.02]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <span>{getCategoryEmoji(category)}</span>
+                      <span>{getCategoryKo(category)} 한도 수정</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400">ESC로 취소</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-2.5 top-1.5 text-xs text-slate-400">{currSymbol}</span>
+                      <input
+                        type="number"
+                        value={editLimitValue}
+                        onChange={(e) => setEditLimitValue(e.target.value)}
+                        className={`w-full pl-6 pr-2 py-1 rounded-md text-xs font-bold outline-none border ${
+                          isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-white/20 text-white'
+                        }`}
+                        placeholder="예: 500000"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveEdit(category);
+                          if (e.key === 'Escape') setEditingCategory(null);
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveEdit(category)}
+                      className="px-2.5 py-1 bg-white text-black hover:bg-neutral-200 font-medium text-xs rounded-lg flex items-center gap-1 active:scale-95 transition-all shadow-xs cursor-pointer"
+                    >
+                      <Check size={12} />
+                      <span>확인</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingCategory(null)}
+                      className={`p-1 rounded-md text-xs cursor-pointer ${
+                        isLight ? 'text-slate-500 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/10'
+                      }`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+
+                  {/* Quick Adjust Buttons */}
+                  <div className="flex items-center gap-1 pt-0.5 flex-wrap">
+                    <span className="text-[10px] text-slate-400 mr-0.5">빠른 증감:</span>
+                    {[+50000, +100000, +500000, -50000].map((adj) => (
+                      <button
+                        key={adj}
+                        type="button"
+                        onClick={() => handleQuickAdjust(adj)}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium border cursor-pointer ${
+                          isLight 
+                            ? 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700' 
+                            : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+                        }`}
+                      >
+                        {adj > 0 ? `+${adj / 10000}만` : `${adj / 10000}만`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            {/* Flat Row Table Item */}
+            return (
+              <div 
+                key={category}
+                id={`budget-row-${category}`}
+                className={`group py-2 px-1 flex items-center justify-between gap-3 transition-colors ${
+                  isLight ? 'hover:bg-slate-50/70' : 'hover:bg-white/[0.02]'
+                }`}
+              >
+                {/* 1. [Icon] + [Category Name] */}
+                <div className="flex items-center gap-2 w-28 sm:w-32 shrink-0 min-w-0">
+                  <span className="text-sm select-none shrink-0">{getCategoryEmoji(category)}</span>
+                  <span className={`text-xs font-semibold truncate ${isLight ? 'text-slate-900' : 'text-white'}`} title={getCategoryKo(category)}>
+                    {getCategoryKo(category)}
+                  </span>
+                </div>
+
+                {/* 2. [Thin Progress Bar & %] */}
+                <div className="flex-1 min-w-[80px] sm:min-w-[120px] flex items-center gap-2">
+                  <div className={`flex-1 h-[3px] rounded-full overflow-hidden ${
+                    isLight ? 'bg-slate-200' : 'bg-white/10'
+                  }`}>
+                    <div 
+                      className={`h-full transition-all duration-300 rounded-full ${
+                        isOver 
+                          ? 'bg-amber-400' 
+                          : spentPercent >= 80 
+                          ? 'bg-amber-400' 
+                          : isLight ? 'bg-slate-900' : 'bg-white'
+                      }`}
+                      style={{ width: `${Math.min(100, spentPercent)}%` }}
+                    />
+                  </div>
+                  <span className={`text-[10px] font-bold shrink-0 w-8 text-right tabular-nums ${
+                    isOver ? 'text-amber-400' : spentPercent >= 80 ? 'text-amber-400' : 'text-neutral-300'
+                  }`}>
+                    {spentPercent}%
+                  </span>
+                </div>
+
+                {/* 3. [Spent / Limit Amount] */}
+                <div className="text-right shrink-0">
+                  <div className="text-xs font-semibold tabular-nums whitespace-nowrap">
+                    <span className={isLight ? 'text-slate-900' : 'text-slate-100'}>
+                      {currSymbol}{spent.toLocaleString()}
+                    </span>
+                    <span className={`text-[11px] font-normal mx-1 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>/</span>
+                    <span className={`text-[11px] font-normal ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {currSymbol}{limit.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className={`text-[10px] font-medium tabular-nums ${
+                    isOver ? 'text-amber-400/90' : isLight ? 'text-slate-400' : 'text-slate-500'
+                  }`}>
+                    {isOver 
+                      ? `${currSymbol}${Math.abs(remaining).toLocaleString()} 초과` 
+                      : `잔여 ${currSymbol}${remaining.toLocaleString()}`}
+                  </div>
+                </div>
+
+                {/* 4. [Edit/Delete Icons] */}
+                <div className="flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={() => handleStartEdit(category, limit)}
+                    className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                      isLight ? 'hover:bg-slate-200 text-slate-500' : 'hover:bg-white/10 text-slate-400'
+                    }`}
+                    title="한도 수정"
+                    aria-label={`${getCategoryKo(category)} 한도 수정`}
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBudget(category)}
+                    className="p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+                    title="예산 삭제"
+                    aria-label={`${getCategoryKo(category)} 예산 삭제`}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Add Category Budget Modal / Inline Drawer */}
+      {showAddModal && (
+        <div ref={addBudgetFormRef} className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.08] space-y-2.5 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+            <h3 className="text-xs font-semibold text-white">
+              새 카테고리 예산 설정
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowAddModal(false)}
+              className="text-neutral-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+              aria-label="닫기"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          <div className="space-y-2.5">
+            <div>
+              <label className="text-[11px] font-medium block mb-1 text-neutral-300">
+                카테고리 선택
+              </label>
+              <select
+                value={newCategoryKey}
+                onChange={(e) => setNewCategoryKey(e.target.value)}
+                className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-full outline-none focus:border-white/20 transition-colors"
+              >
+                {STANDARD_CATEGORIES.map((cat) => (
+                  <option key={cat.key} value={cat.key} className="bg-[#111217] text-white">
+                    {cat.emoji} {cat.nameKo} {budgets[cat.key] !== undefined ? ' - 기존 설정 덮어쓰기' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-medium block mb-1 text-neutral-300">
+                월간 지출 한도 ({currSymbol})
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3 text-xs font-semibold select-none pointer-events-none text-neutral-400">{currSymbol}</span>
+                <input
+                  type="number"
+                  value={newLimitValue}
+                  onChange={(e) => setNewLimitValue(e.target.value)}
+                  placeholder="예: 300000"
+                  className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl pl-8 pr-3 text-xs text-white placeholder:text-neutral-500 w-full font-semibold outline-none focus:border-white/20 transition-colors"
+                />
+              </div>
+
+              {/* Quick Limit Presets */}
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                {[100000, 200000, 300000, 500000, 1000000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setNewLimitValue(String(amt))}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all cursor-pointer ${
+                      newLimitValue === String(amt)
+                        ? 'bg-white text-black border-white font-semibold shadow-xs'
+                        : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-neutral-300'
+                    }`}
+                  >
+                    {amt / 10000}만원
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/[0.06]">
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="py-2 px-3 rounded-xl border border-white/[0.08] bg-white/[0.04] text-neutral-400 hover:text-white text-xs cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleAddBudget}
+                className="py-2 px-4 rounded-xl bg-white hover:bg-neutral-200 text-black font-semibold text-xs transition-all shadow-sm cursor-pointer"
+              >
+                등록 완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface SmartAssetSetupProps {
+  onAssetsUpdated?: (assets: Asset[]) => void;
+  theme?: 'dark' | 'light';
+  currentCurrency?: SupportedCurrency;
+  fxRates?: FxRates;
+  initialSubTab?: 'assets' | 'budget' | 'subscriptions';
+}
+
+export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({ 
+  onAssetsUpdated,
+  theme = 'dark',
+  currentCurrency,
+  fxRates,
+  initialSubTab
+}) => {
+  const isLight = theme === 'light';
+  const [activeSection, setActiveSection] = useState<'assets' | 'budget' | 'subscriptions'>(initialSubTab || 'assets');
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [banner, setBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Base currency fallback
+  const effectiveCurrency: SupportedCurrency = useMemo(() => {
+    if (currentCurrency) return currentCurrency;
+    const prefs = getUserPreferences();
+    return (prefs.currencySymbol as SupportedCurrency) || 'KRW';
+  }, [currentCurrency]);
+
+  const effectiveFxRates: FxRates = useMemo(() => {
+    return fxRates || DEFAULT_FX_RATES;
+  }, [fxRates]);
+
+  // Dynamic list of available currencies for dropdowns/chips
+  const [activeCurrencies, setActiveCurrencies] = useState<string[]>(() => {
+    const list = getUserActiveCurrencies();
+    return list.length > 0 ? list : [effectiveCurrency];
+  });
+
+  useEffect(() => {
+    const refreshCurrencies = () => {
+      const list = getUserActiveCurrencies();
+      setActiveCurrencies(list.length > 0 ? list : [effectiveCurrency]);
+    };
+    window.addEventListener('storage', refreshCurrencies);
+    return () => window.removeEventListener('storage', refreshCurrencies);
+  }, [effectiveCurrency]);
+
+  const availableCurrenciesList = useMemo(() => {
+    const defaults = ['KRW', 'IDR', 'USD', 'JPY', 'EUR'];
+    return Array.from(new Set([...defaults, ...activeCurrencies, effectiveCurrency]));
+  }, [activeCurrencies, effectiveCurrency]);
+
+  // Manual addition state
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualType, setManualType] = useState<AssetType>('BANK');
+  const [manualBillingDay, setManualBillingDay] = useState('');
+  const [manualCurrency, setManualCurrency] = useState<SupportedCurrency>(effectiveCurrency);
+  const [manualBalance, setManualBalance] = useState('');
+  const [isManualCurrencyOverridden, setIsManualCurrencyOverridden] = useState(false);
+  const [detectedCurrency, setDetectedCurrency] = useState<SupportedCurrency | null>(null);
+
+  const manualAddFormRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (showManualAdd && manualAddFormRef.current) {
+      manualAddFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [showManualAdd]);
+
+  // Speech Recognition for manual voice input
+  const [isListeningManual, setIsListeningManual] = useState(false);
+  const manualRecognitionRef = useRef<any>(null);
+
+  // Inline editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editType, setEditType] = useState<AssetType>('CARD');
+  const [editBillingDay, setEditBillingDay] = useState<string>('');
+  const [editCurrency, setEditCurrency] = useState<SupportedCurrency>(effectiveCurrency);
+  const [editBalance, setEditBalance] = useState('');
+  const [isEditCurrencyOverridden, setIsEditCurrencyOverridden] = useState(false);
+  const [detectedEditCurrency, setDetectedEditCurrency] = useState<SupportedCurrency | null>(null);
+
+  const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSection(initialSubTab);
+    }
+  }, [initialSubTab]);
+
+  const subscriptionsCount = useMemo(() => {
+    return detectSubscriptions(transactions, effectiveCurrency, effectiveFxRates).length;
+  }, [transactions, effectiveCurrency, effectiveFxRates]);
+
+  // Clean up speech recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (manualRecognitionRef.current) {
+        try {
+          manualRecognitionRef.current.stop();
+        } catch {}
+      }
+    };
+  }, []);
+
+  // Load assets and transactions
+  useEffect(() => {
+    const loaded = getUserAssets();
+    setAssets(loaded);
+
+    getAllTransactions()
+      .then(txs => {
+        setTransactions(txs || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  const updateAssetsState = (newAssets: Asset[]) => {
+    setAssets(newAssets);
+    saveUserAssets(newAssets);
+    if (onAssetsUpdated) {
+      onAssetsUpdated(newAssets);
+    }
+  };
+
+  /**
+   * Automatic Currency Detection handler when user types or speaks account name
+   */
+  const handleManualNameChange = useCallback((newName: string) => {
+    setManualName(newName);
+
+    // If the user hasn't manually locked/overridden the currency, detect automatically
+    if (!isManualCurrencyOverridden) {
+      const detected = detectCurrencyFromInstitution(newName);
+      if (detected) {
+        setManualCurrency(detected);
+        setDetectedCurrency(detected);
+        ensureCurrencyRegistered(detected);
+      } else {
+        setDetectedCurrency(null);
+      }
+    } else {
+      // Check if user changed the name to match a different institution keyword
+      const detected = detectCurrencyFromInstitution(newName);
+      setDetectedCurrency(detected);
+    }
+  }, [isManualCurrencyOverridden]);
+
+  /**
+   * User manually overrides the currency chip / dropdown
+   */
+  const handleSelectManualCurrency = (curr: SupportedCurrency) => {
+    setManualCurrency(curr);
+    setIsManualCurrencyOverridden(true);
+    ensureCurrencyRegistered(curr);
+  };
+
+  /**
+   * Speech Recognition Toggle for manual account input
+   */
+  const toggleManualVoiceInput = () => {
+    if (isListeningManual) {
+      if (manualRecognitionRef.current) {
+        manualRecognitionRef.current.stop();
+      }
+      setIsListeningManual(false);
+      return;
+    }
+
+    const SpeechRecognition = 
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setBanner({
+        type: 'error',
+        message: '이 브라우저에서는 음성 인식을 지원하지 않습니다.'
+      });
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'ko-KR';
+      recognition.interimResults = true;
+      recognition.continuous = false;
+
+      recognition.onstart = () => {
+        setIsListeningManual(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript) {
+          handleManualNameChange(transcript);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition warning:', event.error);
+        setIsListeningManual(false);
+      };
+
+      recognition.onend = () => {
+        setIsListeningManual(false);
+      };
+
+      manualRecognitionRef.current = recognition;
+      recognition.start();
+    } catch {
+      setIsListeningManual(false);
+    }
+  };
+
+  // AI Smart Ingestion Handler
+  const handleAnalyzeAssets = async () => {
+    const trimmed = inputText.trim();
+    if (!trimmed || isAnalyzing) return;
+
+    setIsAnalyzing(true);
+    setBanner(null);
+
+    try {
+      const config = getAIEngineConfig();
+      const response = await fetch('/api/parse-assets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: trimmed,
+          engineConfig: config
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `서버 오류 (${response.status})`);
+      }
+
+      const data = await response.json();
+      const incoming: Asset[] = data.assets || [];
+
+      if (incoming.length === 0) {
+        setBanner({
+          type: 'error',
+          message: '자산을 감지하지 못했습니다. 은행/카드명과 결제일을 포함해 입력해 주세요.'
+        });
+        return;
+      }
+
+      const existingMap = new Map(assets.map(a => [a.name.toLowerCase().replace(/\s+/g, ''), a]));
+      let newCount = 0;
+      let updatedCount = 0;
+      const mergedList = [...assets];
+
+      for (const inc of incoming) {
+        // Auto-detect currency for AI-parsed asset
+        const detectedCurr = detectCurrencyFromInstitution(inc.name);
+        if (detectedCurr) {
+          inc.currency = detectedCurr;
+          ensureCurrencyRegistered(detectedCurr);
+        }
+
+        const key = inc.name.toLowerCase().replace(/\s+/g, '');
+        if (existingMap.has(key)) {
+          const idx = mergedList.findIndex(a => a.name.toLowerCase().replace(/\s+/g, '') === key);
+          if (idx !== -1) {
+            mergedList[idx] = {
+              ...mergedList[idx],
+              type: inc.type || mergedList[idx].type,
+              currency: inc.currency || mergedList[idx].currency,
+              billingDay: inc.billingDay ?? mergedList[idx].billingDay,
+              note: inc.note || mergedList[idx].note,
+              enabled: true
+            };
+            updatedCount++;
+          }
+        } else {
+          mergedList.push(inc);
+          newCount++;
+        }
+      }
+
+      updateAssetsState(mergedList);
+      setInputText('');
+      setBanner({
+        type: 'success',
+        message: `자산 등록 완료: ${newCount > 0 ? `${newCount}개 추가` : ''}${newCount > 0 && updatedCount > 0 ? ', ' : ''}${updatedCount > 0 ? `${updatedCount}개 업데이트` : ''}`
+      });
+    } catch (err: any) {
+      console.error(err);
+      setBanner({
+        type: 'error',
+        message: err.message || '자산 분석 중 오류가 발생했습니다.'
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleToggleAsset = (id: string) => {
+    const updated = assets.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a);
+    updateAssetsState(updated);
+  };
+
+  const handleDeleteAsset = (id: string) => {
+    const updated = assets.filter(a => a.id !== id);
+    updateAssetsState(updated);
+  };
+
+  const handleStartEdit = (asset: Asset) => {
+    setEditingId(asset.id);
+    setEditName(asset.name);
+    setEditType(asset.type);
+    setEditBillingDay(asset.billingDay ? String(asset.billingDay) : '');
+    const assetCurr = (asset.currency as SupportedCurrency) || effectiveCurrency;
+    setEditCurrency(assetCurr);
+    setEditBalance(asset.balance !== undefined ? String(asset.balance) : '');
+    setIsEditCurrencyOverridden(false);
+    setDetectedEditCurrency(detectCurrencyFromInstitution(asset.name));
+  };
+
+  const handleEditNameChange = (name: string) => {
+    setEditName(name);
+    if (!isEditCurrencyOverridden) {
+      const detected = detectCurrencyFromInstitution(name);
+      if (detected) {
+        setEditCurrency(detected);
+        setDetectedEditCurrency(detected);
+        ensureCurrencyRegistered(detected);
+      } else {
+        setDetectedEditCurrency(null);
+      }
+    }
+  };
+
+  const handleSelectEditCurrency = (curr: SupportedCurrency) => {
+    setEditCurrency(curr);
+    setIsEditCurrencyOverridden(true);
+    ensureCurrencyRegistered(curr);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingId || !editName.trim()) return;
+
+    const bDay = parseInt(editBillingDay, 10);
+    const validBDay = !isNaN(bDay) && bDay >= 1 && bDay <= 31 ? bDay : undefined;
+
+    const rawBal = editBalance.trim().replace(/,/g, '');
+    const numBal = rawBal ? parseFloat(rawBal) : undefined;
+    const validBal = numBal !== undefined && !isNaN(numBal) ? numBal : undefined;
+
+    const updated = assets.map(a => {
+      if (a.id === editingId) {
+        const isOverdraftAsset = a.isOverdraft || (validBal !== undefined && validBal < 0) || /(?:마통|마이너스|한도대출)/i.test(editName);
+        return {
+          ...a,
+          name: editName.trim(),
+          type: editType,
+          currency: editCurrency,
+          balance: validBal,
+          billingDay: editType === 'CARD' ? validBDay : undefined,
+          isOverdraft: isOverdraftAsset
+        };
+      }
+      return a;
+    });
+
+    ensureCurrencyRegistered(editCurrency);
+    updateAssetsState(updated);
+    setEditingId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const handleOpenManualAdd = () => {
+    setShowManualAdd(true);
+    setManualName('');
+    setManualType('BANK');
+    setManualBillingDay('');
+    setManualCurrency(effectiveCurrency);
+    setManualBalance('');
+    setIsManualCurrencyOverridden(false);
+    setDetectedCurrency(null);
+  };
+
+  const handleSaveManual = () => {
+    if (!manualName.trim()) return;
+
+    const bDay = parseInt(manualBillingDay, 10);
+    const validBDay = !isNaN(bDay) && bDay >= 1 && bDay <= 31 ? bDay : undefined;
+
+    const rawBal = manualBalance.trim().replace(/,/g, '');
+    const numBal = rawBal ? parseFloat(rawBal) : undefined;
+    const validBal = numBal !== undefined && !isNaN(numBal) ? numBal : undefined;
+    const isOverdraftAsset = (validBal !== undefined && validBal < 0) || /(?:마통|마이너스|한도대출)/i.test(manualName);
+
+    const newAsset: Asset = {
+      id: generateSecureId('asset-manual'),
+      name: manualName.trim(),
+      type: manualType,
+      currency: manualCurrency,
+      balance: validBal,
+      billingDay: manualType === 'CARD' ? validBDay : undefined,
+      enabled: true,
+      isOverdraft: isOverdraftAsset
+    };
+
+    ensureCurrencyRegistered(manualCurrency);
+    updateAssetsState([...assets, newAsset]);
+    setManualName('');
+    setManualBillingDay('');
+    setManualBalance('');
+    setManualCurrency(effectiveCurrency);
+    setIsManualCurrencyOverridden(false);
+    setDetectedCurrency(null);
+    setShowManualAdd(false);
+    setBanner({
+      type: 'success',
+      message: `'${newAsset.name}' 자산이 ${newAsset.currency} 통화로 등록되었습니다.`
+    });
+  };
+
+  const handleResetDefaults = () => {
+    setShowResetConfirmModal(true);
+  };
+
+  const handleConfirmReset = () => {
+    setShowResetConfirmModal(false);
+    updateAssetsState(DEFAULT_USER_ASSETS);
+    setBanner({
+      type: 'success',
+      message: '기본 권장 설정으로 복원되었습니다.'
+    });
+  };
+
+  const getAssetIcon = (type: AssetType) => {
+    switch (type) {
+      case 'CARD':
+        return <CreditCard size={13} className="shrink-0 text-slate-500 dark:text-slate-400" />;
+      case 'BANK':
+        return <Landmark size={13} className="shrink-0 text-slate-500 dark:text-slate-400" />;
+      case 'CASH':
+        return <Banknote size={13} className="shrink-0 text-slate-500 dark:text-slate-400" />;
+      case 'OTHER':
+      default:
+        return <Wallet size={13} className="shrink-0 text-slate-500 dark:text-slate-400" />;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Sub-Navigation Switcher: Assets vs Monthly Budget vs Subscriptions */}
+      <div className="flex items-center gap-2 border-b border-white/[0.04] pb-3">
+        <button
+          type="button"
+          id="subtab-btn-assets"
+          onClick={() => setActiveSection('assets')}
+          className={`h-8 px-3 text-xs rounded-full border transition-all whitespace-nowrap flex items-center gap-1.5 active:scale-95 ${
+            activeSection === 'assets'
+              ? 'bg-white/10 text-white font-medium border-white/20 shadow-xs'
+              : 'bg-white/[0.03] text-neutral-400 hover:text-white border-white/[0.06]'
+          }`}
+        >
+          <span>보유 자산</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
+            activeSection === 'assets'
+              ? 'bg-white/20 text-white'
+              : 'bg-white/10 text-neutral-400'
+          }`}>
+            {assets.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          id="subtab-btn-monthly-budget"
+          onClick={() => setActiveSection('budget')}
+          className={`h-8 px-3 text-xs rounded-full border transition-all whitespace-nowrap flex items-center gap-1.5 active:scale-95 ${
+            activeSection === 'budget'
+              ? 'bg-white/10 text-white font-medium border-white/20 shadow-xs'
+              : 'bg-white/[0.03] text-neutral-400 hover:text-white border-white/[0.06]'
+          }`}
+        >
+          <span>월간 예산</span>
+        </button>
+
+        <button
+          type="button"
+          id="subtab-btn-subscriptions"
+          onClick={() => setActiveSection('subscriptions')}
+          className={`h-8 px-3 text-xs rounded-full border transition-all whitespace-nowrap flex items-center gap-1.5 active:scale-95 ${
+            activeSection === 'subscriptions'
+              ? 'bg-white/10 text-white font-medium border-white/20 shadow-xs'
+              : 'bg-white/[0.03] text-neutral-400 hover:text-white border-white/[0.06]'
+          }`}
+        >
+          <span>고정 구독</span>
+          {subscriptionsCount > 0 && (
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
+              activeSection === 'subscriptions'
+                ? 'bg-white/20 text-white'
+                : 'bg-white/10 text-neutral-400'
+            }`}>
+              {subscriptionsCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeSection === 'budget' ? (
+        <MonthlyBudgetSection 
+          theme={theme} 
+          onBudgetChanged={() => {
+            if (onAssetsUpdated) onAssetsUpdated(assets);
+          }} 
+        />
+      ) : activeSection === 'subscriptions' ? (
+        <SubscriptionManagerSection
+          transactions={transactions}
+          currentCurrency={effectiveCurrency}
+          fxRates={effectiveFxRates}
+          theme={theme}
+          onTransactionChange={() => {
+            getAllTransactions().then(txs => setTransactions(txs || []));
+            if (onAssetsUpdated) onAssetsUpdated(assets);
+          }}
+        />
+      ) : (
+        <div className="space-y-4">
+          {/* 1. Smart Asset Setup: Single Sleek Textarea / Input + Action Button */}
+          <div className="space-y-2">
+            <div className="relative">
+              <textarea
+                id="smart-asset-input"
+                rows={2}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAnalyzeAssets();
+                  }
+                }}
+                placeholder="e.g., 주거래: 신한은행, 외화: BNI 생활비 통장, 카드: 현대카드(14일)"
+                className={`w-full rounded-xl px-3 py-2 text-xs outline-none resize-none leading-relaxed border transition-all ${
+                  isLight
+                    ? 'bg-slate-50/70 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-400'
+                    : 'bg-white/[0.03] border-white/10 text-white placeholder:text-slate-500 focus:bg-white/[0.05] focus:border-white/25'
+                }`}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <span className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                결제 문자나 문장을 입력하면 AI가 통화 및 자산을 자동 등록합니다
+              </span>
+              <button
+                type="button"
+                id="btn-analyze-assets"
+                disabled={!inputText.trim() || isAnalyzing}
+                onClick={handleAnalyzeAssets}
+                className={`h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 ${
+                  isLight
+                    ? 'bg-slate-900 text-white hover:bg-slate-800'
+                    : 'bg-white text-slate-950 hover:bg-slate-100'
+                }`}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    <span>분석 중...</span>
+                  </>
+                ) : (
+                  <span>자산 분석 및 등록</span>
+                )}
+              </button>
+            </div>
+
+            {/* Notification Banner */}
+            {banner && (
+              <div className={`px-3 py-2 rounded-lg text-xs flex items-center justify-between animate-in fade-in duration-150 ${
+                banner.type === 'success' 
+                  ? (isLight ? 'bg-slate-100 text-slate-800 border border-slate-300' : 'bg-white/10 text-white border border-white/15')
+                  : (isLight ? 'bg-slate-100 text-slate-800 border border-slate-300' : 'bg-white/[0.05] text-neutral-300 border border-white/10')
+              }`}>
+                <span className="font-medium truncate">{banner.message}</span>
+                <button onClick={() => setBanner(null)} className="ml-2 font-bold text-xs opacity-70 hover:opacity-100">×</button>
+              </div>
+            )}
+          </div>
+
+          {/* 2. Registered Assets List: Clean 1-Line Table */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between pt-1 px-0.5">
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-semibold ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+                  등록된 자산 목록
+                </span>
+                <span className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {assets.filter(a => a.enabled).length}/{assets.length}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  id="btn-show-manual-add"
+                  onClick={() => {
+                    if (showManualAdd) {
+                      setShowManualAdd(false);
+                    } else {
+                      handleOpenManualAdd();
+                    }
+                  }}
+                  className="h-8 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-xs font-medium text-white transition-all active:scale-95 flex items-center gap-1.5"
+                >
+                  <Plus size={13} />
+                  <span>직접 추가</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetDefaults}
+                  title="기본 설정으로 복원"
+                  className={`text-[11px] p-0.5 transition-colors ${
+                    isLight ? 'text-slate-500 hover:text-slate-700' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <RotateCcw size={11} />
+                </button>
+              </div>
+            </div>
+
+            {/* Manual Add Form Inline Expandable Card */}
+            {showManualAdd && (
+              <div ref={manualAddFormRef} className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.08] space-y-2.5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-semibold text-white">
+                      새 자산 직접 추가
+                    </h3>
+                    {detectedCurrency && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-neutral-200 border border-white/15 flex items-center gap-1 font-medium animate-in fade-in">
+                        <Sparkles size={10} className="text-white" />
+                        <span>{detectedCurrency} 자동 감지</span>
+                      </span>
+                    )}
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setShowManualAdd(false)} 
+                    className="text-neutral-400 hover:text-white p-1 rounded-lg transition-colors"
+                    aria-label="닫기"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                {/* Form Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  {/* 1. Account Name Input with Mic Button for Speech/Voice Input */}
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      id="manual-asset-name-input"
+                      value={manualName}
+                      onChange={(e) => handleManualNameChange(e.target.value)}
+                      placeholder="자산명 (예: BNI 생활비 통장, 신한 주거래)"
+                      className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl pl-3 pr-8 text-xs text-white placeholder:text-neutral-500 w-full outline-none focus:border-white/20 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={toggleManualVoiceInput}
+                      title={isListeningManual ? '음성 입력 중지' : '음성으로 자산명 입력 (예: BNI 생활비 통장)'}
+                      className={`absolute right-1.5 p-1 rounded-lg transition-all ${
+                        isListeningManual 
+                          ? 'bg-white/20 text-white animate-pulse' 
+                          : 'text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      {isListeningManual ? <MicOff size={13} /> : <Mic size={13} />}
+                    </button>
+                  </div>
+
+                  {/* 2. Asset Type Selector */}
+                  <select
+                    id="manual-asset-type-select"
+                    value={manualType}
+                    onChange={(e) => setManualType(e.target.value as AssetType)}
+                    className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-full outline-none focus:border-white/20 transition-all"
+                  >
+                    <option value="BANK" className="bg-[#111217] text-white">은행 계좌</option>
+                    <option value="CARD" className="bg-[#111217] text-white">신용/체크카드</option>
+                    <option value="CASH" className="bg-[#111217] text-white">현금</option>
+                    <option value="OTHER" className="bg-[#111217] text-white">기타 자산</option>
+                  </select>
+
+                  {/* 3. Currency Selector with Auto-Selection & Manual Override */}
+                  <select
+                    id="manual-asset-currency-select"
+                    value={manualCurrency}
+                    onChange={(e) => handleSelectManualCurrency(e.target.value as SupportedCurrency)}
+                    className={`h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-full outline-none font-semibold focus:border-white/20 transition-all ${
+                      detectedCurrency === manualCurrency && !isManualCurrencyOverridden
+                        ? 'border-white/20 bg-white/10'
+                        : ''
+                    }`}
+                  >
+                    {availableCurrenciesList.map((curr) => {
+                      const sym = getCurrencySymbol(curr);
+                      const name = KNOWN_CURRENCY_NAMES[curr]?.nameKo || curr;
+                      return (
+                        <option key={curr} value={curr} className="bg-[#111217] text-white">
+                          {curr} ({sym}) - {name}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  {/* 4. Visual Balance Display */}
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-xs font-semibold select-none pointer-events-none text-neutral-400">
+                      {getBalancePrefix(manualCurrency)}
+                    </span>
+                    <input
+                      type="text"
+                      id="manual-asset-balance-input"
+                      value={manualBalance}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9.,\-]/g, '');
+                        setManualBalance(val);
+                      }}
+                      placeholder={getBalancePlaceholder(manualCurrency)}
+                      className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl pl-8 pr-3 text-xs text-white placeholder:text-neutral-500 w-full font-mono tabular-nums outline-none focus:border-white/20 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Card Billing Day row if CARD */}
+                {manualType === 'CARD' && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[11px] font-medium text-neutral-400">
+                      카드 결제일:
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={manualBillingDay}
+                        onChange={(e) => setManualBillingDay(e.target.value)}
+                        placeholder="1~31"
+                        className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-24 text-center outline-none focus:border-white/20"
+                      />
+                      <span className="text-xs text-neutral-400">일</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Currency Quick-Pills and Footer Action Buttons */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/[0.06]">
+                  <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-400">
+                      통화 선택:
+                    </span>
+                    {['KRW', 'IDR', 'USD', 'JPY', 'EUR'].map((code) => {
+                      const isSelected = manualCurrency === code;
+                      const isDetected = detectedCurrency === code && !isManualCurrencyOverridden;
+                      return (
+                        <button
+                          key={code}
+                          type="button"
+                          onClick={() => handleSelectManualCurrency(code as SupportedCurrency)}
+                          className={`px-2 py-0.5 rounded-lg text-[11px] font-mono transition-all flex items-center gap-1 active:scale-95 ${
+                            isSelected
+                              ? isDetected
+                                ? 'bg-white text-black border border-white font-bold'
+                                : 'bg-white/20 text-white border border-white/30 font-bold'
+                              : 'bg-white/[0.04] text-neutral-400 hover:text-white border border-white/5'
+                          }`}
+                        >
+                          <span>{code}</span>
+                          {isDetected && <span className="text-[9px]">⚡</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    <button
+                      type="button"
+                      onClick={() => setShowManualAdd(false)}
+                      className="py-2 px-3 rounded-xl border border-white/[0.08] bg-white/[0.04] text-neutral-400 hover:text-white text-xs"
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="button"
+                      id="btn-save-manual-asset"
+                      onClick={handleSaveManual}
+                      disabled={!manualName.trim()}
+                      className="py-2 px-4 rounded-xl bg-white hover:bg-neutral-200 text-black font-semibold text-xs transition-all shadow-sm disabled:opacity-40"
+                    >
+                      등록 완료
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {assets.length === 0 ? (
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm py-7 px-4 flex flex-col items-center justify-center text-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-300 shadow-inner">
+                  <Wallet size={15} className="text-slate-300" strokeWidth={1.5} />
+                </div>
+                <p className="text-xs text-neutral-400 font-light">
+                  등록된 자산이 없습니다. 상단 입력창에 결제 문자나 문장을 입력해 등록하세요.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                {assets.map((asset) => {
+                  const isEditingThis = editingId === asset.id;
+
+                  if (isEditingThis) {
+                    return (
+                      <div
+                        key={asset.id}
+                        className={`px-3 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-l-2 ${
+                          isLight ? 'bg-slate-50 border-slate-900' : 'bg-white/[0.03] border-white'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                          {/* Type Select */}
+                          <select
+                            value={editType}
+                            onChange={(e) => setEditType(e.target.value as AssetType)}
+                            className={`text-xs px-2 py-1 rounded-lg border outline-none ${
+                              isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-white/20 text-white'
+                            }`}
+                          >
+                            <option value="BANK">은행</option>
+                            <option value="CARD">카드</option>
+                            <option value="CASH">현금</option>
+                            <option value="OTHER">기타</option>
+                          </select>
+
+                          {/* Name Input */}
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => handleEditNameChange(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit();
+                              if (e.key === 'Escape') handleCancelEdit();
+                            }}
+                            placeholder="자산명"
+                            autoFocus
+                            className={`text-xs font-semibold px-2.5 py-1 rounded-lg border outline-none flex-1 min-w-[120px] ${
+                              isLight ? 'bg-white border-slate-300 text-slate-900 focus:border-slate-500' : 'bg-slate-900 border-white/20 text-white focus:border-white/40'
+                            }`}
+                          />
+
+                          {/* Currency Select */}
+                          <select
+                            value={editCurrency}
+                            onChange={(e) => handleSelectEditCurrency(e.target.value as SupportedCurrency)}
+                            className={`text-xs px-2 py-1 rounded-lg border outline-none font-semibold ${
+                              detectedEditCurrency === editCurrency
+                                ? 'bg-white/10 border-white/20 text-white'
+                                : isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-white/20 text-white'
+                            }`}
+                          >
+                            {availableCurrenciesList.map((c) => (
+                              <option key={c} value={c}>
+                                {c} ({getCurrencySymbol(c)})
+                              </option>
+                            ))}
+                          </select>
+
+                          {/* Balance Input with dynamic prefix & placeholder */}
+                          <div className="relative flex items-center min-w-[110px]">
+                            <span className={`absolute left-2 text-xs font-semibold select-none pointer-events-none ${
+                              isLight ? 'text-slate-500' : 'text-slate-400'
+                            }`}>
+                              {getBalancePrefix(editCurrency)}
+                            </span>
+                            <input
+                              type="text"
+                              value={editBalance}
+                              onChange={(e) => setEditBalance(e.target.value.replace(/[^0-9.,\-]/g, ''))}
+                              placeholder={getBalancePlaceholder(editCurrency)}
+                              className={`w-full pl-6 pr-2 py-1 text-xs rounded-lg border outline-none font-mono ${
+                                isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-white/20 text-white'
+                              }`}
+                            />
+                          </div>
+
+                          {/* Card Billing Day */}
+                          {editType === 'CARD' && (
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <input
+                                type="number"
+                                min={1}
+                                max={31}
+                                value={editBillingDay}
+                                onChange={(e) => setEditBillingDay(e.target.value)}
+                                placeholder="결제일"
+                                className={`text-xs px-1.5 py-1 rounded-lg border outline-none w-12 text-center ${
+                                  isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-white/20 text-white'
+                                }`}
+                              />
+                              <span className="text-[10px] text-slate-400">일</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0 ml-auto">
+                          <button
+                            type="button"
+                            onClick={handleSaveEdit}
+                            className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
+                              isLight ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-white text-slate-950 hover:bg-slate-200'
+                            }`}
+                            title="저장"
+                          >
+                            <Check size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className={`p-1.5 rounded-lg text-xs transition-colors ${
+                              isLight ? 'text-slate-500 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/10'
+                            }`}
+                            title="취소"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={asset.id}
+                      id={`asset-row-${asset.id}`}
+                      className={`group px-3 py-2.5 flex items-center justify-between gap-3 transition-colors ${
+                        asset.enabled ? '' : 'opacity-40'
+                      } ${isLight ? 'hover:bg-slate-50/80' : 'hover:bg-white/[0.02]'}`}
+                    >
+                      {/* Left: Icon/Type Badge + Asset Name + Currency + Balance + Billing Day */}
+                      <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                        {/* Type Icon & Badge */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {getAssetIcon(asset.type)}
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded whitespace-nowrap ${
+                            isLight ? 'bg-slate-100 text-slate-700' : 'bg-white/10 text-slate-300'
+                          }`}>
+                            {getAssetTypeKo(asset.type)}
+                          </span>
+                        </div>
+
+                        {/* Asset Name (Never wraps vertically) */}
+                        <span 
+                          onClick={() => handleStartEdit(asset)}
+                          className={`text-xs font-semibold whitespace-nowrap truncate cursor-pointer hover:underline ${
+                            isLight ? 'text-slate-900' : 'text-slate-100'
+                          }`}
+                          title="클릭하여 수정"
+                        >
+                          {asset.name}
+                        </span>
+
+                        {/* Currency Tag */}
+                        {asset.currency && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded whitespace-nowrap border bg-white/[0.04] text-neutral-300 border-white/10">
+                            {asset.currency}
+                          </span>
+                        )}
+
+                        {/* Overdraft Badge */}
+                        {(asset.isOverdraft || (asset.balance !== undefined && asset.balance < 0)) && (
+                          <span className={`text-[10px] font-normal px-1.5 py-0.5 rounded whitespace-nowrap border ${
+                            isLight
+                              ? 'border-slate-200 bg-slate-100 text-slate-600'
+                              : 'border-white/[0.08] bg-white/[0.03] text-neutral-300 font-mono tracking-tight'
+                          }`}>
+                            {asset.balance !== undefined && asset.balance < 0
+                              ? `마이너스 대출 이용 중${asset.overdraftLimit ? ` (한도 ${formatCurrency(asset.overdraftLimit, asset.currency || effectiveCurrency)})` : ''}`
+                              : `마이너스 통장${asset.overdraftLimit ? ` (한도 ${formatCurrency(asset.overdraftLimit, asset.currency || effectiveCurrency)})` : ''}`}
+                          </span>
+                        )}
+
+                        {/* Balance display if set */}
+                        {asset.balance !== undefined && (
+                          <span className={`text-[11px] font-mono tabular-nums px-1.5 py-0.5 rounded whitespace-nowrap ${
+                            asset.balance < 0
+                              ? (isLight ? 'text-slate-700 bg-slate-100 font-mono' : 'text-neutral-300 bg-white/5 font-mono')
+                              : (isLight ? 'bg-slate-100 text-slate-700' : 'bg-white/5 text-slate-300')
+                          }`}>
+                            {formatCurrency(asset.balance, asset.currency || effectiveCurrency)}
+                          </span>
+                        )}
+
+                        {/* Billing Day (e.g. 14일) */}
+                        {asset.billingDay && (
+                          <span className={`text-[11px] whitespace-nowrap shrink-0 font-normal ${
+                            isLight ? 'text-slate-500' : 'text-slate-400'
+                          }`}>
+                            ({asset.billingDay}일)
+                          </span>
+                        )}
+
+                        {/* Edit Pencil Icon (subtle) */}
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(asset)}
+                          className={`p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ${
+                            isLight ? 'text-slate-500 hover:text-slate-700' : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                          title="수정"
+                        >
+                          <Pencil size={11} />
+                        </button>
+                      </div>
+
+                      {/* Right: Toggle Switch + Delete Icon */}
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        {/* Toggle Switch */}
+                        <button
+                          type="button"
+                          role="switch"
+                          id={`toggle-asset-tracking-${asset.id}`}
+                          aria-checked={asset.enabled}
+                          onClick={() => handleToggleAsset(asset.id)}
+                          className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none p-0.5 ${
+                            asset.enabled
+                              ? 'bg-white'
+                              : (isLight ? 'bg-slate-300' : 'bg-slate-700')
+                          }`}
+                          title={asset.enabled ? '추적 끄기' : '추적 켜기'}
+                          aria-label={`${asset.name} 추적 토글`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-3 w-3 transform rounded-full shadow-sm transition duration-200 ease-in-out ${
+                              asset.enabled ? 'translate-x-3 bg-black' : 'translate-x-0 bg-white'
+                            }`}
+                          />
+                        </button>
+
+                        {/* Delete Icon */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAsset(asset.id)}
+                          className="p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+                          title="자산 삭제"
+                          aria-label={`${asset.name} 삭제`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Resetting Assets */}
+      {showResetConfirmModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          onClick={() => setShowResetConfirmModal(false)}
+        >
+          <div 
+            className={`w-full max-w-xs rounded-2xl border p-4 shadow-2xl space-y-3 animate-in zoom-in-95 duration-150 ${
+              isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-white/10 text-white'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xs font-semibold">기본 자산 목록 복원</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              기본 자산 목록으로 복원하시겠습니까? 현재 등록된 커스텀 결제수단 및 카드 설정이 초기 권장값으로 재설정됩니다.
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowResetConfirmModal(false)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
+                  isLight ? 'border-slate-200 text-slate-600 hover:bg-slate-50' : 'border-white/10 text-slate-400 hover:bg-white/5'
+                }`}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReset}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all active:scale-95"
+              >
+                복원하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
