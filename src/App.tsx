@@ -51,20 +51,28 @@ import { useBudgetAnalytics } from './hooks/useBudgetAnalytics';
 import { useAutonomousEngine } from './hooks/useAutonomousEngine';
 
 // Extracted Modals and Visual Modules
-import { EditTransactionModal } from './components/EditTransactionModal';
-import { TransactionActionModal } from './components/TransactionActionModal';
-import { SettingsModal } from './components/SettingsModal';
-import { InsightsSection } from './components/InsightsSection';
-import { ManualCategoryModal } from './components/ManualCategoryModal';
 import { FinancialSummaryCard } from './components/FinancialSummaryCard';
 import { PWAInstallBanner } from './components/PWAInstallButton';
 import { VaultOverviewSection } from './components/VaultOverviewSection';
 import { VaultLockScreen } from './components/VaultLockScreen';
-import { NewSpaceModal } from './components/NewSpaceModal';
 import { OmnibarDock } from './components/OmnibarDock';
 import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault, subscribeVaultLock } from './vaultSecurity';
 
 // Dynamic Code-Split Components (Heavy Modals)
+const TransactionActionModal = lazy(() => import('./components/TransactionActionModal').then(m => ({ default: m.TransactionActionModal })));
+const EditTransactionModal = lazy(() => import('./components/EditTransactionModal').then(m => ({ default: m.EditTransactionModal })));
+const SettingsModal = lazy(() => import('./components/SettingsModal').then(m => ({ default: m.SettingsModal })));
+const InsightsSection = lazy(() => import('./components/InsightsSection').then(m => ({ default: m.InsightsSection })));
+const ManualCategoryModal = lazy(() => import('./components/ManualCategoryModal').then(m => ({ default: m.ManualCategoryModal })));
+const NewSpaceModal = lazy(() => import('./components/NewSpaceModal').then(m => ({ default: m.NewSpaceModal })));
+
+// Loads a lazy chunk on first open, then keeps it mounted so exit animations still run.
+const MountOnFirstOpen: React.FC<{ open: boolean; children: React.ReactNode }> = ({ open, children }) => {
+  const [seen, setSeen] = useState(open);
+  if (open && !seen) setSeen(true);
+  return seen ? <Suspense fallback={null}>{children}</Suspense> : null;
+};
+
 export const ReceiptScannerModal = lazy(() => import('./components/ReceiptScannerModal'));
 export const EventSettlementReportModal = lazy(() => import('./components/EventSettlementReportModal'));
 
@@ -156,7 +164,14 @@ export function App() {
         );
       }
     };
-    loadFxRates();
+    // Defer so the request does not extend the critical path of initial render.
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    if (w.requestIdleCallback && w.cancelIdleCallback) {
+      const id = w.requestIdleCallback(() => { void loadFxRates(); }, { timeout: 3000 });
+      return () => w.cancelIdleCallback!(id);
+    }
+    const t = setTimeout(() => { void loadFxRates(); }, 1500);
+    return () => clearTimeout(t);
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -963,7 +978,7 @@ export function App() {
 
   return (
     <div className="w-full h-[100dvh] flex justify-center bg-[#07080A] text-neutral-100 overflow-hidden font-sans antialiased">
-      <div className="w-full max-w-[440px] h-full bg-[#090A0D] border-x border-white/[0.04] flex flex-col relative shadow-2xl">
+      <div className="w-full max-w-[440px] lg:max-w-2xl h-full bg-[#090A0D] border-x border-white/[0.04] flex flex-col relative shadow-2xl">
         {/* Toast Notification Banner */}
         {toastMessage && (
           <div 
@@ -1074,6 +1089,7 @@ export function App() {
           {/* TAB 1: INSIGHTS (인사이트) */}
           {mainMode === 'insights' && (
             <div className="w-full">
+              <Suspense fallback={null}>
               <InsightsSection
                 transactions={transactions}
                 currentCurrency={currentCurrency}
@@ -1085,6 +1101,7 @@ export function App() {
                 queryResult={activeQueryResult}
                 onDismissQueryResult={() => setActiveQueryResult(null)}
               />
+              </Suspense>
             </div>
           )}
 
@@ -1426,6 +1443,7 @@ export function App() {
       </footer>
 
       {/* Transaction Action Modal */}
+      <MountOnFirstOpen open={!!selectedActionTransaction}>
       <TransactionActionModal
         isOpen={!!selectedActionTransaction}
         transaction={selectedActionTransaction}
@@ -1443,8 +1461,10 @@ export function App() {
         currentCurrency={currentCurrency}
         convertedAmount={selectedActionTransaction ? getAmountInSelectedCurrency(selectedActionTransaction) : undefined}
       />
+      </MountOnFirstOpen>
 
       {/* Edit Transaction Modal */}
+      <MountOnFirstOpen open={!!editingTransaction}>
       <EditTransactionModal
         isOpen={!!editingTransaction}
         onClose={handleCloseEditModal}
@@ -1452,8 +1472,10 @@ export function App() {
         onSave={handleUpdateTransaction}
         theme="dark"
       />
+      </MountOnFirstOpen>
 
       {/* Manual Category Selection Modal */}
+      <MountOnFirstOpen open={pendingCategorizationTxs.length > 0}>
       <ManualCategoryModal
         isOpen={pendingCategorizationTxs.length > 0}
         pendingTransactions={pendingCategorizationTxs}
@@ -1462,8 +1484,10 @@ export function App() {
         theme="dark"
         currencySymbol={userPrefs.currencySymbol || '₩'}
       />
+      </MountOnFirstOpen>
 
       {/* Settings Modal */}
+      <MountOnFirstOpen open={isSettingsOpen}>
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={handleCloseSettingsModal}
@@ -1480,6 +1504,7 @@ export function App() {
           setIsNewSpaceModalOpen(true);
         }}
       />
+      </MountOnFirstOpen>
 
       {/* Multimodal Receipt AI Scanner Modal */}
       <Suspense fallback={null}>
@@ -1496,6 +1521,7 @@ export function App() {
       </Suspense>
 
       {/* New Project / Event Space Modal */}
+      <MountOnFirstOpen open={isNewSpaceModalOpen}>
       <NewSpaceModal
         isOpen={isNewSpaceModalOpen}
         onClose={() => setIsNewSpaceModalOpen(false)}
@@ -1512,6 +1538,7 @@ export function App() {
         }}
         theme="dark"
       />
+      </MountOnFirstOpen>
 
       {/* Korean-Standard Event Settlement Report Modal */}
       <Suspense fallback={null}>

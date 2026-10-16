@@ -1,5 +1,6 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
+import { LazyMotion } from 'motion/react';
 import App from './App.tsx';
 import './index.css';
 
@@ -17,9 +18,50 @@ document.addEventListener(
   { passive: true }
 );
 
+// Chrome DevTools Issues flags form fields lacking id/name; assign stable ids to dynamically rendered fields.
+let formFieldSeq = 0;
+const labelUnnamedFields = (root: ParentNode) => {
+  root.querySelectorAll<HTMLInputElement>('input:not([id]):not([name]), textarea:not([id]):not([name]), select:not([id]):not([name])')
+    .forEach((el) => {
+      el.id = `field-${++formFieldSeq}`;
+    });
+};
+new MutationObserver((records) => {
+  for (const r of records) {
+    r.addedNodes.forEach((n) => {
+      if (n instanceof HTMLElement) {
+        if (n.matches('input,textarea,select') && !n.id && !n.getAttribute('name')) n.id = `field-${++formFieldSeq}`;
+        labelUnnamedFields(n);
+      }
+    });
+  }
+}).observe(document.body, { childList: true, subtree: true });
+
+// Animation features are not needed for first paint; fetch them once the browser is idle (m.* renders statically until then).
+const loadMotionFeatures = () =>
+  new Promise<typeof import('motion/react').domAnimation>((resolve) => {
+    const load = () => import('motion/react').then((mod) => resolve(mod.domAnimation));
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number };
+    const schedule = () => {
+      if (w.requestIdleCallback) w.requestIdleCallback(load, { timeout: 6000 });
+      else setTimeout(load, 4000);
+    };
+    if (document.readyState === 'complete') schedule();
+    else window.addEventListener('load', schedule, { once: true });
+  });
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <LazyMotion features={loadMotionFeatures}>
+      <App />
+    </LazyMotion>
   </StrictMode>,
 );
 
+
+// Register the service worker after load so it never competes with first render.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }));
+  });
+}

@@ -28,7 +28,8 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import { format, parseISO } from 'date-fns';
 import { 
   AssetAccount, 
@@ -1024,7 +1025,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       {/* Toast Notification */}
       <AnimatePresence>
         {notification && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -1036,7 +1037,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           >
             {notification.type === 'success' ? <Check size={14} /> : <AlertCircle size={14} />}
             <span>{notification.message}</span>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -1207,7 +1208,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               }`}
             >
               <span>{cat.label}</span>
-              <span className="opacity-60 tabular-nums">({count})</span>
+              <span className="opacity-85 tabular-nums">({count})</span>
             </button>
           );
         })}

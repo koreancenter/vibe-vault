@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Lifted from #62748e so secondary text meets WCAG AA (4.5:1) on the dark canvas. */
+@theme {
+  --color-slate-500: #8494ab;
+}
+
 :root {
   --surface-canvas: #090A0D;
   --surface-raised: rgba(255, 255, 255, 0.03);
