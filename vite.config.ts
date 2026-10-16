@@ -1,8 +1,28 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+// Inlines the entry stylesheet into index.html so CSS no longer blocks first render.
+const inlineEntryCss = (): Plugin => ({
+  name: 'inline-entry-css',
+  apply: 'build',
+  enforce: 'post',
+  generateBundle(_, bundle) {
+    const html = bundle['index.html'];
+    if (!html || html.type !== 'asset') return;
+    let source = String(html.source);
+    for (const [name, asset] of Object.entries(bundle)) {
+      if (asset.type !== 'asset' || !name.endsWith('.css')) continue;
+      const link = new RegExp(`<link[^>]*rel="stylesheet"[^>]*href="[^"]*${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`);
+      if (!link.test(source)) continue;
+      source = source.replace(link, () => `<style>${String(asset.source)}</style>`);
+      delete bundle[name];
+    }
+    html.source = source;
+  },
+});
 
 export default defineConfig({
   esbuild: {
@@ -12,6 +32,7 @@ export default defineConfig({
   plugins: [
     react(), 
     tailwindcss(),
+    inlineEntryCss(),
     VitePWA({
         registerType: 'autoUpdate',
         injectRegister: false,

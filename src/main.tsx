@@ -37,9 +37,22 @@ new MutationObserver((records) => {
   }
 }).observe(document.body, { childList: true, subtree: true });
 
+// Animation features are not needed for first paint; fetch them once the browser is idle (m.* renders statically until then).
+const loadMotionFeatures = () =>
+  new Promise<typeof import('motion/react').domAnimation>((resolve) => {
+    const load = () => import('motion/react').then((mod) => resolve(mod.domAnimation));
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number };
+    const schedule = () => {
+      if (w.requestIdleCallback) w.requestIdleCallback(load, { timeout: 6000 });
+      else setTimeout(load, 4000);
+    };
+    if (document.readyState === 'complete') schedule();
+    else window.addEventListener('load', schedule, { once: true });
+  });
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <LazyMotion features={() => import('motion/react').then((mod) => mod.domAnimation)} strict>
+    <LazyMotion features={loadMotionFeatures}>
       <App />
     </LazyMotion>
   </StrictMode>,
