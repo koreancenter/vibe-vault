@@ -963,7 +963,7 @@ export function App() {
 
   return (
     <div className="w-full h-[100dvh] flex justify-center bg-[#07080A] text-neutral-100 overflow-hidden font-sans antialiased">
-      <div className="w-full max-w-[440px] h-full bg-[#090A0D] border-x border-white/[0.04] flex flex-col relative shadow-2xl">
+      <div className="w-full max-w-[440px] lg:max-w-2xl h-full bg-[#090A0D] border-x border-white/[0.04] flex flex-col relative shadow-2xl">
         {/* Toast Notification Banner */}
         {toastMessage && (
           <div 
