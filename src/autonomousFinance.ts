@@ -521,7 +521,7 @@ export async function parseReceiptWithResilience(
     engineType: resolvedConfig.engineType || (effectiveApiKey ? 'byok' : 'local'),
     localModel: resolvedConfig.localModel || 'gemma-2b',
     provider: resolvedConfig.provider || 'gemini',
-    modelTier: resolvedConfig.modelTier || 'gemini-3.1-flash-lite',
+    modelTier: resolvedConfig.modelTier || 'gemini-3.8-flash',
     apiKey: effectiveApiKey
   };
 
@@ -770,7 +770,7 @@ export async function parseBrokerageScreenshot(
     engineType: engineConfig?.engineType || (currentKey ? 'byok' : 'local'),
     localModel: engineConfig?.localModel || 'gemma-2b',
     provider: engineConfig?.provider || 'gemini',
-    modelTier: engineConfig?.modelTier || 'gemini-3.1-flash-lite',
+    modelTier: engineConfig?.modelTier || 'gemini-3.8-flash',
     apiKey: currentKey
   };
 

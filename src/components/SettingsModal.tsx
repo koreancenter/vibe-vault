@@ -180,11 +180,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [engineType, setEngineType] = useState<'local' | 'byok'>('byok');
   const [localModel, setLocalModel] = useState<'gemma-2b' | 'llama3-8b'>('gemma-2b');
   const [provider, setProvider] = useState<'gemini' | 'openai' | 'anthropic'>('gemini');
-  const [modelTier, setModelTier] = useState<string>('gemini-3.1-flash-lite');
+  const [modelTier, setModelTier] = useState<string>('gemini-3.8-flash');
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [isTestingKey, setIsTestingKey] = useState(false);
   const [testResult, setTestResult] = useState<{ status: 'valid' | 'invalid' | null; message: string }>({
+    status: null,
+    message: ''
+  });
+
+  // Local AI (Ollama vs WebLLM) state
+  const [localSubMode, setLocalSubMode] = useState<'ollama' | 'webllm'>('ollama');
+  const [ollamaEndpoint, setOllamaEndpoint] = useState<string>('http://localhost:11434');
+  const [ollamaModel, setOllamaModel] = useState<string>('gemma2:9b');
+  const [ollamaModelsList, setOllamaModelsList] = useState<string[]>([]);
+  const [isTestingOllama, setIsTestingOllama] = useState<boolean>(false);
+  const [ollamaStatus, setOllamaStatus] = useState<{ status: 'connected' | 'error' | null; message: string }>({
     status: null,
     message: ''
   });
@@ -267,10 +278,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setEngineType(engineCfg.engineType || 'byok');
       setLocalModel(engineCfg.localModel || 'gemma-2b');
       setProvider(engineCfg.provider || 'gemini');
-      setModelTier(engineCfg.modelTier || (engineCfg.provider === 'openai' ? 'gpt-4o-mini' : 'gemini-3.1-flash-lite'));
+      setModelTier(engineCfg.modelTier || 'gemini-3.8-flash');
       setApiKey(engineCfg.apiKey || getSecureGeminiApiKey() || '');
       setShowKey(false);
       setTestResult({ status: null, message: '' });
+      setLocalSubMode(engineCfg.localSubMode || 'ollama');
+      setOllamaEndpoint(engineCfg.ollamaEndpoint || 'http://localhost:11434');
+      setOllamaModel(engineCfg.ollamaModel || 'gemma2:9b');
+      setOllamaStatus({ status: null, message: '' });
 
       // Check WebGPU hardware & model cache state
       checkWebGPUSupport().then(res => setWebGpuStatus(res));
@@ -432,6 +447,74 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  // Ollama Connection Test Handler
+  const handleTestOllamaConnection = async () => {
+    const ep = ollamaEndpoint.trim().replace(/\/+$/, '');
+    if (!ep) {
+      setOllamaStatus({
+        status: 'error',
+        message: 'Ollama 엔드포인트 URL을 입력해주세요.'
+      });
+      return;
+    }
+
+    setIsTestingOllama(true);
+    setOllamaStatus({ status: null, message: '' });
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const res = await fetch(`${ep}/api/tags`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        const models: string[] = Array.isArray(data?.models)
+          ? data.models.map((m: any) => m.name || m.model).filter(Boolean)
+          : [];
+
+        setOllamaModelsList(models);
+
+        if (models.length > 0 && (!ollamaModel || !models.includes(ollamaModel))) {
+          setOllamaModel(models[0]);
+        }
+
+        setOllamaStatus({
+          status: 'connected',
+          message: models.length > 0
+            ? `Ollama 서버 연결 성공 (${models.length}개 로컬 모델 감지)`
+            : 'Ollama 서버 연결 성공 (설치된 모델 없음)'
+        });
+      } else {
+        setOllamaStatus({
+          status: 'error',
+          message: `HTTP ${res.status}: Ollama 서버 응답 오류`
+        });
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setOllamaStatus({
+          status: 'error',
+          message: '연결 시간 초과 (6초). Ollama가 실행 중인지 확인해주세요.'
+        });
+      } else {
+        setOllamaStatus({
+          status: 'error',
+          message: 'Ollama 서버에 연결할 수 없습니다. Ollama 실행 여부 및 CORS 설정을 확인해 주세요 (OLLAMA_ORIGINS="*" ollama serve).'
+        });
+      }
+    } finally {
+      setIsTestingOllama(false);
+    }
+  };
+
   // WebLLM Model Management Handlers
   const handleStartWebLLMDownload = async () => {
     setIsDownloadingModel(true);
@@ -487,6 +570,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         modelTier,
         localModel,
         apiKey: cleanKey,
+        localSubMode,
+        ollamaEndpoint: ollamaEndpoint.trim(),
+        ollamaModel: ollamaModel.trim(),
       });
 
       const currentPrefs = getUserPreferences();
@@ -884,6 +970,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               engineType={engineType}
               setEngineType={setEngineType}
               setProvider={setProvider}
+              modelTier={modelTier}
+              setModelTier={setModelTier}
               apiKey={apiKey}
               setApiKey={setApiKey}
               showKey={showKey}
@@ -893,6 +981,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               isTestingKey={isTestingKey}
               testResult={testResult}
               setTestResult={setTestResult}
+              localSubMode={localSubMode}
+              setLocalSubMode={setLocalSubMode}
+              ollamaEndpoint={ollamaEndpoint}
+              setOllamaEndpoint={setOllamaEndpoint}
+              ollamaModel={ollamaModel}
+              setOllamaModel={setOllamaModel}
+              ollamaModelsList={ollamaModelsList}
+              isTestingOllama={isTestingOllama}
+              ollamaStatus={ollamaStatus}
+              handleTestOllamaConnection={handleTestOllamaConnection}
               localModel={localModel}
               setLocalModel={setLocalModel}
               webGpuStatus={webGpuStatus}

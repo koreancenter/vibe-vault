@@ -213,7 +213,7 @@ export async function setSecureGeminiApiKey(key: string): Promise<void> {
   parsed.provider = 'gemini';
   parsed.apiKey = masked;
   parsed.maskedApiKey = masked;
-  if (!parsed.modelTier) parsed.modelTier = 'gemini-3.1-flash-lite';
+  if (!parsed.modelTier) parsed.modelTier = 'gemini-3.8-flash';
   localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(parsed));
   inMemoryApiKey = clean;
 }

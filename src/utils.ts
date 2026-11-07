@@ -15,6 +15,9 @@ export interface AIEngineConfig {
   provider: 'gemini' | 'openai' | 'anthropic';
   modelTier: string;
   apiKey: string;
+  localSubMode?: 'ollama' | 'webllm';
+  ollamaEndpoint?: string;
+  ollamaModel?: string;
 }
 
 export type ThemeMode = 'dark';
@@ -40,8 +43,11 @@ export function getAIEngineConfig(): AIEngineConfig {
         engineType: parsed.engineType || 'byok',
         localModel: parsed.localModel || 'gemma-2b',
         provider: parsed.provider || 'gemini',
-        modelTier: parsed.modelTier || 'gemini-3.1-flash-lite',
-        apiKey: secureKey
+        modelTier: parsed.modelTier || 'gemini-3.8-flash',
+        apiKey: secureKey,
+        localSubMode: parsed.localSubMode || 'ollama',
+        ollamaEndpoint: parsed.ollamaEndpoint || 'http://localhost:11434',
+        ollamaModel: parsed.ollamaModel || 'gemma2:9b',
       };
     }
   } catch (e) {}
@@ -50,8 +56,11 @@ export function getAIEngineConfig(): AIEngineConfig {
     engineType: 'byok',
     localModel: 'gemma-2b',
     provider: 'gemini',
-    modelTier: 'gemini-3.1-flash-lite',
-    apiKey: secureKey || ''
+    modelTier: 'gemini-3.8-flash',
+    apiKey: secureKey || '',
+    localSubMode: 'ollama',
+    ollamaEndpoint: 'http://localhost:11434',
+    ollamaModel: 'gemma2:9b',
   };
 }
 

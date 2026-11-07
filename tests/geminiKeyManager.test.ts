@@ -40,6 +40,7 @@ import {
   ENCRYPTED_STORAGE_KEY,
   SECURE_STORAGE_KEY
 } from '../src/geminiKeyManager';
+import { getAIEngineConfig, saveAIEngineConfig } from '../src/utils';
 
 describe('Gemini Key Manager Security Hardening (Masking & Encrypted Storage)', () => {
   const sampleKey = 'AIzaSyA1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q';
@@ -144,4 +145,28 @@ describe('Gemini Key Manager Security Hardening (Masking & Encrypted Storage)', 
     clearInMemoryApiKey();
     expect(getInMemoryApiKey()).toBeNull();
   });
+
+  it('8. Model Tier & Ollama Config: supports gemini-3.8-flash default and preserves Ollama settings', () => {
+    const config = getAIEngineConfig();
+    expect(config.modelTier).toBe('gemini-3.8-flash');
+    expect(config.localSubMode).toBe('ollama');
+    expect(config.ollamaEndpoint).toBe('http://localhost:11434');
+
+    saveAIEngineConfig({
+      engineType: 'local',
+      localSubMode: 'ollama',
+      ollamaEndpoint: 'http://localhost:11434',
+      ollamaModel: 'llama3.2:3b',
+      localModel: 'gemma-2b',
+      provider: 'gemini',
+      modelTier: 'gemini-3.8-flash',
+      apiKey: '',
+    });
+
+    const saved = getAIEngineConfig();
+    expect(saved.engineType).toBe('local');
+    expect(saved.localSubMode).toBe('ollama');
+    expect(saved.ollamaModel).toBe('llama3.2:3b');
+  });
 });
+
