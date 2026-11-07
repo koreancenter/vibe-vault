@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { SupportedCurrency, LaunchScreenMode } from '../types';
 import { getCurrencySymbol, getCategoryKo } from '../utils';
+import { useI18n } from '../i18n';
 
 // Global Quick Suggestion Chips (Featured analytical query tags + quick ledger entries)
 const SUGGESTION_CHIPS = [
@@ -50,18 +51,6 @@ export interface OmnibarDockProps {
   placeholder?: string;
 }
 
-const getPlaceholderByMode = (mode?: LaunchScreenMode | string) => {
-  switch (mode) {
-    case 'vault':
-      return '예: 신한 마통 -350만, 토스증권 1,250만';
-    case 'insights':
-      return '예: 9월 환차익 얼마야?, 이번 달 식비 비중';
-    case 'ledger':
-    default:
-      return '예: 점심 9천원, 갤럭시북 180만 10개월 할부';
-  }
-};
-
 export const OmnibarDock: React.FC<OmnibarDockProps> = ({
   input,
   setInput,
@@ -82,9 +71,22 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
   onRunQuery,
   placeholder,
 }) => {
+  const { t } = useI18n();
   const [isInputFocused, setIsInputFocused] = useState(false);
   const isInsightsMode = mode === 'insights';
   const isTyping = input.trim().length > 0;
+
+  const getPlaceholderByMode = (currentMode?: LaunchScreenMode | string) => {
+    switch (currentMode) {
+      case 'vault':
+        return t('placeholder_vault');
+      case 'insights':
+        return t('placeholder_insights');
+      case 'ledger':
+      default:
+        return t('placeholder_ledger');
+    }
+  };
 
   const inputPlaceholder = placeholder || getPlaceholderByMode(mode);
 

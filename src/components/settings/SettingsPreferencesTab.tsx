@@ -3,8 +3,9 @@ import { Plus, X, Check, Trash2, Smartphone } from 'lucide-react';
 import { CustomDarkSelect, CustomSelectOption } from './CustomDarkSelect';
 import { IOSInstallModal } from '../PWAInstallButton';
 import { usePWAInstall } from '../../usePWAInstall';
-import { LedgerSpace } from '../../types';
+import { LedgerSpace, SupportedCurrency } from '../../types';
 import { KNOWN_CURRENCY_NAMES, getCurrencySymbol } from '../../utils';
+import { useI18n, LanguageCode, DEFAULT_CURRENCY_BY_LANGUAGE } from '../../i18n';
 
 interface SettingsPreferencesTabProps {
   defaultLaunchScreen: 'vault' | 'insights' | 'ledger';
@@ -64,12 +65,24 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
   handleDeleteSpaceItem,
   onDataChanged,
 }) => {
+  const { language, setLanguage, t } = useI18n();
+  const [pendingCurrencyPrompt, setPendingCurrencyPrompt] = useState<SupportedCurrency | null>(null);
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [isPwaDismissed, setIsPwaDismissed] = useState(() => {
     return typeof sessionStorage !== 'undefined' && sessionStorage.getItem('vibe_pref_pwa_dismissed') === 'true';
   });
   const [isAddingSpace, setIsAddingSpace] = useState(false);
+
+  const handleLanguageSelect = (lang: LanguageCode) => {
+    setLanguage(lang);
+    const targetCurrency = DEFAULT_CURRENCY_BY_LANGUAGE[lang];
+    if (targetCurrency && targetCurrency !== currencySymbol) {
+      setPendingCurrencyPrompt(targetCurrency);
+    } else {
+      setPendingCurrencyPrompt(null);
+    }
+  };
 
   return (
     <div className="space-y-5 animate-in fade-in duration-150">
@@ -79,7 +92,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
           <div className="flex items-center gap-2 min-w-0">
             <Smartphone size={13} className="shrink-0 text-slate-300" />
             <span className="text-neutral-300 truncate text-[11px]">
-              홈 화면에 앱으로 추가하여 브라우저 없이 실행하세요
+              {language === 'ko' ? '홈 화면에 앱으로 추가하여 브라우저 없이 실행하세요' : 'Add to home screen to launch as native app'}
             </span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -94,7 +107,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               }}
               className="px-2.5 py-1 rounded-lg bg-white text-black hover:bg-neutral-200 text-[11px] font-medium transition-all active:scale-95"
             >
-              설치
+              {language === 'ko' ? '설치' : 'Install'}
             </button>
             <button
               type="button"
@@ -118,16 +131,88 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
         theme="dark"
       />
 
+      {/* Group 0: 언어 설정 (Language Selector) */}
+      <div className="space-y-3 pb-4 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-slate-200">
+            {t('language')}
+          </span>
+        </div>
+
+        {/* 4 Core Regional Locales Segmented Button */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl bg-black/40 border border-white/5">
+          {([
+            { code: 'ko' as LanguageCode, label: '한국어 (KO)' },
+            { code: 'en' as LanguageCode, label: 'English (EN)' },
+            { code: 'ja' as LanguageCode, label: '日本語 (JA)' },
+            { code: 'eu' as LanguageCode, label: 'European (EU)' },
+          ]).map((opt) => (
+            <button
+              key={opt.code}
+              type="button"
+              id={`lang-btn-${opt.code}`}
+              onClick={() => handleLanguageSelect(opt.code)}
+              className={`px-3 py-2 rounded-xl text-xs transition-all active:scale-95 text-center font-medium cursor-pointer ${
+                language === opt.code
+                  ? 'bg-white/15 text-white shadow-xs font-bold border border-white/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Optional Base Currency Synchronization Prompt */}
+        {pendingCurrencyPrompt && (
+          <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-2.5 animate-in fade-in duration-200">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-neutral-200 font-normal leading-snug">
+                {t('currency_switch_prompt', { currency: pendingCurrencyPrompt })}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrencySymbol(pendingCurrencyPrompt);
+                  if (!activeCurrenciesList.includes(pendingCurrencyPrompt)) {
+                    handleAddActiveCurrency(pendingCurrencyPrompt);
+                  }
+                  if (typeof localStorage !== 'undefined') {
+                    const raw = localStorage.getItem('vibe_user_preferences');
+                    const prefs = raw ? JSON.parse(raw) : {};
+                    localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, currencySymbol: pendingCurrencyPrompt }));
+                  }
+                  setPendingCurrencyPrompt(null);
+                  if (onDataChanged) onDataChanged();
+                }}
+                className="px-2.5 py-1 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs font-semibold active:scale-95 transition-all cursor-pointer"
+              >
+                {t('switch_currency')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingCurrencyPrompt(null)}
+                className="px-2 py-1 rounded-lg text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              >
+                {t('keep_currency')}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Group 1: 화면 설정 (기본 시작 화면) */}
       <div className="space-y-3">
         <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-400">
-          화면 설정
+          {t('screen_settings')}
         </span>
         
         <div className="space-y-3 pb-4 border-b border-white/[0.06]">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-semibold text-slate-200">
-              기본 시작 화면
+              {t('default_launch_screen')}
             </span>
             <div className="flex p-0.5 rounded-xl border bg-black/40 border-white/5">
               <button
@@ -148,7 +233,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                자산
+                {t('vault')}
               </button>
               <button
                 type="button"
@@ -168,7 +253,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                인사이트
+                {t('insights')}
               </button>
               <button
                 type="button"
@@ -188,7 +273,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                장부
+                {t('ledger')}
               </button>
             </div>
           </div>

@@ -38,6 +38,7 @@ import {
   LUXURY_CATEGORY_COLORS
 } from '../utils';
 import { getAllAssetAccounts, getAllDebts } from '../db';
+import { useI18n } from '../i18n';
 
 import {
   ResponsiveContainer,
@@ -73,6 +74,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
   queryResult: externalQueryResult,
   onDismissQueryResult,
 }) => {
+  const { t, language } = useI18n();
   const currSymbol = getCurrencySymbol(currentCurrency);
   const briefingCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -544,10 +546,10 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-light text-slate-300">총 순자산</span>
+              <span className="text-xs font-light text-slate-300">{t('net_worth')}</span>
             </div>
             <span className="mt-1 text-[11px] font-light text-slate-400">
-              총 자산 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(totalAssets)}</span>
+              {t('total_assets')} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(totalAssets)}</span>
             </span>
           </div>
           <div className="text-right shrink-0">
@@ -561,12 +563,12 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-light text-slate-300">이번 달 저축률</span>
+              <span className="text-xs font-light text-slate-300">{t('savings_rate')}</span>
             </div>
             <div className="mt-1 text-[11px] font-light text-slate-400 flex items-center gap-1.5 flex-wrap">
-              <span>수입 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(monthIncome)}</span> 대비</span>
+              <span>{language === 'ko' ? '수입' : language === 'ja' ? '収入' : 'Income'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(monthIncome)}</span></span>
               <span className="opacity-30">·</span>
-              <span>{monthNet >= 0 ? '순흑자' : '순적자'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(Math.abs(monthNet))}</span></span>
+              <span>{monthNet >= 0 ? (language === 'ko' ? '순흑자' : language === 'ja' ? '黒字' : 'Surplus') : (language === 'ko' ? '순적자' : language === 'ja' ? '赤字' : 'Deficit')} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(Math.abs(monthNet))}</span></span>
             </div>
           </div>
           <div className="text-right shrink-0">
@@ -582,10 +584,10 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-light text-slate-300">순자산 대비 소비</span>
+              <span className="text-xs font-light text-slate-300">{t('burn_rate')}</span>
             </div>
             <span className="mt-1 text-[11px] font-light text-slate-400">
-              월 지출 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(monthExpense)}</span>
+              {language === 'ko' ? '월 지출' : language === 'ja' ? '月支出' : 'Monthly expense'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(monthExpense)}</span>
             </span>
           </div>
           <div className="text-right shrink-0">
@@ -605,10 +607,10 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-light text-slate-300">비상 유동성 완충</span>
+              <span className="text-xs font-light text-slate-300">{t('runway_months')}</span>
             </div>
             <span className="mt-1 text-[11px] font-light text-slate-400">
-              현금·예금 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(liquidAssets)}</span>
+              {language === 'ko' ? '현금·예금' : language === 'ja' ? '現預金' : 'Liquid cash'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(liquidAssets)}</span>
             </span>
           </div>
           <div className="text-right shrink-0">
@@ -616,7 +618,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               <span className={`text-xl sm:text-2xl font-light tracking-tight ${
                 liquidAssets > 0 ? 'text-sky-400' : 'text-neutral-400'
               }`}>
-                {liquidAssets > 0 ? '충분' : '-'}
+                {liquidAssets > 0 ? (language === 'ko' ? '충분' : language === 'ja' ? '十分' : 'Safe') : '-'}
               </span>
             ) : (
               <div className="flex items-baseline justify-end gap-1">
@@ -626,7 +628,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                   {parseFloat(runwayMonths) > 99 ? '99+' : runwayMonths}
                 </span>
                 <span className="text-xs font-light text-slate-400">
-                  개월
+                  {language === 'ko' ? '개월' : language === 'ja' ? 'ヶ月' : 'mo'}
                 </span>
               </div>
             )}
@@ -652,11 +654,11 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
             </span>
             <span className="opacity-30">·</span>
             <span className="font-light text-slate-400">
-              AI 총괄 재정 진단
+              {t('ai_diagnosis')}
             </span>
             <span className="opacity-30">·</span>
             <span className="font-light text-slate-400 tabular-nums">
-              {format(selectedMonth, 'yyyy년 M월')}
+              {format(selectedMonth, language === 'ko' ? 'yyyy년 M월' : language === 'ja' ? 'yyyy年M月' : 'MMM yyyy')}
             </span>
           </div>
 
@@ -674,7 +676,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           {integratedDiagnosis.recommendation && (
             <div className="pt-3.5 border-t border-white/[0.06] text-xs font-light leading-relaxed flex flex-col gap-1.5">
               <span className="font-medium text-sky-400 text-xs tracking-tight">
-                실행 가이드
+                {t('action_guide')}
               </span>
               <p className="text-slate-300 text-xs sm:text-sm font-light leading-relaxed">
                 {integratedDiagnosis.recommendation}
@@ -689,11 +691,11 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-sm font-semibold tracking-tight text-white">
-              카테고리별 지출 분석
+              {t('category_analysis')}
             </h2>
             <p className="text-xs font-light text-slate-400 mt-0.5">
-              {format(selectedMonth, 'yyyy년 M월')} 총 지출: <span className="font-medium text-slate-200 tabular-nums">{formatMoney(monthExpense)}</span>
-              {monthExpenseCount > 0 && <span className="text-slate-400 ml-1">({monthExpenseCount}건)</span>}
+              {format(selectedMonth, language === 'ko' ? 'yyyy년 M월' : language === 'ja' ? 'yyyy年M月' : 'MMM yyyy')} {language === 'ko' ? '총 지출' : language === 'ja' ? '総支出' : 'Total spending'}: <span className="font-medium text-slate-200 tabular-nums">{formatMoney(monthExpense)}</span>
+              {monthExpenseCount > 0 && <span className="text-slate-400 ml-1">({monthExpenseCount} items)</span>}
             </p>
           </div>
           {selectedCategory && (
@@ -702,7 +704,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               onClick={() => setSelectedCategory(null)}
               className="text-xs font-normal px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 hover:bg-sky-500/20 transition-all cursor-pointer"
             >
-              {getCategoryKo(selectedCategory)} 해제 ×
+              {getCategoryKo(selectedCategory)} ×
             </button>
           )}
         </div>

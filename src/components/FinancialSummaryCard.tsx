@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Transaction, FxRates, LedgerSpace } from '../types';
 import { subMonths, isSameMonth, isSameYear, parseISO, format } from 'date-fns';
 import { convertCurrency, DEFAULT_FX_RATES, getCurrencySymbol, getDualCurrencyComparison } from '../utils';
+import { useI18n } from '../i18n';
 
 interface FinancialSummaryCardProps {
   transactions: Transaction[];
@@ -24,6 +25,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   isMultiCurrencyMode = false,
   activeSpace,
 }) => {
+  const { t, language } = useI18n();
   const isLight = theme === 'light';
   const currSymbol = getCurrencySymbol(currencySymbol);
   const isProjectMode = Boolean(activeSpace && activeSpace.id !== 'default');
@@ -158,18 +160,18 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
               <h2 className={`text-fluid-heading font-normal tracking-wide ${
                 isLight ? 'text-slate-800' : 'text-neutral-200'
               }`}>
-                재무 요약
+                {t('financial_summary')}
               </h2>
               <span className="text-white/20 font-light text-xs">·</span>
               <span className={`text-fluid-label font-light ${
                 isLight ? 'text-slate-500' : 'text-neutral-400'
               }`}>
-                프로젝트 정산
+                {t('project_settlement')}
               </span>
             </div>
             <p className={`text-fluid-label font-light mt-0.5 ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
               {activeSpace.name}
-              {memberCount ? ` · ${memberCount}명 참여` : ''}
+              {memberCount ? ` · ${memberCount}${language === 'ko' ? '명 참여' : language === 'ja' ? '名参加' : ' members'}` : ''}
               {activeSpace.startDate && activeSpace.endDate ? ` · ${activeSpace.startDate} ~ ${activeSpace.endDate}` : ''}
             </p>
           </div>
@@ -183,7 +185,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
                     ? 'bg-neutral-100 text-neutral-700 border-neutral-200' 
                     : 'bg-white/[0.04] border border-white/[0.08] text-neutral-300'
                 }`}>
-                  <span>예산 초과</span>
+                  <span>{t('status_over')}</span>
                   <span className="text-[10px] opacity-75 ml-1">(+{burnPercent - 100}%)</span>
                 </div>
               ) : (
@@ -192,8 +194,8 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
                     ? 'bg-neutral-100 text-neutral-800 border-neutral-200' 
                     : 'bg-white/[0.04] border border-white/[0.08] text-neutral-300'
                 }`}>
-                  <span>예산 내 지출</span>
-                  <span className="text-[10px] opacity-75 ml-1">({Math.max(0, 100 - burnPercent)}% 잔여)</span>
+                  <span>{t('status_maintained')}</span>
+                  <span className="text-[10px] opacity-75 ml-1">({Math.max(0, 100 - burnPercent)}% {language === 'ko' ? '잔여' : language === 'ja' ? '残り' : 'left'})</span>
                 </div>
               )
             ) : (
@@ -202,7 +204,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
                   ? 'bg-neutral-100 text-neutral-700 border-neutral-200' 
                   : 'bg-white/[0.04] border border-white/[0.08] text-neutral-400'
               }`}>
-                <span>{count > 0 ? `${count}건 기록` : '내역 없음'}</span>
+                <span>{count > 0 ? `${count} items` : t('empty_ledger_title')}</span>
               </div>
             )}
           </div>
@@ -217,7 +219,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             <span className={`text-xs font-light truncate ${
               isLight ? 'text-slate-500' : 'text-neutral-400'
             }`}>
-              총 지출
+              {t('filter_expense')}
             </span>
             <div className="mt-1.5 flex flex-col justify-start min-w-0">
               <div className={`flex items-baseline whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
@@ -233,7 +235,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
               {isMultiCurrencyMode && dualCurrency && (
                 <div className={`mt-1 ${isStealth ? 'blur-xs select-none' : ''}`}>
                   <span className="text-fluid-label font-light text-neutral-400 tracking-wide whitespace-nowrap tabular-nums">
-                    ≈ {dualCurrency.secondaryFormatted} · 환율 {dualCurrency.rateText}
+                    ≈ {dualCurrency.secondaryFormatted} · FX {dualCurrency.rateText}
                   </span>
                 </div>
               )}
@@ -245,7 +247,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             <span className={`text-xs font-light truncate ${
               isLight ? 'text-slate-500' : 'text-neutral-400'
             }`}>
-              목표 예산
+              {t('project_budget')}
             </span>
             <div className={`mt-1.5 flex items-baseline whitespace-nowrap tabular-nums min-w-0 ${isStealth ? 'blur-xs select-none' : ''}`}>
               <span className="text-base font-light text-neutral-400 mr-1 whitespace-nowrap">{currSymbol}</span>
@@ -254,7 +256,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
                   ? 'text-neutral-400'
                   : isLight ? 'text-slate-700' : 'text-neutral-300'
               }`}>
-                {budget ? budget.toLocaleString() : '미설정'}
+                {budget ? budget.toLocaleString() : '-'}
               </span>
             </div>
           </div>
@@ -264,7 +266,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             <span className={`text-xs font-light truncate ${
               isLight ? 'text-slate-500' : 'text-neutral-400'
             }`}>
-              {memberCount && memberCount > 0 ? '1인당 분담금' : '잔여 예산'}
+              {memberCount && memberCount > 0 ? t('per_person_share') : t('remaining_budget')}
             </span>
             <div className={`flex flex-wrap items-baseline gap-1 mt-1.5 whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
               {memberCount && memberCount > 0 ? (
@@ -275,7 +277,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
                   }`}>
                     {perPersonShare !== undefined ? perPersonShare.toLocaleString() : '0'}
                   </span>
-                  <span className="text-xs text-neutral-400 font-light">/인</span>
+                  <span className="text-xs text-neutral-400 font-light">/p</span>
                 </div>
               ) : remainingBudget !== undefined ? (
                 <div className="flex items-baseline gap-1">
@@ -299,11 +301,11 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         {budget && budget > 0 && (
           <div className="mt-3.5 pt-3 border-t border-white/[0.04]">
             <div className="flex items-center justify-between text-[11px] text-neutral-400 font-light mb-1.5 tabular-nums">
-              <span>예산 소진율 {burnPercent}%</span>
+              <span>{t('burn_percentage')} {burnPercent}%</span>
               <span>
                 {remainingBudget !== undefined && remainingBudget < 0
-                  ? `초과 ${currSymbol} ${Math.abs(remainingBudget).toLocaleString()}`
-                  : `잔여 ${currSymbol} ${(remainingBudget || 0).toLocaleString()}`}
+                  ? `${t('status_over')} ${currSymbol} ${Math.abs(remainingBudget).toLocaleString()}`
+                  : `${t('remaining_budget')} ${currSymbol} ${(remainingBudget || 0).toLocaleString()}`}
               </span>
             </div>
             <div className="h-1 w-full bg-white/[0.06] rounded-full overflow-hidden">
@@ -333,8 +335,8 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
     percentChange,
   } = monthlySummary;
 
-  const currentMonthName = format(now, 'M월');
-  const prevMonthName = format(prevMonthDate, 'M월');
+  const currentMonthName = format(now, language === 'ko' ? 'M월' : language === 'ja' ? 'M月' : 'MMM');
+  const prevMonthName = format(prevMonthDate, language === 'ko' ? 'M월' : language === 'ja' ? 'M月' : 'MMM');
 
   return (
     <section 
@@ -352,17 +354,17 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             <h2 className={`text-fluid-heading font-normal tracking-wide ${
               isLight ? 'text-slate-800' : 'text-neutral-200'
             }`}>
-              재무 요약
+              {t('financial_summary')}
             </h2>
             <span className="text-white/20 font-light text-xs">·</span>
             <span className={`text-fluid-label font-light ${
               isLight ? 'text-slate-500' : 'text-neutral-400'
             }`}>
-              월별 지출 비교
+              {t('monthly_comparison')}
             </span>
           </div>
           <p className={`text-fluid-label font-light mt-0.5 ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
-            {prevMonthName} 대비 {currentMonthName} 지출 변동
+            {prevMonthName} ➔ {currentMonthName} ({t('vs_previous_month')})
           </p>
         </div>
 
@@ -374,7 +376,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
                 ? 'bg-neutral-100 text-neutral-800 border-neutral-200' 
                 : 'bg-white/[0.04] border border-white/[0.08] text-neutral-300'
             }`}>
-              <span>절약</span>
+              <span>{t('status_saving')}</span>
               <span className="text-[10px] opacity-75 ml-1">(-{percentChange}%)</span>
             </div>
           )}
@@ -385,7 +387,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
                 ? 'bg-neutral-100 text-neutral-700 border-neutral-200' 
                 : 'bg-white/[0.04] border border-white/[0.08] text-neutral-300'
             }`}>
-              <span>초과</span>
+              <span>{t('status_over')}</span>
               <span className="text-[10px] opacity-75 ml-1">(+{percentChange}%)</span>
             </div>
           )}
@@ -396,7 +398,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
                 ? 'bg-slate-100 text-slate-600 border-slate-200' 
                 : 'bg-white/[0.04] border border-white/[0.08] text-neutral-400'
             }`}>
-              <span>유지</span>
+              <span>{t('status_maintained')}</span>
             </div>
           )}
         </div>
@@ -411,7 +413,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           <span className={`text-xs font-light truncate ${
             isLight ? 'text-slate-500' : 'text-neutral-400'
           }`}>
-            이번 달 {currentMonthName}
+            {t('this_month')} ({currentMonthName})
           </span>
           <div className="mt-1.5 flex flex-col justify-start min-w-0">
             <div className={`flex items-baseline whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
@@ -427,7 +429,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             {isMultiCurrencyMode && dualCurrency && (
               <div className={`mt-1 ${isStealth ? 'blur-xs select-none' : ''}`}>
                 <span className="text-fluid-label font-light text-neutral-400 tracking-wide whitespace-nowrap tabular-nums">
-                  ≈ {dualCurrency.secondaryFormatted} · 환율 {dualCurrency.rateText}
+                  ≈ {dualCurrency.secondaryFormatted} · FX {dualCurrency.rateText}
                 </span>
               </div>
             )}
@@ -439,7 +441,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           <span className={`text-xs font-light truncate ${
             isLight ? 'text-slate-500' : 'text-neutral-400'
           }`}>
-            지난달 {prevMonthName}
+            {t('last_month')} ({prevMonthName})
           </span>
           <div className={`mt-1.5 flex items-baseline whitespace-nowrap tabular-nums min-w-0 ${isStealth ? 'blur-xs select-none' : ''}`}>
             <span className="text-base font-light text-neutral-400 mr-1 whitespace-nowrap">{currSymbol}</span>
@@ -456,7 +458,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         {/* Difference Amount (Bottom right column) */}
         <div className="col-span-1 flex flex-col justify-between min-w-0">
           <span className="text-neutral-400 text-xs font-light truncate">
-            전월 대비 변동
+            {t('vs_previous_month')}
           </span>
           <div className={`flex flex-wrap items-baseline gap-1 mt-1.5 whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
             <span className={`text-sm md:text-base tracking-tight tabular-nums whitespace-nowrap ${

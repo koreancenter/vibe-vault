@@ -57,6 +57,7 @@ import { VaultOverviewSection } from './components/VaultOverviewSection';
 import { VaultLockScreen } from './components/VaultLockScreen';
 import { OmnibarDock } from './components/OmnibarDock';
 import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault, subscribeVaultLock } from './vaultSecurity';
+import { I18nProvider, useI18n, DEFAULT_CURRENCY_BY_LANGUAGE } from './i18n';
 
 // Dynamic Code-Split Components (Heavy Modals)
 const TransactionActionModal = lazy(() => import('./components/TransactionActionModal').then(m => ({ default: m.TransactionActionModal })));
@@ -117,7 +118,8 @@ async function applyPeerDebt(event: PeerDebtEvent, debts: DebtItem[], currency?:
   if (planned) await saveDebt(planned);
 }
 
-export function App() {
+function AppInner() {
+  const { t, language } = useI18n();
   const isOnline = useOnlineStatus();
 
   // ---------------------------------------------------------------------------
@@ -137,9 +139,20 @@ export function App() {
   } = useTransactions();
 
   // ---------------------------------------------------------------------------
-  // 2. Global Multi-Currency State & FX Rates
+  // 2. Global Multi-Currency State & FX Rates (Auto-synchronized with Locale)
   // ---------------------------------------------------------------------------
-  const [currentCurrency, setCurrentCurrency] = useState<SupportedCurrency>('KRW');
+  const [currentCurrency, setCurrentCurrency] = useState<SupportedCurrency>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem('vibe_user_preferences');
+      if (raw) {
+        try {
+          const p = JSON.parse(raw);
+          if (p.currencySymbol) return p.currencySymbol as SupportedCurrency;
+        } catch {}
+      }
+    }
+    return DEFAULT_CURRENCY_BY_LANGUAGE[language] || 'KRW';
+  });
   const [fxRates, setFxRates] = useState<FxRates>(DEFAULT_FX_RATES);
 
   // Load FX rates on mount
@@ -1044,7 +1057,7 @@ export function App() {
           {!isOnline && (
             <div className="mb-3 rounded-2xl bg-amber-500/10 p-3.5 flex items-center gap-2.5 text-amber-500 text-xs">
               <WifiOff size={16} className="shrink-0" />
-              <span className="text-xs leading-tight">오프라인 상태입니다. 기록된 데이터는 기기에 안전하게 보관됩니다.</span>
+              <span className="text-xs leading-tight">{t('offline_banner')}</span>
             </div>
           )}
 
@@ -1173,7 +1186,7 @@ export function App() {
                           : 'bg-transparent text-slate-400 hover:text-slate-200 border-white/[0.06]'
                       }`}
                     >
-                      {f === 'ALL' ? '전체' : f === 'EXPENSE' ? '지출' : f === 'INCOME' ? '수입' : f === 'TRANSFER' ? '이체' : '정산'}
+                      {f === 'ALL' ? t('filter_all') : f === 'EXPENSE' ? t('filter_expense') : f === 'INCOME' ? t('filter_income') : f === 'TRANSFER' ? t('filter_transfer') : t('filter_settlement')}
                     </button>
                   ))}
                 </div>
@@ -1184,10 +1197,10 @@ export function App() {
                     type="button"
                     onClick={handleExportSpaceCSV}
                     className="px-3 py-1 rounded-full text-xs font-normal shrink-0 transition-all active:scale-95 border bg-transparent hover:bg-white/[0.04] text-neutral-300 border-white/[0.08] cursor-pointer"
-                    title="CSV 내역 내보내기"
-                    aria-label="CSV 내역 내보내기"
+                    title={t('export_csv')}
+                    aria-label={t('export_csv')}
                   >
-                    <span>내보내기</span>
+                    <span>{t('export_csv')}</span>
                   </button>
                 </div>
               </div>
@@ -1197,8 +1210,8 @@ export function App() {
                 <div className="p-6 sm:p-8 rounded-2xl border text-center space-y-4 my-2 transition-all bg-white/[0.03] backdrop-blur-2xl border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white">
                   <h2 className="text-base font-medium tracking-tight text-white">
                     {activeSpace.id !== 'default' 
-                      ? `[${activeSpace.name}] 기록된 내역이 없습니다`
-                      : '기록된 거래 내역이 없습니다'}
+                      ? `[${activeSpace.name}] ${t('empty_ledger_title')}`
+                      : t('empty_ledger_title')}
                   </h2>
 
                   <div className="flex items-center justify-center flex-wrap gap-2 pt-1">
@@ -1207,7 +1220,7 @@ export function App() {
                       onClick={() => setIsReceiptModalOpen(true)}
                       className="h-8 px-4 rounded-xl font-semibold text-xs bg-white hover:bg-neutral-200 text-neutral-950 flex items-center justify-center active:scale-95 transition-all shadow-sm cursor-pointer"
                     >
-                      <span>영수증 촬영 스캔</span>
+                      <span>{t('scan_receipt')}</span>
                     </button>
 
                     {activeSpace.id === 'default' && (
@@ -1216,7 +1229,7 @@ export function App() {
                         onClick={handleLoadSampleFromLedger}
                         className="h-8 px-4 rounded-xl font-medium text-xs border flex items-center justify-center active:scale-95 transition-all cursor-pointer bg-white/[0.05] hover:bg-white/10 text-slate-200 border-white/10"
                       >
-                        <span>샘플 데이터 로드</span>
+                        <span>{t('load_sample_data')}</span>
                       </button>
                     )}
                   </div>
@@ -1224,7 +1237,7 @@ export function App() {
                   {/* Example prompts */}
                   <div className="pt-3 text-left space-y-1 border-t border-white/[0.05]">
                     <span className="text-[11px] font-medium block px-1 pb-0.5 text-slate-400">
-                      자연어 입력 추천 예시 (터치하여 실행):
+                      {t('recommended_prompts')}
                     </span>
                     <div className="space-y-1">
                       {(activeSpace.id !== 'default' ? [
@@ -1254,9 +1267,7 @@ export function App() {
               ) : spaceFilteredLedgerTransactions.length === 0 ? (
                 <div className="py-12 text-center text-xs space-y-2 text-slate-400">
                   <p className="font-light">
-                    선택한 <strong className="font-medium text-white">
-                      [{ledgerFilter === 'ALL' ? '전체' : ledgerFilter === 'EXPENSE' ? '지출' : ledgerFilter === 'INCOME' ? '수입' : ledgerFilter === 'TRANSFER' ? '이체' : '정산'}]
-                    </strong> 조건의 내역이 없습니다.
+                    {t('empty_filter_message')}
                   </p>
                   {ledgerFilter !== 'ALL' && (
                     <button
@@ -1264,7 +1275,7 @@ export function App() {
                       onClick={() => setLedgerFilter('ALL')}
                       className="mt-2 px-3.5 py-1.5 rounded-full text-xs font-normal transition-all border bg-transparent hover:bg-white/[0.04] text-slate-200 border-white/[0.08] cursor-pointer"
                     >
-                      전체 내역 보기
+                      {t('view_all_transactions')}
                     </button>
                   )}
                 </div>
@@ -1355,9 +1366,9 @@ export function App() {
                         {isSettlement && (
                           <div className="mt-2 px-2.5 py-1 rounded-full text-xs flex items-center justify-between font-normal bg-sky-500/10 text-sky-300 border border-sky-500/20">
                             <span className="flex items-center gap-1.5">
-                              <ArrowLeftRight size={13} /> 더치페이 정산 완료
+                              <ArrowLeftRight size={13} /> {t('dutch_pay_completed')}
                             </span>
-                            <span className="tabular-nums">+{currSymbol}{t.amount.toLocaleString()} 입금</span>
+                            <span className="tabular-nums">{t('dutch_pay_received', { symbol: currSymbol, amount: t.amount.toLocaleString() })}</span>
                           </div>
                         )}
                       </div>
@@ -1398,7 +1409,7 @@ export function App() {
               id="bottom-nav-vault-btn"
               type="button"
               onClick={() => setMainMode('vault')}
-              aria-label="자산 대시보드로 이동"
+              aria-label={t('vault')}
               className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
                 mainMode === 'vault'
                   ? 'text-blue-400 font-semibold'
@@ -1406,14 +1417,14 @@ export function App() {
               }`}
             >
               <ShieldCheck size={18} className={mainMode === 'vault' ? 'stroke-[2.5]' : ''} />
-              <span className="text-xs">자산</span>
+              <span className="text-xs">{t('vault')}</span>
             </button>
 
             <button
               id="bottom-nav-insights-btn"
               type="button"
               onClick={() => setMainMode('insights')}
-              aria-label="인사이트 대시보드로 이동"
+              aria-label={t('insights')}
               className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
                 mainMode === 'insights'
                   ? 'text-indigo-400 font-semibold'
@@ -1421,14 +1432,14 @@ export function App() {
               }`}
             >
               <Sparkles size={18} className={mainMode === 'insights' ? 'stroke-[2.5]' : ''} />
-              <span className="text-xs">인사이트</span>
+              <span className="text-xs">{t('insights')}</span>
             </button>
 
             <button
               id="bottom-nav-ledger-btn"
               type="button"
               onClick={() => setMainMode('ledger')}
-              aria-label="가계부 장부로 이동"
+              aria-label={t('ledger')}
               className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
                 mainMode === 'ledger'
                   ? 'text-sky-400 font-semibold'
@@ -1436,7 +1447,7 @@ export function App() {
               }`}
             >
               <Wallet size={18} className={mainMode === 'ledger' ? 'stroke-[2.5]' : ''} />
-              <span className="text-xs">장부</span>
+              <span className="text-xs">{t('ledger')}</span>
             </button>
           </div>
         </div>
@@ -1567,6 +1578,14 @@ export function App() {
       />
       </div>
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <I18nProvider>
+      <AppInner />
+    </I18nProvider>
   );
 }
 

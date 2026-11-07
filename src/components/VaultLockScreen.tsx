@@ -8,6 +8,7 @@ import {
 } from '../vaultSecurity';
 import { LegalNoticeModal } from './LegalNoticeModal';
 import { OnboardingModal } from './OnboardingModal';
+import { useI18n } from '../i18n';
 
 interface VaultLockScreenProps {
   onUnlocked?: () => void;
@@ -18,6 +19,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
   onUnlocked,
   onGuestMode 
 }) => {
+  const { t, language } = useI18n();
   const [locked, setLocked] = useState<boolean>(() => {
     if (typeof localStorage === 'undefined') return false;
     return isVaultLocked() || (!hasVaultPin() && !sessionStorage.getItem('vibe_vault_setup_skipped'));
@@ -299,11 +301,11 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       >
         {/* 1. Streamlined Top Header */}
         <div className="text-center mb-4">
-          <h1 className="text-base font-bold tracking-tight text-white">Vibe Vault</h1>
+          <h1 className="text-base font-bold tracking-tight text-white">{t('vault_lock_title')}</h1>
           <p className="text-xs text-neutral-300 font-normal mt-1">
             {isSetupMode 
-              ? (setupStep === 'confirm' ? '확인을 위해 동일한 PIN 번호를 다시 입력해주세요' : '마스터 PIN을 설정해주세요 (4~6자리)')
-              : '마스터 PIN을 입력해주세요'}
+              ? (setupStep === 'confirm' ? t('confirm_pin') : t('setup_pin'))
+              : t('enter_pin')}
           </p>
 
           {/* Compact PIN Dots */}
@@ -383,7 +385,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
               className="mt-2.5 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-[11px] text-neutral-300 hover:text-white transition-all cursor-pointer mx-auto"
             >
               <Fingerprint className="w-3.5 h-3.5 text-emerald-400" />
-              <span>생체 인증(지문/Face ID)으로 해제</span>
+              <span>{t('biometric_unlock')}</span>
             </button>
           )}
 
@@ -397,7 +399,9 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                   disabled={activeInput.length < 4 || isSubmitting}
                   className="w-full py-2.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-neutral-200 transition-all active:scale-95 mt-3 disabled:bg-white/[0.08] disabled:text-neutral-400 disabled:border-white/[0.06] disabled:pointer-events-none border border-transparent shadow-xs cursor-pointer flex items-center justify-center"
                 >
-                  {setupStep === 'create' ? 'PIN 확인 단계로 이동' : '마스터 PIN 설정 완료'}
+                  {setupStep === 'create' 
+                    ? (language === 'ko' ? 'PIN 확인 단계로 이동' : language === 'ja' ? 'PIN確認へ進む' : 'Next: Confirm PIN')
+                    : (language === 'ko' ? '마스터 PIN 설정 완료' : language === 'ja' ? 'マスターPIN設定完了' : 'Complete PIN Setup')}
                 </button>
 
                 {setupStep === 'confirm' ? (
@@ -410,7 +414,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                     }}
                     className="text-xs text-neutral-300 hover:text-white transition-colors mt-2 block mx-auto underline underline-offset-4 cursor-pointer"
                   >
-                    이전 단계로 돌아가기
+                    {language === 'ko' ? '이전 단계로 돌아가기' : language === 'ja' ? '前の手順に戻る' : 'Back to previous step'}
                   </button>
                 ) : (
                   <button
@@ -418,7 +422,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                     onClick={onGuestMode || handleGuestMode}
                     className="text-xs text-neutral-300 hover:text-white transition-colors mt-2 block mx-auto underline underline-offset-4 cursor-pointer"
                   >
-                    나중에 설정하기 (게스트 모드)
+                    {t('guest_mode')}
                   </button>
                 )}
               </>
@@ -430,7 +434,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                   disabled={pin.length < 4 || isSubmitting}
                   className="w-full py-2.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-neutral-200 transition-all active:scale-95 mt-3 disabled:bg-white/[0.08] disabled:text-neutral-400 disabled:border-white/[0.06] disabled:pointer-events-none border border-transparent shadow-xs cursor-pointer flex items-center justify-center"
                 >
-                  {isSubmitting ? '잠금 해제 중...' : '잠금 해제'}
+                  {isSubmitting ? '...' : t('unlock')}
                 </button>
 
                 <button
@@ -438,7 +442,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                   onClick={onGuestMode || handleGuestMode}
                   className="text-xs text-neutral-300 hover:text-white transition-colors mt-2 block mx-auto underline underline-offset-4 cursor-pointer"
                 >
-                  나중에 설정하기 (게스트 모드)
+                  {t('guest_mode')}
                 </button>
               </>
             )}
@@ -455,7 +459,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
               onClick={() => setShowOnboarding(true)} 
               className="hover:text-white transition-colors cursor-pointer"
             >
-              기능 다시보기
+              {t('replay_tour')}
             </button>
             <span className="text-neutral-500">·</span>
             <button 
@@ -463,12 +467,12 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
               onClick={() => setIsLegalNoticeOpen(true)} 
               className="hover:text-white transition-colors cursor-pointer"
             >
-              개인정보취급방침
+              {t('privacy_policy')}
             </button>
           </div>
 
           <p className="text-[10px] text-neutral-400 text-center mt-1.5 leading-normal">
-            © 2026 한국센터글로벌네트워크 지식관리실
+            © 2026 Vibe Vault Pro · Zero-Knowledge
           </p>
         </div>
       </div>

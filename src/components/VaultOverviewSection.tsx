@@ -73,6 +73,7 @@ import {
   extractImageFileFromDataTransfer,
   ImageSanitizationError
 } from '../imageSanitizer';
+import { useI18n } from '../i18n';
 
 export interface TransferModalProps {
   isOpen: boolean;
@@ -332,6 +333,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
   onNavigateToLedger,
   onNavigateToInsights,
 }) => {
+  const { t, language } = useI18n();
   const isLight = theme === 'light';
   const [accounts, setAccounts] = useState<AssetAccount[]>([]);
   const [debts, setDebts] = useState<DebtItem[]>([]);
@@ -689,7 +691,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
     return [
       {
         type: 'BROKERAGE' as AssetCategoryType,
-        label: '투자',
+        label: t('cat_investment'),
         amount: categoryTotals.BROKERAGE || 0,
         percentage: totalAssets > 0 ? ((categoryTotals.BROKERAGE || 0) / totalAssets) * 100 : 0,
         barColor: 'bg-emerald-400',
@@ -697,7 +699,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       },
       {
         type: 'BANK' as AssetCategoryType,
-        label: '예적금',
+        label: t('cat_deposit'),
         amount: categoryTotals.BANK || 0,
         percentage: totalAssets > 0 ? ((categoryTotals.BANK || 0) / totalAssets) * 100 : 0,
         barColor: 'bg-sky-400',
@@ -705,7 +707,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       },
       {
         type: 'CRYPTO' as AssetCategoryType,
-        label: '가상자산',
+        label: t('cat_crypto'),
         amount: categoryTotals.CRYPTO || 0,
         percentage: totalAssets > 0 ? ((categoryTotals.CRYPTO || 0) / totalAssets) * 100 : 0,
         barColor: 'bg-amber-400',
@@ -713,7 +715,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       },
       {
         type: 'CASH' as AssetCategoryType,
-        label: '현금',
+        label: t('cat_cash'),
         amount: categoryTotals.CASH || 0,
         percentage: totalAssets > 0 ? ((categoryTotals.CASH || 0) / totalAssets) * 100 : 0,
         barColor: 'bg-teal-400',
@@ -721,7 +723,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       },
       {
         type: 'REAL_ESTATE' as AssetCategoryType,
-        label: '부동산',
+        label: t('cat_real_estate'),
         amount: categoryTotals.REAL_ESTATE || 0,
         percentage: totalAssets > 0 ? ((categoryTotals.REAL_ESTATE || 0) / totalAssets) * 100 : 0,
         barColor: 'bg-purple-400',
@@ -729,14 +731,14 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       },
       {
         type: 'LIABILITY' as AssetCategoryType,
-        label: '부채',
+        label: t('cat_debt'),
         amount: totalLiabilities,
         percentage: totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0,
         barColor: 'bg-amber-400/80',
         dotColor: 'bg-amber-400/80',
       },
     ];
-  }, [categoryTotals, totalAssets, totalLiabilities]);
+  }, [categoryTotals, totalAssets, totalLiabilities, t]);
 
   // Filtered Accounts - supports dual nature of overdraft accounts
   const filteredAccounts = useMemo(() => {
@@ -1052,12 +1054,12 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <div 
               onClick={onToggleStealth} 
               className="cursor-pointer group select-none transition-all"
-              title="탭하여 잔액 숨김/표시"
+              title="Toggle stealth"
             >
               <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-light">
-                <span>총 순자산</span>
+                <span>{t('net_worth')}</span>
                 <span className="text-[10px] opacity-0 group-hover:opacity-60 transition-opacity">
-                  {stealthMode ? '· 마스킹됨' : '· 탭하여 숨김'}
+                  {stealthMode ? '· masked' : ''}
                 </span>
               </div>
               <div className={`mt-1 text-fluid-hero font-light tracking-tight tabular-nums transition-all ${
@@ -1068,18 +1070,18 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               <div className={`mt-1 text-xs font-light text-neutral-400 tabular-nums ${
                 stealthMode ? 'blur-xs select-none' : ''
               }`}>
-                총 자산 {formatCurrency(Math.round(totalAssets), currentCurrency)}
+                {t('total_assets')} {formatCurrency(Math.round(totalAssets), currentCurrency)}
               </div>
             </div>
             <span className="text-[11px] font-light text-neutral-400 tabular-nums pt-0.5">
-              {accounts.length}개 계좌
+              {t('accounts_count', { count: accounts.length })}
             </span>
           </div>
 
           {isMultiCurrencyMode && dualCurrency && (
             <div className={`mt-1 ${stealthMode ? 'blur-xs select-none opacity-60' : ''}`}>
               <span className="text-xs font-light text-neutral-400 tracking-wide whitespace-nowrap tabular-nums">
-                ≈ {dualCurrency.secondaryFormatted} · 환율 {dualCurrency.rateText}
+                ≈ {dualCurrency.secondaryFormatted} · FX {dualCurrency.rateText}
               </span>
             </div>
           )}
@@ -1094,7 +1096,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           onClick={() => setShowScanModal(true)}
           className="h-10 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0 cursor-pointer"
         >
-          <span className="whitespace-nowrap">화면 스캔</span>
+          <span className="whitespace-nowrap">{t('screen_scan')}</span>
         </button>
 
         <button
@@ -1103,7 +1105,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           onClick={() => setIsTransferModalOpen(true)}
           className="h-10 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0 cursor-pointer"
         >
-          <span className="whitespace-nowrap">계좌 간 이체</span>
+          <span className="whitespace-nowrap">{t('account_transfer')}</span>
         </button>
 
         <button
@@ -1112,7 +1114,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           onClick={() => setShowAddModal(true)}
           className="h-10 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0 cursor-pointer"
         >
-          <span className="whitespace-nowrap">자산 추가</span>
+          <span className="whitespace-nowrap">{t('add_asset')}</span>
         </button>
       </div>
 
@@ -1124,10 +1126,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       }`}>
         <div className="flex items-center justify-between mb-3.5">
           <h2 className={`text-sm font-normal tracking-wide ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-            자산 포트폴리오 비중
+            {t('portfolio_ratio')}
           </h2>
           <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-            총 {accounts.length}개 계좌
+            {t('accounts_count', { count: accounts.length })}
           </span>
         </div>
 

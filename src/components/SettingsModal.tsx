@@ -72,6 +72,7 @@ import { CustomSelectOption } from './settings/CustomDarkSelect';
 import { SettingsAITab } from './settings/SettingsAITab';
 import { SettingsPreferencesTab } from './settings/SettingsPreferencesTab';
 import { SettingsDataTab } from './settings/SettingsDataTab';
+import { useI18n } from '../i18n';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -107,6 +108,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onDeleteSpace,
   onOpenNewSpace
 }) => {
+  const { t, language } = useI18n();
   // Multi-Ledger Spaces State in Settings
   const [internalSpaces, setInternalSpaces] = useState<LedgerSpace[]>(spaces || [DEFAULT_SPACE]);
   const [legalOpen, setLegalOpen] = useState<boolean>(false);
@@ -783,13 +785,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       >
         {/* Sticky Header: Fixed h-14 px-5 border-b border-white/[0.06] */}
         <div className="h-14 px-5 border-b border-white/[0.06] flex items-center justify-between shrink-0">
-          <h2 className="text-sm font-semibold tracking-tight text-white">설정</h2>
+          <h2 className="text-sm font-semibold tracking-tight text-white">{t('settings')}</h2>
           <button 
             type="button" 
             onClick={onClose}
             className="p-1.5 -mr-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
-            title="닫기"
-            aria-label="닫기"
+            title={t('close')}
+            aria-label={t('close')}
           >
             <X size={16} />
           </button>
@@ -801,49 +803,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <button
               id="tab-assets"
               onClick={() => setActiveTab('assets')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 ${
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'assets'
                   ? 'border-b-2 border-white text-white font-medium'
                   : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
               }`}
             >
-              스마트 자산
+              {t('tab_smart_assets')}
             </button>
 
             <button
               id="tab-ai-engine"
               onClick={() => setActiveTab('engine')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 ${
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'engine'
                   ? 'border-b-2 border-white text-white font-medium'
                   : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
               }`}
             >
-              AI 엔진
+              {t('tab_ai_engine')}
             </button>
 
             <button
               id="tab-prefs"
               onClick={() => setActiveTab('preferences')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 ${
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'preferences'
                   ? 'border-b-2 border-white text-white font-medium'
                   : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
               }`}
             >
-              일반 설정
+              {t('tab_preferences')}
             </button>
 
             <button
               id="tab-data"
               onClick={() => setActiveTab('privacy')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 ${
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'privacy'
                   ? 'border-b-2 border-white text-white font-medium'
                   : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
               }`}
             >
-              데이터 관리
+              {t('tab_privacy_data')}
             </button>
           </div>
         </div>
@@ -972,11 +974,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onClose();
               lockVault();
             }}
-            title="금고 잠그기"
+            title={t('lock_vault')}
+            aria-label={t('lock_vault')}
             className="h-9 px-3 rounded-xl font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white shrink-0 cursor-pointer"
           >
             <Lock size={13} className="shrink-0 text-neutral-400" />
-            <span>금고 잠그기</span>
+            <span>{t('lock_vault')}</span>
           </button>
 
           <button
@@ -985,7 +988,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             className="bg-white text-black hover:bg-neutral-200 font-medium rounded-xl px-4 py-2 text-xs transition-all active:scale-95 flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
           >
             <Check size={14} />
-            <span>설정 저장</span>
+            <span>{t('save_settings')}</span>
           </button>
         </div>
 
