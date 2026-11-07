@@ -213,7 +213,7 @@ export async function setSecureGeminiApiKey(key: string): Promise<void> {
   parsed.provider = 'gemini';
   parsed.apiKey = masked;
   parsed.maskedApiKey = masked;
-  if (!parsed.modelTier) parsed.modelTier = 'gemini-3.8-flash';
+  if (!parsed.modelTier) parsed.modelTier = 'gemini-3.1-flash-lite';
   localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(parsed));
   inMemoryApiKey = clean;
 }
@@ -363,7 +363,7 @@ export async function directGeminiReceiptOCR(
   const rawBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
   const today = new Date().toISOString().slice(0, 10);
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${cleanKey}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${cleanKey}`;
 
   const payload = {
     contents: [

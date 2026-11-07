@@ -178,7 +178,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [engineType, setEngineType] = useState<'local' | 'byok'>('byok');
   const [localModel, setLocalModel] = useState<'gemma-2b' | 'llama3-8b'>('gemma-2b');
   const [provider, setProvider] = useState<'gemini' | 'openai' | 'anthropic'>('gemini');
-  const [modelTier, setModelTier] = useState<string>('gemini-3.8-flash');
+  const [modelTier, setModelTier] = useState<string>('gemini-3.1-flash-lite');
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [isTestingKey, setIsTestingKey] = useState(false);
@@ -265,7 +265,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setEngineType(engineCfg.engineType || 'byok');
       setLocalModel(engineCfg.localModel || 'gemma-2b');
       setProvider(engineCfg.provider || 'gemini');
-      setModelTier(engineCfg.modelTier || (engineCfg.provider === 'openai' ? 'gpt-4o-mini' : 'gemini-3.8-flash'));
+      setModelTier(engineCfg.modelTier || (engineCfg.provider === 'openai' ? 'gpt-4o-mini' : 'gemini-3.1-flash-lite'));
       setApiKey(engineCfg.apiKey || getSecureGeminiApiKey() || '');
       setShowKey(false);
       setTestResult({ status: null, message: '' });

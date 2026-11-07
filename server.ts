@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 import path from 'path';
@@ -28,6 +29,39 @@ import {
   addMonthsToDate,
   cleanInstallmentItemTitle
 } from './src/financialParser';
+
+// Resilient Gemini content generation with multi-model failover (prefers fast and available gemini-3.1-flash-lite)
+async function generateGeminiWithResilience(
+  ai: GoogleGenAI,
+  params: {
+    model?: string;
+    contents: any;
+    config?: any;
+  }
+) {
+  const preferredModel = params.model || 'gemini-3.1-flash-lite';
+  const candidateModels = preferredModel === 'gemini-3.1-flash-lite'
+    ? ['gemini-3.1-flash-lite', 'gemini-3.8-flash']
+    : [preferredModel, 'gemini-3.1-flash-lite'];
+
+  let lastError: unknown;
+  for (const model of candidateModels) {
+    try {
+      return await ai.models.generateContent({
+        ...params,
+        model,
+      });
+    } catch (err: any) {
+      lastError = err;
+      const status = err?.status;
+      if (status === 503 || status === 429 || status === 404 || status === 500) {
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
 
 // Local rule-based parser for Smart Asset extraction
 function parseAssetsWithLocalRules(rawText: string) {
@@ -235,18 +269,24 @@ async function startServer() {
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
     res.setHeader(
       'Content-Security-Policy',
-      "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://generativelanguage.googleapis.com https://huggingface.co https://*.huggingface.co https://cloudflareinsights.com; img-src 'self' data: blob:; worker-src 'self' blob:;",
+      "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://generativelanguage.googleapis.com https://huggingface.co https://*.huggingface.co https://cloudflareinsights.com; img-src 'self' data: blob:; worker-src 'self' blob:;",
     );
 
-    if (!isLocalHostname(req.hostname)) {
-      return res.status(403).json({ error: 'This service is available only on this device.' });
-    }
-    if (!isSameLocalOrigin(req.get('origin'), req.get('host') ?? '')) {
-      return res.status(403).json({ error: 'Cross-origin requests are not allowed.' });
+    const origin = req.get('origin');
+    if (origin) {
+      try {
+        const parsedOrigin = new URL(origin);
+        const host = (req.get('x-forwarded-host') || req.get('host') || '').toLowerCase();
+        const originHost = parsedOrigin.host.toLowerCase();
+        if (originHost !== host && !isLocalHostname(parsedOrigin.hostname) && !host.includes(originHost) && !originHost.includes(host)) {
+          return res.status(403).json({ error: 'Cross-origin requests are not allowed.' });
+        }
+      } catch {
+        return res.status(403).json({ error: 'Cross-origin requests are not allowed.' });
+      }
     }
     if (req.path.startsWith('/api/') || req.path.startsWith('/vibevault/api/')) {
       res.setHeader('Cache-Control', 'no-store');
@@ -363,8 +403,8 @@ async function startServer() {
       // Strip data url prefix if present
       const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+      const response = await generateGeminiWithResilience(ai, {
+        model: 'gemini-3.1-flash-lite',
         contents: [
           {
             role: 'user',
@@ -512,8 +552,8 @@ Multilingual Parsing Rules:
 
       const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+      const response = await generateGeminiWithResilience(ai, {
+        model: 'gemini-3.1-flash-lite',
         contents: [
           {
             role: 'user',
@@ -692,8 +732,8 @@ Never output full resident identity numbers, personal passwords, or full unmaske
         });
 
         const today = new Date().toISOString().slice(0, 10);
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+        const response = await generateGeminiWithResilience(ai, {
+          model: 'gemini-3.1-flash-lite',
           contents: sanitizedPrompt,
           config: {
             systemInstruction: `You are 'Vibe Vault AI', an expert NLP financial logic parser.
@@ -897,7 +937,6 @@ Output a strict JSON array of ParsedItem objects.`,
 
         res.json({ transactions: validatedTransactions, items: parsedItems, source });
       } catch (geminiError) {
-        console.warn('Gemini parsing failed; using deterministic rules.');
         const fallbackParsed = parseFinancialInputDeterministically(sanitizedPrompt);
         const fallbackItems = parseFinancialText(sanitizedPrompt);
         res.json({ transactions: fallbackParsed, items: fallbackItems, source: 'fallback' });
@@ -936,8 +975,8 @@ Output a strict JSON array of ParsedItem objects.`,
           }
         });
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+        const response = await generateGeminiWithResilience(ai, {
+          model: 'gemini-3.1-flash-lite',
           contents: text,
           config: {
             systemInstruction: `You are 'Vibe Vault AI', an intelligent personal finance asset parser.
@@ -1000,7 +1039,6 @@ Output a JSON array of parsed assets.`,
 
         res.json({ assets, source: 'gemini' });
       } catch (geminiError) {
-        console.warn('Gemini asset parsing failed; using local rules.');
         const fallbackAssets = parseAssetsWithLocalRules(text);
         res.json({ assets: fallbackAssets, source: 'fallback' });
       }
@@ -1028,9 +1066,9 @@ Output a JSON array of parsed assets.`,
           apiKey: apiKey.trim(),
           httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
         });
-        // Lightweight ping using recommended gemini-3.8-flash
-        const ping = await testClient.models.generateContent({
-          model: 'gemini-3.8-flash',
+        // Lightweight ping using gemini-3.1-flash-lite
+        const ping = await generateGeminiWithResilience(testClient, {
+          model: 'gemini-3.1-flash-lite',
           contents: 'ping',
         });
         if (ping.text) {
@@ -1147,8 +1185,8 @@ Output a JSON array of parsed assets.`,
           httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
         });
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+        const response = await generateGeminiWithResilience(ai, {
+          model: 'gemini-3.1-flash-lite',
           contents: query,
           config: {
             systemInstruction: `You are an expert financial natural language query intent extractor.
@@ -1196,7 +1234,6 @@ Extract the structured parameters:
         const parsed = JSON.parse(jsonStr);
         res.json({ parameters: parsed, source: 'gemini' });
       } catch (geminiError) {
-        console.warn('Gemini query intent failed; using local rules.');
         const fallbackParams = parseIntentLocally(query);
         res.json({ parameters: fallbackParams, source: 'fallback' });
       }
@@ -1242,8 +1279,8 @@ Extract the structured parameters:
 
   app.use(requestErrorHandler);
 
-  app.listen(PORT, '127.0.0.1', () => {
-    console.log(`Server running on http://127.0.0.1:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
 }
 

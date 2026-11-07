@@ -40,7 +40,7 @@ export function getAIEngineConfig(): AIEngineConfig {
         engineType: parsed.engineType || 'byok',
         localModel: parsed.localModel || 'gemma-2b',
         provider: parsed.provider || 'gemini',
-        modelTier: parsed.modelTier || 'gemini-3.8-flash',
+        modelTier: parsed.modelTier || 'gemini-3.1-flash-lite',
         apiKey: secureKey
       };
     }
@@ -50,7 +50,7 @@ export function getAIEngineConfig(): AIEngineConfig {
     engineType: 'byok',
     localModel: 'gemma-2b',
     provider: 'gemini',
-    modelTier: 'gemini-3.8-flash',
+    modelTier: 'gemini-3.1-flash-lite',
     apiKey: secureKey || ''
   };
 }
