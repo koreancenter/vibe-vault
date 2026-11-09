@@ -29,7 +29,8 @@ import {
   ShoppingBag,
   Car,
   UtensilsCrossed,
-  Camera
+  Camera,
+  HelpCircle
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cleanMerchantTitle } from './merchantSanitizer';
@@ -66,6 +67,7 @@ const SettingsModal = lazy(() => import('./components/SettingsModal').then(m => 
 const InsightsSection = lazy(() => import('./components/InsightsSection').then(m => ({ default: m.InsightsSection })));
 const ManualCategoryModal = lazy(() => import('./components/ManualCategoryModal').then(m => ({ default: m.ManualCategoryModal })));
 const NewSpaceModal = lazy(() => import('./components/NewSpaceModal').then(m => ({ default: m.NewSpaceModal })));
+const QuickStartGuideModal = lazy(() => import('./components/QuickStartGuideModal').then(m => ({ default: m.QuickStartGuideModal })));
 
 // Loads a lazy chunk on first open, then keeps it mounted so exit animations still run.
 const MountOnFirstOpen: React.FC<{ open: boolean; children: React.ReactNode }> = ({ open, children }) => {
@@ -351,6 +353,7 @@ function AppInner() {
   }, [currentSpaceTransactions, selectedCategory, ledgerFilter]);
 
   // Modal Visibility States
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'assets' | 'engine' | 'preferences' | 'privacy'>('assets');
   const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'assets' | 'budget' | 'subscriptions'>('assets');
@@ -1023,19 +1026,32 @@ function AppInner() {
             <div className="flex items-center min-w-0">
               <h1 className="text-base font-bold tracking-tight text-white leading-tight flex items-baseline gap-1.5">
                 <span>Vibe Vault</span>
-                <span className="text-xs font-light text-slate-400 tabular-nums">0.1.2</span>
+                <span className="text-xs font-normal text-neutral-300 tabular-nums">0.1.2</span>
               </h1>
             </div>
 
             {/* Right action controls */}
             <div className="flex items-center gap-2 shrink-0">
+              {/* How-to Guide Button */}
+              <button
+                id="quick-start-guide-btn"
+                type="button"
+                onClick={() => setIsGuideOpen(true)}
+                title="사용법 가이드"
+                aria-label="사용법 가이드"
+                className="px-2.5 h-8 rounded-full border border-white/15 bg-white/[0.06] text-xs font-medium text-neutral-200 hover:text-white hover:bg-white/[0.12] flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-xs"
+              >
+                <HelpCircle size={13} className="text-neutral-300" />
+                <span>사용법</span>
+              </button>
+
               {/* Settings Gear */}
               <button
                 id="settings-gear-btn"
                 type="button"
                 onClick={() => handleOpenSettingsModal('assets')}
                 title="설정"
-                className="w-8 h-8 rounded-full border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
                 aria-label="설정"
               >
                 <Settings size={14} />
@@ -1180,10 +1196,10 @@ function AppInner() {
                       key={f}
                       type="button"
                       onClick={() => setLedgerFilter(f as LedgerFilterType)}
-                      className={`px-3.5 py-1 rounded-full text-xs font-normal whitespace-nowrap shrink-0 transition-all border cursor-pointer ${
+                      className={`px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-all border cursor-pointer ${
                         ledgerFilter === f
-                          ? 'bg-white/[0.1] text-white border-white/20'
-                          : 'bg-transparent text-slate-400 hover:text-slate-200 border-white/[0.06]'
+                          ? 'bg-white text-black font-semibold border-white shadow-xs'
+                          : 'bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white border-white/15'
                       }`}
                     >
                       {f === 'ALL' ? t('filter_all') : f === 'EXPENSE' ? t('filter_expense') : f === 'INCOME' ? t('filter_income') : f === 'TRANSFER' ? t('filter_transfer') : t('filter_settlement')}
@@ -1196,7 +1212,7 @@ function AppInner() {
                     id="export-csv-btn"
                     type="button"
                     onClick={handleExportSpaceCSV}
-                    className="px-3 py-1 rounded-full text-xs font-normal shrink-0 transition-all active:scale-95 border bg-transparent hover:bg-white/[0.04] text-neutral-300 border-white/[0.08] cursor-pointer"
+                    className="px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all active:scale-95 border bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white border-white/15 cursor-pointer shadow-xs"
                     title={t('export_csv')}
                     aria-label={t('export_csv')}
                   >
@@ -1208,7 +1224,7 @@ function AppInner() {
               {/* Empty State / Recommended Prompts */}
               {currentSpaceTransactions.length === 0 ? (
                 <div className="p-6 sm:p-8 rounded-2xl border text-center space-y-4 my-2 transition-all bg-white/[0.03] backdrop-blur-2xl border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white">
-                  <h2 className="text-base font-medium tracking-tight text-white">
+                  <h2 className="text-base font-semibold tracking-tight text-white">
                     {activeSpace.id !== 'default' 
                       ? `[${activeSpace.name}] ${t('empty_ledger_title')}`
                       : t('empty_ledger_title')}
@@ -1227,7 +1243,7 @@ function AppInner() {
                       <button
                         type="button"
                         onClick={handleLoadSampleFromLedger}
-                        className="h-8 px-4 rounded-xl font-medium text-xs border flex items-center justify-center active:scale-95 transition-all cursor-pointer bg-white/[0.05] hover:bg-white/10 text-slate-200 border-white/10"
+                        className="h-8 px-4 rounded-xl font-medium text-xs border flex items-center justify-center active:scale-95 transition-all cursor-pointer bg-white/[0.08] hover:bg-white/[0.14] text-white border-white/15 shadow-xs"
                       >
                         <span>{t('load_sample_data')}</span>
                       </button>
@@ -1236,7 +1252,7 @@ function AppInner() {
                   
                   {/* Example prompts */}
                   <div className="pt-3 text-left space-y-1 border-t border-white/[0.05]">
-                    <span className="text-[11px] font-medium block px-1 pb-0.5 text-slate-400">
+                    <span className="text-[11px] font-medium block px-1 pb-0.5 text-neutral-300">
                       {t('recommended_prompts')}
                     </span>
                     <div className="space-y-1">
@@ -1250,13 +1266,13 @@ function AppInner() {
                           key={idx}
                           type="button"
                           onClick={() => handleProcessInput(prompt.text)}
-                          className="w-full text-left text-xs py-2 px-2.5 rounded-xl transition-colors flex items-center justify-between group hover:bg-white/[0.04] text-slate-200 cursor-pointer"
+                          className="w-full text-left text-xs py-2 px-2.5 rounded-xl transition-colors flex items-center justify-between group hover:bg-white/[0.06] text-neutral-200 cursor-pointer"
                         >
                           <div className="truncate pr-2">
-                            <span className="font-medium mr-1.5 text-sky-400">
+                            <span className="font-semibold mr-1.5 text-sky-400">
                               [{prompt.category}]
                             </span>
-                            <span className="font-light text-slate-200">{prompt.text}</span>
+                            <span className="font-normal text-neutral-200">{prompt.text}</span>
                           </div>
                           <ChevronRight size={13} className="shrink-0 opacity-40 group-hover:opacity-100 transition-opacity text-slate-400 group-hover:text-sky-400" />
                         </button>
@@ -1265,15 +1281,15 @@ function AppInner() {
                   </div>
                 </div>
               ) : spaceFilteredLedgerTransactions.length === 0 ? (
-                <div className="py-12 text-center text-xs space-y-2 text-slate-400">
-                  <p className="font-light">
+                <div className="py-12 text-center text-xs space-y-2 text-neutral-300">
+                  <p className="font-normal text-neutral-300">
                     {t('empty_filter_message')}
                   </p>
                   {ledgerFilter !== 'ALL' && (
                     <button
                       type="button"
                       onClick={() => setLedgerFilter('ALL')}
-                      className="mt-2 px-3.5 py-1.5 rounded-full text-xs font-normal transition-all border bg-transparent hover:bg-white/[0.04] text-slate-200 border-white/[0.08] cursor-pointer"
+                      className="mt-2 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all border bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white border-white/15 cursor-pointer shadow-xs"
                     >
                       {t('view_all_transactions')}
                     </button>
@@ -1295,15 +1311,15 @@ function AppInner() {
                       <div
                         key={t.id}
                         onClick={() => setSelectedActionTransaction(t)}
-                        className="py-3.5 px-1.5 transition-colors cursor-pointer group select-none hover:bg-white/[0.02] active:bg-white/[0.04]"
+                        className="py-3.5 px-1.5 transition-colors cursor-pointer group select-none hover:bg-white/[0.03] active:bg-white/[0.06]"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex flex-col min-w-0 flex-1">
-                            <span className="text-sm font-normal leading-snug truncate text-slate-200">
+                            <span className="text-sm font-medium leading-snug truncate text-white">
                               {displayTitle}
                             </span>
 
-                            <div className="flex items-center gap-1.5 text-xs font-light mt-0.5 flex-wrap text-slate-400">
+                            <div className="flex items-center gap-1.5 text-xs font-normal mt-0.5 flex-wrap text-neutral-300">
                               <span>{categoryLabel}</span>
                               {(t.paymentMethod || t.type === 'INCOME') && (
                                 <>
@@ -1329,7 +1345,7 @@ function AppInner() {
                               t.isInternalTransfer
                                 ? 'text-blue-400'
                                 : isExpense 
-                                  ? 'text-slate-200' 
+                                  ? 'text-white' 
                                   : isIncome || isSettlement
                                     ? 'text-sky-400'
                                     : 'text-blue-400'
@@ -1355,7 +1371,7 @@ function AppInner() {
                               const sign = t.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+');
 
                               return (
-                                <span className={`text-[11px] font-light mt-0.5 tabular-nums whitespace-nowrap text-slate-400 ${isStealth ? 'blur-xs select-none' : ''}`}>
+                                <span className={`text-[11px] font-normal mt-0.5 tabular-nums whitespace-nowrap text-neutral-300 ${isStealth ? 'blur-xs select-none' : ''}`}>
                                   ≈ {sign}{secSym}{formattedSec}
                                 </span>
                               );
@@ -1567,6 +1583,25 @@ function AppInner() {
           />
         )}
       </Suspense>
+
+      {/* Interactive Quick Start Tutorial Modal */}
+      <MountOnFirstOpen open={isGuideOpen}>
+        <QuickStartGuideModal
+          isOpen={isGuideOpen}
+          onClose={() => setIsGuideOpen(false)}
+          onPopulateOmnibar={(text) => {
+            setMainMode('ledger');
+            setInput(text);
+            setIsGuideOpen(false);
+          }}
+          onOpenScanner={() => {
+            setIsGuideOpen(false);
+            setIsReceiptModalOpen(true);
+          }}
+          onLoadSampleData={handleLoadSampleFromLedger}
+          theme="dark"
+        />
+      </MountOnFirstOpen>
 
       {/* Zero-Knowledge Privacy Vault PIN Lock Screen */}
       <VaultLockScreen onUnlocked={handleUnlocked} />

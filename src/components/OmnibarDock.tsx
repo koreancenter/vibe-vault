@@ -185,10 +185,10 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
                 e.preventDefault();
                 handleChipClick(chip);
               }}
-              className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs transition-colors cursor-pointer ${
+              className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
                 chip.isQuery 
-                  ? 'bg-indigo-500/15 hover:bg-indigo-500/25 active:bg-indigo-500/30 text-indigo-300 border border-indigo-500/20' 
-                  : 'bg-white/[0.06] hover:bg-white/10 active:bg-white/15 text-slate-300'
+                  ? 'bg-sky-500/15 hover:bg-sky-500/25 active:bg-sky-500/30 text-sky-300 border border-sky-500/30' 
+                  : 'bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/15 text-neutral-200 hover:text-white border border-white/15'
               }`}
             >
               {chip.label}
@@ -202,11 +202,11 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
         onSubmit={handleFormSubmit}
         className={`relative rounded-2xl p-[1px] transition-all duration-200 ${
           isInputFocused 
-            ? 'bg-white/20 shadow-[0_0_15px_rgba(255,255,255,0.06)]' 
-            : 'bg-white/[0.08]'
+            ? 'bg-white/30 shadow-[0_0_15px_rgba(255,255,255,0.08)]' 
+            : 'bg-white/15'
         }`}
       >
-        <div className="flex items-center gap-1 rounded-[15px] px-2 py-1 transition-colors bg-[#090A0D]/95 backdrop-blur-2xl">
+        <div className="flex items-center gap-1 rounded-[15px] px-2.5 py-1.5 transition-colors bg-[#090A0D]/95 backdrop-blur-2xl">
           {/* Left Icon Group (Camera & Mic): Auto-collapsed when typing to give 100% width to text input */}
           {!isTyping && (
             <div className="flex items-center gap-0.5 shrink-0 animate-in fade-in duration-150">
@@ -217,7 +217,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
                 onClick={onOpenReceiptScanner}
                 title="영수증 AI 스캔"
                 aria-label="영수증 AI 스캔"
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all text-neutral-400 hover:text-white hover:bg-white/[0.04] active:scale-95 cursor-pointer shrink-0"
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all text-neutral-300 hover:text-white hover:bg-white/[0.08] active:scale-95 cursor-pointer shrink-0"
               >
                 <Camera size={16} />
               </button>
@@ -233,7 +233,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
                   className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                     isListening
                       ? 'bg-white/20 text-white shadow-[0_0_12px_rgba(255,255,255,0.3)] animate-pulse'
-                      : 'text-neutral-400 hover:text-white hover:bg-white/[0.04] active:scale-95'
+                      : 'text-neutral-300 hover:text-white hover:bg-white/[0.08] active:scale-95'
                   }`}
                 >
                   {isListening ? <MicOff size={16} /> : <Mic size={16} />}
@@ -249,7 +249,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
             onClick={onCycleCurrency}
             title={`현재 통화: ${currentCurrency} (클릭하여 변경)`}
             aria-label={`현재 통화: ${currentCurrency} (클릭하여 변경)`}
-            className="px-1.5 py-0.5 text-[10px] font-mono font-medium text-neutral-400 hover:text-white border-r border-white/[0.08] pr-2 mr-1 shrink-0 transition-colors cursor-pointer flex items-center gap-0.5"
+            className="px-1.5 py-0.5 text-[10px] font-mono font-semibold text-neutral-300 hover:text-white border-r border-white/15 pr-2 mr-1 shrink-0 transition-colors cursor-pointer flex items-center gap-0.5"
           >
             <span>{getCurrencySymbol(currentCurrency)}</span>
           </button>
@@ -263,7 +263,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
             onBlur={() => setIsInputFocused(false)}
             onChange={(e) => setInput(e.target.value)}
             placeholder={inputPlaceholder}
-            className="text-xs sm:text-sm text-white placeholder:text-neutral-400 font-light bg-transparent focus:outline-none w-full min-w-0"
+            className="text-xs sm:text-sm text-white placeholder:text-neutral-400 font-normal bg-transparent focus:outline-none w-full min-w-0"
           />
 
           {/* Clear button if text exists */}
@@ -273,7 +273,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
               onClick={() => setInput('')}
               title="입력 내용 지우기"
               aria-label="입력 내용 지우기"
-              className="p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer shrink-0 transition-colors"
+              className="p-1 rounded-full text-neutral-300 hover:text-white cursor-pointer shrink-0 transition-colors"
             >
               <X size={14} />
             </button>
@@ -288,8 +288,8 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
             aria-label={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer ${
               isTyping
-                ? 'bg-white text-black hover:bg-neutral-200 active:scale-95 shadow-xs'
-                : 'bg-white/[0.04] text-neutral-400 hover:text-neutral-200 disabled:opacity-30 disabled:pointer-events-none'
+                ? 'bg-white text-black hover:bg-neutral-200 active:scale-95 shadow-sm'
+                : 'bg-white/[0.06] text-neutral-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none'
             }`}
           >
             {isProcessing ? (

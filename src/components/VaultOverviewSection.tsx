@@ -402,6 +402,20 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
   };
   const loadAccounts = loadVaultData;
 
+  const handleLoadSampleFromVault = async () => {
+    try {
+      setIsLoading(true);
+      await loadSampleData();
+      await loadVaultData();
+      if (onTransactionAdded) onTransactionAdded();
+      showToast('샘플 자산 및 거래 데이터가 등록되었습니다.');
+    } catch (err: any) {
+      showToast('샘플 데이터 로드 실패: ' + (err.message || '오류 발생'), 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadVaultData();
 
@@ -1047,7 +1061,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       <div className={`relative overflow-hidden rounded-2xl p-5 border backdrop-blur-xl transition-all ${
         isLight
           ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
-          : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
+          : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
       }`}>
         <div className="space-y-1.5">
           <div className="flex items-start justify-between">
@@ -1056,31 +1070,31 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               className="cursor-pointer group select-none transition-all"
               title="Toggle stealth"
             >
-              <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-light">
+              <div className="flex items-center gap-1.5 text-xs text-neutral-300 font-normal">
                 <span>{t('net_worth')}</span>
-                <span className="text-[10px] opacity-0 group-hover:opacity-60 transition-opacity">
+                <span className="text-[10px] opacity-0 group-hover:opacity-80 transition-opacity">
                   {stealthMode ? '· masked' : ''}
                 </span>
               </div>
-              <div className={`mt-1 text-fluid-hero font-light tracking-tight tabular-nums transition-all ${
+              <div className={`mt-1 text-fluid-hero font-medium tracking-tight tabular-nums transition-all ${
                 stealthMode ? 'blur-md select-none opacity-60' : 'text-white'
               }`}>
                 {formattedNetWorth}
               </div>
-              <div className={`mt-1 text-xs font-light text-neutral-400 tabular-nums ${
+              <div className={`mt-1 text-xs font-normal text-neutral-300 tabular-nums ${
                 stealthMode ? 'blur-xs select-none' : ''
               }`}>
                 {t('total_assets')} {formatCurrency(Math.round(totalAssets), currentCurrency)}
               </div>
             </div>
-            <span className="text-[11px] font-light text-neutral-400 tabular-nums pt-0.5">
+            <span className="text-xs font-normal text-neutral-300 tabular-nums pt-0.5">
               {t('accounts_count', { count: accounts.length })}
             </span>
           </div>
 
           {isMultiCurrencyMode && dualCurrency && (
             <div className={`mt-1 ${stealthMode ? 'blur-xs select-none opacity-60' : ''}`}>
-              <span className="text-xs font-light text-neutral-400 tracking-wide whitespace-nowrap tabular-nums">
+              <span className="text-xs font-normal text-neutral-300 tracking-wide whitespace-nowrap tabular-nums">
                 ≈ {dualCurrency.secondaryFormatted} · FX {dualCurrency.rateText}
               </span>
             </div>
@@ -1094,7 +1108,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           id="vault-scan-balance-btn"
           type="button"
           onClick={() => setShowScanModal(true)}
-          className="h-10 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0 cursor-pointer"
+          className="h-10 bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-xs py-2 px-1 rounded-xl text-white font-medium transition-all active:scale-95 flex items-center justify-center text-center whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
         >
           <span className="whitespace-nowrap">{t('screen_scan')}</span>
         </button>
@@ -1103,7 +1117,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           id="vault-transfer-btn"
           type="button"
           onClick={() => setIsTransferModalOpen(true)}
-          className="h-10 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0 cursor-pointer"
+          className="h-10 bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-xs py-2 px-1 rounded-xl text-white font-medium transition-all active:scale-95 flex items-center justify-center text-center whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
         >
           <span className="whitespace-nowrap">{t('account_transfer')}</span>
         </button>
@@ -1112,416 +1126,409 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           id="vault-add-account-btn"
           type="button"
           onClick={() => setShowAddModal(true)}
-          className="h-10 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs py-2 px-1 rounded-xl text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center text-center font-normal whitespace-nowrap shrink-0 cursor-pointer"
+          className="h-10 bg-white text-black hover:bg-neutral-200 border border-white/20 text-xs py-2 px-1 rounded-xl font-semibold transition-all active:scale-95 flex items-center justify-center text-center whitespace-nowrap shrink-0 cursor-pointer shadow-sm"
         >
           <span className="whitespace-nowrap">{t('add_asset')}</span>
         </button>
       </div>
 
-      {/* 3. Portfolio Ratio Card (자산 포트폴리오 비중) */}
-      <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
-        isLight
-          ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
-          : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
-      }`}>
-        <div className="flex items-center justify-between mb-3.5">
-          <h2 className={`text-sm font-normal tracking-wide ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-            {t('portfolio_ratio')}
-          </h2>
-          <span className={`text-xs font-light ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-            {t('accounts_count', { count: accounts.length })}
-          </span>
-        </div>
-
-        {totalAssets > 0 || totalLiabilities > 0 ? (
-          <div className="space-y-3 px-1 py-1">
-            {portfolioRows.map((item) => (
-              <div key={item.type} className="group">
-                <div className="flex items-center justify-between">
-                  <span className={`text-xs font-medium ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
-                    {item.label}
-                  </span>
-                  <div className="flex items-center gap-2.5">
-                    <span className={`text-xs tabular-nums font-mono ${
-                      isLight ? 'text-slate-900' : 'text-white'
-                    } ${stealthMode && item.amount > 0 ? 'blur-xs' : ''}`}>
-                      {formatCurrency(item.amount, currentCurrency)}
-                    </span>
-                    <span className={`text-xs font-mono w-10 text-right ${
-                      isLight ? 'text-slate-600' : 'text-neutral-400'
-                    }`}>
-                      {item.percentage > 0 ? `${item.percentage.toFixed(0)}%` : '0%'}
-                    </span>
-                  </div>
-                </div>
-                <div className={`w-full h-1.5 rounded-full overflow-hidden mt-1.5 ${
-                  isLight ? 'bg-slate-200/80' : 'bg-white/[0.06]'
-                }`}>
-                  <div
-                    style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }}
-                    className={`h-full ${item.barColor} rounded-full transition-all duration-500`}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="py-4 text-center text-xs font-light text-slate-400">
-            등록된 자산이 없습니다. 상단의 '화면 스캔' 또는 '자산 추가'로 시작해보세요.
-          </div>
-        )}
-      </div>
-
-      {/* 4. Account Type Filter Pills (전체, 투자, 예적금, 가상자산...) */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
-        <button
-          type="button"
-          onClick={() => setSelectedFilter('ALL')}
-          className={`px-3 py-1 rounded-full text-xs font-normal whitespace-nowrap transition-all border shrink-0 cursor-pointer ${
-            selectedFilter === 'ALL'
-              ? isLight
-                ? 'bg-slate-900 text-white border-slate-900'
-                : 'bg-white/[0.1] text-white border-white/20'
-              : isLight
-              ? 'bg-transparent text-slate-600 hover:text-slate-950 border-slate-200/60'
-              : 'bg-transparent text-slate-400 hover:text-slate-200 border-white/[0.06]'
-          }`}
-        >
-          전체 ({accounts.length})
-        </button>
-
-        {assetCategories.map((cat) => {
-          const count = cat.type === 'LIABILITY'
-            ? accounts.filter((a) => a.assetType === 'LIABILITY' || (a.isOverdraft && a.currentBalance < 0) || a.currentBalance < 0).length
-            : accounts.filter((a) => a.assetType === cat.type).length;
-          return (
-            <button
-              key={cat.type}
-              type="button"
-              onClick={() => setSelectedFilter(cat.type)}
-              className={`px-3 py-1 rounded-full text-xs font-normal whitespace-nowrap transition-all flex items-center gap-1 border shrink-0 cursor-pointer ${
-                selectedFilter === cat.type
-                  ? isLight
-                    ? 'bg-slate-900 text-white border-slate-900'
-                    : 'bg-white/[0.1] text-white border-white/20'
-                  : isLight
-                  ? 'bg-transparent text-slate-600 hover:text-slate-950 border-slate-200/60'
-                  : 'bg-transparent text-slate-400 hover:text-slate-200 border-white/[0.06]'
-              }`}
-            >
-              <span>{cat.label}</span>
-              <span className="opacity-85 tabular-nums">({count})</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 5. Account List Feed & Empty State Card (등록된 계좌가 없습니다) */}
       {accounts.length === 0 ? (
-        <div className={`p-6 rounded-2xl border text-center space-y-4 transition-all ${
+        /* Single Clean Vault Quick-Start Card */
+        <div className={`p-6 sm:p-7 rounded-2xl border text-center space-y-4 transition-all ${
           isLight 
             ? 'bg-white/80 backdrop-blur-2xl border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
-            : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
+            : 'bg-white/[0.04] border border-white/15 rounded-2xl text-white shadow-xl backdrop-blur-xl'
         }`}>
-          <h2 className={`text-sm font-medium tracking-tight ${isLight ? 'text-slate-900' : 'text-neutral-200'}`}>
-            등록된 계좌가 없습니다
-          </h2>
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h2 className="text-white font-semibold text-base sm:text-lg">
+              첫 자산 계좌를 등록하거나 샘플 데이터로 체험해보세요
+            </h2>
+            <p className="text-neutral-300 text-xs leading-relaxed">
+              은행·증권 앱 캡처 화면을 스캔하거나, 샘플 데이터를 불러와 모든 기능을 즉시 확인할 수 있습니다.
+            </p>
+          </div>
 
-          <div className="flex items-center justify-center gap-2 pt-1">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2 max-w-md mx-auto">
             <button
               type="button"
-              id="vault-empty-add-btn"
-              onClick={() => setShowAddModal(true)}
-              className="bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] rounded-xl px-4 py-2 font-normal text-xs flex items-center justify-center active:scale-95 transition-all cursor-pointer"
+              id="vault-quick-sample-btn"
+              onClick={handleLoadSampleFromVault}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white text-black font-semibold text-xs hover:bg-neutral-200 transition-all active:scale-95 cursor-pointer shadow-sm flex items-center justify-center whitespace-nowrap"
             >
-              <span>직접 등록</span>
+              <span>샘플 데이터로 체험하기</span>
             </button>
 
             <button
               type="button"
-              id="vault-empty-scan-btn"
-              onClick={() => setShowScanModal(true)}
-              className="bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] rounded-xl px-4 py-2 font-normal text-xs flex items-center justify-center active:scale-95 transition-all cursor-pointer"
+              id="vault-quick-add-btn"
+              onClick={() => setShowAddModal(true)}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/15 text-xs font-medium transition-all active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
             >
-              <span>캡처 스캔</span>
+              <span>+ 계좌 직접 등록</span>
+            </button>
+
+            <button
+              type="button"
+              id="vault-quick-scan-btn"
+              onClick={() => setShowScanModal(true)}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/15 text-xs font-medium transition-all active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
+            >
+              <span>앱 화면 캡처 스캔</span>
             </button>
           </div>
-        </div>
-      ) : filteredAccounts.length === 0 ? (
-        <div className={`p-6 rounded-2xl border text-center space-y-2.5 ${
-          isLight ? 'bg-slate-50/70 border-slate-200 text-slate-600' : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] text-neutral-400'
-        }`}>
-          <p className="text-xs font-light">선택한 분류에 해당하는 자산 계좌가 없습니다.</p>
-          <button
-            type="button"
-            onClick={() => setSelectedFilter('ALL')}
-            className="text-xs text-neutral-300 hover:text-white underline font-normal cursor-pointer"
-          >
-            전체 계좌 보기
-          </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {filteredAccounts.map((acc) => {
-            const converted = convertCurrency(
-              acc.currentBalance,
-              acc.currency || 'KRW',
-              currentCurrency,
-              fxRates
-            );
-            const isNegativeOverdraft = (acc.isOverdraft || acc.currentBalance < 0) && acc.currentBalance < 0;
+        <>
+          {/* 3. Portfolio Ratio Card (자산 포트폴리오 비중) */}
+          <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
+            isLight
+              ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
+              : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
+          }`}>
+            <div className="flex items-center justify-between mb-3.5">
+              <h2 className={`text-sm font-medium tracking-wide ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                {t('portfolio_ratio')}
+              </h2>
+              <span className={`text-xs font-normal ${isLight ? 'text-slate-700' : 'text-neutral-300'}`}>
+                {t('accounts_count', { count: accounts.length })}
+              </span>
+            </div>
 
-            return (
-              <div
-                key={acc.id}
-                className={`group relative rounded-2xl p-4 border transition-all duration-150 backdrop-blur-xl ${
-                  isLight
-                    ? 'bg-white/85 border-slate-200/80 hover:border-slate-300 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]'
-                    : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] hover:border-white/[0.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
-                }`}
-              >
-                {/* Header: Institution/Account info (Left) & Balance (Right) */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span
-                        className={`text-sm font-normal truncate ${isLight ? 'text-slate-900' : 'text-neutral-200'}`}
-                        title={acc.institution}
-                      >
-                        {acc.institution}
-                      </span>
-                      <span className="text-white/20 font-light text-xs">·</span>
-                      <span className={`text-xs font-light shrink-0 ${
-                        isNegativeOverdraft
-                          ? isLight ? 'text-slate-600' : 'text-neutral-300'
-                          : acc.assetType === 'LIABILITY'
-                          ? isLight ? 'text-slate-600' : 'text-neutral-400'
-                          : isLight ? 'text-slate-600' : 'text-neutral-400'
-                      }`}>
-                        {acc.isOverdraft ? '마이너스통장' : getAssetCategoryKo(acc.assetType)}
-                      </span>
-                      {(acc.isOverdraft || isNegativeOverdraft) && (
-                        <span className={`inline-flex items-center text-[10px] font-normal px-1.5 py-0.5 rounded border ${
-                          isLight
-                            ? 'border-slate-200 bg-slate-100 text-slate-600'
-                            : 'border-white/[0.08] bg-white/[0.03] text-neutral-300 font-mono tracking-tight'
-                        }`}>
-                          {acc.currentBalance < 0
-                            ? `마이너스 대출 이용 중${acc.overdraftLimit ? ` (한도 ${formatCurrency(acc.overdraftLimit, acc.currency || currentCurrency)})` : ''}`
-                            : `마이너스 통장${acc.overdraftLimit ? ` (한도 ${formatCurrency(acc.overdraftLimit, acc.currency || currentCurrency)})` : ''}`}
-                        </span>
-                      )}
-                    </div>
-                    <p
-                      className={`text-xs font-light truncate mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}
-                      title={acc.accountName}
-                    >
-                      {acc.accountName}
-                    </p>
-                  </div>
-
-                  {/* Right: Balance strictly right-aligned */}
-                  <div className="flex-none text-right">
-                    <div className={`text-sm font-medium tracking-tight tabular-nums text-right ${
-                      isNegativeOverdraft
-                        ? (isLight ? 'text-slate-700 font-mono' : 'text-neutral-300 font-mono')
-                        : acc.assetType === 'LIABILITY'
-                        ? (isLight ? 'text-slate-900 font-mono' : 'text-neutral-200 font-mono')
-                        : isLight ? 'text-slate-900' : 'text-neutral-100'
-                    } ${stealthMode ? 'blur-sm select-none' : ''}`}>
-                      {formatCurrency(converted, currentCurrency)}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sub row: Account details / Note & Edit/Delete Actions */}
-                <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-white/[0.04]">
-                  <div className="min-w-0 flex-1">
-                    {(acc.accountNumberMasked || acc.note) ? (
-                      <p
-                        className={`text-[11px] font-light truncate ${
-                          isLight ? 'text-slate-600' : 'text-neutral-400'
-                        }`}
-                        title={acc.accountNumberMasked || acc.note}
-                      >
-                        {acc.accountNumberMasked || acc.note}
-                      </p>
-                    ) : (
-                      <div />
-                    )}
-                  </div>
-
-                  {/* Actions (수정 & 삭제) */}
-                  <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingBalanceAccount(acc);
-                        setNewBalanceInput(acc.currentBalance.toString());
-                      }}
-                      title="잔고 수정"
-                      aria-label={`${acc.accountName} 잔고 수정`}
-                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                        isLight ? 'hover:bg-slate-100 text-slate-600' : 'hover:bg-white/10 text-neutral-400'
-                      }`}
-                    >
-                      <Pencil size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteAccount(acc.id, acc.accountName)}
-                      title="계좌 삭제"
-                      aria-label={`${acc.accountName} 계좌 삭제`}
-                      className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Holdings Sub-List if available */}
-                {acc.holdings && acc.holdings.length > 0 && (
-                  <div className={`mt-2.5 pt-2 border-t space-y-1.5 ${
-                    isLight ? 'border-slate-200/60' : 'border-white/[0.04]'
-                  }`}>
-                    <span className="text-[11px] font-light text-neutral-400 block">
-                      보유 종목 ({acc.holdings.length})
+            <div className="space-y-3 px-1 py-1">
+              {portfolioRows.map((item) => (
+                <div key={item.type} className="group">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-medium ${isLight ? 'text-slate-800' : 'text-neutral-200'}`}>
+                      {item.label}
                     </span>
-                    <div className="space-y-1 max-h-24 overflow-y-auto scrollbar-none divide-y divide-white/[0.03]">
-                      {acc.holdings.map((h, idx) => (
-                        <div key={idx} className="flex items-center justify-between text-xs font-light gap-2 pt-1">
-                          <span className="truncate min-w-0 flex-1 text-neutral-300" title={h.name}>{h.name}</span>
-                          <div className="flex items-center gap-1.5 flex-none">
-                            <span className="font-normal text-neutral-200 tabular-nums">
-                              {formatCurrency(h.valuation, currentCurrency)}
-                            </span>
-                            {h.profitRate !== undefined && (
-                              <span className={`text-[11px] font-light tabular-nums ${
-                                h.profitRate >= 0 ? 'text-emerald-400' : 'text-sky-400'
-                              }`}>
-                                {h.profitRate >= 0 ? `+${h.profitRate}%` : `${h.profitRate}%`}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="flex items-center gap-2.5">
+                      <span className={`text-xs tabular-nums font-mono font-medium ${
+                        isLight ? 'text-slate-900' : 'text-white'
+                      } ${stealthMode && item.amount > 0 ? 'blur-xs' : ''}`}>
+                        {formatCurrency(item.amount, currentCurrency)}
+                      </span>
+                      <span className={`text-xs font-mono w-10 text-right font-medium ${
+                        isLight ? 'text-slate-700' : 'text-neutral-300'
+                      }`}>
+                        {item.percentage > 0 ? `${item.percentage.toFixed(0)}%` : '0%'}
+                      </span>
                     </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 6. Credit Card Liability Tracking & Settlement Section (신용카드 미결제 잔액) */}
-      <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
-        isLight
-          ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
-          : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
-      }`}>
-        {/* 1. Single Clean Header Row */}
-        <div className={`flex items-center justify-between pb-3 border-b ${isLight ? 'border-slate-200' : 'border-white/[0.04]'}`}>
-          <h2 className={`text-xs font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
-            신용카드 미결제 잔액
-          </h2>
-          <span className={`text-xs font-mono text-neutral-400 tabular-nums ${stealthMode ? 'blur-xs select-none' : ''}`}>
-            총 {formattedTotalUnpaid}
-          </span>
-        </div>
-
-        {/* 2 & 4. High-Density, Single-Row Minimalist Table */}
-        {trackedCreditCards.length === 0 ? (
-          <div className="py-4 text-center text-xs font-light text-neutral-400">
-            기록된 신용카드 사용 내역이 없습니다.
-          </div>
-        ) : (
-          <div className="divide-y divide-white/[0.02]">
-            {trackedCreditCards.map((card) => (
-              <div 
-                key={card.id} 
-                className={`py-2.5 flex items-center justify-between gap-3 text-xs border-b ${isLight ? 'border-slate-100' : 'border-white/[0.02]'} last:border-0`}
-              >
-                {/* Left: Card Name */}
-                <span className={`font-medium truncate min-w-0 ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                  {card.name}
-                </span>
-
-                {/* Right: Amount & Compact Ghost Reconcile Action */}
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className={`font-mono text-sm font-semibold tabular-nums ${isLight ? 'text-slate-900' : 'text-white'} ${stealthMode ? 'blur-xs select-none' : ''}`}>
-                    {getCurrencySymbol(currentCurrency)}{card.unpaidAmount.toLocaleString()}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenReconcile(card)}
-                    className="px-2 py-1 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] text-[11px] text-neutral-400 hover:text-white transition-all active:scale-95 cursor-pointer"
-                  >
-                    차액 조정
-                  </button>
+                  <div className={`w-full h-1.5 rounded-full overflow-hidden mt-1.5 ${
+                    isLight ? 'bg-slate-200/80' : 'bg-white/[0.08]'
+                  }`}>
+                    <div
+                      style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }}
+                      className={`h-full ${item.barColor} rounded-full transition-all duration-500`}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* 7. Recent Transactions Preview (최근 거래) */}
-      <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
-        isLight 
-          ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
-          : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
-      }`}>
-        <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
-          <h2 className="text-sm font-medium tracking-wide text-slate-200">
-            최근 거래
-          </h2>
-          {onNavigateToLedger && (
+          {/* 4. Account Type Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
             <button
               type="button"
-              onClick={onNavigateToLedger}
-              className="text-xs text-neutral-400 hover:text-white font-light flex items-center gap-1 transition-colors group cursor-pointer"
+              onClick={() => setSelectedFilter('ALL')}
+              className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all border shrink-0 cursor-pointer ${
+                selectedFilter === 'ALL'
+                  ? 'bg-white text-black border-white shadow-xs'
+                  : 'bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white border-white/15'
+              }`}
             >
-              <span>전체보기</span>
-              <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+              전체 ({accounts.length})
             </button>
-          )}
-        </div>
 
-        {localTransactions.length === 0 ? (
-          <div className="py-6 text-center text-xs font-light text-slate-400">
-            기록된 거래 내역이 없습니다.
-          </div>
-        ) : (
-          <div className="divide-y divide-white/[0.03]">
-            {localTransactions.slice(0, 5).map((t) => {
-              const isExpense = t.type === 'EXPENSE';
-              const isIncome = t.type === 'INCOME';
+            {assetCategories.map((cat) => {
+              const count = cat.type === 'LIABILITY'
+                ? accounts.filter((a) => a.assetType === 'LIABILITY' || (a.isOverdraft && a.currentBalance < 0) || a.currentBalance < 0).length
+                : accounts.filter((a) => a.assetType === cat.type).length;
               return (
-                <div key={t.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-normal text-neutral-200 truncate">{t.description}</span>
-                      <span className="text-[11px] text-neutral-400 font-light shrink-0">
-                        {t.category ? getCategoryKo(t.category) : ''}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-neutral-400 font-light mt-0.5">
-                      <span>{format(parseISO(t.date), 'M.d HH:mm')}</span>
-                      {t.paymentMethod && <span className="ml-1.5 opacity-70">· {t.paymentMethod}</span>}
-                    </div>
-                  </div>
-                  <div className={`font-medium tabular-nums whitespace-nowrap text-xs ${
-                    isIncome ? 'text-sky-400' : isExpense ? 'text-slate-200' : 'text-blue-400'
-                  } ${stealthMode ? 'blur-xs' : ''}`}>
-                    {isExpense ? (t.amount < 0 ? '+' : '-') : isIncome ? '+' : ''}{getCurrencySymbol(t.currency || currentCurrency)}{Math.abs(t.amount).toLocaleString()}
-                  </div>
-                </div>
+                <button
+                  key={cat.type}
+                  type="button"
+                  onClick={() => setSelectedFilter(cat.type)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1 border shrink-0 cursor-pointer ${
+                    selectedFilter === cat.type
+                      ? 'bg-white text-black border-white shadow-xs'
+                      : 'bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white border-white/15'
+                  }`}
+                >
+                  <span>{cat.label}</span>
+                  <span className="opacity-85 tabular-nums">({count})</span>
+                </button>
               );
             })}
           </div>
-        )}
-      </div>
+
+          {/* 5. Account List Feed */}
+          {filteredAccounts.length === 0 ? (
+            <div className={`p-6 rounded-2xl border text-center space-y-2.5 ${
+              isLight ? 'bg-slate-50/70 border-slate-200 text-slate-600' : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 text-neutral-300'
+            }`}>
+              <p className="text-xs font-normal">선택한 분류에 해당하는 자산 계좌가 없습니다.</p>
+              <button
+                type="button"
+                onClick={() => setSelectedFilter('ALL')}
+                className="text-xs text-white hover:underline font-medium cursor-pointer"
+              >
+                전체 계좌 보기
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {filteredAccounts.map((acc) => {
+                const converted = convertCurrency(
+                  acc.currentBalance,
+                  acc.currency || 'KRW',
+                  currentCurrency,
+                  fxRates
+                );
+                const isNegativeOverdraft = (acc.isOverdraft || acc.currentBalance < 0) && acc.currentBalance < 0;
+
+                return (
+                  <div
+                    key={acc.id}
+                    className={`group relative rounded-2xl p-4 border transition-all duration-150 backdrop-blur-xl ${
+                      isLight
+                        ? 'bg-white/85 border-slate-200/80 hover:border-slate-300 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]'
+                        : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 hover:border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
+                    }`}
+                  >
+                    {/* Header: Institution/Account info (Left) & Balance (Right) */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className="text-sm font-medium truncate text-white"
+                            title={acc.institution}
+                          >
+                            {acc.institution}
+                          </span>
+                          <span className="text-white/30 font-normal text-xs">·</span>
+                          <span className="text-xs font-normal text-neutral-300 shrink-0">
+                            {acc.isOverdraft ? '마이너스통장' : getAssetCategoryKo(acc.assetType)}
+                          </span>
+                          {(acc.isOverdraft || isNegativeOverdraft) && (
+                            <span className="inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border border-white/15 bg-white/[0.06] text-amber-300 font-mono tracking-tight">
+                              {acc.currentBalance < 0
+                                ? `마이너스 대출 이용 중${acc.overdraftLimit ? ` (한도 ${formatCurrency(acc.overdraftLimit, acc.currency || currentCurrency)})` : ''}`
+                                : `마이너스 통장${acc.overdraftLimit ? ` (한도 ${formatCurrency(acc.overdraftLimit, acc.currency || currentCurrency)})` : ''}`}
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className="text-xs font-normal truncate mt-0.5 text-neutral-300"
+                          title={acc.accountName}
+                        >
+                          {acc.accountName}
+                        </p>
+                      </div>
+
+                      {/* Right: Balance strictly right-aligned */}
+                      <div className="flex-none text-right">
+                        <div className={`text-sm font-semibold tracking-tight tabular-nums text-right ${
+                          isNegativeOverdraft
+                            ? 'text-amber-400 font-mono'
+                            : acc.assetType === 'LIABILITY'
+                            ? 'text-amber-400 font-mono'
+                            : 'text-white'
+                        } ${stealthMode ? 'blur-sm select-none' : ''}`}>
+                          {formatCurrency(converted, currentCurrency)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sub row: Account details / Note & Edit/Delete Actions */}
+                    <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-white/[0.06]">
+                      <div className="min-w-0 flex-1">
+                        {(acc.accountNumberMasked || acc.note) ? (
+                          <p
+                            className="text-[11px] font-normal truncate text-neutral-300"
+                            title={acc.accountNumberMasked || acc.note}
+                          >
+                            {acc.accountNumberMasked || acc.note}
+                          </p>
+                        ) : (
+                          <div />
+                        )}
+                      </div>
+
+                      {/* Actions (수정 & 삭제) */}
+                      <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingBalanceAccount(acc);
+                            setNewBalanceInput(acc.currentBalance.toString());
+                          }}
+                          title="잔고 수정"
+                          aria-label={`${acc.accountName} 잔고 수정`}
+                          className="p-1.5 rounded-lg text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAccount(acc.id, acc.accountName)}
+                          title="계좌 삭제"
+                          aria-label={`${acc.accountName} 계좌 삭제`}
+                          className="p-1.5 rounded-lg text-neutral-300 hover:text-rose-400 hover:bg-white/[0.08] transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Holdings Sub-List if available */}
+                    {acc.holdings && acc.holdings.length > 0 && (
+                      <div className="mt-2.5 pt-2 border-t border-white/[0.06] space-y-1.5">
+                        <span className="text-[11px] font-medium text-neutral-300 block">
+                          보유 종목 ({acc.holdings.length})
+                        </span>
+                        <div className="space-y-1 max-h-24 overflow-y-auto scrollbar-none divide-y divide-white/[0.04]">
+                          {acc.holdings.map((h, idx) => (
+                            <div key={idx} className="flex items-center justify-between text-xs font-normal gap-2 pt-1">
+                              <span className="truncate min-w-0 flex-1 text-neutral-200" title={h.name}>{h.name}</span>
+                              <div className="flex items-center gap-1.5 flex-none">
+                                <span className="font-medium text-white tabular-nums">
+                                  {formatCurrency(h.valuation, currentCurrency)}
+                                </span>
+                                {h.profitRate !== undefined && (
+                                  <span className={`text-[11px] font-medium tabular-nums ${
+                                    h.profitRate >= 0 ? 'text-emerald-400' : 'text-sky-400'
+                                  }`}>
+                                    {h.profitRate >= 0 ? `+${h.profitRate}%` : `${h.profitRate}%`}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 6. Credit Card Liability Tracking & Settlement Section (신용카드 미결제 잔액) */}
+      {(totalCardLiabilities > 0 || (accounts.length > 0 && trackedCreditCards.some(c => c.unpaidLiability > 0))) && (
+        <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
+          isLight
+            ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
+            : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
+        }`}>
+          {/* 1. Single Clean Header Row */}
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+            <h2 className="text-xs font-semibold tracking-tight text-white">
+              신용카드 미결제 잔액
+            </h2>
+            <span className={`text-xs font-mono font-medium text-neutral-200 tabular-nums ${stealthMode ? 'blur-xs select-none' : ''}`}>
+              총 {formattedTotalUnpaid}
+            </span>
+          </div>
+
+          {/* 2 & 4. High-Density, Single-Row Minimalist Table */}
+          {trackedCreditCards.length === 0 ? (
+            <div className="py-4 text-center text-xs font-normal text-neutral-300">
+              기록된 신용카드 사용 내역이 없습니다.
+            </div>
+          ) : (
+            <div className="divide-y divide-white/[0.04]">
+              {trackedCreditCards.map((card) => (
+                <div 
+                  key={card.id} 
+                  className="py-2.5 flex items-center justify-between gap-3 text-xs border-b border-white/[0.04] last:border-0"
+                >
+                  {/* Left: Card Name */}
+                  <span className="font-medium truncate min-w-0 text-white">
+                    {card.name}
+                  </span>
+
+                  {/* Right: Amount & Compact Ghost Reconcile Action */}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`font-mono text-sm font-semibold tabular-nums text-white ${stealthMode ? 'blur-xs select-none' : ''}`}>
+                      {getCurrencySymbol(currentCurrency)}{card.unpaidAmount.toLocaleString()}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenReconcile(card)}
+                      className="px-2.5 py-1 rounded-lg border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-[11px] text-neutral-200 hover:text-white font-medium transition-all active:scale-95 cursor-pointer"
+                    >
+                      차액 조정
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 7. Recent Transactions Preview (최근 거래) */}
+      {(accounts.length > 0 || localTransactions.length > 0) && (
+        <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
+          isLight 
+            ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
+            : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
+        }`}>
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+            <h2 className="text-sm font-medium tracking-wide text-white">
+              최근 거래
+            </h2>
+            {onNavigateToLedger && (
+              <button
+                type="button"
+                onClick={onNavigateToLedger}
+                className="text-xs text-neutral-300 hover:text-white font-medium flex items-center gap-1 transition-colors group cursor-pointer"
+              >
+                <span>전체보기</span>
+                <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            )}
+          </div>
+
+          {localTransactions.length === 0 ? (
+            <div className="py-6 text-center text-xs font-normal text-neutral-300">
+              기록된 거래 내역이 없습니다.
+            </div>
+          ) : (
+            <div className="divide-y divide-white/[0.04]">
+              {localTransactions.slice(0, 5).map((t) => {
+                const isExpense = t.type === 'EXPENSE';
+                const isIncome = t.type === 'INCOME';
+                return (
+                  <div key={t.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-normal text-white truncate">{t.description}</span>
+                        <span className="text-[11px] text-neutral-300 font-normal shrink-0">
+                          {t.category ? getCategoryKo(t.category) : ''}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-neutral-300 font-normal mt-0.5">
+                        <span>{format(parseISO(t.date), 'M.d HH:mm')}</span>
+                        {t.paymentMethod && <span className="ml-1.5 opacity-80">· {t.paymentMethod}</span>}
+                      </div>
+                    </div>
+                    <div className={`font-semibold tabular-nums whitespace-nowrap text-xs ${
+                      isIncome ? 'text-sky-400' : isExpense ? 'text-white' : 'text-blue-400'
+                    } ${stealthMode ? 'blur-xs' : ''}`}>
+                      {isExpense ? (t.amount < 0 ? '+' : '-') : isIncome ? '+' : ''}{getCurrencySymbol(t.currency || currentCurrency)}{Math.abs(t.amount).toLocaleString()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* TRANSFER MODAL */}
       <TransferModal
