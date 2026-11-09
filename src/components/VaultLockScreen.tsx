@@ -39,6 +39,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [shake, setShake] = useState<boolean>(false);
   const [isLegalNoticeOpen, setIsLegalNoticeOpen] = useState<boolean>(false);
+  const [legalNoticeTab, setLegalNoticeTab] = useState<'legal' | 'licenses'>('legal');
   const [isBiometricAvailable, setIsBiometricAvailable] = useState<boolean>(false);
 
   const isSetupMode = !isPinSet;
@@ -461,15 +462,18 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
               onClick={() => setShowOnboarding(true)} 
               className="hover:text-white transition-colors cursor-pointer"
             >
-              {t('replay_tour')}
+              {language === 'ko' ? '기능 안내' : (t('replay_tour') || '기능 안내')}
             </button>
             <span className="text-neutral-400">·</span>
             <button 
               type="button" 
-              onClick={() => setIsLegalNoticeOpen(true)} 
+              onClick={() => {
+                setLegalNoticeTab('legal');
+                setIsLegalNoticeOpen(true);
+              }} 
               className="hover:text-white transition-colors cursor-pointer"
             >
-              {t('privacy_policy')}
+              {language === 'ko' ? '법적 고지 및 오픈소스 라이선스' : (language === 'ja' ? '法的通知およびオープンソースライセンス' : 'Legal Notice & Open Source Licenses')}
             </button>
           </div>
 
@@ -487,6 +491,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       <LegalNoticeModal 
         isOpen={isLegalNoticeOpen} 
         onClose={() => setIsLegalNoticeOpen(false)} 
+        initialTab={legalNoticeTab}
       />
     </div>
   );
