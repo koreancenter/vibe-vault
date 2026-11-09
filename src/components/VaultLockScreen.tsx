@@ -341,6 +341,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                 key={digit}
                 type="button"
                 onClick={() => handleKeypadPress(digit)}
+                aria-label={`숫자 ${digit}`}
                 className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.06] text-white text-lg font-medium transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none"
               >
                 {digit}
@@ -361,6 +362,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
             <button
               type="button"
               onClick={() => handleKeypadPress('0')}
+              aria-label="숫자 0"
               className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.06] text-white text-lg font-medium transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none"
             >
               0
@@ -461,7 +463,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
             >
               {t('replay_tour')}
             </button>
-            <span className="text-neutral-500">·</span>
+            <span className="text-neutral-400">·</span>
             <button 
               type="button" 
               onClick={() => setIsLegalNoticeOpen(true)} 

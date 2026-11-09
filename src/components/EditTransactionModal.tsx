@@ -72,7 +72,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
             <h2 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
               거래 내역 수정
             </h2>
-            <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>금액 및 분류 상세 항목을 수정합니다</p>
+            <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>금액 및 분류 상세 항목을 수정합니다</p>
           </div>
           <button 
             type="button"
@@ -81,7 +81,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
             aria-label="닫기"
             className={`w-9 h-9 flex items-center justify-center rounded-2xl border transition-colors ${
               isLight 
-                ? 'text-slate-500 hover:text-slate-900 bg-slate-100 border-slate-200 hover:bg-slate-200' 
+                ? 'text-slate-600 hover:text-slate-900 bg-slate-100 border-slate-200 hover:bg-slate-200' 
                 : 'text-[#94A3B8] hover:text-white bg-white/[0.04] border-white/10 hover:bg-white/10'
             }`}
           >

@@ -424,7 +424,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     }}
                     maxLength={3}
                     placeholder="3자리 통화 코드 (USD, EUR, JPY...)"
-                    className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-mono text-neutral-200 placeholder:text-neutral-500 focus:outline-none focus:border-white/30 transition-all"
+                    className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-mono text-neutral-200 placeholder:text-neutral-400 focus:outline-none focus:border-white/30 transition-all"
                   />
                   <button
                     type="button"
@@ -574,7 +574,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 }}
                 autoFocus
                 placeholder="새 장부 이름 입력..."
-                className="flex-1 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-neutral-200 placeholder:text-neutral-500 focus:outline-none focus:border-white/30 transition-all"
+                className="flex-1 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-neutral-200 placeholder:text-neutral-400 focus:outline-none focus:border-white/30 transition-all"
               />
               <button
                 type="button"
@@ -645,7 +645,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     <button
                       type="button"
                       onClick={() => handleDeleteSpaceItem(sp.id)}
-                      className="p-1 rounded-full text-neutral-500 hover:text-white hover:bg-white/[0.08] transition-all"
+                      className="p-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-all"
                       title="장부 삭제"
                       aria-label={`${sp.name} 장부 삭제`}
                     >

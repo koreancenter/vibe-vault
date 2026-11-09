@@ -164,12 +164,12 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
               </h2>
               <span className="text-white/20 font-light text-xs">·</span>
               <span className={`text-fluid-label font-light ${
-                isLight ? 'text-slate-500' : 'text-neutral-400'
+                isLight ? 'text-slate-600' : 'text-neutral-400'
               }`}>
                 {t('project_settlement')}
               </span>
             </div>
-            <p className={`text-fluid-label font-light mt-0.5 ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
+            <p className={`text-fluid-label font-light mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}>
               {activeSpace.name}
               {memberCount ? ` · ${memberCount}${language === 'ko' ? '명 참여' : language === 'ja' ? '名参加' : ' members'}` : ''}
               {activeSpace.startDate && activeSpace.endDate ? ` · ${activeSpace.startDate} ~ ${activeSpace.endDate}` : ''}
@@ -217,7 +217,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           {/* Hero: Total Spending in Project */}
           <div className="col-span-2 flex flex-col justify-start min-w-0">
             <span className={`text-xs font-light truncate ${
-              isLight ? 'text-slate-500' : 'text-neutral-400'
+              isLight ? 'text-slate-600' : 'text-neutral-400'
             }`}>
               {t('filter_expense')}
             </span>
@@ -245,7 +245,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           {/* Target Budget */}
           <div className="col-span-1 flex flex-col justify-between min-w-0">
             <span className={`text-xs font-light truncate ${
-              isLight ? 'text-slate-500' : 'text-neutral-400'
+              isLight ? 'text-slate-600' : 'text-neutral-400'
             }`}>
               {t('project_budget')}
             </span>
@@ -264,7 +264,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           {/* Per-Person Share or Remaining Budget */}
           <div className="col-span-1 flex flex-col justify-between min-w-0">
             <span className={`text-xs font-light truncate ${
-              isLight ? 'text-slate-500' : 'text-neutral-400'
+              isLight ? 'text-slate-600' : 'text-neutral-400'
             }`}>
               {memberCount && memberCount > 0 ? t('per_person_share') : t('remaining_budget')}
             </span>
@@ -358,12 +358,12 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             </h2>
             <span className="text-white/20 font-light text-xs">·</span>
             <span className={`text-fluid-label font-light ${
-              isLight ? 'text-slate-500' : 'text-neutral-400'
+              isLight ? 'text-slate-600' : 'text-neutral-400'
             }`}>
               {t('monthly_comparison')}
             </span>
           </div>
-          <p className={`text-fluid-label font-light mt-0.5 ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
+          <p className={`text-fluid-label font-light mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}>
             {prevMonthName} ➔ {currentMonthName} ({t('vs_previous_month')})
           </p>
         </div>
@@ -411,7 +411,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         {/* Current Month Spending (Top hero row) */}
         <div className="col-span-2 flex flex-col justify-start min-w-0">
           <span className={`text-xs font-light truncate ${
-            isLight ? 'text-slate-500' : 'text-neutral-400'
+            isLight ? 'text-slate-600' : 'text-neutral-400'
           }`}>
             {t('this_month')} ({currentMonthName})
           </span>
@@ -439,7 +439,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         {/* Previous Month Spending (Bottom left column) */}
         <div className="col-span-1 flex flex-col justify-between min-w-0">
           <span className={`text-xs font-light truncate ${
-            isLight ? 'text-slate-500' : 'text-neutral-400'
+            isLight ? 'text-slate-600' : 'text-neutral-400'
           }`}>
             {t('last_month')} ({prevMonthName})
           </span>
@@ -472,7 +472,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             </span>
             {diff !== 0 && percentChange > 0 && (
               <span className={`text-xs font-light tabular-nums whitespace-nowrap ${
-                status === 'better' ? (isLight ? 'text-neutral-600' : 'text-neutral-400') : (isLight ? 'text-neutral-500' : 'text-neutral-400')
+                status === 'better' ? (isLight ? 'text-neutral-600' : 'text-neutral-400') : (isLight ? 'text-neutral-600' : 'text-neutral-400')
               }`}>
                 ({diff < 0 ? '▼' : '▲'}{percentChange}%)
               </span>

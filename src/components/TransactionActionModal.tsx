@@ -111,7 +111,7 @@ export const TransactionActionModal: React.FC<TransactionActionModalProps> = ({
             {/* Currency conversion if different */}
             {txCurrency !== currentCurrency && convertedAmount !== undefined && (
               <div className="flex justify-end">
-                <span className={`text-xs font-medium ${isLight ? 'text-slate-500' : 'text-neutral-400'} ${isStealth ? 'blur-xs select-none' : ''}`}>
+                <span className={`text-xs font-medium ${isLight ? 'text-slate-600' : 'text-neutral-400'} ${isStealth ? 'blur-xs select-none' : ''}`}>
                   ≈ {isExpense ? '-' : '+'}{getCurrencySymbol(currentCurrency)}{Math.round(convertedAmount).toLocaleString()}
                 </span>
               </div>
@@ -123,7 +123,7 @@ export const TransactionActionModal: React.FC<TransactionActionModalProps> = ({
             isLight ? 'bg-slate-50 border border-slate-100' : 'bg-white/[0.03] border border-white/5'
           }`}>
             <div className="flex items-center justify-between">
-              <span className={isLight ? 'text-slate-500' : 'text-neutral-400'}>
+              <span className={isLight ? 'text-slate-600' : 'text-neutral-400'}>
                 카테고리
               </span>
               <span className={`font-medium ${isLight ? 'text-slate-800' : 'text-neutral-200'}`}>
@@ -133,7 +133,7 @@ export const TransactionActionModal: React.FC<TransactionActionModalProps> = ({
 
             {(transaction.paymentMethod || transaction.type === 'INCOME') && (
               <div className="flex items-center justify-between">
-                <span className={isLight ? 'text-slate-500' : 'text-neutral-400'}>
+                <span className={isLight ? 'text-slate-600' : 'text-neutral-400'}>
                   {transaction.type === 'INCOME' ? '입금 계좌/수단' : '결제 수단'}
                 </span>
                 <span className={`font-medium ${isLight ? 'text-slate-800' : 'text-neutral-200'}`}>
@@ -143,7 +143,7 @@ export const TransactionActionModal: React.FC<TransactionActionModalProps> = ({
             )}
 
             <div className="flex items-center justify-between">
-              <span className={isLight ? 'text-slate-500' : 'text-neutral-400'}>
+              <span className={isLight ? 'text-slate-600' : 'text-neutral-400'}>
                 일시
               </span>
               <span className={`font-medium tabular-nums ${isLight ? 'text-slate-800' : 'text-neutral-200'}`}>

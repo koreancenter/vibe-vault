@@ -509,7 +509,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
             <div className="flex items-center gap-1.5 text-xs text-sky-400 font-medium">
               <Sparkles className="w-3.5 h-3.5"/>
               <span>AI 재정 브리핑</span>
-              <span className="text-neutral-500 font-light">· "{queryResult.query}"</span>
+              <span className="text-neutral-400 font-light">· "{queryResult.query}"</span>
             </div>
             <button 
               onClick={() => setQueryResult(null)} 
@@ -712,8 +712,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         {/* Horizontal Category Ratio Bars with zero-data fallback */}
         <div className="space-y-3">
           {categoryBreakdownList.length === 0 ? (
-            <div className="py-8 text-center text-xs font-light text-slate-500 flex flex-col items-center justify-center gap-1">
-              <span className="text-slate-400 font-normal">이 달의 지출 내역이 없습니다</span>
+            <div className="py-8 text-center text-xs font-light text-slate-400 flex flex-col items-center justify-center gap-1">
+              <span className="text-slate-300 font-normal">이 달의 지출 내역이 없습니다</span>
               <span>선택된 기간에 기록된 지출 거래가 존재하지 않습니다.</span>
             </div>
           ) : (
@@ -924,8 +924,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
 
         {/* Area Chart with fallback */}
         {!forecast.dataPoints || forecast.dataPoints.length === 0 ? (
-          <div className="w-full h-52 min-h-[200px] flex flex-col items-center justify-center text-center text-slate-500 text-xs font-light space-y-1">
-            <span className="text-slate-400 font-normal">예측 데이터 없음</span>
+          <div className="w-full h-52 min-h-[200px] flex flex-col items-center justify-center text-center text-slate-400 text-xs font-light space-y-1">
+            <span className="text-slate-300 font-normal">예측 데이터 없음</span>
             <span>현금흐름 궤적을 예측할 수 있는 거래 데이터가 아직 충분하지 않습니다.</span>
           </div>
         ) : (

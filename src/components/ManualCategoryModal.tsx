@@ -131,7 +131,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
             <h2 className={`text-base font-semibold ${isLight ? 'text-slate-950' : 'text-white'}`}>
               카테고리 수동 선택
             </h2>
-            <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
+            <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
               스마트 자동 분류가 꺼져 있어 직접 카테고리를 지정합니다
             </p>
           </div>
@@ -198,7 +198,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
                   {currentTx.description || '내역 내용 없음'}
                 </h3>
                 {(currentTx.paymentMethod || currentTx.type === 'INCOME') && (
-                  <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                     {currentTx.type === 'INCOME' ? '입금 수단' : '결제'}: {getPaymentMethodKo(currentTx.paymentMethod, currentTx.type)}
                   </p>
                 )}
@@ -218,7 +218,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
             <div className={`mt-3 pt-3 border-t flex items-center justify-between text-xs ${
               isLight ? 'border-slate-200' : 'border-white/10'
             }`}>
-              <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>선택된 카테고리:</span>
+              <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>선택된 카테고리:</span>
               <span className={`font-bold px-2.5 py-0.5 rounded-lg border ${
                 selectedCategory 
                   ? isLight 
@@ -261,7 +261,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
                     <span className="text-xl shrink-0">{cat.emoji}</span>
                     <div className="min-w-0">
                       <span className="text-xs font-semibold block truncate">{cat.nameKo}</span>
-                      <span className={`text-[10px] block truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <span className={`text-[10px] block truncate ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                         {cat.key}
                       </span>
                     </div>
@@ -285,7 +285,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
                 onChange={(e) => setCustomCategoryInput(e.target.value)}
                 placeholder="예: 반려동물, 자기계발, 구독료"
                 className={`flex-1 border rounded-xl px-3 py-2 text-xs outline-none focus:border-sky-500 transition-colors ${
-                  isLight ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400' : 'bg-slate-900 border-white/10 text-white placeholder:text-slate-500'
+                  isLight ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400' : 'bg-slate-900 border-white/10 text-white placeholder:text-slate-400'
                 }`}
               />
               <button

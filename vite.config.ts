@@ -172,7 +172,32 @@ export default defineConfig({
     build: {
       target: 'esnext',
       minify: 'esbuild',
+      cssCodeSplit: true,
       sourcemap: true,
       chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (
+                id.includes('recharts') ||
+                id.includes('d3') ||
+                id.includes('victory-vendor')
+              ) {
+                return 'vendor-charts';
+              }
+              if (id.includes('@google/genai')) {
+                return 'vendor-genai';
+              }
+              if (
+                id.includes('motion') ||
+                id.includes('framer-motion')
+              ) {
+                return 'vendor-ui';
+              }
+            }
+          },
+        },
+      },
     },
 });

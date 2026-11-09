@@ -314,7 +314,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
                 {currentMonthName} 현황
               </span>
             </div>
-            <p className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
+            <p className={`text-[11px] truncate ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}>
               카테고리별 지출 한도 및 잔여 예산 관리
             </p>
           </div>
@@ -324,9 +324,10 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
           <button
             type="button"
             onClick={handleResetDefaults}
+            aria-label="권장 기본 예산으로 초기화"
             className={`p-1.5 rounded-lg text-xs flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${
               isLight 
-                ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-900' 
+                ? 'hover:bg-slate-100 text-slate-600 hover:text-slate-900' 
                 : 'hover:bg-white/10 text-neutral-400 hover:text-white'
             }`}
             title="권장 기본 예산으로 초기화"
@@ -479,8 +480,9 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
                     <button
                       type="button"
                       onClick={() => setEditingCategory(null)}
+                      aria-label="수정 취소"
                       className={`p-1 rounded-md text-xs cursor-pointer ${
-                        isLight ? 'text-slate-500 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/10'
+                        isLight ? 'text-slate-600 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/10'
                       }`}
                     >
                       <X size={12} />
@@ -555,13 +557,13 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
                     <span className={isLight ? 'text-slate-900' : 'text-slate-100'}>
                       {currSymbol}{spent.toLocaleString()}
                     </span>
-                    <span className={`text-[11px] font-normal mx-1 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>/</span>
-                    <span className={`text-[11px] font-normal ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <span className={`text-[11px] font-normal mx-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>/</span>
+                    <span className={`text-[11px] font-normal ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                       {currSymbol}{limit.toLocaleString()}
                     </span>
                   </div>
                   <div className={`text-[10px] font-medium tabular-nums ${
-                    isOver ? 'text-amber-400/90' : isLight ? 'text-slate-400' : 'text-slate-500'
+                    isOver ? 'text-amber-400/90' : isLight ? 'text-slate-600' : 'text-slate-400'
                   }`}>
                     {isOver 
                       ? `${currSymbol}${Math.abs(remaining).toLocaleString()} 초과` 
@@ -585,7 +587,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => handleDeleteBudget(category)}
-                    className="p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
                     title="예산 삭제"
                     aria-label={`${getCategoryKo(category)} 예산 삭제`}
                   >
@@ -623,7 +625,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
               <select
                 value={newCategoryKey}
                 onChange={(e) => setNewCategoryKey(e.target.value)}
-                className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-full outline-none focus:border-white/20 transition-colors"
+                className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-400 w-full outline-none focus:border-white/20 transition-colors"
               >
                 {STANDARD_CATEGORIES.map((cat) => (
                   <option key={cat.key} value={cat.key} className="bg-[#111217] text-white">
@@ -644,7 +646,7 @@ export const MonthlyBudgetSection: React.FC<MonthlyBudgetSectionProps> = ({
                   value={newLimitValue}
                   onChange={(e) => setNewLimitValue(e.target.value)}
                   placeholder="예: 300000"
-                  className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl pl-8 pr-3 text-xs text-white placeholder:text-neutral-500 w-full font-semibold outline-none focus:border-white/20 transition-colors"
+                  className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl pl-8 pr-3 text-xs text-white placeholder:text-neutral-400 w-full font-semibold outline-none focus:border-white/20 transition-colors"
                 />
               </div>
 
@@ -1245,7 +1247,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                 className={`w-full rounded-xl px-3 py-2 text-xs outline-none resize-none leading-relaxed border transition-all ${
                   isLight
                     ? 'bg-slate-50/70 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-400'
-                    : 'bg-white/[0.03] border-white/10 text-white placeholder:text-slate-500 focus:bg-white/[0.05] focus:border-white/25'
+                    : 'bg-white/[0.03] border-white/10 text-white placeholder:text-slate-400 focus:bg-white/[0.05] focus:border-white/25'
                 }`}
               />
             </div>
@@ -1364,12 +1366,13 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                       value={manualName}
                       onChange={(e) => handleManualNameChange(e.target.value)}
                       placeholder="자산명 (예: BNI 생활비 통장, 신한 주거래)"
-                      className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl pl-3 pr-8 text-xs text-white placeholder:text-neutral-500 w-full outline-none focus:border-white/20 transition-all"
+                      className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl pl-3 pr-8 text-xs text-white placeholder:text-neutral-400 w-full outline-none focus:border-white/20 transition-all"
                     />
                     <button
                       type="button"
                       onClick={toggleManualVoiceInput}
                       title={isListeningManual ? '음성 입력 중지' : '음성으로 자산명 입력 (예: BNI 생활비 통장)'}
+                      aria-label={isListeningManual ? '음성 입력 중지' : '음성으로 자산명 입력'}
                       className={`absolute right-1.5 p-1 rounded-lg transition-all ${
                         isListeningManual 
                           ? 'bg-white/20 text-white animate-pulse' 
@@ -1385,7 +1388,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                     id="manual-asset-type-select"
                     value={manualType}
                     onChange={(e) => setManualType(e.target.value as AssetType)}
-                    className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-full outline-none focus:border-white/20 transition-all"
+                    className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-400 w-full outline-none focus:border-white/20 transition-all"
                   >
                     <option value="BANK" className="bg-[#111217] text-white">은행 계좌</option>
                     <option value="CARD" className="bg-[#111217] text-white">신용/체크카드</option>
@@ -1398,7 +1401,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                     id="manual-asset-currency-select"
                     value={manualCurrency}
                     onChange={(e) => handleSelectManualCurrency(e.target.value as SupportedCurrency)}
-                    className={`h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-full outline-none font-semibold focus:border-white/20 transition-all ${
+                    className={`h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-400 w-full outline-none font-semibold focus:border-white/20 transition-all ${
                       detectedCurrency === manualCurrency && !isManualCurrencyOverridden
                         ? 'border-white/20 bg-white/10'
                         : ''
@@ -1429,7 +1432,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                         setManualBalance(val);
                       }}
                       placeholder={getBalancePlaceholder(manualCurrency)}
-                      className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl pl-8 pr-3 text-xs text-white placeholder:text-neutral-500 w-full font-mono tabular-nums outline-none focus:border-white/20 transition-all"
+                      className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl pl-8 pr-3 text-xs text-white placeholder:text-neutral-400 w-full font-mono tabular-nums outline-none focus:border-white/20 transition-all"
                     />
                   </div>
                 </div>
@@ -1448,7 +1451,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                         value={manualBillingDay}
                         onChange={(e) => setManualBillingDay(e.target.value)}
                         placeholder="1~31"
-                        className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-24 text-center outline-none focus:border-white/20"
+                        className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-400 w-24 text-center outline-none focus:border-white/20"
                       />
                       <span className="text-xs text-neutral-400">일</span>
                     </div>
@@ -1621,6 +1624,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                               isLight ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-white text-slate-950 hover:bg-slate-200'
                             }`}
                             title="저장"
+                            aria-label="수정 내용 저장"
                           >
                             <Check size={12} />
                           </button>
@@ -1628,9 +1632,10 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                             type="button"
                             onClick={handleCancelEdit}
                             className={`p-1.5 rounded-lg text-xs transition-colors ${
-                              isLight ? 'text-slate-500 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/10'
+                              isLight ? 'text-slate-600 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/10'
                             }`}
                             title="취소"
+                            aria-label="수정 취소"
                           >
                             <X size={12} />
                           </button>
@@ -1715,9 +1720,10 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                           type="button"
                           onClick={() => handleStartEdit(asset)}
                           className={`p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ${
-                            isLight ? 'text-slate-500 hover:text-slate-700' : 'text-slate-400 hover:text-slate-200'
+                            isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'
                           }`}
                           title="수정"
+                          aria-label={`${asset.name} 수정`}
                         >
                           <Pencil size={11} />
                         </button>
@@ -1751,7 +1757,7 @@ export const SmartAssetSetup: React.FC<SmartAssetSetupProps> = ({
                         <button
                           type="button"
                           onClick={() => handleDeleteAsset(asset.id)}
-                          className="p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
                           title="자산 삭제"
                           aria-label={`${asset.name} 삭제`}
                         >

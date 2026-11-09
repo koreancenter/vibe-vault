@@ -944,7 +944,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               : 'bg-white/[0.06] border border-white/10 text-neutral-200'
           }`}>
             <span className="truncate">{statusMessage.text}</span>
-            <button onClick={() => setStatusMessage(null)} className="ml-1 text-sm font-bold">×</button>
+            <button 
+              type="button"
+              onClick={() => setStatusMessage(null)} 
+              aria-label="상태 메시지 닫기"
+              className="ml-1 text-sm font-bold text-neutral-400 hover:text-white cursor-pointer transition-colors"
+            >
+              ×
+            </button>
           </div>
         )}
 

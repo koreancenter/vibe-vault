@@ -164,7 +164,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
               <label className="text-xs font-semibold text-neutral-300">
                 Gemini 모델 선택
               </label>
-              <span className="text-[10px] text-neutral-500 font-light">
+              <span className="text-[10px] text-neutral-400 font-light">
                 Google AI Studio API
               </span>
             </div>
@@ -283,7 +283,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                     : 'text-neutral-400 hover:text-white border border-transparent'
                 }`}
               >
-                <Server size={13} className={localSubMode === 'ollama' ? 'text-sky-400' : 'text-neutral-500'} />
+                <Server size={13} className={localSubMode === 'ollama' ? 'text-sky-400' : 'text-neutral-400'} />
                 <span className="truncate">Ollama Local Server</span>
               </button>
 
@@ -296,7 +296,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                     : 'text-neutral-400 hover:text-white border border-transparent'
                 }`}
               >
-                <Cpu size={13} className={localSubMode === 'webllm' ? 'text-indigo-400' : 'text-neutral-500'} />
+                <Cpu size={13} className={localSubMode === 'webllm' ? 'text-indigo-400' : 'text-neutral-400'} />
                 <span className="truncate">Browser WebGPU (WebLLM)</span>
               </button>
             </div>
@@ -378,7 +378,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                       className="w-full rounded-xl px-3 py-2 text-xs font-mono outline-none transition-colors border bg-white/[0.03] border-white/10 text-neutral-100 placeholder:text-neutral-600 focus:border-white/30"
                     />
                     {ollamaSelectOptions.length === 0 && (
-                      <p className="text-[10px] text-neutral-500 font-light">
+                      <p className="text-[10px] text-neutral-400 font-light">
                         💡 "연결 테스트"를 누르면 Ollama에 설치된 모델 태그를 자동으로 불러옵니다.
                       </p>
                     )}
@@ -517,7 +517,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                 )}
               </div>
 
-              <p className="text-[10px] leading-relaxed text-neutral-500 font-light">
+              <p className="text-[10px] leading-relaxed text-neutral-400 font-light">
                 ⚠️ 모바일 브라우저 환경에서는 대용량 가중치 다운로드 시 메모리 부족(OOM)이나 급격한 배터리 소모가 발생할 수 있습니다.
               </p>
             </div>

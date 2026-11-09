@@ -1128,7 +1128,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           <h2 className={`text-sm font-normal tracking-wide ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
             {t('portfolio_ratio')}
           </h2>
-          <span className={`text-xs font-light ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+          <span className={`text-xs font-light ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
             {t('accounts_count', { count: accounts.length })}
           </span>
         </div>
@@ -1148,7 +1148,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       {formatCurrency(item.amount, currentCurrency)}
                     </span>
                     <span className={`text-xs font-mono w-10 text-right ${
-                      isLight ? 'text-slate-500' : 'text-neutral-400'
+                      isLight ? 'text-slate-600' : 'text-neutral-400'
                     }`}>
                       {item.percentage > 0 ? `${item.percentage.toFixed(0)}%` : '0%'}
                     </span>
@@ -1249,7 +1249,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         </div>
       ) : filteredAccounts.length === 0 ? (
         <div className={`p-6 rounded-2xl border text-center space-y-2.5 ${
-          isLight ? 'bg-slate-50/70 border-slate-200 text-slate-500' : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] text-neutral-400'
+          isLight ? 'bg-slate-50/70 border-slate-200 text-slate-600' : 'bg-[#111217]/90 backdrop-blur-xl border border-white/[0.06] text-neutral-400'
         }`}>
           <p className="text-xs font-light">선택한 분류에 해당하는 자산 계좌가 없습니다.</p>
           <button
@@ -1295,8 +1295,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                         isNegativeOverdraft
                           ? isLight ? 'text-slate-600' : 'text-neutral-300'
                           : acc.assetType === 'LIABILITY'
-                          ? isLight ? 'text-slate-500' : 'text-neutral-400'
-                          : isLight ? 'text-slate-500' : 'text-neutral-400'
+                          ? isLight ? 'text-slate-600' : 'text-neutral-400'
+                          : isLight ? 'text-slate-600' : 'text-neutral-400'
                       }`}>
                         {acc.isOverdraft ? '마이너스통장' : getAssetCategoryKo(acc.assetType)}
                       </span>
@@ -1313,7 +1313,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       )}
                     </div>
                     <p
-                      className={`text-xs font-light truncate mt-0.5 ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}
+                      className={`text-xs font-light truncate mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}
                       title={acc.accountName}
                     >
                       {acc.accountName}
@@ -1340,7 +1340,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     {(acc.accountNumberMasked || acc.note) ? (
                       <p
                         className={`text-[11px] font-light truncate ${
-                          isLight ? 'text-slate-500' : 'text-neutral-400'
+                          isLight ? 'text-slate-600' : 'text-neutral-400'
                         }`}
                         title={acc.accountNumberMasked || acc.note}
                       >
@@ -1360,8 +1360,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                         setNewBalanceInput(acc.currentBalance.toString());
                       }}
                       title="잔고 수정"
+                      aria-label={`${acc.accountName} 잔고 수정`}
                       className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                        isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-white/10 text-neutral-400'
+                        isLight ? 'hover:bg-slate-100 text-slate-600' : 'hover:bg-white/10 text-neutral-400'
                       }`}
                     >
                       <Pencil size={13} />
@@ -1370,7 +1371,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       type="button"
                       onClick={() => handleDeleteAccount(acc.id, acc.accountName)}
                       title="계좌 삭제"
-                      className="p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+                      aria-label={`${acc.accountName} 계좌 삭제`}
+                      className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
                     >
                       <Trash2 size={13} />
                     </button>

@@ -263,7 +263,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
             onBlur={() => setIsInputFocused(false)}
             onChange={(e) => setInput(e.target.value)}
             placeholder={inputPlaceholder}
-            className="text-xs sm:text-sm text-white placeholder:text-neutral-500 font-light bg-transparent focus:outline-none w-full min-w-0"
+            className="text-xs sm:text-sm text-white placeholder:text-neutral-400 font-light bg-transparent focus:outline-none w-full min-w-0"
           />
 
           {/* Clear button if text exists */}
@@ -273,7 +273,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
               onClick={() => setInput('')}
               title="입력 내용 지우기"
               aria-label="입력 내용 지우기"
-              className="p-1 rounded-full text-neutral-500 hover:text-white cursor-pointer shrink-0 transition-colors"
+              className="p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer shrink-0 transition-colors"
             >
               <X size={14} />
             </button>
@@ -289,7 +289,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer ${
               isTyping
                 ? 'bg-white text-black hover:bg-neutral-200 active:scale-95 shadow-xs'
-                : 'bg-white/[0.04] text-neutral-500 hover:text-neutral-300 disabled:opacity-30 disabled:pointer-events-none'
+                : 'bg-white/[0.04] text-neutral-400 hover:text-neutral-200 disabled:opacity-30 disabled:pointer-events-none'
             }`}
           >
             {isProcessing ? (

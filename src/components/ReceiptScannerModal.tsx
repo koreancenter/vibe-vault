@@ -493,7 +493,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                   <p className="text-xs text-neutral-400 font-light mt-1">
                     드래그 앤 드롭 · 파일 선택 · 클립보드 붙여넣기(Cmd+V) 지원 (최대 15MB)
                   </p>
-                  <p className="text-[11px] text-neutral-500 font-light mt-3">
+                  <p className="text-[11px] text-neutral-400 font-light mt-3">
                     이미지에 보이는 개인정보는 자동 마스킹되지 않습니다. 클라우드 OCR 사용 전 직접 가려주세요.
                   </p>
                 </div>

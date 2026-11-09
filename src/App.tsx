@@ -1076,7 +1076,7 @@ function AppInner() {
               </p>
             </div>
           ) : (
-            <div className="mb-3 text-[10px] text-neutral-500 text-right">
+            <div className="mb-3 text-[10px] text-neutral-400 text-right">
               기준 환율 · Frankfurter · {fxRates.updatedAt}
             </div>
           )}

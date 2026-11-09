@@ -14,47 +14,6 @@
         }
       });
     </script>
-    <script>
-      // Filter out benign HMR WebSocket connection logs in preview iframe (HMR disabled in platform runtime)
-      (function() {
-        function shouldSuppress(args) {
-          try {
-            for (let i = 0; i < args.length; i++) {
-              const arg = args[i];
-              const str = typeof arg === 'string' ? arg : (arg && (arg.message || arg.stack)) || '';
-              if (
-                str.includes('[vite]') ||
-                str.includes('WebSocket') ||
-                str.includes('websocket') ||
-                str.includes('vite-plugin-pwa')
-              ) {
-                return true;
-              }
-            }
-          } catch (e) {}
-          return false;
-        }
-
-        const origError = console.error;
-        console.error = function(...args) {
-          if (shouldSuppress(args)) return;
-          origError.apply(console, args);
-        };
-
-        const origWarn = console.warn;
-        console.warn = function(...args) {
-          if (shouldSuppress(args)) return;
-          origWarn.apply(console, args);
-        };
-
-        window.addEventListener('error', function(event) {
-          if (event && event.message && (event.message.includes('[vite]') || event.message.includes('WebSocket') || event.message.includes('websocket'))) {
-            event.stopImmediatePropagation();
-            event.preventDefault();
-          }
-        }, true);
-      })();
-    </script>
     <title>Vibe Vault</title>
     <meta name="description" content="A privacy-first, local-encrypted asset vault and multi-brokerage portfolio dashboard with built-in daily expense ledger." />
     <meta name="robots" content="index, follow" />
@@ -81,6 +40,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="alternate icon" href="/pwa-192x192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link 
       rel="stylesheet" 
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" 
@@ -88,7 +49,7 @@
       onload="this.media='all'"
     />
     <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" />
     </noscript>
   </head>
   <body class="bg-gradient-to-b from-[#0B0F17] via-[#0E1524] to-[#111827] text-slate-100 antialiased overflow-hidden select-none font-sans min-h-screen">
