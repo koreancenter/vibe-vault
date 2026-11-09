@@ -473,7 +473,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
               }} 
               className="hover:text-white transition-colors cursor-pointer"
             >
-              {language === 'ko' ? '법적 고지 및 오픈소스 라이선스' : (language === 'ja' ? '法的通知およびオープンソースライセンス' : 'Legal Notice & Open Source Licenses')}
+              {t('legal_notice_link')}
             </button>
           </div>
 

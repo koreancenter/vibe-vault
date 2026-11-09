@@ -234,6 +234,9 @@ export const translations = {
     guest_mode: 'Skip for now (Guest Mode)',
     privacy_policy: 'Privacy Policy',
     replay_tour: 'Replay Tour',
+    legal_notice_title: 'Legal Disclaimer & Notices',
+    software_license_title: 'Software License & Terms of Use',
+    legal_notice_link: 'Legal Notice & License',
     dutch_pay_completed: 'Split Settlement Completed',
     dutch_pay_received: '+{symbol}{amount} Received',
 
@@ -525,6 +528,9 @@ export const translations = {
     guest_mode: '나중에 설정하기 (게스트 모드)',
     privacy_policy: '개인정보취급방침',
     replay_tour: '기능 다시보기',
+    legal_notice_title: '법적 고지 및 면책 조항',
+    software_license_title: '소프트웨어 라이센스 및 이용약관',
+    legal_notice_link: '법적 고지 및 라이센스',
     dutch_pay_completed: '더치페이 정산 완료',
     dutch_pay_received: '+{symbol}{amount} 입금',
 
@@ -816,6 +822,9 @@ export const translations = {
     guest_mode: '後で設定（ゲストモード）',
     privacy_policy: 'プライバシーポリシー',
     replay_tour: 'ガイド再表示',
+    legal_notice_title: '法的通知および免責事項',
+    software_license_title: 'ソフトウェアライセンスおよび利用規約',
+    legal_notice_link: '法的通知およびライセンス',
     dutch_pay_completed: '割り勘精算完了',
     dutch_pay_received: '+{symbol}{amount} 入金',
 
@@ -1107,6 +1116,9 @@ export const translations = {
     guest_mode: 'Skip for now (Guest Mode)',
     privacy_policy: 'Privacy Policy',
     replay_tour: 'Replay Tour',
+    legal_notice_title: 'Legal Disclaimer & Notices',
+    software_license_title: 'Software License & Terms of Use',
+    legal_notice_link: 'Legal Notice & License',
     dutch_pay_completed: 'Split Settlement Completed',
     dutch_pay_received: '+{symbol}{amount} Received',
 

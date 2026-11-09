@@ -1,6 +1,7 @@
 import React from 'react';
 import { CustomDarkSelect } from './CustomDarkSelect';
 import { VaultLockConfig, lockVault } from '../../vaultSecurity';
+import { useI18n } from '../../i18n';
 
 interface SettingsDataTabProps {
   onClose: () => void;
@@ -45,6 +46,8 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
   isClearingData,
   setLegalOpen,
 }) => {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-3.5 animate-in fade-in duration-150">
       {/* Group 1: 금고 보안 & 자동 잠금 */}
@@ -236,9 +239,9 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
           type="button"
           id="legal-notice-btn"
           onClick={() => setLegalOpen(true)}
-          className="w-full py-2 mt-1 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.06] text-[11px] text-neutral-400 hover:text-white transition-all"
+          className="w-full py-2 mt-1 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.06] text-[11px] text-neutral-400 hover:text-white transition-all cursor-pointer"
         >
-          <span>법적 고지 및 면책 조항</span>
+          <span>{t('legal_notice_link')}</span>
         </button>
       </div>
     </div>

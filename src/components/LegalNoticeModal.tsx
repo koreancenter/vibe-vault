@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, Code2 } from 'lucide-react';
+import { X } from 'lucide-react';
 
 export interface LegalNoticeModalProps {
   isOpen: boolean;
@@ -145,12 +145,14 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-white/[0.06] shrink-0 bg-[#0E1015]">
           <div>
             <h2 id="legal-notice-title" className="text-sm font-semibold text-white tracking-tight">
-              {activeTab === 'legal' ? '법적 고지 및 면책 조항' : '오픈소스 라이선스 및 저작권'}
+              {activeTab === 'legal'
+                ? '법적 고지 및 면책 조항'
+                : '소프트웨어 라이센스 및 이용약관'}
             </h2>
             <p className="text-[11px] text-neutral-400 font-light mt-0.5">
               {activeTab === 'legal'
                 ? 'Vibe Vault 이용자 유의사항 및 서비스 운영 원칙'
-                : '오픈소스 소프트웨어 라이선스 규정 및 서드파티 크레딧'}
+                : '개인 비영리 무상 사용 허가 및 상업적 배포·수정 금지 규정'}
             </p>
           </div>
 
@@ -164,32 +166,30 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
           </button>
         </div>
 
-        {/* Segmented Tab Control - Fixed Anchor */}
+        {/* Segmented Tab Control - Fixed Anchor without icons */}
         <div className="px-6 pt-3 pb-2 shrink-0 bg-[#0E1015]">
           <div className="grid grid-cols-2 gap-1 bg-white/[0.04] p-1 rounded-2xl border border-white/[0.06]">
             <button
               type="button"
               onClick={() => setActiveTab('legal')}
-              className={`py-1.5 px-3 transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
+              className={`py-1.5 px-3 transition-all cursor-pointer text-center ${
                 activeTab === 'legal'
                   ? 'bg-white text-black font-semibold text-xs rounded-xl shadow-xs'
                   : 'text-neutral-400 hover:text-white text-xs'
               }`}
             >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>법적 고지</span>
+              법적 고지
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('licenses')}
-              className={`py-1.5 px-3 transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
+              className={`py-1.5 px-3 transition-all cursor-pointer text-center ${
                 activeTab === 'licenses'
                   ? 'bg-white text-black font-semibold text-xs rounded-xl shadow-xs'
                   : 'text-neutral-400 hover:text-white text-xs'
               }`}
             >
-              <Code2 className="w-3.5 h-3.5" />
-              <span>오픈소스 라이선스</span>
+              소프트웨어 라이센스
             </button>
           </div>
         </div>
@@ -247,36 +247,47 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
-              {/* 1. Vibe Vault Application License - Flat Minimalist Section */}
-              <div className="pb-4 border-b border-white/[0.06] space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]"></span>
-                    <h3 className="text-xs font-semibold text-white tracking-tight">
-                      Vibe Vault Application License
-                    </h3>
-                  </div>
-                  <span className="text-[11px] font-mono text-emerald-400 font-medium">
-                    MIT License
-                  </span>
-                </div>
+              {/* 1. Proprietary Software License Statement */}
+              <div className="pb-4 border-b border-white/[0.06] space-y-2.5">
                 <p className="font-mono text-[10.5px] text-neutral-400">
                   © 2026 한국센터글로벌네트워크 지식관리실. All rights reserved.
                 </p>
-                <p className="text-[11px] text-neutral-400 leading-relaxed">
-                  본 소프트웨어의 복제본과 관련 문서 파일을 획득하는 모든 개인에게 무상으로 소프트웨어의 사용, 복제, 수정, 병합, 배포, 서브라이선스 및 판매에 관한 권한이 부여됩니다. 본 소프트웨어는 상품성이나 특정 목적에의 적합성 보증 없이 있는 그대로(AS IS) 제공됩니다.
-                </p>
+
+                {/* Korean Official License Terms */}
+                <div className="space-y-1">
+                  <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">
+                    라이센스 규정 (한국어)
+                  </span>
+                  <p className="text-[11px] text-neutral-300 leading-relaxed bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.04]">
+                    본 소프트웨어(Vibe Vault)는 개인의 자율적인 가계부 관리 및 행사 정산을 위한 비영리적·개인적 용도의 무상 사용만을 허가합니다. 본 소프트웨어의 소스 코드 및 바이너리의 무단 수정, 2차 저작물 작성, 공공 배포, 서브라이선스 및 상업적 판매 행위는 저작권법 및 국제 협약에 의해 엄격히 금지됩니다. 본 소프트웨어는 어떠한 명시적·묵시적 보증 없이 있는 그대로(AS IS) 제공됩니다.
+                  </p>
+                </div>
+
+                {/* English Official License Terms */}
+                <div className="space-y-1 pt-1">
+                  <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider font-mono">
+                    Official Terms (English)
+                  </span>
+                  <p className="text-[11px] text-neutral-400 leading-relaxed font-mono bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.04]">
+                    &quot;This software (Vibe Vault) is made available free of charge strictly for non-commercial, personal use in tracking personal finances and event settlements. Unauthorized modification, derivative works, public distribution, sublicensing, or commercial resale of the software source code or binaries is strictly prohibited by copyright laws and international treaties. This software is provided &apos;AS IS&apos;, without warranty of any kind.&quot;
+                  </p>
+                </div>
               </div>
 
-              {/* 2. Core Dependencies Section - Streamlined List Layout (No Box-in-Box) */}
+              {/* 2. Core Dependencies Section - Third-Party Open Source Infrastructure Credits */}
               <div>
-                <div className="flex items-center justify-between pb-2 mb-1 border-b border-white/[0.04]">
-                  <span className="text-[11px] font-medium text-neutral-400">
-                    핵심 오픈소스 라이브러리 및 크레딧
-                  </span>
-                  <span className="text-[10.5px] text-neutral-500 font-mono">
-                    {CORE_DEPENDENCIES.length} Packages
-                  </span>
+                <div className="pb-2 mb-1 border-b border-white/[0.04] space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-neutral-300">
+                      오픈소스 인프라 의존성 및 서드파티 크레딧
+                    </span>
+                    <span className="text-[10.5px] text-neutral-500 font-mono">
+                      {CORE_DEPENDENCIES.length} Packages
+                    </span>
+                  </div>
+                  <p className="text-[10.5px] text-neutral-500 leading-snug">
+                    본 소프트웨어가 탑재한 하위 오픈소스 프레임워크 및 라이브러리는 각 원저작권자의 독립 라이센스(MIT, ISC, Apache-2.0 등)가 적용됩니다.
+                  </p>
                 </div>
 
                 <div className="divide-y divide-white/[0.04]">
