@@ -702,6 +702,40 @@ Never output full resident identity numbers, personal passwords, or full unmaske
     }
   });
 
+  // Multilingual category normalization to standard keys
+  function normalizeStandardCategory(rawCat: string | undefined): { category: string; subCategory?: string } {
+    if (!rawCat) return { category: 'Living', subCategory: 'General' };
+    const lower = rawCat.toLowerCase().trim();
+    if (/식비|외식|카페|food|dining|restaurant|grocery|groceries|lunch|dinner|breakfast|meal|repas|déjeuner|essen|lebensmittel|comida|cibo|食費|外食|ランチ|ディナー/i.test(lower)) {
+      return { category: 'Food', subCategory: /cafe|카페|coffee|커피|カフェ/i.test(lower) ? 'Cafe' : 'Dining' };
+    }
+    if (/교통|지하철|버스|택시|주유|주차|transport|transit|subway|metro|bus|taxi|flight|fuel|gas|essence|verkehr|transporte|trasporti|交通|電車|バス|タクシー|ガソリン/i.test(lower)) {
+      return { category: 'Transport', subCategory: 'Public Transport' };
+    }
+    if (/고정|월세|관리비|통신비|보험|공과금|fixed|rent|utilities|bill|subscription|sub|abono|miete|loyer|affitto|固定費|家賃|光熱費|保険/i.test(lower)) {
+      return { category: 'Fixed', subCategory: 'Utilities' };
+    }
+    if (/의료|건강|병원|약국|헬스|운동|health|medical|fitness|pharmacy|doctor|hospital|santé|gesundheit|salud|salute|医療|健康|病院|薬局|フィットネス/i.test(lower)) {
+      return { category: 'Health', subCategory: 'Medical' };
+    }
+    if (/여가|문화|영화|여행|숙박|leisure|culture|entertainment|travel|hotel|hobby|vacation|loisirs|freizeit|ocio|tempo\s*libero|娯楽|趣味|旅行|映画/i.test(lower)) {
+      return { category: 'Leisure', subCategory: 'Entertainment' };
+    }
+    if (/급여|월급|수입|소득|salary|income|wage|paycheck|salaire|gehalt|salario|stipendio|給与|給料|収入/i.test(lower)) {
+      return { category: 'Fixed', subCategory: 'Salary' };
+    }
+    if (/저축|적금|예금|savings|deposit|épargne|sparen|ahorro|risparmio|貯蓄|預金/i.test(lower)) {
+      return { category: 'Fixed', subCategory: 'Savings' };
+    }
+    if (/환불|refund|remboursement|rückerstattung|reembolso|rimborso|返金/i.test(lower)) {
+      return { category: 'Living', subCategory: 'Refund' };
+    }
+    if (/생활|쇼핑|생필품|living|shopping|clothes|fashion|store|market|courses|einkaufen|compras|spesa|日用品|買い物|ショッピング/i.test(lower)) {
+      return { category: 'Living', subCategory: 'Shopping' };
+    }
+    return { category: rawCat, subCategory: 'General' };
+  }
+
   app.post('/api/parse', async (req, res) => {
     try {
       const { prompt: rawPrompt, text, engineConfig } = req.body;
@@ -736,8 +770,8 @@ Never output full resident identity numbers, personal passwords, or full unmaske
           model: 'gemini-3.1-flash-lite',
           contents: sanitizedPrompt,
           config: {
-            systemInstruction: `You are 'Vibe Vault AI', an expert NLP financial logic parser.
-Your mission is to parse natural language inputs (Korean or English) into structured financial transactions.
+            systemInstruction: `You are 'Vibe Vault AI', an expert multilingual NLP financial logic parser.
+Your mission is to parse natural language inputs across all supported languages (Korean, English, Japanese, and European languages like German, French, Spanish, Italian) into structured financial transactions.
 
 CRITICAL INSTRUCTIONS:
 Always return a JSON array of ParsedItem objects.
@@ -747,35 +781,58 @@ Schema for each ParsedItem:
   "date": "YYYY-MM-DD",
   "type": "expense" | "income" | "transfer",
   "amount": number (positive numeric net cost for the user),
-  "currency": string (e.g. "KRW", "USD"),
-  "category": string (e.g. "식비", "카페/간식", "교통", "생활/쇼핑", "문화/여가", "의료/건강", "주거/통신", "급여/수입", "이체/저축"),
+  "currency": string (e.g. "KRW", "USD", "JPY", "EUR", "GBP"),
+  "category": string (e.g. "Food", "Dining", "Cafe", "Living", "Transport", "Fixed", "Health", "Leisure", "Salary", "Savings", "Refund", "Uncategorized"),
   "merchant": string,
-  "note": string (optional, e.g. "식사 20,000원 (더치페이 분담)")
+  "note": string (optional, e.g. "Split 50/50 with John")
 }
 
-1. MULTI-ITEM EXTRACTION:
-   - Split composite sentences by commas, periods, or coordinating conjunctions (그리고, 및, +).
+1. MULTILINGUAL NUMBER & CURRENCY RESOLUTION:
+   - Korean (KRW / ₩):
+     * "만" / "만원" = 10,000 (e.g., "3만" = 30,000, "15만" = 150,000). Standalone "만 원씩" = 10,000.
+     * "천" / "천원" = 1,000.
+     * "억" / "억원" = 100,000,000.
+     * Default currency: "KRW".
+   - English (USD / $, GBP / £, EUR / €):
+     * "$15", "45 dollars", "1.5k" (= 1,500), "2.5m" (= 2,500,000).
+     * Default currency: "USD" if "$" or dollars mentioned, "GBP" for £, "EUR" for €.
+   - Japanese (JPY / ¥ / 円):
+     * "1,200円", "3万円" (= 30,000 JPY), "5千円" (= 5,000 JPY), "1.5億円" (= 150,000,000 JPY).
+     * "千" = 1,000, "万" = 10,000, "億" = 100,000,000.
+     * Default currency: "JPY" if "円" or "¥" or yen mentioned.
+   - European (EUR / €):
+     * "15€", "45 euros", "15 EUR", "12,50 €".
+     * Default currency: "EUR" if "€" or "euro" mentioned.
+
+2. MULTI-ITEM EXTRACTION:
+   - Split composite inputs by commas, periods, or coordinating conjunctions (and, &, 그리고, 와/과, と, そして, et, und, y, e).
    - Extract EACH item as a separate ParsedItem entry.
-   - Preserve common metadata (e.g., 오늘 -> current date ${today}) across all extracted items in that prompt.
+   - Preserve common metadata (e.g., today -> current date ${today}) across all extracted items in that prompt.
 
-2. SPLIT BILL & DUTCH-PAY ARITHMETIC:
-   - Detect keywords: 더치페이, 엔빵, N빵, 각자, 만 원씩, 반반, 반띵.
-   - ALWAYS explicitly calculate the user's actual NET COST:
-     * If a specific portion is mentioned (e.g., "식사 2만 원... 만 원씩 더치페이"), user expense is 10000 with note "식사 20,000원 (더치페이 분담)".
-     * If "2명 N빵 / 반반" is specified on an amount, divide the item amount accordingly (e.g. 20000 / 2 = 10000), with note "<merchant> <totalAmount>원 (더치페이 분담)".
+3. MULTILINGUAL SPLIT BILL & DUTCH-PAY ARITHMETIC:
+   - Korean: 더치페이, 엔빵, N빵, 각자, 만 원씩, 반반, 반띵.
+   - English: split 50/50, split bill, split with John, split 3 ways, each paid, my share.
+   - Japanese: 割り勘 (わりかん), 各自, 半分, N等分.
+   - European: partage, faire cinquante-cinquante, getrennte Rechnung, a pachas, dividere.
+   - ALWAYS calculate the user's actual NET COST:
+     * e.g. "$60 dinner split 50/50 with John" -> amount: 30, currency: "USD", note: "Dinner $60 (Split 50/50 with John)".
+     * e.g. "6,000円 居酒屋 3人で割り勘" -> amount: 2000, currency: "JPY", note: "居酒屋 6,000円 (3人割り勘)".
+     * e.g. "60€ restaurant partagé à deux" -> amount: 30, currency: "EUR", note: "Restaurant 60€ (Partage)".
 
-3. INSTALLMENT & MULTI-MONTH SCHEDULING (할부 및 무이자 할부):
-   - Detect installment indicators: "무이자 할부", "할부", "개월", "달", "0%", "수수료 없음".
+4. MULTILINGUAL INSTALLMENTS (할부 / 分割払い / Installments):
+   - Korean: "무이자 할부", "할부", "개월", "달", "0%".
+   - English: "10 installments", "10 months split", "interest-free", "0% financing".
+   - Japanese: "分割払い", "無利息分割払い", "10回払い", "10ヶ月".
+   - European: "10 mensualités", "10 Raten", "10 plazos sin intereses", "10 rate".
    - Extract installment attributes:
-     * installmentMonths: integer total months (e.g., 10 for "10개월")
-     * isInterestFree: boolean (true if "무이자", "0%", or "수수료 없음")
-     * totalAmount: total purchase amount before split (e.g., 1800000)
+     * installmentMonths: integer total months (e.g. 10)
+     * isInterestFree: boolean (true if interest-free / 0% / 무이자 / 無利息 / sans frais)
+     * totalAmount: total purchase amount before split
      * amount: monthly installment amount (Math.floor(totalAmount / installmentMonths)) or total purchase amount
 
-4. NUMBER UNITS IN KOREAN:
-   - "만" / "만원" = 10,000. Standalone "만 원씩" = 10,000.
-   - "천" / "천원" = 1,000.
-   - "억" / "억원" = 100,000,000.
+5. CATEGORY INFERENCE:
+   - Map inferences cleanly to standard category keys regardless of language:
+     "Food", "Dining", "Cafe", "Living", "Transport", "Fixed", "Health", "Leisure", "Salary", "Savings", "Refund", "Uncategorized".
 
 Output a strict JSON array of ParsedItem objects.`,
             responseMimeType: "application/json",
@@ -787,12 +844,12 @@ Output a strict JSON array of ParsedItem objects.`,
                   date: { type: Type.STRING, description: "YYYY-MM-DD format" },
                   type: { type: Type.STRING, description: "expense, income, or transfer" },
                   amount: { type: Type.NUMBER, description: "Positive numeric net expense or monthly installment for user" },
-                  currency: { type: Type.STRING, description: "Currency code, e.g. KRW, USD" },
-                  category: { type: Type.STRING, description: "Category in Korean, e.g. 식비, 카페/간식, 교통, etc." },
+                  currency: { type: Type.STRING, description: "Currency code, e.g. KRW, USD, JPY, EUR, GBP" },
+                  category: { type: Type.STRING, description: "Standard category key: Food, Living, Transport, Fixed, Health, Leisure, Salary, etc." },
                   merchant: { type: Type.STRING, description: "Clean merchant or item title" },
                   note: { type: Type.STRING, description: "Optional note for split-bill explanation" },
                   installmentMonths: { type: Type.INTEGER, description: "Total installment months if installment detected (e.g. 10)" },
-                  isInterestFree: { type: Type.BOOLEAN, description: "True if zero-interest (무이자) installment" },
+                  isInterestFree: { type: Type.BOOLEAN, description: "True if zero-interest installment" },
                   totalAmount: { type: Type.NUMBER, description: "Original total purchase amount before installment split" }
                 },
                 required: ["date", "type", "amount", "currency", "category", "merchant"]
@@ -830,8 +887,7 @@ Output a strict JSON array of ParsedItem objects.`,
             const tag = isZeroInterest ? '무이자' : '할부';
             const baseDate = t.date ? new Date(t.date).toISOString() : new Date().toISOString();
 
-            let category = t.category;
-            let subCategory = t.subCategory;
+            let { category, subCategory } = normalizeStandardCategory(t.category);
             if (!category || category === 'Uncategorized' || category === '미분류') {
               const inferred = inferCategoryAndMerchant(cleanTitle || sanitizedPrompt);
               category = inferred.category;
@@ -885,8 +941,7 @@ Output a strict JSON array of ParsedItem objects.`,
             type = 'INCOME';
           }
 
-          let category = t.category;
-          let subCategory = t.subCategory;
+          let { category, subCategory } = normalizeStandardCategory(t.category);
 
           if (type === 'INCOME') {
             category = 'Fixed';
@@ -1110,7 +1165,7 @@ Output a JSON array of parsed assets.`,
       const currentYear = today.getFullYear();
       const currentMonth = today.getMonth() + 1;
 
-      // Deterministic rule-based intent fallback
+      // Deterministic rule-based intent fallback with multilingual support (KO, EN, JA, EU)
       const parseIntentLocally = (text: string) => {
         let metric = 'general_financial';
         let category: string | undefined = undefined;
@@ -1119,45 +1174,70 @@ Output a JSON array of parsed assets.`,
         let year = currentYear;
         let merchantKeyword: string | undefined = undefined;
 
-        // Month matching (e.g., "9월", "8월", "2026년 9월")
-        const monthMatch = text.match(/(?:(\d{4})년\s*)?(\d{1,2})월/);
-        if (monthMatch) {
-          if (monthMatch[1]) year = parseInt(monthMatch[1], 10);
-          month = parseInt(monthMatch[2], 10);
-        } else if (/지난달|지난\s*달/i.test(text)) {
+        // Month matching
+        // Korean: "9월", "2026년 9월"
+        // Japanese: "9月", "2026年9月"
+        const koJaMonthMatch = text.match(/(?:(\d{4})[년年]\s*)?(\d{1,2})[월月]/);
+        // English month names
+        const enMonthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+        const enMonthShort = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+        if (koJaMonthMatch) {
+          if (koJaMonthMatch[1]) year = parseInt(koJaMonthMatch[1], 10);
+          month = parseInt(koJaMonthMatch[2], 10);
+        } else if (/지난달|지난\s*달|last\s*month|先月|le\s*mois\s*dernier|letzter\s*monat|el\s*mes\s*pasado/i.test(text)) {
           month = currentMonth === 1 ? 12 : currentMonth - 1;
           if (currentMonth === 1) year = currentYear - 1;
+        } else {
+          for (let i = 0; i < 12; i++) {
+            const regex = new RegExp(`\\b(?:${enMonthNames[i]}|${enMonthShort[i]})\\b`, 'i');
+            if (regex.test(text)) {
+              month = i + 1;
+              break;
+            }
+          }
+        }
+
+        // Target currency detection
+        if (/usd|dollar|달러|\$|환차|환율|외환|fx|forex|為替/i.test(text)) {
+          targetCurrency = 'USD';
+        } else if (/eur|euro|유로|€/i.test(text)) {
+          targetCurrency = 'EUR';
+        } else if (/jpy|yen|엔화|円|¥/i.test(text)) {
+          targetCurrency = 'JPY';
+        } else if (/gbp|pound|파운드|£/i.test(text)) {
+          targetCurrency = 'GBP';
         }
 
         // FX Gain / Loss matching
-        if (/환차|환율|달러|usd|외환|환전|환손익|환차익|환차손/i.test(text)) {
+        if (/환차|환율|달러|usd|외환|환전|환손익|환차익|환차손|fx|forex|exchange\s*rate|foreign\s*exchange|currency\s*gain|為替|為替差益|為替差損|為替レート|taux\s*de\s*change|wechselkurs|tipo\s*de\s*cambio/i.test(text)) {
           metric = 'fx_gain_loss';
-          targetCurrency = 'USD';
-        } else if (/주말|토요일|일요일|weekend/i.test(text)) {
+          targetCurrency = targetCurrency || 'USD';
+        } else if (/주말|토요일|일요일|weekend|samedi|dimanche|wochenende|fin\s*de\s*semana|週末|土曜日|日曜日/i.test(text)) {
           metric = 'weekend_expense';
-        } else if (/식비|카페|커피|외식|음식|배달|점심|저녁|마트|장보기/i.test(text)) {
+        } else if (/식비|카페|커피|외식|음식|배달|점심|저녁|마트|장보기|food|dining|restaurant|coffee|cafe|groceries|lunch|dinner|meal|essen|lebensmittel|nourriture|repas|comida|cibo|食費|カフェ|外食|ランチ|ディナー/i.test(text)) {
           metric = 'category_sum';
           category = 'Food';
-        } else if (/교통|지하철|버스|택시|주유|주차/i.test(text)) {
+        } else if (/교통|지하철|버스|택시|주유|주차|transport|transit|subway|metro|bus|taxi|flight|fuel|gas|essence|verkehr|transporte|trasporti|交通|電車|バス|タクシー|ガソリン/i.test(text)) {
           metric = 'category_sum';
           category = 'Transport';
-        } else if (/생활|쇼핑|다이소|쿠팡|올리브영|편의점/i.test(text)) {
+        } else if (/생활|쇼핑|다이소|쿠팡|올리브영|편의점|shopping|living|store|market|courses|einkaufen|compras|spesa|日用品|買い物|ショッピング/i.test(text)) {
           metric = 'category_sum';
           category = 'Living';
-        } else if (/고정비|월세|관리비|통신비|보험|공과금/i.test(text)) {
+        } else if (/고정비|월세|관리비|통신비|보험|공과금|fixed|rent|utility|utilities|bill|insurance|subscription|miete|loyer|alquiler|bollette|固定費|家賃|光熱費|保険|サブスク/i.test(text)) {
           metric = 'category_sum';
           category = 'Fixed';
-        } else if (/의료|병원|약국|헬스|운동/i.test(text)) {
+        } else if (/의료|병원|약국|헬스|운동|health|medical|doctor|hospital|pharmacy|fitness|gym|santé|gesundheit|salud|salute|医療|健康|病院|薬局|フィットネス/i.test(text)) {
           metric = 'category_sum';
           category = 'Health';
-        } else if (/여가|문화|영화|여행|숙박/i.test(text)) {
+        } else if (/여가|문화|영화|여행|숙박|leisure|culture|movie|cinema|trip|travel|hotel|hobby|vacation|loisirs|freizeit|ocio|tempo\s*libero|娯楽|趣味|旅行|映画/i.test(text)) {
           metric = 'category_sum';
           category = 'Leisure';
-        } else if (/총\s*지출|얼마\s*썼|지출\s*총액/i.test(text)) {
+        } else if (/총\s*지출|얼마\s*썼|지출\s*총액|total\s*expense|how\s*much\s*did\s*i\s*spend|total\s*spending|dépenses\s*totales|gesamtausgaben|gastos\s*totales|総支出|支出合計/i.test(text)) {
           metric = 'total_expense';
-        } else if (/수입|월급|급여|들어온\s*돈/i.test(text)) {
+        } else if (/수입|월급|급여|들어온\s*돈|income|salary|earnings|revenue|revenu|einkommen|ingresos|entrata|収入|給料/i.test(text)) {
           metric = 'total_income';
-        } else if (/저축|순수익|흑자|잉여/i.test(text)) {
+        } else if (/저축|순수익|흑자|잉여|savings|net\s*savings|surplus|épargne|ersparnis|ahorro|risparmio|貯蓄|余剰/i.test(text)) {
           metric = 'net_savings';
         }
 
@@ -1170,7 +1250,7 @@ Output a JSON array of parsed assets.`,
           targetCurrency,
           category,
           merchantKeyword,
-          querySummary: `${month}월 ${metric === 'fx_gain_loss' ? '환차손익' : metric === 'weekend_expense' ? '주말 지출' : category || '재정'} 분석`
+          querySummary: `${month} / ${year} (${metric === 'fx_gain_loss' ? 'FX' : metric === 'weekend_expense' ? 'Weekend' : category || 'Finance'})`
         };
       };
 
@@ -1189,26 +1269,26 @@ Output a JSON array of parsed assets.`,
           model: 'gemini-3.1-flash-lite',
           contents: query,
           config: {
-            systemInstruction: `You are an expert financial natural language query intent extractor.
-The user is asking a financial analytics question about their finances.
+            systemInstruction: `You are an expert multilingual financial natural language query intent extractor.
+The user is asking a financial analytics question about their finances in Korean, English, Japanese, or European languages.
 Current reference date is ${today.toISOString().slice(0, 10)} (Year: ${currentYear}, Month: ${currentMonth}).
 
 Extract the structured parameters:
 - "metric": Strictly one of ["fx_gain_loss", "category_sum", "weekend_expense", "total_expense", "total_income", "net_savings", "merchant_expense", "general_financial"].
-  * "fx_gain_loss": FX exchange rate fluctuations, foreign exchange profits/losses, dollar gains/losses (e.g. 9월 달러 환차손익, 환차익, 외화 변동, 환율 이익).
-  * "category_sum": Spending on a specific category (e.g. 식비 분석, 식비 총합, 교통비, 생활비).
-  * "weekend_expense": Weekend spending analysis (e.g. 주말 지출, 주말 소비).
-  * "total_expense": Overall expense for a period.
-  * "total_income": Overall income for a period.
-  * "net_savings": Savings, surplus, or net balance for a period.
-  * "merchant_expense": Spending at a specific merchant/store (e.g. 스타벅스 지출).
+  * "fx_gain_loss": FX exchange rate fluctuations, foreign exchange profits/losses, currency gains/losses (e.g., 9월 달러 환차손익, FX return this month, 9月の為替差益, gains de change).
+  * "category_sum": Spending on a specific category (e.g., 식비 분석, dining expense ratio, 食費の支出割合, grocery spending, transports ce mois).
+  * "weekend_expense": Weekend spending analysis (e.g., 주말 지출, weekend spending, 週末の支出).
+  * "total_expense": Overall expense for a period (e.g., total spending this month, 今月の総支出, 얼마 썼어).
+  * "total_income": Overall income for a period (e.g., salary, total income, 今月の収入).
+  * "net_savings": Savings, surplus, or net balance for a period (e.g., savings rate, 貯蓄額, épargne).
+  * "merchant_expense": Spending at a specific merchant/store (e.g., Starbucks spending, 스타벅스 지출, スタバでの支出).
 - "dateRange": "YYYY-MM" format (e.g. "2026-09"). If year not specified, default to ${currentYear}. If month not specified, default to ${currentMonth}.
 - "year": Integer year.
 - "month": Integer month (1-12).
-- "targetCurrency": "USD", "KRW", "EUR", "JPY", "GBP". Default "USD" if FX/dollar mentioned, otherwise "KRW".
+- "targetCurrency": "USD", "KRW", "EUR", "JPY", "GBP". Default "USD" if FX/dollar mentioned, "EUR" if euro mentioned, "JPY" if yen/円 mentioned, otherwise "KRW".
 - "category": One of ["Food", "Living", "Transport", "Fixed", "Health", "Leisure"] if category_sum.
 - "merchantKeyword": Merchant name string if merchant_expense.
-- "querySummary": Short Korean title of the query (e.g. "9월 달러 환차손익 분석").`,
+- "querySummary": Short title of the query in the user's input language or English (e.g. "September FX Gains Analysis", "9월 달러 환차손익 분석", "9月の為替差益分析").`,
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.OBJECT,

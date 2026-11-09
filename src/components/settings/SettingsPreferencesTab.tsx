@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, X, Check, Trash2, Smartphone } from 'lucide-react';
+import { Plus, X, Smartphone, Trash2 } from 'lucide-react';
 import { CustomDarkSelect, CustomSelectOption } from './CustomDarkSelect';
 import { IOSInstallModal } from '../PWAInstallButton';
 import { usePWAInstall } from '../../usePWAInstall';
 import { LedgerSpace, SupportedCurrency } from '../../types';
 import { KNOWN_CURRENCY_NAMES, getCurrencySymbol } from '../../utils';
-import { useI18n, LanguageCode, DEFAULT_CURRENCY_BY_LANGUAGE } from '../../i18n';
+import { useI18n, LanguageCode, DEFAULT_CURRENCY_BY_LANGUAGE, LANGUAGE_STORAGE_KEY } from '../../i18n';
 
 interface SettingsPreferencesTabProps {
   defaultLaunchScreen: 'vault' | 'insights' | 'ledger';
@@ -67,7 +67,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
 }) => {
   const { language, setLanguage, t } = useI18n();
   const [pendingCurrencyPrompt, setPendingCurrencyPrompt] = useState<SupportedCurrency | null>(null);
-  const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
+  const { isInstallable, isInstalled, install } = usePWAInstall();
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [isPwaDismissed, setIsPwaDismissed] = useState(() => {
     return typeof sessionStorage !== 'undefined' && sessionStorage.getItem('vibe_pref_pwa_dismissed') === 'true';
@@ -76,6 +76,13 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
 
   const handleLanguageSelect = (lang: LanguageCode) => {
     setLanguage(lang);
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+      } catch (e) {
+        console.warn('Failed to save language preference:', e);
+      }
+    }
     const targetCurrency = DEFAULT_CURRENCY_BY_LANGUAGE[lang];
     if (targetCurrency && targetCurrency !== currencySymbol) {
       setPendingCurrencyPrompt(targetCurrency);
@@ -92,7 +99,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
           <div className="flex items-center gap-2 min-w-0">
             <Smartphone size={13} className="shrink-0 text-slate-300" />
             <span className="text-neutral-300 truncate text-[11px]">
-              {language === 'ko' ? '홈 화면에 앱으로 추가하여 브라우저 없이 실행하세요' : 'Add to home screen to launch as native app'}
+              {t('pwa_install_banner')}
             </span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -105,9 +112,9 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   setShowIOSModal(true);
                 }
               }}
-              className="px-2.5 py-1 rounded-lg bg-white text-black hover:bg-neutral-200 text-[11px] font-medium transition-all active:scale-95"
+              className="px-2.5 py-1 rounded-lg bg-white text-black hover:bg-neutral-200 text-[11px] font-medium transition-all active:scale-95 cursor-pointer"
             >
-              {language === 'ko' ? '설치' : 'Install'}
+              {t('install')}
             </button>
             <button
               type="button"
@@ -117,8 +124,8 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   sessionStorage.setItem('vibe_pref_pwa_dismissed', 'true');
                 } catch {}
               }}
-              className="p-1 text-neutral-400 hover:text-white transition-colors"
-              aria-label="닫기"
+              className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              aria-label={t('close')}
             >
               <X size={12} />
             </button>
@@ -131,31 +138,36 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
         theme="dark"
       />
 
-      {/* Group 0: 언어 설정 (Language Selector) */}
+      {/* Group 0: 언어 설정 (Manual Language Selection Segment) */}
       <div className="space-y-3 pb-4 border-b border-white/[0.06]">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-200">
-            {t('language')}
-          </span>
+          <div>
+            <span className="text-xs font-semibold text-slate-200 block">
+              {t('language')}
+            </span>
+            <span className="text-[10px] text-slate-400">
+              {t('language_desc')}
+            </span>
+          </div>
         </div>
 
-        {/* 4 Core Regional Locales Segmented Button */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl bg-black/40 border border-white/5">
+        {/* 4-column responsive button grid matching Quiet Luxury design system */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl bg-white/[0.04] border border-white/10">
           {([
-            { code: 'ko' as LanguageCode, label: '한국어 (KO)' },
-            { code: 'en' as LanguageCode, label: 'English (EN)' },
-            { code: 'ja' as LanguageCode, label: '日本語 (JA)' },
-            { code: 'eu' as LanguageCode, label: 'European (EU)' },
+            { code: 'ko' as LanguageCode, label: t('lang_ko') },
+            { code: 'en' as LanguageCode, label: t('lang_en') },
+            { code: 'ja' as LanguageCode, label: t('lang_ja') },
+            { code: 'eu' as LanguageCode, label: t('lang_eu') },
           ]).map((opt) => (
             <button
               key={opt.code}
               type="button"
               id={`lang-btn-${opt.code}`}
               onClick={() => handleLanguageSelect(opt.code)}
-              className={`px-3 py-2 rounded-xl text-xs transition-all active:scale-95 text-center font-medium cursor-pointer ${
+              className={`px-3 py-2 rounded-xl text-xs transition-all active:scale-95 text-center cursor-pointer ${
                 language === opt.code
-                  ? 'bg-white/15 text-white shadow-xs font-bold border border-white/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+                  ? 'bg-white text-black font-semibold shadow-xs'
+                  : 'text-neutral-400 hover:text-white font-medium hover:bg-white/[0.04]'
               }`}
             >
               {opt.label}
@@ -227,7 +239,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   }
                   if (onDataChanged) onDataChanged();
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                   defaultLaunchScreen === 'vault'
                     ? 'bg-white/15 text-white shadow-xs font-bold'
                     : 'text-slate-400 hover:text-slate-200'
@@ -247,7 +259,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   }
                   if (onDataChanged) onDataChanged();
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                   defaultLaunchScreen === 'insights'
                     ? 'bg-white/15 text-white shadow-xs font-bold'
                     : 'text-slate-400 hover:text-slate-200'
@@ -267,7 +279,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   }
                   if (onDataChanged) onDataChanged();
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                   defaultLaunchScreen === 'ledger'
                     ? 'bg-white/15 text-white shadow-xs font-bold'
                     : 'text-slate-400 hover:text-slate-200'
@@ -283,7 +295,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
       {/* Group 2: 표시 및 통화 (Display & Currency) */}
       <div className="space-y-3">
         <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-400">
-          표시 및 통화
+          {t('display_and_currency')}
         </span>
         
         <div className="space-y-3 pb-4 border-b border-white/[0.06]">
@@ -292,10 +304,10 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <span className="text-xs font-semibold text-slate-200 block">
-                  기본 기준 통화
+                  {t('base_currency')}
                 </span>
                 <span className="text-[10px] text-slate-400">
-                  대시보드 및 모든 자산 평가의 기준
+                  {t('base_currency_desc')}
                 </span>
               </div>
               <div className="w-36">
@@ -326,7 +338,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-semibold text-slate-200">
-                    활성 통화 관리
+                    {t('active_currencies')}
                   </span>
                   <span className="text-[10px] text-slate-400 font-mono">
                     ({activeCurrenciesList.length})
@@ -337,7 +349,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     ? 'bg-white/10 text-white border border-white/20'
                     : 'bg-white/[0.04] text-neutral-400 border border-white/5'
                 }`}>
-                  {activeCurrenciesList.length > 1 ? '다중 통화 모드' : '단일 통화 모드'}
+                  {activeCurrenciesList.length > 1 ? t('multi_currency_mode') : t('single_currency_mode')}
                 </span>
               </div>
 
@@ -367,8 +379,8 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                           }
                           if (onDataChanged) onDataChanged();
                         }}
-                        className="flex items-center gap-1 hover:text-white"
-                        title={isBase ? '현재 기준 통화' : '클릭하여 기본 기준 통화로 설정'}
+                        className="flex items-center gap-1 hover:text-white cursor-pointer"
+                        title={isBase ? t('default') : t('switch')}
                       >
                         <span className="font-mono font-bold">{code}</span>
                         <span className="text-[11px] opacity-80">({sym})</span>
@@ -379,7 +391,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                         )}
                         {isBase && (
                           <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/20 text-white font-normal ml-0.5">
-                            기준
+                            {t('default')}
                           </span>
                         )}
                       </button>
@@ -388,9 +400,9 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                         <button
                           type="button"
                           onClick={() => handleRemoveActiveCurrency(code)}
-                          className="text-neutral-400 hover:text-white transition-colors p-0.5 ml-0.5 rounded"
-                          title={`${code} 활성 통화에서 제거`}
-                          aria-label={`${code} 활성 통화에서 제거`}
+                          className="text-neutral-400 hover:text-white transition-colors p-0.5 ml-0.5 rounded cursor-pointer"
+                          title={`${code} ${t('delete')}`}
+                          aria-label={`${code} ${t('delete')}`}
                         >
                           <X size={12} />
                         </button>
@@ -399,12 +411,6 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   );
                 })}
               </div>
-
-              {activeCurrenciesList.length <= 1 && (
-                <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[11px] text-neutral-300 animate-in fade-in duration-150">
-                  <span>새 통화를 추가하면 다중 통화 비교 모드가 자동으로 활성화됩니다.</span>
-                </div>
-              )}
 
               {/* Quick Add Presets + Custom Inline Input */}
               <div className="pt-2 border-t border-white/[0.04] space-y-2">
@@ -423,29 +429,29 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                       }
                     }}
                     maxLength={3}
-                    placeholder="3자리 통화 코드 (USD, EUR, JPY...)"
+                    placeholder="USD, EUR, JPY..."
                     className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-mono text-neutral-200 placeholder:text-neutral-400 focus:outline-none focus:border-white/30 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => handleAddActiveCurrency(newCurrencyInput)}
                     disabled={!newCurrencyInput.trim()}
-                    className="h-8 px-3 rounded-xl bg-white text-black hover:bg-neutral-200 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 shrink-0 shadow-xs"
+                    className="h-8 px-3 rounded-xl bg-white text-black hover:bg-neutral-200 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 shrink-0 shadow-xs cursor-pointer"
                   >
                     <Plus size={12} strokeWidth={2.5} />
-                    <span>추가</span>
+                    <span>{t('add')}</span>
                   </button>
                 </div>
 
                 {/* Clean Pill Tags */}
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] text-neutral-400">추천:</span>
+                  <span className="text-[10px] text-neutral-400">{t('recommended')}</span>
                   {['USD', 'EUR', 'JPY', 'IDR'].filter(c => !activeCurrenciesList.includes(c)).map(preset => (
                     <button
                       key={preset}
                       type="button"
                       onClick={() => handleAddActiveCurrency(preset)}
-                      className="h-6 px-2.5 rounded-full bg-white/[0.03] hover:bg-white/[0.08] text-[11px] font-mono text-neutral-300 border border-white/[0.06] hover:border-white/20 active:scale-95 transition-all flex items-center gap-0.5"
+                      className="h-6 px-2.5 rounded-full bg-white/[0.03] hover:bg-white/[0.08] text-[11px] font-mono text-neutral-300 border border-white/[0.06] hover:border-white/20 active:scale-95 transition-all flex items-center gap-0.5 cursor-pointer"
                     >
                       <span>+{preset}</span>
                     </button>
@@ -477,16 +483,16 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
           >
             <div>
               <span className="text-xs font-medium group-hover:text-white transition-colors text-white block">
-                스텔스 모드 (금액 숨김)
+                {t('stealth_mode')}
               </span>
               <span className="text-[11px] text-neutral-400 font-light block">
-                {stealthMode ? '모든 잔고 및 금액이 마스킹되어 보호 중입니다' : '화면에 모든 금액이 표시됩니다'}
+                {stealthMode ? t('stealth_mode_desc_on') : t('stealth_mode_desc_off')}
               </span>
             </div>
             <button
               id="toggle-stealth-mode"
               type="button"
-              aria-label="스텔스 모드 토글"
+              aria-label={t('stealth_mode')}
               className={`w-9 h-5 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 pointer-events-none ${
                 stealthMode ? 'bg-white' : 'bg-neutral-800'
               }`}
@@ -504,13 +510,13 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
       {/* Group 3: 장부 설정 (Ledger Settings) */}
       <div className="space-y-3 pt-3 border-t border-white/[0.04]">
         <span className="text-[11px] font-bold uppercase tracking-wider block text-neutral-400">
-          장부 설정
+          {t('ledger_settings')}
         </span>
         
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-semibold text-slate-200">
-              예산 시작일
+              {t('budget_start_day')}
             </span>
             <div className="w-24">
               <CustomDarkSelect
@@ -540,7 +546,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-white">
-              다중 장부 관리
+              {t('multi_ledger_spaces')}
             </span>
             <span className="text-[10px] text-neutral-400 font-mono">
               ({internalSpaces.length})
@@ -550,10 +556,10 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
           <button
             type="button"
             onClick={() => setIsAddingSpace(!isAddingSpace)}
-            className="text-[11px] px-2.5 py-1 rounded-full font-normal border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-neutral-300 hover:text-white transition-all flex items-center gap-1 active:scale-95"
+            className="text-[11px] px-2.5 py-1 rounded-full font-normal border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-neutral-300 hover:text-white transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
           >
             <Plus size={11} />
-            <span>새 장부</span>
+            <span>{t('new_space')}</span>
           </button>
         </div>
 
@@ -573,7 +579,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   }
                 }}
                 autoFocus
-                placeholder="새 장부 이름 입력..."
+                placeholder={t('space_name_placeholder')}
                 className="flex-1 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-neutral-200 placeholder:text-neutral-400 focus:outline-none focus:border-white/30 transition-all"
               />
               <button
@@ -583,9 +589,9 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   setIsAddingSpace(false);
                 }}
                 disabled={!newSpaceNameInput.trim()}
-                className="h-7 px-2.5 rounded-lg bg-white text-black hover:bg-neutral-200 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 shrink-0"
+                className="h-7 px-2.5 rounded-lg bg-white text-black hover:bg-neutral-200 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 shrink-0 cursor-pointer"
               >
-                생성
+                {t('create')}
               </button>
             </div>
             {handleCreateNewSpace && (
@@ -593,9 +599,9 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 <button
                   type="button"
                   onClick={handleCreateNewSpace}
-                  className="text-[10px] text-neutral-400 hover:text-white transition-colors underline underline-offset-2"
+                  className="text-[10px] text-neutral-400 hover:text-white transition-colors underline underline-offset-2 cursor-pointer"
                 >
-                  상세 옵션으로 생성 →
+                  {t('create_with_details')}
                 </button>
               </div>
             )}
@@ -621,12 +627,12 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   <span className="font-medium text-xs text-white truncate">{sp.name}</span>
                   {isDefault && (
                     <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-white/[0.06] text-neutral-400 border border-white/[0.08]">
-                      기본
+                      {t('default')}
                     </span>
                   )}
                   {isCurrent && (
                     <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                      활성
+                      {t('active')}
                     </span>
                   )}
                 </div>
@@ -636,18 +642,18 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     <button
                       type="button"
                       onClick={() => handleSelectSpaceItem(sp)}
-                      className="px-2 py-0.5 rounded-full text-[10px] font-normal border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-neutral-300 hover:text-white transition-all active:scale-95"
+                      className="px-2 py-0.5 rounded-full text-[10px] font-normal border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-neutral-300 hover:text-white transition-all active:scale-95 cursor-pointer"
                     >
-                      전환
+                      {t('switch')}
                     </button>
                   )}
                   {!isDefault && (
                     <button
                       type="button"
                       onClick={() => handleDeleteSpaceItem(sp.id)}
-                      className="p-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-all"
-                      title="장부 삭제"
-                      aria-label={`${sp.name} 장부 삭제`}
+                      className="p-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-all cursor-pointer"
+                      title={t('delete_space')}
+                      aria-label={`${sp.name} ${t('delete_space')}`}
                     >
                       <Trash2 size={12} />
                     </button>

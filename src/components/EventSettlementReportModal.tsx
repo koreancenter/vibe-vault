@@ -2,19 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { 
   X, 
   Printer, 
-  Download, 
   Users, 
-  Calendar, 
-  CheckCircle2, 
-  ArrowDownRight, 
-  ArrowUpRight,
-  Calculator,
-  FileSpreadsheet,
-  AlertCircle
+  FileSpreadsheet
 } from 'lucide-react';
 import { LedgerSpace, Transaction } from '../types';
 import { format, parseISO } from 'date-fns';
-import { getCategoryKo, getCurrencySymbol } from '../utils';
+import { getCurrencySymbol } from '../utils';
+import { useI18n } from '../i18n';
 
 interface EventSettlementReportModalProps {
   isOpen: boolean;
@@ -33,6 +27,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
   onUpdateSpace,
   theme = 'dark'
 }) => {
+  const { t, getLocalizedCategory } = useI18n();
   const isLight = theme === 'light';
 
   // Allow inline editing of member count for settlement recalculation
@@ -60,10 +55,10 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
       const lastDate = format(parseISO(chronologicalTxs[chronologicalTxs.length - 1].date), 'yyyy.MM.dd');
       return `${firstDate} ~ ${lastDate}`;
     }
-    return '진행 기간 미지정';
+    return '-';
   }, [space.startDate, space.endDate, chronologicalTxs]);
 
-  // Strict Korean Standard Running Balance Calculation
+  // Strict Running Balance Calculation
   const { rows, totalIncome, totalExpense, finalBalance } = useMemo(() => {
     let running = 0;
     let incomeSum = 0;
@@ -81,8 +76,8 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
       running = running + incomeAmt - expenseAmt;
 
       const categoryName = tx.isInternalTransfer
-        ? (tx.subCategory || '내부이체')
-        : getCategoryKo(tx.category, tx.subCategory);
+        ? (tx.subCategory || t('type_transfer'))
+        : getLocalizedCategory(tx.category);
 
       return {
         no: idx + 1,
@@ -103,7 +98,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
       totalExpense: expenseSum,
       finalBalance: running
     };
-  }, [chronologicalTxs]);
+  }, [chronologicalTxs, getLocalizedCategory, t]);
 
   // N-Split Calculations
   const activeMembers = Math.max(1, memberCount);
@@ -129,12 +124,12 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
 
   const handleExportCSV = () => {
     const bom = '\uFEFF';
-    let csv = `${space.name} 공식 결산 보고서\r\n`;
-    csv += `결산 기간,"${dateRangeStr}"\r\n`;
-    csv += `출력 일시,"${printDateStr}"\r\n`;
-    csv += `기준 통화,"${space.currency}"\r\n`;
-    csv += `총 참여 인원,"${activeMembers}명"\r\n\r\n`;
-    csv += `번호,날짜,항목,내역,수입,지출,잔액,비고\r\n`;
+    let csv = `${space.name} ${t('settlement_report_title')}\r\n`;
+    csv += `${t('settlement_period')},"${dateRangeStr}"\r\n`;
+    csv += `${t('print_date')},"${printDateStr}"\r\n`;
+    csv += `${t('base_currency')},"${space.currency}"\r\n`;
+    csv += `${t('total_participants')},"${activeMembers}${t('member_count_unit')}"\r\n\r\n`;
+    csv += `${t('th_no')},${t('th_date')},${t('th_category')},${t('th_description')},${t('th_income')},${t('th_expense')},${t('th_balance')},${t('th_note')}\r\n`;
 
     rows.forEach((r) => {
       const incStr = r.income > 0 ? `+${r.income}` : '';
@@ -146,17 +141,17 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
     });
 
     csv += `\r\n`;
-    csv += `총 수입 합계,,,,+${totalIncome},,,\r\n`;
-    csv += `총 지출 합계,,,,,-${totalExpense},,\r\n`;
-    csv += `최종 잔액,,,,,${finalBalance},,\r\n`;
-    csv += `1인당 정산 금액 (총 지출 ÷ ${activeMembers}명),,,,,${perPersonExpense},,\r\n`;
-    csv += `1인당 ${finalBalance >= 0 ? '환급금' : '추가납부액'} (최종 잔액 ÷ ${activeMembers}명),,,,,${perPersonNet},,\r\n`;
+    csv += `${t('total_income_sum')},,,,+${totalIncome},,,\r\n`;
+    csv += `${t('total_expense_sum')},,,,,-${totalExpense},,\r\n`;
+    csv += `${t('final_balance')},,,,,${finalBalance},,\r\n`;
+    csv += `${t('per_person_actual_cost')} (${t('total_expense')} ÷ ${activeMembers}),,,,,${perPersonExpense},,\r\n`;
+    csv += `${t('per_person_settlement_title')} (${t('final_balance')} ÷ ${activeMembers}),,,,,${perPersonNet},,\r\n`;
 
     const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `${space.name}_공식결산보고서_${format(new Date(), 'yyyyMMdd')}.csv`);
+    link.setAttribute('download', `${space.name}_${t('settlement_report_title')}_${format(new Date(), 'yyyyMMdd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -231,10 +226,10 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
           <div className="screen-only flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-white/10 bg-white/[0.02]">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-500/10 border border-sky-500/20 text-sky-400">
-                📄 공식 결산서
+                📄 {t('official_settlement_report')}
               </span>
               <span className="text-xs text-slate-400">
-                A4 출력 및 엑셀 다운로드 최적화
+                {t('print_pdf_export_desc')}
               </span>
             </div>
 
@@ -242,23 +237,23 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
               {/* Inline Participant Counter */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-black/20 text-xs">
                 <Users size={13} className="text-blue-400" />
-                <span className="text-slate-400">참여 인원:</span>
+                <span className="text-slate-400">{t('member_count')}:</span>
                 <button
                   type="button"
                   onClick={() => handleMemberCountChange(activeMembers - 1)}
-                  className="w-5 h-5 flex items-center justify-center rounded-md bg-white/10 hover:bg-white/20 active:scale-95 font-bold"
-                  title="1명 감소"
-                  aria-label="참여 인원 1명 감소"
+                  className="w-5 h-5 flex items-center justify-center rounded-md bg-white/10 hover:bg-white/20 active:scale-95 font-bold cursor-pointer"
+                  title="-1"
+                  aria-label="-1"
                 >
                   -
                 </button>
-                <span className="font-bold tabular-nums px-1 text-white">{activeMembers}명</span>
+                <span className="font-bold tabular-nums px-1 text-white">{activeMembers}{t('member_count_unit')}</span>
                 <button
                   type="button"
                   onClick={() => handleMemberCountChange(activeMembers + 1)}
-                  className="w-5 h-5 flex items-center justify-center rounded-md bg-white/10 hover:bg-white/20 active:scale-95 font-bold"
-                  title="1명 증가"
-                  aria-label="참여 인원 1명 증가"
+                  className="w-5 h-5 flex items-center justify-center rounded-md bg-white/10 hover:bg-white/20 active:scale-95 font-bold cursor-pointer"
+                  title="+1"
+                  aria-label="+1"
                 >
                   +
                 </button>
@@ -268,31 +263,31 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
               <button
                 type="button"
                 onClick={handleExportCSV}
-                className="h-9 px-3.5 rounded-xl text-xs font-medium border border-white/10 bg-white/[0.04] hover:bg-white/10 text-slate-200 flex items-center gap-1.5 active:scale-95 transition-all"
-                title="엑셀 CSV 다운로드"
-                aria-label="엑셀 CSV 다운로드"
+                className="h-9 px-3.5 rounded-xl text-xs font-medium border border-white/10 bg-white/[0.04] hover:bg-white/10 text-slate-200 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                title={t('excel_csv')}
+                aria-label={t('excel_csv')}
               >
                 <FileSpreadsheet size={14} className="text-sky-400" />
-                <span>엑셀 CSV</span>
+                <span>{t('excel_csv')}</span>
               </button>
 
               {/* Print / Save PDF */}
               <button
                 type="button"
                 onClick={handlePrint}
-                className="h-9 px-4 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 flex items-center gap-1.5 active:scale-95 transition-all shadow-md shadow-sky-500/20"
-                title="A4 용지 인쇄 및 PDF 저장"
+                className="h-9 px-4 rounded-xl text-xs font-bold bg-white text-black hover:bg-neutral-200 flex items-center gap-1.5 active:scale-95 transition-all shadow-md cursor-pointer"
+                title={t('print_pdf_button')}
               >
                 <Printer size={14} />
-                <span>A4 인쇄 / PDF 저장</span>
+                <span>{t('print_pdf_button')}</span>
               </button>
 
               {/* Close */}
               <button
                 type="button"
                 onClick={onClose}
-                className="w-9 h-9 flex items-center justify-center rounded-xl border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors ml-1"
-                aria-label="닫기"
+                className="w-9 h-9 flex items-center justify-center rounded-xl border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors ml-1 cursor-pointer"
+                aria-label={t('close')}
               >
                 <X size={17} />
               </button>
@@ -306,41 +301,41 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white print:text-black">
-                    {space.name} 결산 보고서
+                    {space.name} {t('settlement_report_title')}
                   </h1>
                   <p className="text-xs text-slate-400 print:text-gray-600 mt-1">
-                    프로젝트 및 행사 지출·수입 정산 내역서 (공식 회계 양식)
+                    {t('settlement_report_subtitle')}
                   </p>
                 </div>
                 <div className="text-left sm:text-right text-xs text-slate-400 print:text-gray-700 space-y-0.5 tabular-nums">
-                  <div>출력일시: <strong className="text-white print:text-black font-semibold">{printDateStr}</strong></div>
-                  <div>결산 기간: <span className="text-white print:text-black">{dateRangeStr}</span></div>
-                  <div>기준 통화: <span className="font-bold text-sky-400 print:text-black">{space.currency}</span></div>
+                  <div>{t('print_date')}: <strong className="text-white print:text-black font-semibold">{printDateStr}</strong></div>
+                  <div>{t('settlement_period')}: <span className="text-white print:text-black">{dateRangeStr}</span></div>
+                  <div>{t('base_currency')}: <span className="font-bold text-sky-400 print:text-black">{space.currency}</span></div>
                 </div>
               </div>
 
               {/* Metadata Grid Pills */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-5 print:gap-2">
                 <div className="p-3 rounded-xl border border-white/10 print:border-gray-400 bg-white/[0.02] print:bg-gray-50">
-                  <span className="text-[11px] text-slate-400 print:text-gray-600 block">총 참여 인원</span>
+                  <span className="text-[11px] text-slate-400 print:text-gray-600 block">{t('total_participants')}</span>
                   <span className="text-base font-extrabold text-white print:text-black tabular-nums">
-                    {activeMembers}명
+                    {activeMembers}{t('member_count_unit')}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl border border-white/10 print:border-gray-400 bg-white/[0.02] print:bg-gray-50">
-                  <span className="text-[11px] text-slate-400 print:text-gray-600 block">총 거래 건수</span>
+                  <span className="text-[11px] text-slate-400 print:text-gray-600 block">{t('total_transactions_count')}</span>
                   <span className="text-base font-extrabold text-white print:text-black tabular-nums">
-                    {rows.length}건
+                    {rows.length}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl border border-white/10 print:border-gray-400 bg-white/[0.02] print:bg-gray-50">
-                  <span className="text-[11px] text-slate-400 print:text-gray-600 block">총 수입 (회비 등)</span>
+                  <span className="text-[11px] text-slate-400 print:text-gray-600 block">{t('total_income_pool')}</span>
                   <span className="text-base font-extrabold text-sky-400 print:text-black tabular-nums">
                     +{currencySymbol}{totalIncome.toLocaleString()}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl border border-white/10 print:border-gray-400 bg-white/[0.02] print:bg-gray-50">
-                  <span className="text-[11px] text-slate-400 print:text-gray-600 block">총 지출 금액</span>
+                  <span className="text-[11px] text-slate-400 print:text-gray-600 block">{t('total_expense_amount')}</span>
                   <span className="text-base font-extrabold text-white print:text-black tabular-nums">
                     -{currencySymbol}{totalExpense.toLocaleString()}
                   </span>
@@ -348,32 +343,32 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
               </div>
             </div>
 
-            {/* 2. CHRONOLOGICAL LEDGER TABLE (Strict Korean Standard Columns) */}
+            {/* 2. CHRONOLOGICAL LEDGER TABLE */}
             <div className="space-y-2 mb-6">
               <div className="flex items-center justify-between text-xs text-slate-400 print:text-gray-700 px-0.5">
                 <span className="font-semibold text-slate-300 print:text-black">
-                  수입 및 지출 상세 내역 (시간순 정렬)
+                  {t('chronological_transactions')}
                 </span>
-                <span className="text-[11px]">단위: {space.currency}</span>
+                <span className="text-[11px]">{t('unit_currency', { currency: space.currency })}</span>
               </div>
 
               {rows.length === 0 ? (
                 <div className="p-8 text-center border border-white/10 rounded-2xl print:border-gray-400 text-xs text-slate-400 print:text-gray-600">
-                  기록된 거래 내역이 없습니다.
+                  {t('empty_ledger_title')}
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-white/10 print:border-gray-400">
                   <table className="w-full text-left border-collapse text-xs print:text-[11px]">
                     <thead>
                       <tr className="bg-white/[0.04] print:bg-gray-100 text-slate-300 print:text-black font-semibold border-b border-white/10 print:border-gray-400">
-                        <th className="py-2.5 px-2.5 text-center w-12 border-r border-white/5 print:border-gray-300">번호</th>
-                        <th className="py-2.5 px-3 w-28 border-r border-white/5 print:border-gray-300">날짜</th>
-                        <th className="py-2.5 px-3 w-24 border-r border-white/5 print:border-gray-300">항목</th>
-                        <th className="py-2.5 px-3 border-r border-white/5 print:border-gray-300">내역</th>
-                        <th className="py-2.5 px-3 text-right w-28 border-r border-white/5 print:border-gray-300">수입 (+)</th>
-                        <th className="py-2.5 px-3 text-right w-28 border-r border-white/5 print:border-gray-300">지출 (-)</th>
-                        <th className="py-2.5 px-3 text-right w-28 border-r border-white/5 print:border-gray-300">잔액</th>
-                        <th className="py-2.5 px-3 w-28">비고</th>
+                        <th className="py-2.5 px-2.5 text-center w-12 border-r border-white/5 print:border-gray-300">{t('th_no')}</th>
+                        <th className="py-2.5 px-3 w-28 border-r border-white/5 print:border-gray-300">{t('th_date')}</th>
+                        <th className="py-2.5 px-3 w-24 border-r border-white/5 print:border-gray-300">{t('th_category')}</th>
+                        <th className="py-2.5 px-3 border-r border-white/5 print:border-gray-300">{t('th_description')}</th>
+                        <th className="py-2.5 px-3 text-right w-28 border-r border-white/5 print:border-gray-300">{t('th_income')}</th>
+                        <th className="py-2.5 px-3 text-right w-28 border-r border-white/5 print:border-gray-300">{t('th_expense')}</th>
+                        <th className="py-2.5 px-3 text-right w-28 border-r border-white/5 print:border-gray-300">{t('th_balance')}</th>
+                        <th className="py-2.5 px-3 w-28">{t('th_note')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5 print:divide-gray-300">
@@ -413,7 +408,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                     <tfoot>
                       <tr className="bg-white/[0.06] print:bg-gray-100 font-bold border-t-2 border-slate-700 print:border-black text-slate-200 print:text-black">
                         <td colSpan={4} className="py-2.5 px-3 text-center border-r border-white/5 print:border-gray-300">
-                          합계
+                          {t('th_total')}
                         </td>
                         <td className="py-2.5 px-3 text-right tabular-nums text-sky-400 print:text-black border-r border-white/5 print:border-gray-300">
                           +{currencySymbol}{totalIncome.toLocaleString()}
@@ -425,7 +420,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                           {currencySymbol}{finalBalance.toLocaleString()}
                         </td>
                         <td className="py-2.5 px-3 text-center text-[10px] text-slate-400 print:text-gray-600">
-                          차인잔고
+                          {t('th_running_balance')}
                         </td>
                       </tr>
                     </tfoot>
@@ -439,25 +434,25 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
               {/* Bottom Settlement Summary Box */}
               <div className="p-5 rounded-2xl border border-white/10 print:border-black bg-white/[0.02] print:bg-white space-y-3">
                 <h2 className="text-xs font-bold text-slate-300 print:text-black border-b border-white/10 print:border-gray-300 pb-2">
-                  <span>공식 결산 총계 요약</span>
+                  <span>{t('settlement_summary_box')}</span>
                 </h2>
 
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center text-slate-300 print:text-gray-700">
-                    <span>총 수입 합계</span>
+                    <span>{t('total_income_sum')}</span>
                     <span className="font-bold text-sky-400 print:text-black tabular-nums">
                       +{currencySymbol}{totalIncome.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-300 print:text-gray-700">
-                    <span>총 지출 합계</span>
+                    <span>{t('total_expense_sum')}</span>
                     <span className="font-bold text-white print:text-black tabular-nums">
                       -{currencySymbol}{totalExpense.toLocaleString()}
                     </span>
                   </div>
                   <div className="border-t border-white/10 print:border-gray-300 pt-2 flex justify-between items-center">
                     <span className="font-extrabold text-sm text-white print:text-black">
-                      최종 잔액
+                      {t('final_balance')}
                     </span>
                     <span className={`text-base font-extrabold tabular-nums ${
                       finalBalance > 0 
@@ -475,9 +470,9 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
               {/* 1인당 정산 내역 (N-Split Box) */}
               <div className="p-5 rounded-2xl border-2 border-sky-500/30 print:border-black bg-sky-500/[0.03] print:bg-gray-50 space-y-3">
                 <h2 className="text-xs font-bold text-sky-400 print:text-black flex items-center justify-between border-b border-sky-500/20 print:border-gray-300 pb-2">
-                  <span>1인당 정산 내역 ({activeMembers}인 균등 분할)</span>
+                  <span>{t('per_person_share_n_split', { count: activeMembers })}</span>
                   <span className="text-[10px] font-normal text-slate-400 print:text-gray-600">
-                    총 참여 {activeMembers}명
+                    {t('total_participants')} {activeMembers}{t('member_count_unit')}
                   </span>
                 </h2>
 
@@ -485,7 +480,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                   {/* Per-person expense */}
                   <div className="flex justify-between items-center">
                     <span className="text-slate-300 print:text-gray-700">
-                      1인당 실제 분담 경비 <span className="text-[10px] opacity-70">(총 지출 ÷ {activeMembers}명)</span>
+                      {t('per_person_actual_cost')} <span className="text-[10px] opacity-70">({t('total_expense')} ÷ {activeMembers})</span>
                     </span>
                     <span className="font-extrabold text-sm text-white print:text-black tabular-nums">
                       {currencySymbol}{perPersonExpense.toLocaleString()}
@@ -495,15 +490,15 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                   {/* Per-person refund or additional dues */}
                   <div className="p-3 rounded-xl border border-white/10 print:border-gray-400 bg-black/20 print:bg-white space-y-1">
                     <span className="text-[11px] text-slate-400 print:text-gray-600 block">
-                      1인당 최종 정산 (잔액 ÷ {activeMembers}명)
+                      {t('per_person_final_settlement', { count: activeMembers })}
                     </span>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-white print:text-black">
                         {finalBalance > 0
-                          ? '1인당 환급 예정액'
+                          ? t('per_person_refund_due')
                           : finalBalance < 0
-                          ? '1인당 추가 납부액'
-                          : '정산 완료 (수지 일치)'}
+                          ? t('per_person_additional_due')
+                          : t('settlement_balanced')}
                       </span>
                       <span className={`text-base font-extrabold tabular-nums ${
                         finalBalance > 0 
@@ -512,7 +507,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                           ? 'text-neutral-200 print:text-black' 
                           : 'text-white print:text-black'
                       }`}>
-                        {finalBalance > 0 ? `+${currencySymbol}${perPersonNet.toLocaleString()} 환급` : finalBalance < 0 ? `${currencySymbol}${Math.abs(perPersonNet).toLocaleString()} 추가 납부` : '0원'}
+                        {finalBalance > 0 ? `+${currencySymbol}${perPersonNet.toLocaleString()}` : finalBalance < 0 ? `${currencySymbol}${Math.abs(perPersonNet).toLocaleString()}` : '0'}
                       </span>
                     </div>
                   </div>
@@ -523,10 +518,10 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
             {/* Document Signature & Verification Footer */}
             <div className="mt-8 pt-6 border-t border-white/10 print:border-gray-400 flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-400 print:text-gray-600 gap-2">
               <div>
-                <span>본 보고서는 Vibe Vault 로컬 암호화 장부에서 직접 생성 및 검증된 공식 결산서입니다.</span>
+                <span>{t('official_report_notice')}</span>
               </div>
               <div className="flex items-center gap-4">
-                <span>정산 총괄 확인: ( 서명 / 인 )</span>
+                <span>{t('official_signature_line')}</span>
               </div>
             </div>
           </div>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
 import { Transaction, Asset } from '../types';
-import { getUserAssets, STANDARD_CATEGORIES, getCategoryKo } from '../utils';
+import { getUserAssets, STANDARD_CATEGORIES } from '../utils';
+import { useI18n } from '../i18n';
 
 interface EditTransactionModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
   onSave,
   theme = 'dark'
 }) => {
+  const { t, getLocalizedCategory } = useI18n();
   const [formData, setFormData] = useState<Partial<Transaction>>({});
   const [activeAssets, setActiveAssets] = useState<Asset[]>([]);
 
@@ -70,16 +72,18 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
         }`}>
           <div>
             <h2 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-              거래 내역 수정
+              {t('edit_transaction_title')}
             </h2>
-            <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>금액 및 분류 상세 항목을 수정합니다</p>
+            <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+              {t('edit_transaction_desc')}
+            </p>
           </div>
           <button 
-            type="button"
+            type="button" 
             onClick={onClose} 
-            title="닫기"
-            aria-label="닫기"
-            className={`w-9 h-9 flex items-center justify-center rounded-2xl border transition-colors ${
+            title={t('close')}
+            aria-label={t('close')}
+            className={`w-9 h-9 flex items-center justify-center rounded-2xl border transition-colors cursor-pointer ${
               isLight 
                 ? 'text-slate-600 hover:text-slate-900 bg-slate-100 border-slate-200 hover:bg-slate-200' 
                 : 'text-[#94A3B8] hover:text-white bg-white/[0.04] border-white/10 hover:bg-white/10'
@@ -93,24 +97,28 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
         <div className="p-6 flex flex-col gap-4 overflow-y-auto text-sm">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>거래 유형</label>
+              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+                {t('label_transaction_type')}
+              </label>
               <select 
                 name="type" 
                 value={formData.type || ''} 
                 onChange={handleChange} 
-                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-white/30 transition-colors font-medium ${
+                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-white/30 transition-colors font-medium cursor-pointer ${
                   isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/40 border-white/10 text-white'
                 }`}
               >
-                <option value="EXPENSE" className={isLight ? 'bg-white' : 'bg-[#111217]'}>지출</option>
-                <option value="INCOME" className={isLight ? 'bg-white' : 'bg-[#111217]'}>수입</option>
-                <option value="TRANSFER" className={isLight ? 'bg-white' : 'bg-[#111217]'}>이체</option>
-                <option value="SETTLEMENT" className={isLight ? 'bg-white' : 'bg-[#111217]'}>더치페이 정산</option>
+                <option value="EXPENSE" className={isLight ? 'bg-white' : 'bg-[#111217]'}>{t('type_expense')}</option>
+                <option value="INCOME" className={isLight ? 'bg-white' : 'bg-[#111217]'}>{t('type_income')}</option>
+                <option value="TRANSFER" className={isLight ? 'bg-white' : 'bg-[#111217]'}>{t('type_transfer')}</option>
+                <option value="SETTLEMENT" className={isLight ? 'bg-white' : 'bg-[#111217]'}>{t('type_settlement')}</option>
               </select>
             </div>
             
             <div className="flex flex-col gap-1.5">
-              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>금액</label>
+              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+                {t('label_amount')}
+              </label>
               <input 
                 type="number" 
                 name="amount" 
@@ -124,7 +132,9 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>내용 (상호명 / 내역)</label>
+            <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+              {t('label_description')}
+            </label>
             <input 
               type="text" 
               name="description" 
@@ -138,13 +148,15 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
           
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>카테고리</label>
+              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+                {t('label_category')}
+              </label>
               <input 
                 type="text" 
                 name="category" 
                 value={formData.category || ''} 
                 onChange={handleChange} 
-                placeholder="예: 식비, 생활/쇼핑"
+                placeholder={t('placeholder_category')}
                 className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors ${
                   isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/40 border-white/10 text-white'
                 }`} 
@@ -155,7 +167,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                     key={cat.key}
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, category: cat.key }))}
-                    className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all ${
+                    className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
                       formData.category === cat.key || formData.category === cat.nameKo
                         ? isLight
                           ? 'bg-slate-900 border-slate-900 text-white font-medium'
@@ -165,20 +177,22 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                           : 'bg-white/[0.04] border-white/[0.08] text-neutral-300 hover:text-white'
                     }`}
                   >
-                    {cat.nameKo}
+                    {getLocalizedCategory(cat.key)}
                   </button>
                 ))}
               </div>
             </div>
             
             <div className="flex flex-col gap-1.5">
-              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>결제 수단</label>
+              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+                {t('label_payment_method')}
+              </label>
               <input 
                 type="text" 
                 name="paymentMethod" 
                 value={formData.paymentMethod || ''} 
                 onChange={handleChange} 
-                placeholder="예: 현대카드, 토스머니" 
+                placeholder={t('placeholder_payment_method')} 
                 className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-white/30 transition-colors ${
                   isLight ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400' : 'bg-black/40 border-white/10 text-white placeholder:text-[#94A3B8]/50'
                 }`} 
@@ -190,7 +204,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                       key={asset.id}
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, paymentMethod: asset.name }))}
-                      className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all ${
+                      className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
                         formData.paymentMethod === asset.name
                           ? isLight
                             ? 'bg-slate-900 border-slate-900 text-white font-medium'
@@ -209,13 +223,15 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>비고 (정산 비고 / 지출 메모)</label>
+            <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+              {t('label_note')}
+            </label>
             <input 
               type="text" 
               name="note" 
               value={formData.note || ''} 
               onChange={handleChange} 
-              placeholder="예: 정산 메모, 결제자, 영수증 번호 등"
+              placeholder={t('placeholder_note')}
               className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors ${
                 isLight ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400' : 'bg-black/40 border-white/10 text-white placeholder:text-[#94A3B8]/50'
               }`} 
@@ -228,7 +244,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               onClick={handleSave} 
               className="w-full py-3 rounded-xl bg-white hover:bg-neutral-200 text-black font-semibold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shadow-xs"
             >
-              <Check size={15} /> 변경사항 저장하기
+              <Check size={15} /> {t('save_changes')}
             </button>
           </div>
         </div>

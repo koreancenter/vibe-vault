@@ -127,12 +127,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     } else if (typeof localStorage !== 'undefined') {
       localStorage.setItem('vibe_active_space_id', sp.id);
     }
-    setStatusMessage({ type: 'success', text: `'${sp.name}' 장부로 전환되었습니다.` });
+    const msg = language === 'ko' ? `'${sp.name}' 장부로 전환되었습니다.` : `Switched to '${sp.name}' ledger.`;
+    setStatusMessage({ type: 'success', text: msg });
   };
 
   const handleDeleteSpaceItem = async (spId: string) => {
     if (spId === 'default') return;
-    if (!window.confirm('이 프로젝트 장부와 관련 거래 내역을 삭제하시겠습니까?')) return;
+    const confirmMsg = language === 'ko'
+      ? '이 프로젝트 장부와 관련 거래 내역을 삭제하시겠습니까?'
+      : 'Are you sure you want to delete this project ledger and its transactions?';
+    if (!window.confirm(confirmMsg)) return;
     if (onDeleteSpace) {
       onDeleteSpace(spId);
     } else {
