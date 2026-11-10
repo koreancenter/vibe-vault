@@ -1500,27 +1500,27 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             </div>
           ) : (
             <div className="divide-y divide-white/[0.04]">
-              {localTransactions.slice(0, 5).map((t) => {
-                const isExpense = t.type === 'EXPENSE';
-                const isIncome = t.type === 'INCOME';
+              {localTransactions.slice(0, 5).map((tx) => {
+                const isExpense = tx.type === 'EXPENSE';
+                const isIncome = tx.type === 'INCOME';
                 return (
-                  <div key={t.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
+                  <div key={tx.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-normal text-white truncate">{t.description}</span>
+                        <span className="font-normal text-white truncate">{tx.description}</span>
                         <span className="text-[11px] text-neutral-300 font-normal shrink-0">
-                          {t.category ? getCategoryKo(t.category) : ''}
+                          {tx.category ? getCategoryKo(tx.category) : ''}
                         </span>
                       </div>
                       <div className="text-[11px] text-neutral-300 font-normal mt-0.5">
-                        <span>{format(parseISO(t.date), 'M.d HH:mm')}</span>
-                        {t.paymentMethod && <span className="ml-1.5 opacity-80">· {t.paymentMethod}</span>}
+                        <span>{format(parseISO(tx.date), 'M.d HH:mm')}</span>
+                        {tx.paymentMethod && <span className="ml-1.5 opacity-80">· {tx.paymentMethod}</span>}
                       </div>
                     </div>
                     <div className={`font-semibold tabular-nums whitespace-nowrap text-xs ${
                       isIncome ? 'text-sky-400' : isExpense ? 'text-white' : 'text-blue-400'
                     } ${stealthMode ? 'blur-xs' : ''}`}>
-                      {isExpense ? (t.amount < 0 ? '+' : '-') : isIncome ? '+' : ''}{getCurrencySymbol(t.currency || currentCurrency)}{Math.abs(t.amount).toLocaleString()}
+                      {isExpense ? (tx.amount < 0 ? '+' : '-') : isIncome ? '+' : ''}{getCurrencySymbol(tx.currency || currentCurrency)}{Math.abs(tx.amount).toLocaleString()}
                     </div>
                   </div>
                 );

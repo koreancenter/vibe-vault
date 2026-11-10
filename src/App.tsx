@@ -582,10 +582,10 @@ function AppInner() {
 
   const handleConfirmCategorization = useCallback(async (finalTxs: Transaction[]) => {
     try {
-      const spaceTxs = finalTxs.map(t => ({
-        ...t,
-        spaceId: t.spaceId || activeSpaceId,
-        currency: t.currency || (activeSpace.currency as SupportedCurrency) || currentCurrency
+      const spaceTxs = finalTxs.map(tx => ({
+        ...tx,
+        spaceId: tx.spaceId || activeSpaceId,
+        currency: tx.currency || (activeSpace.currency as SupportedCurrency) || currentCurrency
       }));
       await batchAddTxs(spaceTxs);
       setPendingCategorizationTxs([]);
@@ -1299,20 +1299,20 @@ function AppInner() {
                 </div>
               ) : (
                 <div className="divide-y divide-white/[0.04]">
-                  {spaceFilteredLedgerTransactions.map((t) => {
-                    const isExpense = t.type === 'EXPENSE';
-                    const isIncome = t.type === 'INCOME';
-                    const isSettlement = t.type === 'SETTLEMENT';
-                    const displayTitle = formatTransactionTitle(t.description);
-                    const categoryLabel = t.isInternalTransfer
-                      ? (t.subCategory || '내부이체/원금상환')
-                      : getCategoryKo(t.category, t.subCategory);
-                    const currSymbol = getCurrencySymbol(t.currency || currentCurrency);
+                  {spaceFilteredLedgerTransactions.map((tx) => {
+                    const isExpense = tx.type === 'EXPENSE';
+                    const isIncome = tx.type === 'INCOME';
+                    const isSettlement = tx.type === 'SETTLEMENT';
+                    const displayTitle = formatTransactionTitle(tx.description);
+                    const categoryLabel = tx.isInternalTransfer
+                      ? (tx.subCategory || '내부이체/원금상환')
+                      : getCategoryKo(tx.category, tx.subCategory);
+                    const currSymbol = getCurrencySymbol(tx.currency || currentCurrency);
 
                     return (
                       <div
-                        key={t.id}
-                        onClick={() => setSelectedActionTransaction(t)}
+                        key={tx.id}
+                        onClick={() => setSelectedActionTransaction(tx)}
                         className="py-3.5 px-1.5 transition-colors cursor-pointer group select-none hover:bg-white/[0.03] active:bg-white/[0.06]"
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -1323,19 +1323,19 @@ function AppInner() {
 
                             <div className="flex items-center gap-1.5 text-xs font-normal mt-0.5 flex-wrap text-neutral-300">
                               <span>{categoryLabel}</span>
-                              {(t.paymentMethod || t.type === 'INCOME') && (
+                              {(tx.paymentMethod || tx.type === 'INCOME') && (
                                 <>
                                   <span className="opacity-30">·</span>
-                                  <span>{getPaymentMethodKo(t.paymentMethod, t.type)}</span>
+                                  <span>{getPaymentMethodKo(tx.paymentMethod, tx.type)}</span>
                                 </>
                               )}
                               <span className="opacity-30">·</span>
-                              <span>{format(parseISO(t.date), 'M.d HH:mm')}</span>
-                              {t.note && (
+                              <span>{format(parseISO(tx.date), 'M.d HH:mm')}</span>
+                              {tx.note && (
                                 <>
                                   <span className="opacity-30">·</span>
                                   <span className="text-amber-400/90 font-medium truncate max-w-[150px]">
-                                    📝 {t.note}
+                                    📝 {tx.note}
                                   </span>
                                 </>
                               )}
@@ -1344,7 +1344,7 @@ function AppInner() {
 
                           <div className="flex flex-col items-end shrink-0 pl-2">
                             <span className={`text-sm font-medium tracking-tight tabular-nums whitespace-nowrap transition-all ${isStealth ? 'blur-sm select-none' : ''} ${
-                              t.isInternalTransfer
+                              tx.isInternalTransfer
                                 ? 'text-blue-400'
                                 : isExpense 
                                   ? 'text-white' 
@@ -1352,11 +1352,11 @@ function AppInner() {
                                     ? 'text-sky-400'
                                     : 'text-blue-400'
                             }`}>
-                              {t.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+')}{currSymbol}{t.amount.toLocaleString()}
+                              {tx.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+')}{currSymbol}{tx.amount.toLocaleString()}
                             </span>
 
                             {isMultiCurrencyMode && (() => {
-                              const txCurr = (t.currency || currentCurrency).toUpperCase();
+                              const txCurr = (tx.currency || currentCurrency).toUpperCase();
                               const baseCurr = currentCurrency.toUpperCase();
                               const secondaryCode = txCurr === baseCurr
                                 ? (activeCurrencies.find(c => c.toUpperCase() !== baseCurr) || 'KRW')
@@ -1364,13 +1364,13 @@ function AppInner() {
 
                               if (secondaryCode === txCurr) return null;
 
-                              const convertedSecondary = convertCurrency(t.amount, txCurr, secondaryCode, fxRates);
+                              const convertedSecondary = convertCurrency(tx.amount, txCurr, secondaryCode, fxRates);
                               const secSym = getCurrencySymbol(secondaryCode);
                               const isIntSec = secondaryCode === 'KRW' || secondaryCode === 'JPY' || secondaryCode === 'IDR' || secondaryCode === 'VND';
                               const formattedSec = isIntSec
                                 ? Math.round(convertedSecondary).toLocaleString()
                                 : convertedSecondary.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-                              const sign = t.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+');
+                              const sign = tx.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+');
 
                               return (
                                 <span className={`text-[11px] font-normal mt-0.5 tabular-nums whitespace-nowrap text-neutral-300 ${isStealth ? 'blur-xs select-none' : ''}`}>
@@ -1386,7 +1386,7 @@ function AppInner() {
                             <span className="flex items-center gap-1.5">
                               <ArrowLeftRight size={13} /> {t('dutch_pay_completed')}
                             </span>
-                            <span className="tabular-nums">{t('dutch_pay_received', { symbol: currSymbol, amount: t.amount.toLocaleString() })}</span>
+                            <span className="tabular-nums">{t('dutch_pay_received', { symbol: currSymbol, amount: tx.amount.toLocaleString() })}</span>
                           </div>
                         )}
                       </div>
