@@ -49,6 +49,7 @@ export interface OmnibarDockProps {
   mode?: LaunchScreenMode;
   onRunQuery?: (queryText: string) => void;
   placeholder?: string;
+  onFocusChange?: (isFocused: boolean) => void;
 }
 
 export const OmnibarDock: React.FC<OmnibarDockProps> = ({
@@ -70,6 +71,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
   mode = 'ledger',
   onRunQuery,
   placeholder,
+  onFocusChange,
 }) => {
   const { t } = useI18n();
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -259,8 +261,14 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
             id="instant-ingest-input"
             type="text"
             value={input}
-            onFocus={() => setIsInputFocused(true)}
-            onBlur={() => setIsInputFocused(false)}
+            onFocus={() => {
+              setIsInputFocused(true);
+              onFocusChange?.(true);
+            }}
+            onBlur={() => {
+              setIsInputFocused(false);
+              onFocusChange?.(false);
+            }}
             onChange={(e) => setInput(e.target.value)}
             placeholder={inputPlaceholder}
             className="text-xs sm:text-sm text-white placeholder:text-neutral-400 font-normal bg-transparent focus:outline-none w-full min-w-0"

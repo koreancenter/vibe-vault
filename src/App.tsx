@@ -227,6 +227,8 @@ function AppInner() {
   // 5. Omnibar, Speech Recognition & UI Interaction States
   // ---------------------------------------------------------------------------
   const [input, setInput] = useState('');
+  const [isOmnibarFocused, setIsOmnibarFocused] = useState(false);
+  const isTypingInOmnibar = input.trim().length > 0 || isOmnibarFocused;
   const [isProcessing, setIsProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1399,73 +1401,85 @@ function AppInner() {
         {/* 3. FIXED BOTTOM DOCK (AI Omnibar & Navigation) */}
       <footer className="flex-none backdrop-blur-2xl py-2 z-20 transition-colors border-t bg-[#08090D]/80 border-white/[0.08]">
         <div className="w-full px-4 transition-all duration-300">
-          <OmnibarDock
-            input={input}
-            setInput={setInput}
-            isProcessing={isProcessing || isQuerying}
-            isOnline={isOnline}
-            currentCurrency={currentCurrency}
-            isMultiCurrencyMode={isMultiCurrencyMode}
-            realtimePreview={null}
-            engineStatus={engineStatus}
-            onSubmit={handleProcessInput}
-            onOpenReceiptScanner={handleOpenReceiptModal}
-            onCycleCurrency={handleQuickCycleCurrency}
-            isListening={isListening}
-            onToggleListen={toggleListen}
-            error={error}
-            onClearError={() => setError(null)}
-            mode={mainMode}
-            onRunQuery={handleRunFinancialQuery}
-          />
-
-          {/* Persistent Bottom Tab Navigation Switcher */}
-          <div className="pt-1.5 flex items-center justify-around mt-1 border-t border-white/[0.04]">
-            <button
-              id="bottom-nav-vault-btn"
-              type="button"
-              onClick={() => setMainMode('vault')}
-              aria-label={t('vault')}
-              className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
-                mainMode === 'vault'
-                  ? 'text-blue-400 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <ShieldCheck size={18} className={mainMode === 'vault' ? 'stroke-[2.5]' : ''} />
-              <span className="text-xs">{t('vault')}</span>
-            </button>
-
-            <button
-              id="bottom-nav-insights-btn"
-              type="button"
-              onClick={() => setMainMode('insights')}
-              aria-label={t('insights')}
-              className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
-                mainMode === 'insights'
-                  ? 'text-indigo-400 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Sparkles size={18} className={mainMode === 'insights' ? 'stroke-[2.5]' : ''} />
-              <span className="text-xs">{t('insights')}</span>
-            </button>
-
-            <button
-              id="bottom-nav-ledger-btn"
-              type="button"
-              onClick={() => setMainMode('ledger')}
-              aria-label={t('ledger')}
-              className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
-                mainMode === 'ledger'
-                  ? 'text-sky-400 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Wallet size={18} className={mainMode === 'ledger' ? 'stroke-[2.5]' : ''} />
-              <span className="text-xs">{t('ledger')}</span>
-            </button>
+          <div
+            onFocusCapture={() => setIsOmnibarFocused(true)}
+            onBlurCapture={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setIsOmnibarFocused(false);
+              }
+            }}
+          >
+            <OmnibarDock
+              input={input}
+              setInput={setInput}
+              isProcessing={isProcessing || isQuerying}
+              isOnline={isOnline}
+              currentCurrency={currentCurrency}
+              isMultiCurrencyMode={isMultiCurrencyMode}
+              realtimePreview={null}
+              engineStatus={engineStatus}
+              onSubmit={handleProcessInput}
+              onOpenReceiptScanner={handleOpenReceiptModal}
+              onCycleCurrency={handleQuickCycleCurrency}
+              isListening={isListening}
+              onToggleListen={toggleListen}
+              error={error}
+              onClearError={() => setError(null)}
+              mode={mainMode}
+              onRunQuery={handleRunFinancialQuery}
+              onFocusChange={setIsOmnibarFocused}
+            />
           </div>
+
+          {/* Persistent Bottom Tab Navigation Switcher (Hidden when typing in Omnibar to maximize mobile viewport space) */}
+          {!isTypingInOmnibar && (
+            <div className="pt-1.5 flex items-center justify-around mt-1 border-t border-white/[0.04] animate-in fade-in duration-150">
+              <button
+                id="bottom-nav-vault-btn"
+                type="button"
+                onClick={() => setMainMode('vault')}
+                aria-label={t('vault')}
+                className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
+                  mainMode === 'vault'
+                    ? 'text-blue-400 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <ShieldCheck size={18} className={mainMode === 'vault' ? 'stroke-[2.5]' : ''} />
+                <span className="text-xs">{t('vault')}</span>
+              </button>
+
+              <button
+                id="bottom-nav-insights-btn"
+                type="button"
+                onClick={() => setMainMode('insights')}
+                aria-label={t('insights')}
+                className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
+                  mainMode === 'insights'
+                    ? 'text-indigo-400 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Sparkles size={18} className={mainMode === 'insights' ? 'stroke-[2.5]' : ''} />
+                <span className="text-xs">{t('insights')}</span>
+              </button>
+
+              <button
+                id="bottom-nav-ledger-btn"
+                type="button"
+                onClick={() => setMainMode('ledger')}
+                aria-label={t('ledger')}
+                className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
+                  mainMode === 'ledger'
+                    ? 'text-sky-400 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Wallet size={18} className={mainMode === 'ledger' ? 'stroke-[2.5]' : ''} />
+                <span className="text-xs">{t('ledger')}</span>
+              </button>
+            </div>
+          )}
         </div>
       </footer>
 

@@ -261,6 +261,7 @@ function parseAssetsWithLocalRules(rawText: string) {
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT ?? 3000);
+  const HOST = process.env.HOST || '127.0.0.1';
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
     throw new Error('PORT must be an integer between 1 and 65535.');
   }
@@ -1359,8 +1360,8 @@ Extract the structured parameters:
 
   app.use(requestErrorHandler);
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
   });
 }
 
