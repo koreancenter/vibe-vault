@@ -95,7 +95,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
     <div className="space-y-5 animate-in fade-in duration-150">
       {/* Compact Dismissible Single-Line PWA Banner */}
       {!isPwaDismissed && !isInstalled && (
-        <div className="px-3 py-2 rounded-xl border border-white/[0.14] bg-white/[0.06] flex items-center justify-between gap-2.5 text-xs">
+        <div className="px-3 py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] flex items-center justify-between gap-2.5 text-xs">
           <div className="flex items-center gap-2 min-w-0">
             <Smartphone size={13} className="shrink-0 text-neutral-100" />
             <span className="text-neutral-100 truncate text-xs font-normal">
@@ -139,7 +139,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
       />
 
       {/* Group 0: 언어 설정 (Manual Language Selection Segment) */}
-      <div className="space-y-3 pb-4 border-b border-white/[0.1]">
+      <div className="space-y-3 pb-4 border-b border-white/[0.06]">
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold text-white block">
@@ -152,7 +152,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
         </div>
 
         {/* 4-column responsive button grid matching Quiet Luxury design system */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl bg-white/[0.05] border border-white/[0.14]">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl bg-white/[0.02] border border-white/[0.08]">
           {([
             { code: 'ko' as LanguageCode, label: t('lang_ko') },
             { code: 'en' as LanguageCode, label: t('lang_en') },
@@ -167,7 +167,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               className={`px-3 py-2 rounded-xl text-xs transition-all active:scale-95 text-center cursor-pointer ${
                 language === opt.code
                   ? 'bg-white text-black font-semibold shadow-xs'
-                  : 'text-neutral-100 hover:text-white font-medium hover:bg-white/[0.08]'
+                  : 'text-neutral-200 hover:text-white font-medium hover:bg-white/[0.05]'
               }`}
             >
               {opt.label}
@@ -177,7 +177,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
 
         {/* Optional Base Currency Synchronization Prompt */}
         {pendingCurrencyPrompt && (
-          <div className="p-3 rounded-xl bg-white/[0.07] border border-white/[0.14] flex items-center justify-between gap-2.5 animate-in fade-in duration-200">
+          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between gap-2.5 animate-in fade-in duration-200">
             <div className="min-w-0 flex-1">
               <p className="text-xs text-white font-normal leading-snug">
                 {t('currency_switch_prompt', { currency: pendingCurrencyPrompt })}
@@ -221,12 +221,12 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
           {t('screen_settings')}
         </span>
         
-        <div className="space-y-3 pb-4 border-b border-white/[0.1]">
+        <div className="space-y-3 pb-4 border-b border-white/[0.06]">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-semibold text-white">
               {t('default_launch_screen')}
             </span>
-            <div className="flex p-0.5 rounded-xl border bg-white/[0.05] border-white/[0.14]">
+            <div className="flex p-0.5 rounded-xl border bg-white/[0.02] border-white/[0.08]">
               <button
                 type="button"
                 id="launch-screen-vault-btn"
@@ -241,8 +241,8 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                   defaultLaunchScreen === 'vault'
-                    ? 'bg-white/[0.18] text-white shadow-xs font-bold'
-                    : 'text-neutral-100 hover:text-white'
+                    ? 'bg-white/[0.08] text-white shadow-xs font-bold'
+                    : 'text-neutral-200 hover:text-white'
                 }`}
               >
                 {t('vault')}
@@ -261,8 +261,8 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                   defaultLaunchScreen === 'insights'
-                    ? 'bg-white/[0.18] text-white shadow-xs font-bold'
-                    : 'text-neutral-100 hover:text-white'
+                    ? 'bg-white/[0.08] text-white shadow-xs font-bold'
+                    : 'text-neutral-200 hover:text-white'
                 }`}
               >
                 {t('insights')}
@@ -281,8 +281,8 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                   defaultLaunchScreen === 'ledger'
-                    ? 'bg-white/[0.18] text-white shadow-xs font-bold'
-                    : 'text-neutral-100 hover:text-white'
+                    ? 'bg-white/[0.08] text-white shadow-xs font-bold'
+                    : 'text-neutral-200 hover:text-white'
                 }`}
               >
                 {t('ledger')}
@@ -298,7 +298,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
           {t('display_and_currency')}
         </span>
         
-        <div className="space-y-3 pb-4 border-b border-white/[0.1]">
+        <div className="space-y-3 pb-4 border-b border-white/[0.06]">
           {/* 기본 통화 & 내 활성 통화 매니저 */}
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
@@ -334,7 +334,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
             </div>
 
             {/* Active Currencies */}
-            <div className="pt-3 border-t border-white/[0.08] space-y-3">
+            <div className="pt-3 border-t border-white/[0.06] space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-semibold text-white">
@@ -346,8 +346,8 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   activeCurrenciesList.length > 1
-                    ? 'bg-white/[0.14] text-white border border-white/25'
-                    : 'bg-white/[0.08] text-neutral-100 border border-white/[0.14]'
+                    ? 'bg-white/[0.08] text-white border border-white/15'
+                    : 'bg-white/[0.04] text-neutral-100 border border-white/[0.08]'
                 }`}>
                   {activeCurrenciesList.length > 1 ? t('multi_currency_mode') : t('single_currency_mode')}
                 </span>
@@ -364,8 +364,8 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                       key={code}
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition-all ${
                         isBase
-                          ? 'bg-white/[0.16] border-white/35 text-white font-medium'
-                          : 'bg-white/[0.07] border-white/[0.14] text-neutral-100 hover:border-white/25'
+                          ? 'bg-white/[0.06] border-white/15 text-white font-medium'
+                          : 'bg-white/[0.03] border-white/[0.08] text-neutral-100 hover:border-white/15'
                       }`}
                     >
                       <button
@@ -390,7 +390,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                           </span>
                         )}
                         {isBase && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/25 text-white font-semibold ml-0.5">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/[0.12] text-white font-semibold ml-0.5">
                             {t('default')}
                           </span>
                         )}
@@ -413,7 +413,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               </div>
 
               {/* Quick Add Presets + Custom Inline Input */}
-              <div className="pt-2 border-t border-white/[0.08] space-y-2">
+              <div className="pt-2 border-t border-white/[0.06] space-y-2">
                 <div className="flex items-center gap-1.5">
                   <input
                     type="text"
@@ -430,13 +430,13 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     }}
                     maxLength={3}
                     placeholder="USD, EUR, JPY..."
-                    className="flex-1 bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-1.5 text-xs font-mono text-white placeholder:text-neutral-300 focus:outline-none focus:border-white/40 transition-all"
+                    className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-mono text-white placeholder:text-neutral-300 focus:outline-none focus:border-white/25 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => handleAddActiveCurrency(newCurrencyInput)}
                     disabled={!newCurrencyInput.trim()}
-                    className="h-8 px-3 rounded-xl bg-white text-black hover:bg-neutral-100 active:scale-95 text-xs font-semibold transition-all disabled:bg-white/[0.14] disabled:text-white/75 disabled:border disabled:border-white/[0.18] disabled:pointer-events-none flex items-center gap-1 shrink-0 shadow-xs cursor-pointer"
+                    className="h-8 px-3 rounded-xl bg-white text-black hover:bg-neutral-100 active:scale-95 text-xs font-semibold transition-all disabled:bg-white/35 disabled:text-black disabled:pointer-events-none flex items-center gap-1 shrink-0 shadow-xs cursor-pointer"
                   >
                     <Plus size={12} strokeWidth={2.5} />
                     <span>{t('add')}</span>
@@ -451,7 +451,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                       key={preset}
                       type="button"
                       onClick={() => handleAddActiveCurrency(preset)}
-                      className="h-6 px-2.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] text-xs font-mono text-white border border-white/[0.16] hover:border-white/30 active:scale-95 transition-all flex items-center gap-0.5 cursor-pointer"
+                      className="h-6 px-2.5 rounded-full bg-white/[0.03] hover:bg-white/[0.08] text-xs font-mono text-white border border-white/[0.08] hover:border-white/20 active:scale-95 transition-all flex items-center gap-0.5 cursor-pointer"
                     >
                       <span>+{preset}</span>
                     </button>
@@ -479,7 +479,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               }
               if (onDataChanged) onDataChanged();
             }}
-            className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.08] cursor-pointer select-none group"
+            className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.06] cursor-pointer select-none group"
           >
             <div>
               <span className="text-xs font-semibold group-hover:text-white transition-colors text-white block">
@@ -494,7 +494,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               type="button"
               aria-label={t('stealth_mode')}
               className={`w-9 h-5 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 pointer-events-none ${
-                stealthMode ? 'bg-white' : 'bg-white/[0.22]'
+                stealthMode ? 'bg-white' : 'bg-white/[0.14]'
               }`}
             >
               <span
@@ -542,7 +542,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
       </div>
 
       {/* Group 4: 장부 관리 (Sleek Collapsible / Inline Space Creator & List) */}
-      <div className="space-y-2.5 pt-3 border-t border-white/[0.1]">
+      <div className="space-y-2.5 pt-3 border-t border-white/[0.06]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-white">
@@ -556,7 +556,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
           <button
             type="button"
             onClick={() => setIsAddingSpace(!isAddingSpace)}
-            className="text-xs px-2.5 py-1 rounded-full font-medium border border-white/[0.14] bg-white/[0.08] hover:bg-white/[0.14] text-white transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
+            className="text-xs px-2.5 py-1 rounded-full font-medium border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-white transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
           >
             <Plus size={11} />
             <span>{t('new_space')}</span>
@@ -565,7 +565,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
 
         {/* Collapsible / Inline Space Creation Card */}
         {isAddingSpace && (
-          <div className="p-2.5 rounded-xl border border-white/[0.14] bg-white/[0.06] space-y-2 animate-in fade-in duration-150">
+          <div className="p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] space-y-2 animate-in fade-in duration-150">
             <div className="flex items-center gap-1.5">
               <input
                 type="text"
@@ -580,7 +580,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 }}
                 autoFocus
                 placeholder={t('space_name_placeholder')}
-                className="flex-1 bg-white/[0.07] border border-white/[0.14] rounded-lg px-2.5 py-1 text-xs text-white placeholder:text-neutral-300 focus:outline-none focus:border-white/40 transition-all"
+                className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-lg px-2.5 py-1 text-xs text-white placeholder:text-neutral-300 focus:outline-none focus:border-white/25 transition-all"
               />
               <button
                 type="button"
@@ -589,7 +589,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   setIsAddingSpace(false);
                 }}
                 disabled={!newSpaceNameInput.trim()}
-                className="h-7 px-2.5 rounded-lg bg-white text-black hover:bg-neutral-100 active:scale-95 text-xs font-semibold transition-all disabled:bg-white/[0.14] disabled:text-white/75 disabled:border disabled:border-white/[0.18] shrink-0 cursor-pointer"
+                className="h-7 px-2.5 rounded-lg bg-white text-black hover:bg-neutral-100 active:scale-95 text-xs font-semibold transition-all disabled:bg-white/35 disabled:text-black shrink-0 cursor-pointer"
               >
                 {t('create')}
               </button>
@@ -619,19 +619,19 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 key={sp.id}
                 className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-colors ${
                   isCurrent
-                    ? 'bg-white/[0.1] border-white/25 text-white'
-                    : 'bg-white/[0.05] border-white/[0.12] text-neutral-100 hover:border-white/20'
+                    ? 'bg-white/[0.05] border-white/15 text-white'
+                    : 'bg-white/[0.02] border-white/[0.06] text-neutral-100 hover:border-white/[0.12]'
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <span className="font-medium text-xs text-white truncate">{sp.name}</span>
                   {isDefault && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.1] text-neutral-100 border border-white/[0.14] font-medium">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.05] text-neutral-100 border border-white/[0.08] font-medium">
                       {t('default')}
                     </span>
                   )}
                   {isCurrent && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/35 font-medium">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">
                       {t('active')}
                     </span>
                   )}
@@ -642,7 +642,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     <button
                       type="button"
                       onClick={() => handleSelectSpaceItem(sp)}
-                      className="px-2.5 py-0.5 rounded-full text-xs font-medium border border-white/[0.14] bg-white/[0.08] hover:bg-white/[0.14] text-white transition-all active:scale-95 cursor-pointer"
+                      className="px-2.5 py-0.5 rounded-full text-xs font-medium border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-white transition-all active:scale-95 cursor-pointer"
                     >
                       {t('switch')}
                     </button>
@@ -651,7 +651,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     <button
                       type="button"
                       onClick={() => handleDeleteSpaceItem(sp.id)}
-                      className="p-1 rounded-full text-neutral-200 hover:text-white hover:bg-white/[0.12] transition-all cursor-pointer"
+                      className="p-1 rounded-full text-neutral-200 hover:text-white hover:bg-white/[0.08] transition-all cursor-pointer"
                       title={t('delete_space')}
                       aria-label={`${sp.name} ${t('delete_space')}`}
                     >

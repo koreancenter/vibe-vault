@@ -126,7 +126,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
   return (
     <div className="space-y-4 animate-in fade-in duration-150">
       {/* 1. Master Engine Segmented Toggle */}
-      <div className="p-1 rounded-xl bg-white/[0.05] border border-white/[0.14] grid grid-cols-2 gap-1 mb-4">
+      <div className="p-1 rounded-xl bg-white/[0.02] border border-white/[0.08] grid grid-cols-2 gap-1 mb-4">
         <button
           type="button"
           onClick={() => {
@@ -135,8 +135,8 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
           }}
           className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center active:scale-[0.99] cursor-pointer ${
             engineType === 'byok'
-              ? 'bg-white/[0.16] text-white shadow-xs font-semibold border border-white/[0.18]'
-              : 'text-neutral-100 hover:text-white border border-transparent'
+              ? 'bg-white/[0.08] text-white shadow-xs font-semibold'
+              : 'text-neutral-200 hover:text-white'
           }`}
         >
           <span className="truncate">클라우드 AI</span>
@@ -147,8 +147,8 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
           onClick={() => setEngineType('local')}
           className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center active:scale-[0.99] cursor-pointer ${
             engineType === 'local'
-              ? 'bg-white/[0.16] text-white shadow-xs font-semibold border border-white/[0.18]'
-              : 'text-neutral-100 hover:text-white border border-transparent'
+              ? 'bg-white/[0.08] text-white shadow-xs font-semibold'
+              : 'text-neutral-200 hover:text-white'
           }`}
         >
           <span className="truncate">온디바이스 로컬 AI</span>
@@ -157,7 +157,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
 
       {/* 2. CLOUD AI (GEMINI) CONFIGURATION */}
       {engineType === 'byok' && (
-        <div className="space-y-4 pb-5 mb-5 border-b border-white/[0.1] animate-in fade-in duration-150">
+        <div className="space-y-4 pb-5 mb-5 border-b border-white/[0.06] animate-in fade-in duration-150">
           {/* Model Tier Selector */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -208,7 +208,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                   placeholder="AIzaSy... (Gemini API 키)"
                   autoComplete="off"
                   spellCheck={false}
-                  className="w-full rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border bg-white/[0.07] border-white/[0.14] text-white placeholder:text-neutral-300 focus:border-white/40"
+                  className="w-full rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono transition-colors border bg-white/[0.03] border-white/[0.08] text-white placeholder:text-neutral-300 focus:border-white/25"
                 />
                 <button
                   type="button"
@@ -225,7 +225,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                   type="button"
                   onClick={handleClearKey}
                   title="API 키 삭제 및 초기화"
-                  className="p-2 rounded-xl text-xs font-medium border shrink-0 transition-all active:scale-95 bg-white/[0.08] hover:bg-white/[0.14] text-neutral-100 hover:text-white border-white/[0.14] cursor-pointer"
+                  className="p-2 rounded-xl text-xs font-medium border shrink-0 transition-all active:scale-95 bg-white/[0.03] hover:bg-white/[0.07] text-neutral-100 hover:text-white border-white/[0.08] cursor-pointer"
                 >
                   <Trash2 size={13} />
                 </button>
@@ -235,7 +235,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                 type="button"
                 onClick={handleTestKey}
                 disabled={isTestingKey || !apiKey.trim()}
-                className="px-3 py-2 rounded-xl text-xs font-medium border shrink-0 transition-all active:scale-95 bg-white/[0.08] hover:bg-white/[0.14] text-white border-white/[0.14] disabled:bg-white/[0.06] disabled:text-white/60 disabled:border-white/[0.12] cursor-pointer flex items-center gap-1.5"
+                className="px-3 py-2 rounded-xl text-xs font-medium border shrink-0 transition-all active:scale-95 bg-white/[0.04] hover:bg-white/[0.08] text-white border-white/[0.08] disabled:bg-white/[0.02] disabled:text-neutral-300 disabled:border-white/[0.06] cursor-pointer flex items-center gap-1.5"
               >
                 {isTestingKey ? <Loader2 size={13} className="animate-spin" /> : '키 검증'}
               </button>
@@ -246,8 +246,8 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
           {testResult.status && (
             <div className={`text-xs px-3 py-2 rounded-xl flex items-center gap-2 border ${
               testResult.status === 'valid' 
-                ? 'bg-emerald-500/15 text-emerald-200 border-emerald-400/35' 
-                : 'bg-rose-500/15 text-rose-200 border-rose-400/35'
+                ? 'bg-emerald-500/10 text-emerald-200 border-emerald-500/20' 
+                : 'bg-rose-500/10 text-rose-200 border-rose-500/20'
             }`}>
               {testResult.status === 'valid' ? (
                 <CheckCircle2 size={14} className="shrink-0 text-emerald-300" />
@@ -267,20 +267,20 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
 
       {/* 3. ON-DEVICE / LOCAL AI CONFIGURATION */}
       {engineType === 'local' && (
-        <div className="space-y-4 pb-5 mb-5 border-b border-white/[0.1] animate-in fade-in duration-150">
+        <div className="space-y-4 pb-5 mb-5 border-b border-white/[0.06] animate-in fade-in duration-150">
           {/* Sub-Mode Segmented Selector */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-white">
               로컬 실행 엔진 방식
             </label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-white/[0.05] border border-white/[0.14]">
+            <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-white/[0.02] border border-white/[0.08]">
               <button
                 type="button"
                 onClick={() => setLocalSubMode('ollama')}
                 className={`py-2 px-2.5 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   localSubMode === 'ollama'
-                    ? 'bg-white/[0.16] text-white font-semibold border border-white/[0.2] shadow-xs'
-                    : 'text-neutral-100 hover:text-white font-medium border border-transparent'
+                    ? 'bg-white/[0.08] text-white font-semibold border border-white/10 shadow-xs'
+                    : 'text-neutral-200 hover:text-white font-medium border border-transparent'
                 }`}
               >
                 <Server size={13} className={localSubMode === 'ollama' ? 'text-sky-300' : 'text-neutral-200'} />
@@ -292,8 +292,8 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                 onClick={() => setLocalSubMode('webllm')}
                 className={`py-2 px-2.5 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   localSubMode === 'webllm'
-                    ? 'bg-white/[0.16] text-white font-semibold border border-white/[0.2] shadow-xs'
-                    : 'text-neutral-100 hover:text-white font-medium border border-transparent'
+                    ? 'bg-white/[0.08] text-white font-semibold border border-white/10 shadow-xs'
+                    : 'text-neutral-200 hover:text-white font-medium border border-transparent'
                 }`}
               >
                 <Cpu size={13} className={localSubMode === 'webllm' ? 'text-indigo-300' : 'text-neutral-200'} />
@@ -323,13 +323,13 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                     placeholder="http://localhost:11434"
                     autoComplete="off"
                     spellCheck={false}
-                    className="flex-1 rounded-xl px-3 py-2 text-xs font-mono outline-none transition-colors border bg-white/[0.07] border-white/[0.14] text-white placeholder:text-neutral-300 focus:border-white/40"
+                    className="flex-1 rounded-xl px-3 py-2 text-xs font-mono outline-none transition-colors border bg-white/[0.03] border-white/[0.08] text-white placeholder:text-neutral-300 focus:border-white/25"
                   />
                   <button
                     type="button"
                     onClick={handleTestOllamaConnection}
                     disabled={isTestingOllama || !ollamaEndpoint.trim()}
-                    className="px-3 py-2 rounded-xl text-xs font-medium border shrink-0 transition-all active:scale-95 bg-white/[0.08] hover:bg-white/[0.14] text-white border-white/[0.14] disabled:bg-white/[0.06] disabled:text-white/60 disabled:border-white/[0.12] cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-2 rounded-xl text-xs font-medium border shrink-0 transition-all active:scale-95 bg-white/[0.04] hover:bg-white/[0.08] text-white border-white/[0.08] disabled:bg-white/[0.02] disabled:text-neutral-300 disabled:border-white/[0.06] cursor-pointer flex items-center gap-1.5"
                   >
                     {isTestingOllama ? (
                       <Loader2 size={13} className="animate-spin text-sky-300" />
@@ -375,7 +375,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                       placeholder="예: gemma2:9b, llama3.2:3b, qwen2.5:7b"
                       autoComplete="off"
                       spellCheck={false}
-                      className="w-full rounded-xl px-3 py-2 text-xs font-mono outline-none transition-colors border bg-white/[0.07] border-white/[0.14] text-white placeholder:text-neutral-300 focus:border-white/40"
+                      className="w-full rounded-xl px-3 py-2 text-xs font-mono outline-none transition-colors border bg-white/[0.03] border-white/[0.08] text-white placeholder:text-neutral-300 focus:border-white/25"
                     />
                     {ollamaSelectOptions.length === 0 && (
                       <p className="text-xs text-neutral-200 font-normal">
@@ -390,8 +390,8 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
               {ollamaStatus.status && (
                 <div className={`text-xs px-3 py-2.5 rounded-xl border space-y-2 ${
                   ollamaStatus.status === 'connected'
-                    ? 'bg-emerald-500/[0.1] text-emerald-200 border-emerald-400/35'
-                    : 'bg-amber-500/[0.08] text-neutral-100 border-amber-400/35'
+                    ? 'bg-emerald-500/[0.06] text-emerald-200 border-emerald-500/20'
+                    : 'bg-amber-500/[0.04] text-neutral-100 border-amber-500/25'
                 }`}>
                   <div className="flex items-center gap-2 font-medium">
                     {ollamaStatus.status === 'connected' ? (
@@ -403,18 +403,18 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                   </div>
 
                   {ollamaStatus.status === 'error' && (
-                    <div className="pt-2 border-t border-amber-400/25 text-xs leading-relaxed space-y-2 font-normal">
+                    <div className="pt-2 border-t border-amber-500/20 text-xs leading-relaxed space-y-2 font-normal">
                       <div className="space-y-1">
                         <div className="text-neutral-100">
                           브라우저 보안(CORS) 허용을 위해 터미널에서 다음 환경변수를 지정하여 Ollama를 실행해 주세요:
                         </div>
-                        <div className="px-2 py-1 rounded bg-white/[0.08] border border-white/[0.16] text-white font-mono text-xs select-all">
+                        <div className="px-2 py-1 rounded bg-white/[0.03] border border-white/[0.08] text-white font-mono text-xs select-all">
                           OLLAMA_ORIGINS="*" ollama serve
                         </div>
                       </div>
-                      <p className="text-neutral-100 leading-relaxed pt-1.5 border-t border-white/[0.12]">
+                      <p className="text-neutral-100 leading-relaxed pt-1.5 border-t border-white/[0.06]">
                         HTTPS 환경에서는 브라우저가 HTTP localhost 요청(Mixed Content)을 차단할 수 있습니다. 로컬 데스크톱 앱을 사용하거나 브라우저 플래그(
-                        <code className="px-1 py-0.5 rounded bg-white/[0.1] border border-white/[0.18] text-white font-mono text-xs select-all">
+                        <code className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-white font-mono text-xs select-all">
                           chrome://flags/#allow-insecure-localhost
                         </code>
                         )에서 안전하지 않은 localhost 허용 설정이 필요할 수 있습니다.
@@ -430,11 +430,11 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                 typeof window !== 'undefined' &&
                 window.location.protocol === 'https:' &&
                 /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(ollamaEndpoint.trim()) && (
-                  <div className="px-3 py-2.5 rounded-xl border border-amber-400/35 bg-amber-500/[0.08] flex items-start gap-2">
+                  <div className="px-3 py-2.5 rounded-xl border border-amber-500/25 bg-amber-500/[0.04] flex items-start gap-2">
                     <AlertTriangle size={13} className="shrink-0 text-amber-300 mt-0.5" />
                     <p className="text-xs text-neutral-100 font-normal leading-relaxed">
                       HTTPS 환경에서는 브라우저가 HTTP localhost 요청(Mixed Content)을 차단할 수 있습니다. 로컬 데스크톱 앱을 사용하거나 브라우저 플래그(
-                      <code className="px-1 py-0.5 rounded bg-white/[0.1] border border-white/[0.18] text-white font-mono text-xs select-all">
+                      <code className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-white font-mono text-xs select-all">
                         chrome://flags/#allow-insecure-localhost
                       </code>
                       )에서 안전하지 않은 localhost 허용 설정이 필요할 수 있습니다.
@@ -491,7 +491,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                     <span>{downloadProgress.text}</span>
                     <span className="font-mono font-medium tabular-nums">{downloadProgress.progress}%</span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-white/[0.12] overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                     <div 
                       className="h-full bg-white transition-all duration-200"
                       style={{ width: `${downloadProgress.progress}%` }}
@@ -501,7 +501,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
               )}
 
               {downloadError && (
-                <div className="text-xs text-rose-200 font-normal flex items-center gap-1.5 p-2.5 rounded-xl bg-rose-500/15 border border-rose-400/35">
+                <div className="text-xs text-rose-200 font-normal flex items-center gap-1.5 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20">
                   <AlertTriangle size={13} className="text-rose-300 shrink-0" />
                   <span>{downloadError}</span>
                 </div>
@@ -514,7 +514,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                     <button
                       type="button"
                       onClick={handleCancelWebLLMDownload}
-                      className="flex-1 py-2.5 px-3 rounded-xl text-xs font-medium border border-white/[0.14] bg-white/[0.08] hover:bg-white/[0.14] text-neutral-100 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      className="flex-1 py-2.5 px-3 rounded-xl text-xs font-medium border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-100 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <X size={13} />
                       <span>다운로드 취소</span>
@@ -524,14 +524,14 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                       type="button"
                       onClick={handleStartWebLLMDownload}
                       disabled={webGpuStatus?.supported === false}
-                      className="w-full bg-white/[0.08] hover:bg-white/[0.14] text-white border border-white/[0.14] rounded-xl py-2.5 flex items-center justify-center gap-1.5 transition-all active:scale-98 text-xs font-medium disabled:bg-white/[0.06] disabled:text-white/60 disabled:border-white/[0.12] cursor-pointer"
+                      className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-white border border-white/[0.08] rounded-xl py-2.5 flex items-center justify-center gap-1.5 transition-all active:scale-98 text-xs font-medium disabled:bg-white/[0.02] disabled:text-neutral-300 disabled:border-white/[0.06] cursor-pointer"
                     >
                       <Download size={13} />
                       <span>모델 다운로드 ({localModel === 'llama3-8b' ? '4.5GB' : '1.5GB'})</span>
                     </button>
                   )
                 ) : (
-                  <div className="flex items-center justify-between gap-2 w-full p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-400/35">
+                  <div className="flex items-center justify-between gap-2 w-full p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                     <div className="text-xs text-emerald-200 font-medium flex items-center gap-1.5">
                       <CheckCircle2 size={14} className="text-emerald-300 shrink-0" />
                       <span>오프라인 추론 준비 완료 (캐시 보관 중)</span>
@@ -540,7 +540,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                       type="button"
                       onClick={handlePurgeWebLLMCache}
                       title="로컬 저장소 모델 가중치 삭제"
-                      className="py-1 px-2 rounded-lg text-xs border border-white/[0.16] bg-white/[0.08] text-neutral-100 hover:text-white hover:bg-white/[0.14] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                      className="py-1 px-2 rounded-lg text-xs border border-white/[0.08] bg-white/[0.04] text-neutral-100 hover:text-white hover:bg-white/[0.08] font-medium flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <Trash2 size={12} />
                       <span>캐시 삭제</span>

@@ -105,7 +105,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
   return (
     <div className="space-y-3.5 animate-in fade-in duration-150">
       {/* Group 1: 금고 보안 & 자동 잠금 */}
-      <div className="space-y-2.5 border-b border-white/[0.1] pb-3.5">
+      <div className="space-y-2.5 border-b border-white/[0.06] pb-3.5">
         <div className="flex items-center justify-between">
           <div className="text-xs font-semibold text-white">
             <span>금고 보안 & 자동 잠금</span>
@@ -117,7 +117,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
                 onClose();
                 lockVault();
               }}
-              className="text-xs px-2.5 py-1 rounded-full font-medium bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.16] text-white transition-colors cursor-pointer"
+              className="text-xs px-2.5 py-1 rounded-full font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white transition-colors cursor-pointer"
             >
               지금 잠그기
             </button>
@@ -130,11 +130,11 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-xs text-neutral-100 font-medium">보안 PIN</span>
               {isPinSet ? (
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-400/35">
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
                   설정됨
                 </span>
               ) : (
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-white/[0.08] text-neutral-100 border border-white/[0.14]">
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-white/[0.03] text-neutral-100 border border-white/[0.08]">
                   미설정
                 </span>
               )}
@@ -151,7 +151,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
                     setPinError(null);
                     setShowPinModal(true);
                   }}
-                  className="h-10 px-3.5 rounded-xl text-xs font-medium bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.14] text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                  className="h-10 px-3.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer"
                 >
                   PIN 변경
                 </button>
@@ -163,7 +163,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
                     setPinError(null);
                     setShowPinModal(true);
                   }}
-                  className="h-10 px-3.5 rounded-xl text-xs font-medium bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.14] text-neutral-100 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                  className="h-10 px-3.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-neutral-100 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer"
                 >
                   PIN 해제
                 </button>
@@ -178,7 +178,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
                   setPinError(null);
                   setShowPinModal(true);
                 }}
-                className="h-10 px-4 rounded-xl text-xs font-medium bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.14] text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                className="h-10 px-4 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer"
               >
                 PIN 설정
               </button>
@@ -186,7 +186,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
           </div>
 
           {/* 자동 잠금 드롭다운 */}
-          <div className="flex items-center justify-between gap-2 py-1.5 border-t border-white/[0.08]">
+          <div className="flex items-center justify-between gap-2 py-1.5 border-t border-white/[0.06]">
             <span className="text-xs text-neutral-100 font-medium">자동 잠금</span>
             <div className="w-28">
               <CustomDarkSelect
@@ -218,20 +218,20 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
           </div>
 
           {/* 생체인증 잠금 해제 (WebAuthn / Passkey) */}
-          <div className="flex items-center justify-between gap-2 py-1.5 border-t border-white/[0.08]">
+          <div className="flex items-center justify-between gap-2 py-1.5 border-t border-white/[0.06]">
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-neutral-100 font-medium">생체인증 잠금 해제</span>
                 {isBiometricEnabled ? (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-400/35">
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
                     활성화됨
                   </span>
                 ) : !isBiometricSupported ? (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-white/[0.08] text-neutral-100 border border-white/[0.14]">
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-white/[0.03] text-neutral-100 border border-white/[0.08]">
                     기기 미지원
                   </span>
                 ) : (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-white/[0.08] text-neutral-100 border border-white/[0.14]">
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-white/[0.03] text-neutral-100 border border-white/[0.08]">
                     {isPinSet ? '미설정' : 'PIN 필요'}
                   </span>
                 )}
@@ -245,7 +245,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
               <button
                 type="button"
                 onClick={handleDisableBiometric}
-                className="h-10 px-3.5 rounded-xl text-xs font-medium bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.14] text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                className="h-10 px-3.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer"
               >
                 해제
               </button>
@@ -258,7 +258,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
                   setShowBiometricEnrollModal(true);
                 }}
                 disabled={!isPinSet || !isBiometricSupported}
-                className="h-10 px-4 rounded-xl text-xs font-medium bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.14] text-white transition-all active:scale-95 flex items-center justify-center disabled:bg-white/[0.06] disabled:text-white/55 disabled:border-white/[0.12] disabled:pointer-events-none cursor-pointer"
+                className="h-10 px-4 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white transition-all active:scale-95 flex items-center justify-center disabled:bg-white/[0.02] disabled:text-neutral-300 disabled:border-white/[0.06] disabled:pointer-events-none cursor-pointer"
               >
                 등록
               </button>
@@ -268,7 +268,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
       </div>
 
       {/* Group 2: 데이터 백업 및 복원 */}
-      <div className="space-y-2 border-b border-white/[0.1] pb-3.5">
+      <div className="space-y-2 border-b border-white/[0.06] pb-3.5">
         <div className="flex items-center justify-between">
           <div className="text-xs font-semibold text-white">
             <span>데이터 백업 및 복원</span>
@@ -282,7 +282,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
           <button
             type="button"
             onClick={handleOpenExportModal}
-            className="py-2.5 px-3 rounded-xl text-xs font-medium bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.14] text-white flex items-center justify-center transition-all active:scale-98 cursor-pointer"
+            className="py-2.5 px-3 rounded-xl text-xs font-medium bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] text-white flex items-center justify-center transition-all active:scale-98 cursor-pointer"
           >
             <span>백업 내보내기</span>
           </button>
@@ -290,7 +290,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="py-2.5 px-3 rounded-xl text-xs font-medium bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.14] text-white flex items-center justify-center transition-all active:scale-98 cursor-pointer"
+            className="py-2.5 px-3 rounded-xl text-xs font-medium bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] text-white flex items-center justify-center transition-all active:scale-98 cursor-pointer"
           >
             <span>백업 복원/가져오기</span>
           </button>
@@ -316,7 +316,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
             id="load-sample-data-btn"
             onClick={handleLoadSampleData}
             disabled={isClearingData}
-            className="py-2.5 px-3 rounded-xl text-xs font-medium flex items-center justify-center transition-all active:scale-98 disabled:opacity-50 bg-white/[0.08] hover:bg-white/[0.14] text-white border border-white/[0.14] cursor-pointer"
+            className="py-2.5 px-3 rounded-xl text-xs font-medium flex items-center justify-center transition-all active:scale-98 disabled:opacity-50 bg-white/[0.03] hover:bg-white/[0.07] text-white border border-white/[0.08] cursor-pointer"
           >
             <span>샘플 데이터 불러오기</span>
           </button>
@@ -326,7 +326,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
             id="reset-all-data-btn"
             onClick={handleResetAllData}
             disabled={isClearingData}
-            className="bg-white/[0.08] hover:bg-white/[0.14] text-white border border-white/[0.14] rounded-xl py-2.5 px-3 text-xs font-medium flex items-center justify-center transition-all active:scale-98 disabled:opacity-50 cursor-pointer"
+            className="bg-white/[0.03] hover:bg-white/[0.07] text-white border border-white/[0.08] rounded-xl py-2.5 px-3 text-xs font-medium flex items-center justify-center transition-all active:scale-98 disabled:opacity-50 cursor-pointer"
           >
             <span>전체 데이터 초기화</span>
           </button>
@@ -341,7 +341,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
           type="button"
           id="legal-notice-btn"
           onClick={() => setLegalOpen(true)}
-          className="w-full py-2 mt-1 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.14] text-xs font-medium text-neutral-100 hover:text-white transition-all cursor-pointer"
+          className="w-full py-2 mt-1 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.08] text-xs font-medium text-neutral-100 hover:text-white transition-all cursor-pointer"
         >
           <span>{t('legal_notice_link')}</span>
         </button>
@@ -354,7 +354,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
           onClick={() => setShowBiometricEnrollModal(false)}
         >
           <div
-            className="w-full max-w-xs border border-white/[0.14] rounded-2xl p-6 space-y-4 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.12)] animate-in zoom-in-95 duration-150 bg-[#101218]/95 backdrop-blur-2xl text-white antialiased"
+            className="w-full max-w-xs border border-white/[0.08] rounded-2xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0E1015] backdrop-blur-2xl text-white antialiased"
             onClick={(e) => e.stopPropagation()}
           >
             <div>
@@ -375,7 +375,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
                   value={biometricPin}
                   onChange={(e) => setBiometricPin(e.target.value)}
                   placeholder="PIN 번호 입력"
-                  className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.07] border-white/[0.14] text-white placeholder:text-neutral-300 focus:border-white/40"
+                  className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/[0.08] text-white placeholder:text-neutral-300 focus:border-white/25"
                   autoFocus
                 />
               </div>
@@ -390,14 +390,14 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowBiometricEnrollModal(false)}
-                  className="flex-1 py-2 rounded-xl border border-white/[0.14] bg-white/[0.06] text-neutral-100 hover:text-white hover:bg-white/[0.12] text-xs font-medium transition-colors"
+                  className="flex-1 py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] text-neutral-100 hover:text-white hover:bg-white/[0.07] text-xs font-medium transition-colors"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
                   disabled={biometricPin.length < 4 || isEnrollingBiometric}
-                  className="flex-1 py-2 rounded-xl bg-white text-black hover:bg-neutral-100 font-semibold text-xs transition-all active:scale-95 shadow-sm disabled:bg-white/[0.14] disabled:text-white/75 disabled:border disabled:border-white/[0.18]"
+                  className="flex-1 py-2 rounded-xl bg-white text-black hover:bg-neutral-100 font-semibold text-xs transition-all active:scale-95 shadow-sm disabled:bg-white/35 disabled:text-black"
                 >
                   {isEnrollingBiometric ? '등록 중...' : '생체인증 등록'}
                 </button>

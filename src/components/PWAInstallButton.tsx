@@ -34,11 +34,11 @@ export const IOSInstallModal: React.FC<{
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm flex flex-col bg-[#101218]/95 border border-white/[0.14] rounded-3xl text-neutral-100 antialiased shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.12)] overflow-hidden animate-in zoom-in-95 duration-200"
+        className="w-full max-w-sm flex flex-col bg-[#0E1015] border border-white/[0.08] rounded-3xl text-neutral-100 antialiased shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.1] shrink-0">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06] shrink-0">
             <div>
               <h2 className="text-base font-bold tracking-tight text-white">홈 화면에 추가하기</h2>
               <p className="text-xs text-neutral-200 font-normal mt-0.5">
@@ -48,7 +48,7 @@ export const IOSInstallModal: React.FC<{
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-200 hover:text-white hover:bg-white/[0.1] transition-colors cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-200 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
               aria-label="닫기"
             >
               <X size={17} />
@@ -59,7 +59,7 @@ export const IOSInstallModal: React.FC<{
           <div className="space-y-4 p-6">
             {/* Step 1 */}
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-white/[0.08] border border-white/[0.14] text-[11px] font-mono text-white flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] font-mono text-white flex items-center justify-center shrink-0 mt-0.5">
                 1
               </div>
               <p className="text-xs text-neutral-200 font-normal leading-relaxed">
@@ -72,7 +72,7 @@ export const IOSInstallModal: React.FC<{
 
             {/* Step 2 */}
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-white/[0.08] border border-white/[0.14] text-[11px] font-mono text-white flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] font-mono text-white flex items-center justify-center shrink-0 mt-0.5">
                 2
               </div>
               <p className="text-xs text-neutral-200 font-normal leading-relaxed">
@@ -85,7 +85,7 @@ export const IOSInstallModal: React.FC<{
 
             {/* Step 3 */}
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-white/[0.08] border border-white/[0.14] text-[11px] font-mono text-white flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] font-mono text-white flex items-center justify-center shrink-0 mt-0.5">
                 3
               </div>
               <p className="text-xs text-neutral-200 font-normal leading-relaxed">
@@ -95,7 +95,7 @@ export const IOSInstallModal: React.FC<{
           </div>
 
           {/* Cohesive Action Button */}
-          <div className="px-6 py-4 border-t border-white/[0.1] bg-[#0C0E13] shrink-0">
+          <div className="px-6 py-4 border-t border-white/[0.06] shrink-0">
             <button
               type="button"
               onClick={onClose}

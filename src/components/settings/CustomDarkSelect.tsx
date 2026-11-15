@@ -62,10 +62,10 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
         } ${
           isLight
             ? 'bg-white border border-slate-300 hover:border-slate-400 text-slate-900 shadow-xs'
-            : 'bg-white/[0.07] border border-white/[0.14] hover:border-white/30 hover:bg-white/[0.1] text-white'
+            : 'bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-white'
         }`}
       >
-        <span className="truncate font-medium min-w-0 text-white">
+        <span className={`truncate font-medium min-w-0 ${isLight ? 'text-slate-900' : 'text-white'}`}>
           {selectedOption?.label}
           {showSublabelInTrigger && selectedOption?.sublabel && (
             <span className={`text-xs ml-2 font-normal ${isLight ? 'text-slate-600' : 'text-neutral-200'}`}>
@@ -79,7 +79,7 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
               className={`px-1.5 py-0.5 border rounded-md text-[9px] font-mono tracking-wider leading-tight ${
                 isLight
                   ? 'border-slate-300 text-slate-500'
-                  : 'border-white/20 text-neutral-200 bg-white/[0.06]'
+                  : 'border-white/10 text-neutral-200'
               }`}
             >
               {selectedOption.badge}
@@ -98,7 +98,7 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
         <div className={`absolute right-0 min-w-full top-full mt-1 backdrop-blur-xl rounded-xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto py-1 animate-in fade-in zoom-in-95 duration-150 scrollbar-none ${
           isLight
             ? 'bg-white border border-slate-300 text-slate-800'
-            : 'bg-[#141720]/95 border border-white/[0.16] text-white'
+            : 'bg-[#0B0F17]/95 border border-white/10 text-white'
         }`}>
           {options.map((opt) => {
             const isSelected = opt.value === value;
@@ -116,14 +116,14 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
                   isSelected 
                     ? isLight
                       ? 'bg-neutral-100 text-black font-semibold'
-                      : 'bg-white/[0.14] text-white font-semibold' 
+                      : 'bg-white/[0.08] text-white font-semibold' 
                     : isLight
                       ? 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
-                      : 'text-neutral-100 hover:bg-white/[0.08] hover:text-white'
+                      : 'text-neutral-100 hover:bg-white/[0.05] hover:text-white'
                 }`}
               >
                 <div className="truncate pr-2 min-w-0">
-                  <span className="block truncate font-medium text-white">{opt.label}</span>
+                  <span className={`block truncate font-medium ${isLight ? 'text-slate-900' : 'text-white'}`}>{opt.label}</span>
                   {opt.sublabel && (
                     <span className={`text-xs block truncate font-normal ${isLight ? 'text-slate-600' : 'text-neutral-200'}`}>
                       {opt.sublabel}
@@ -136,7 +136,7 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
                       className={`px-1.5 py-0.5 border rounded-md text-[9px] font-mono tracking-wider leading-tight ${
                         isLight
                           ? 'border-slate-300 text-slate-500'
-                          : 'border-white/20 text-neutral-200 bg-white/[0.06]'
+                          : 'border-white/10 text-neutral-200'
                       }`}
                     >
                       {opt.badge}
