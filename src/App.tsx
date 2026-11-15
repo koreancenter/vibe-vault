@@ -737,17 +737,16 @@ function AppInner() {
 
             {/* Right action controls */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* How-to Guide Button */}
+              {/* Feature Guide Button */}
               <button
                 id="quick-start-guide-btn"
                 type="button"
                 onClick={() => setIsWelcomeOpen(true)}
-                title="사용법 가이드"
-                aria-label="사용법 가이드"
-                className="px-2.5 h-8 rounded-full border border-white/15 bg-white/[0.06] text-xs font-medium text-neutral-200 hover:text-white hover:bg-white/[0.12] flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-xs"
+                title="기능 안내"
+                aria-label="기능 안내"
+                className="w-8 h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
               >
-                <HelpCircle size={13} className="text-neutral-300" />
-                <span>사용법</span>
+                <HelpCircle size={14} />
               </button>
 
               {/* Settings Gear */}

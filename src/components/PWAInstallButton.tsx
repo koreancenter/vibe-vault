@@ -34,21 +34,21 @@ export const IOSInstallModal: React.FC<{
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm flex flex-col bg-[#0E1015] border border-white/[0.08] rounded-3xl text-neutral-100 antialiased shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+        className="w-full max-w-sm flex flex-col bg-[#101218]/95 border border-white/[0.14] rounded-3xl text-neutral-100 antialiased shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.12)] overflow-hidden animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06] shrink-0">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.1] shrink-0">
             <div>
-              <h2 className="text-base font-semibold tracking-tight text-white">홈 화면에 추가하기</h2>
-              <p className="text-xs text-neutral-300 font-normal mt-0.5">
+              <h2 className="text-base font-bold tracking-tight text-white">홈 화면에 추가하기</h2>
+              <p className="text-xs text-neutral-200 font-normal mt-0.5">
                 iOS Safari 전용 앱 설치 안내
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-200 hover:text-white hover:bg-white/[0.1] transition-colors cursor-pointer"
               aria-label="닫기"
             >
               <X size={17} />
@@ -59,43 +59,43 @@ export const IOSInstallModal: React.FC<{
           <div className="space-y-4 p-6">
             {/* Step 1 */}
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] font-mono text-neutral-300 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-white/[0.08] border border-white/[0.14] text-[11px] font-mono text-white flex items-center justify-center shrink-0 mt-0.5">
                 1
               </div>
-              <p className="text-xs text-neutral-300 font-normal leading-relaxed">
+              <p className="text-xs text-neutral-200 font-normal leading-relaxed">
                 Safari 브라우저 하단(또는 상단)의{' '}
-                <strong className="font-medium text-white">공유 아이콘(Share)</strong>
-                <Share2 className="w-3.5 h-3.5 inline text-neutral-300 ml-1" />
+                <strong className="font-semibold text-white">공유 아이콘(Share)</strong>
+                <Share2 className="w-3.5 h-3.5 inline text-neutral-200 ml-1" />
                 을 탭합니다.
               </p>
             </div>
 
             {/* Step 2 */}
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] font-mono text-neutral-300 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-white/[0.08] border border-white/[0.14] text-[11px] font-mono text-white flex items-center justify-center shrink-0 mt-0.5">
                 2
               </div>
-              <p className="text-xs text-neutral-300 font-normal leading-relaxed">
+              <p className="text-xs text-neutral-200 font-normal leading-relaxed">
                 메뉴 목록을 아래로 스크롤하여{' '}
-                <strong className="font-medium text-white">'홈 화면에 추가'</strong>
-                <PlusSquare className="w-3.5 h-3.5 inline text-neutral-300 ml-1" />
+                <strong className="font-semibold text-white">&apos;홈 화면에 추가&apos;</strong>
+                <PlusSquare className="w-3.5 h-3.5 inline text-neutral-200 ml-1" />
                 를 선택합니다.
               </p>
             </div>
 
             {/* Step 3 */}
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] font-mono text-neutral-300 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-white/[0.08] border border-white/[0.14] text-[11px] font-mono text-white flex items-center justify-center shrink-0 mt-0.5">
                 3
               </div>
-              <p className="text-xs text-neutral-300 font-normal leading-relaxed">
-                우측 상단 <strong className="font-medium text-white">'추가'</strong>를 누르면 오프라인 캐싱과 전체 화면 독립 앱으로 실행됩니다.
+              <p className="text-xs text-neutral-200 font-normal leading-relaxed">
+                우측 상단 <strong className="font-semibold text-white">&apos;추가&apos;</strong>를 누르면 오프라인 캐싱과 전체 화면 독립 앱으로 실행됩니다.
               </p>
             </div>
           </div>
 
           {/* Cohesive Action Button */}
-          <div className="px-6 py-4 border-t border-white/[0.06] shrink-0">
+          <div className="px-6 py-4 border-t border-white/[0.1] bg-[#0C0E13] shrink-0">
             <button
               type="button"
               onClick={onClose}

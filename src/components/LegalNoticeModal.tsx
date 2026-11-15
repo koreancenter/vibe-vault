@@ -131,18 +131,18 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
         Prevents vertical displacement or wobble when toggling between tabs.
       */}
       <div
-        className="w-full max-w-lg h-[580px] sm:h-[600px] max-h-[85vh] flex flex-col bg-[#0E1015] border border-white/[0.08] rounded-3xl overflow-hidden text-neutral-200 antialiased shadow-2xl"
+        className="w-full max-w-lg h-[580px] sm:h-[600px] max-h-[85vh] flex flex-col bg-[#101218]/95 border border-white/[0.14] rounded-3xl overflow-hidden text-neutral-100 antialiased shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.12)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header - Fixed Height & Position */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06] shrink-0 bg-[#0E1015]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.1] shrink-0 bg-[#101218]/95">
           <div>
-            <h2 id="legal-notice-title" className="text-base font-semibold text-white tracking-tight">
+            <h2 id="legal-notice-title" className="text-base font-bold text-white tracking-tight">
               {activeTab === 'legal'
                 ? '법적 고지 및 면책 조항'
                 : '소프트웨어 라이센스 및 이용약관'}
             </h2>
-            <p className="text-xs text-neutral-300 font-normal mt-0.5">
+            <p className="text-xs text-neutral-200 font-normal mt-0.5">
               {activeTab === 'legal'
                 ? 'Vibe Vault 이용자 유의사항 및 서비스 운영 원칙'
                 : '개인 비영리 무상 사용 허가 및 상업적 배포·수정 금지 규정'}
@@ -153,22 +153,22 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="w-8 h-8 rounded-full border border-transparent hover:border-white/[0.08] hover:bg-white/[0.06] text-neutral-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+            className="w-8 h-8 rounded-full border border-transparent hover:border-white/[0.14] hover:bg-white/[0.08] text-neutral-200 hover:text-white flex items-center justify-center transition-all cursor-pointer"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Segmented Tab Control - Fixed Anchor without icons */}
-        <div className="px-6 pt-3 pb-2 shrink-0 bg-[#0E1015]">
-          <div className="grid grid-cols-2 gap-1 bg-white/[0.04] p-1 rounded-2xl border border-white/[0.06]">
+        <div className="px-6 pt-3 pb-2 shrink-0 bg-[#101218]/95">
+          <div className="grid grid-cols-2 gap-1 bg-white/[0.05] p-1 rounded-2xl border border-white/[0.14]">
             <button
               type="button"
               onClick={() => setActiveTab('legal')}
               className={`py-1.5 px-3 transition-all cursor-pointer text-center ${
                 activeTab === 'legal'
                   ? 'bg-white text-black font-semibold text-xs rounded-xl shadow-xs'
-                  : 'text-neutral-400 hover:text-white text-xs'
+                  : 'text-neutral-200 hover:text-white text-xs font-medium'
               }`}
             >
               법적 고지
@@ -179,7 +179,7 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
               className={`py-1.5 px-3 transition-all cursor-pointer text-center ${
                 activeTab === 'licenses'
                   ? 'bg-white text-black font-semibold text-xs rounded-xl shadow-xs'
-                  : 'text-neutral-400 hover:text-white text-xs'
+                  : 'text-neutral-200 hover:text-white text-xs font-medium'
               }`}
             >
               소프트웨어 라이센스
@@ -188,16 +188,16 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
         </div>
 
         {/* Scrollable Content Body - Optimized Typography without Box-in-Box Nesting */}
-        <div className="flex-1 overflow-y-auto p-6 text-xs text-neutral-300 leading-relaxed scrollbar-none font-sans [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 overflow-y-auto p-6 text-xs text-neutral-200 leading-relaxed scrollbar-none font-sans [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {activeTab === 'legal' ? (
-            <div className="divide-y divide-white/[0.05] space-y-4">
+            <div className="divide-y divide-white/[0.08] space-y-4">
               {/* Section 1: Financial & Investment Advisory Disclaimer */}
               <div className="pt-4 first:pt-0 space-y-1.5">
                 <h3 className="text-xs font-semibold text-white tracking-tight">
                   01. 금융 및 투자 자문 면책
                 </h3>
-                <p className="text-neutral-400 text-[11.5px] leading-relaxed">
-                  Vibe Vault는 개인의 자율적인 가계부 관리 및 행사 경비 정산을 보조하는 <strong>비수익 목적의 독립 소프트웨어</strong>입니다. 본 애플리케이션은 자본시장법상의 금융투자업자, 투자자문업자, 또는 공인 금융기관이 아니며, 어떠한 금융상품에 대한 투자 권유나 세무·재정 자문도 제공하지 않습니다. 대시보드에 표시되는 순자산, 평가손익 및 현금 흐름 분석은 참고용 추산치이며, 실제 금융기관의 확정 잔액과 차이가 발생할 수 있습니다.
+                <p className="text-neutral-200 text-[11.5px] leading-relaxed">
+                  Vibe Vault는 개인의 자율적인 가계부 관리 및 행사 경비 정산을 보조하는 <strong className="text-white">비수익 목적의 독립 소프트웨어</strong>입니다. 본 애플리케이션은 자본시장법상의 금융투자업자, 투자자문업자, 또는 공인 금융기관이 아니며, 어떠한 금융상품에 대한 투자 권유나 세무·재정 자문도 제공하지 않습니다. 대시보드에 표시되는 순자산, 평가손익 및 현금 흐름 분석은 참고용 추산치이며, 실제 금융기관의 확정 잔액과 차이가 발생할 수 있습니다.
                 </p>
               </div>
 
@@ -206,8 +206,8 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
                 <h3 className="text-xs font-semibold text-white tracking-tight">
                   02. 로컬 데이터 보관 및 유실 면책
                 </h3>
-                <p className="text-neutral-400 text-[11.5px] leading-relaxed">
-                  자산 및 거래 내역은 브라우저 내부 <code className="text-neutral-300 font-mono text-[11px] bg-white/[0.04] px-1 py-0.5 rounded">IndexedDB</code>에 로컬 보관됩니다. 클라우드 Gemini 분석을 선택하면 분석에 사용한 텍스트·이미지가 동일 기기의 로컬 Express 서버를 거쳐 Google로 전송될 수 있습니다. 온디바이스 모드에서는 해당 입력을 Gemini로 전송하지 않습니다. 브라우저 캐시 삭제, 시크릿 모드 종료, 기기 변경 또는 하드웨어 장애로 인한 데이터 유실에 대비해 설정 메뉴의 <strong>암호화 백업(VVLT_V1)</strong> 기능을 이용하시기 바랍니다.
+                <p className="text-neutral-200 text-[11.5px] leading-relaxed">
+                  자산 및 거래 내역은 브라우저 내부 <code className="text-white font-mono text-[11px] bg-white/[0.08] px-1.5 py-0.5 rounded border border-white/[0.12]">IndexedDB</code>에 로컬 보관됩니다. 클라우드 Gemini 분석을 선택하면 분석에 사용한 텍스트·이미지가 동일 기기의 로컬 Express 서버를 거쳐 Google로 전송될 수 있습니다. 온디바이스 모드에서는 해당 입력을 Gemini로 전송하지 않습니다. 브라우저 캐시 삭제, 시크릿 모드 종료, 기기 변경 또는 하드웨어 장애로 인한 데이터 유실에 대비해 설정 메뉴의 <strong className="text-white">암호화 백업(VVLT_V1)</strong> 기능을 이용하시기 바랍니다.
                 </p>
               </div>
 
@@ -216,7 +216,7 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
                 <h3 className="text-xs font-semibold text-white tracking-tight">
                   03. AI 파싱 및 환율 오차 고지
                 </h3>
-                <p className="text-neutral-400 text-[11.5px] leading-relaxed">
+                <p className="text-neutral-200 text-[11.5px] leading-relaxed">
                   영수증 카메라 OCR 및 자연어 거래 파싱은 온디바이스 정규식 엔진 및 거대 언어 모델(LLM)의 확률적 추론에 기반하므로, 촬영 상태나 문맥에 따라 금액·가맹점 오인식이 발생할 수 있습니다. 거래 확정 전 파싱된 내역을 반드시 직접 검토하십시오. 환산에는 Frankfurter의 일일 기준 환율을 사용하며, 연결이 끊긴 경우 표시된 추정치 또는 오래된 환율은 실제 카드사 수수료와 은행 전신환율이 반영된 결제액과 다를 수 있습니다.
                 </p>
               </div>
@@ -226,7 +226,7 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
                 <h3 className="text-xs font-semibold text-white tracking-tight">
                   04. AI API Key 보안 및 과금 면책
                 </h3>
-                <p className="text-neutral-400 text-[11.5px] leading-relaxed">
+                <p className="text-neutral-200 text-[11.5px] leading-relaxed">
                   등록한 Gemini API 키는 브라우저의 vault 암호화 저장소에 보관되며, Gemini 분석 시 요청 본문에 포함되어 동일 기기의 로컬 Express 서버에서 사용됩니다. 서버는 루프백 주소에만 바인딩되며 원격 요청을 받지 않습니다. 분석 요청은 Google Gemini로 전달될 수 있고, 설정된 경우 서버 환경 변수의 키가 사용될 수도 있습니다. Google AI 사용료는 사용자의 계정에 부과됩니다.
                 </p>
               </div>
@@ -241,27 +241,27 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
           ) : (
             <div className="space-y-4">
               {/* 1. Proprietary Software License Statement */}
-              <div className="pb-4 border-b border-white/[0.06] space-y-2.5">
-                <p className="font-mono text-[10.5px] text-neutral-400">
+              <div className="pb-4 border-b border-white/[0.1] space-y-2.5">
+                <p className="font-mono text-[10.5px] text-neutral-300">
                   © 2026 한국센터글로벌네트워크 지식관리실. All rights reserved.
                 </p>
 
                 {/* Korean Official License Terms */}
                 <div className="space-y-1">
-                  <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">
+                  <span className="text-[10px] font-semibold text-neutral-200 uppercase tracking-wider">
                     라이센스 규정 (한국어)
                   </span>
-                  <p className="text-[11px] text-neutral-300 leading-relaxed bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.04]">
+                  <p className="text-[11px] text-neutral-100 leading-relaxed bg-white/[0.05] p-2.5 rounded-xl border border-white/[0.1]">
                     본 소프트웨어(Vibe Vault)는 개인의 자율적인 가계부 관리 및 행사 정산을 위한 비영리적·개인적 용도의 무상 사용만을 허가합니다. 본 소프트웨어의 소스 코드 및 바이너리의 무단 수정, 2차 저작물 작성, 공공 배포, 서브라이선스 및 상업적 판매 행위는 저작권법 및 국제 협약에 의해 엄격히 금지됩니다. 본 소프트웨어는 어떠한 명시적·묵시적 보증 없이 있는 그대로(AS IS) 제공됩니다.
                   </p>
                 </div>
 
                 {/* English Official License Terms */}
                 <div className="space-y-1 pt-1">
-                  <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider font-mono">
+                  <span className="text-[10px] font-semibold text-neutral-200 uppercase tracking-wider font-mono">
                     Official Terms (English)
                   </span>
-                  <p className="text-[11px] text-neutral-400 leading-relaxed font-mono bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.04]">
+                  <p className="text-[11px] text-neutral-200 leading-relaxed font-mono bg-white/[0.05] p-2.5 rounded-xl border border-white/[0.1]">
                     &quot;This software (Vibe Vault) is made available free of charge strictly for non-commercial, personal use in tracking personal finances and event settlements. Unauthorized modification, derivative works, public distribution, sublicensing, or commercial resale of the software source code or binaries is strictly prohibited by copyright laws and international treaties. This software is provided &apos;AS IS&apos;, without warranty of any kind.&quot;
                   </p>
                 </div>
@@ -269,25 +269,25 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
 
               {/* 2. Core Dependencies Section - Third-Party Open Source Infrastructure Credits */}
               <div>
-                <div className="pb-2 mb-1 border-b border-white/[0.04] space-y-1">
+                <div className="pb-2 mb-1 border-b border-white/[0.08] space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-neutral-300">
+                    <span className="text-[11px] font-semibold text-neutral-100">
                       오픈소스 인프라 의존성 및 서드파티 크레딧
                     </span>
-                    <span className="text-[10.5px] text-neutral-500 font-mono">
+                    <span className="text-[10.5px] text-neutral-300 font-mono">
                       {CORE_DEPENDENCIES.length} Packages
                     </span>
                   </div>
-                  <p className="text-[10.5px] text-neutral-500 leading-snug">
+                  <p className="text-[10.5px] text-neutral-300 leading-snug">
                     본 소프트웨어가 탑재한 하위 오픈소스 프레임워크 및 라이브러리는 각 원저작권자의 독립 라이센스(MIT, ISC, Apache-2.0 등)가 적용됩니다.
                   </p>
                 </div>
 
-                <div className="divide-y divide-white/[0.04]">
+                <div className="divide-y divide-white/[0.08]">
                   {CORE_DEPENDENCIES.map((dep) => (
                     <div
                       key={dep.name}
-                      className="py-2.5 first:pt-1.5 last:pb-1 group hover:bg-white/[0.015] -mx-2 px-2 rounded-lg transition-colors"
+                      className="py-2.5 first:pt-1.5 last:pb-1 group hover:bg-white/[0.04] -mx-2 px-2 rounded-lg transition-colors"
                     >
                       {/* Name & License line */}
                       <div className="flex items-baseline justify-between gap-2">
@@ -296,23 +296,23 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
                             {dep.name}
                           </h4>
                           {dep.category && (
-                            <span className="text-[9.5px] font-mono text-neutral-500">
+                            <span className="text-[9.5px] font-mono text-neutral-300">
                               · {dep.category}
                             </span>
                           )}
                         </div>
-                        <span className="text-[10.5px] font-mono text-neutral-400 shrink-0">
+                        <span className="text-[10.5px] font-mono text-neutral-200 shrink-0">
                           {dep.license}
                         </span>
                       </div>
 
                       {/* Author metadata */}
-                      <div className="text-[10px] font-mono text-neutral-500 mt-0.5">
+                      <div className="text-[10px] font-mono text-neutral-300 mt-0.5">
                         {dep.author}
                       </div>
 
                       {/* Description */}
-                      <p className="text-[11px] text-neutral-400 mt-1 leading-snug">
+                      <p className="text-[11px] text-neutral-200 mt-1 leading-snug">
                         {dep.description}
                       </p>
                     </div>
@@ -324,18 +324,18 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
         </div>
 
         {/* Footer - Fixed Height & Position */}
-        <div className="px-6 py-4 border-t border-white/[0.06] shrink-0 bg-[#0E1015] space-y-2.5">
-          <div className="text-[10.5px] text-neutral-400 space-y-0.5">
+        <div className="px-6 py-4 border-t border-white/[0.1] shrink-0 bg-[#0C0E13] space-y-2.5">
+          <div className="text-[10.5px] text-neutral-200 space-y-0.5">
             <div className="flex items-center justify-between">
-              <span className="font-medium text-neutral-300">한국센터글로벌네트워크 지식관리실</span>
+              <span className="font-medium text-neutral-100">한국센터글로벌네트워크 지식관리실</span>
               <a
                 href="mailto:master@goguma.app"
-                className="text-neutral-400 hover:text-white transition-colors underline underline-offset-2 font-mono text-[10px]"
+                className="text-neutral-200 hover:text-white transition-colors underline underline-offset-2 font-mono text-[10px]"
               >
                 master@goguma.app
               </a>
             </div>
-            <p className="text-[9.5px] text-neutral-400">
+            <p className="text-[9.5px] text-neutral-300">
               © 2026 한국센터글로벌네트워크 지식관리실. All rights reserved.
             </p>
           </div>
@@ -343,7 +343,7 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] active:scale-[0.99] text-white text-xs font-medium border border-white/[0.08] transition-all cursor-pointer"
+            className="w-full py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] active:scale-[0.99] text-white text-xs font-medium border border-white/[0.14] transition-all cursor-pointer"
           >
             확인 및 닫기
           </button>
