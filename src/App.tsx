@@ -1354,6 +1354,7 @@ function AppInner() {
       <VaultLockScreen
         onUnlocked={handleUnlocked}
         onOpenWelcome={() => setIsWelcomeOpen(true)}
+        suspended={isWelcomeOpen}
       />
 
       {/* Automatic In-App PWA Install Banner */}

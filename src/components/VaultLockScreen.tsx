@@ -17,12 +17,14 @@ interface VaultLockScreenProps {
   onUnlocked?: () => void;
   onGuestMode?: () => void;
   onOpenWelcome?: () => void;
+  suspended?: boolean;
 }
 
 export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ 
   onUnlocked,
   onGuestMode,
   onOpenWelcome,
+  suspended = false,
 }) => {
   const { t, language } = useI18n();
   const [locked, setLocked] = useState<boolean>(() => {
@@ -242,7 +244,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
 
   // Physical keyboard support
   useEffect(() => {
-    if (!locked) return;
+    if (!locked || suspended) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key >= '0' && e.key <= '9') {
@@ -266,9 +268,9 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [confirmPin, handleAttemptUnlock, handleCompleteSetup, isPinSet, locked, pin, setupStep]);
+  }, [confirmPin, handleAttemptUnlock, handleCompleteSetup, isPinSet, locked, pin, setupStep, suspended]);
 
-  if (!locked) {
+  if (suspended || !locked) {
     return null;
   }
 

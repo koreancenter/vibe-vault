@@ -52,22 +52,22 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
   const pillars = [
     {
       id: 'privacy',
-      icon: <ShieldCheck className="w-5 h-5 text-neutral-300 shrink-0 mt-0.5" strokeWidth={1.6} />,
-      eyebrow: t('welcome_phil1_tag'),
+      icon: <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
+      titleColor: 'text-emerald-300',
       title: t('welcome_phil1_title'),
       desc: t('welcome_phil1_desc'),
     },
     {
       id: 'currency',
-      icon: <Coins className="w-5 h-5 text-neutral-300 shrink-0 mt-0.5" strokeWidth={1.6} />,
-      eyebrow: t('welcome_phil2_tag'),
+      icon: <Coins className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
+      titleColor: 'text-amber-300',
       title: t('welcome_phil2_title'),
       desc: t('welcome_phil2_desc'),
     },
     {
       id: 'space',
-      icon: <Layers className="w-5 h-5 text-neutral-300 shrink-0 mt-0.5" strokeWidth={1.6} />,
-      eyebrow: t('welcome_phil3_tag'),
+      icon: <Layers className="w-5 h-5 text-sky-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
+      titleColor: 'text-sky-300',
       title: t('welcome_phil3_title'),
       desc: t('welcome_phil3_desc'),
     },
@@ -98,12 +98,9 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
           {/* Left Side: Hero Typography */}
           <div className="md:col-span-5 flex flex-col justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
-                Private, On-Device Financial Command Center
-              </p>
               <h2
                 id="welcome-dashboard-title"
-                className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mt-3"
+                className="text-3xl sm:text-4xl font-semibold tracking-tight text-white"
               >
                 Vibe Vault
               </h2>
@@ -119,10 +116,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
               <div key={pillar.id} className="flex items-start gap-4">
                 {pillar.icon}
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium tracking-wide text-neutral-400">
-                    {pillar.eyebrow}
-                  </p>
-                  <h3 className="text-base font-semibold text-white tracking-tight mt-0.5">
+                  <h3 className={`text-base font-semibold tracking-tight ${pillar.titleColor}`}>
                     {pillar.title}
                   </h3>
                   <p className="text-sm font-normal text-neutral-300 leading-relaxed mt-1.5">
