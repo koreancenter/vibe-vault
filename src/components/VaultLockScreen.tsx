@@ -4,7 +4,10 @@ import {
   isVaultLocked, 
   hasVaultPin, 
   unlockVault, 
-  setVaultPin 
+  setVaultPin,
+  authenticateBiometricUnlock,
+  isBiometricUnlockEnabled,
+  isBiometricAvailable as checkBiometricAvailable
 } from '../vaultSecurity';
 import { LegalNoticeModal } from './LegalNoticeModal';
 import { OnboardingModal } from './OnboardingModal';
@@ -40,21 +43,17 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
   const [shake, setShake] = useState<boolean>(false);
   const [isLegalNoticeOpen, setIsLegalNoticeOpen] = useState<boolean>(false);
   const [legalNoticeTab, setLegalNoticeTab] = useState<'legal' | 'licenses'>('legal');
-  const [isBiometricAvailable, setIsBiometricAvailable] = useState<boolean>(false);
+  const [isBiometricSupported, setIsBiometricSupported] = useState<boolean>(false);
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState<boolean>(() => isBiometricUnlockEnabled());
 
   const isSetupMode = !isPinSet;
 
   // Check WebAuthn platform authenticator availability
   useEffect(() => {
-    if (
-      typeof window !== 'undefined' && 
-      window.PublicKeyCredential && 
-      typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
-    ) {
-      window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-        .then((available) => setIsBiometricAvailable(available))
-        .catch(() => setIsBiometricAvailable(false));
-    }
+    checkBiometricAvailable()
+      .then((available) => setIsBiometricSupported(available))
+      .catch(() => setIsBiometricSupported(false));
+    setIsBiometricEnabled(isBiometricUnlockEnabled());
   }, []);
 
   // Sync state on custom event and mount
@@ -64,6 +63,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       const isNowLocked = custom.detail?.isLocked ?? isVaultLocked();
       const pinConfigured = hasVaultPin();
       setIsPinSet(pinConfigured);
+      setIsBiometricEnabled(isBiometricUnlockEnabled());
       setLocked(isNowLocked || (!pinConfigured && !sessionStorage.getItem('vibe_vault_setup_skipped')));
       setPin('');
       setConfirmPin('');
@@ -76,6 +76,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
     // Initial check
     const pinConfigured = hasVaultPin();
     setIsPinSet(pinConfigured);
+    setIsBiometricEnabled(isBiometricUnlockEnabled());
     if (!pinConfigured && !sessionStorage.getItem('vibe_vault_setup_skipped')) {
       setLocked(true);
     }
@@ -166,35 +167,21 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
   // Biometric Unlock Trigger (WebAuthn Platform Authenticator)
   const handleBiometricUnlock = useCallback(async () => {
     if (isSubmitting) return;
+    setIsSubmitting(true);
+    setError(null);
     try {
-      if (typeof window === 'undefined' || !navigator.credentials) {
-        triggerShake('현재 기기에서 생체 인증을 지원하지 않습니다.');
+      const res = await authenticateBiometricUnlock();
+      if (res.success) {
+        setLocked(false);
+        setPin('');
+        if (onUnlocked) onUnlocked();
         return;
       }
-
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-
-      const credential = await navigator.credentials.get({
-        publicKey: {
-          challenge,
-          timeout: 60000,
-          userVerification: 'preferred'
-        }
-      }).catch(() => null);
-
-      if (credential) {
-        const res = await unlockVault();
-        if (res.success) {
-          setLocked(false);
-          setPin('');
-          if (onUnlocked) onUnlocked();
-          return;
-        }
-      }
-      triggerShake('생체 인증이 완료되지 않았습니다. PIN 번호를 입력해주세요.');
+      triggerShake(res.error || '생체 인증에 실패했습니다. PIN 번호로 잠금을 해제해주세요.');
     } catch (err: any) {
-      triggerShake('생체 인증 실패: PIN 번호로 잠금을 해제해주세요.');
+      triggerShake(err.message || '생체 인증 실패: PIN 번호로 잠금을 해제해주세요.');
+    } finally {
+      setIsSubmitting(false);
     }
   }, [isSubmitting, onUnlocked, triggerShake]);
 
@@ -380,12 +367,13 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
             </button>
           </div>
 
-          {/* Biometric Unlock Option (if supported on platform) */}
-          {isPinSet && isBiometricAvailable && (
+          {/* Biometric Quick Unlock (Sub-second Platform Authenticator) */}
+          {isPinSet && isBiometricSupported && isBiometricEnabled && (
             <button
               type="button"
               onClick={handleBiometricUnlock}
-              className="mt-2.5 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-[11px] text-neutral-300 hover:text-white transition-all cursor-pointer mx-auto"
+              disabled={isSubmitting}
+              className="mt-2.5 flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500/[0.08] hover:bg-emerald-500/[0.15] border border-emerald-500/25 text-[11px] font-medium text-emerald-300 hover:text-white transition-all cursor-pointer mx-auto active:scale-95 shadow-xs"
             >
               <Fingerprint className="w-3.5 h-3.5 text-emerald-400" />
               <span>{t('biometric_unlock')}</span>

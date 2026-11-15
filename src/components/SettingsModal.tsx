@@ -509,9 +509,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           message: '연결 시간 초과 (6초). Ollama가 실행 중인지 확인해주세요.'
         });
       } else {
+        const isHttpsMixedLocalhost =
+          typeof window !== 'undefined'
+          && window.location.protocol === 'https:'
+          && /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(ep);
+
         setOllamaStatus({
           status: 'error',
-          message: 'Ollama 서버에 연결할 수 없습니다. Ollama 실행 여부 및 CORS 설정을 확인해 주세요 (OLLAMA_ORIGINS="*" ollama serve).'
+          message: isHttpsMixedLocalhost
+            ? 'Ollama 서버에 연결할 수 없습니다. CORS 설정 및 HTTPS 환경에서의 HTTP localhost 차단(Mixed Content) 여부를 확인해 주세요.'
+            : 'Ollama 서버에 연결할 수 없습니다. Ollama 실행 여부 및 CORS 설정을 확인해 주세요 (OLLAMA_ORIGINS="*" ollama serve).'
         });
       }
     } finally {
@@ -1071,6 +1078,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               handleResetAllData={handleResetAllData}
               isClearingData={isClearingData}
               setLegalOpen={setLegalOpen}
+              onStatusMessage={setStatusMessage}
             />
           )}
         </div>

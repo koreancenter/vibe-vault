@@ -23,8 +23,6 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
   const [formData, setFormData] = useState<Partial<Transaction>>({});
   const [activeAssets, setActiveAssets] = useState<Asset[]>([]);
 
-  const isLight = theme === 'light';
-
   useEffect(() => {
     if (isOpen && transaction) {
       setFormData(transaction);
@@ -58,23 +56,19 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden animate-in slide-in-from-bottom-6 duration-200 transition-colors ${
-          isLight ? 'bg-white border-slate-200 text-slate-900 shadow-slate-300/40' : 'bg-[#111217] border-white/[0.08] text-white shadow-2xl backdrop-blur-2xl'
-        }`}
+        className="w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden animate-in slide-in-from-bottom-6 duration-200 transition-colors bg-[#111217] border-white/[0.08] text-white shadow-2xl backdrop-blur-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile drag handle */}
-        <div className={`w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden ${isLight ? 'bg-slate-300' : 'bg-white/20'}`} />
+        <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden bg-white/20" />
 
         {/* Header */}
-        <div className={`flex justify-between items-center px-6 py-4 border-b transition-colors ${
-          isLight ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-white/[0.02]'
-        }`}>
+        <div className="flex justify-between items-center px-6 py-4 border-b transition-colors border-white/10 bg-white/[0.02]">
           <div>
-            <h2 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            <h2 className="text-base font-bold text-white">
               {t('edit_transaction_title')}
             </h2>
-            <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+            <p className="text-xs text-[#94A3B8]">
               {t('edit_transaction_desc')}
             </p>
           </div>
@@ -83,11 +77,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
             onClick={onClose} 
             title={t('close')}
             aria-label={t('close')}
-            className={`w-9 h-9 flex items-center justify-center rounded-2xl border transition-colors cursor-pointer ${
-              isLight 
-                ? 'text-slate-600 hover:text-slate-900 bg-slate-100 border-slate-200 hover:bg-slate-200' 
-                : 'text-[#94A3B8] hover:text-white bg-white/[0.04] border-white/10 hover:bg-white/10'
-            }`}
+            className="w-9 h-9 flex items-center justify-center rounded-2xl border transition-colors cursor-pointer text-[#94A3B8] hover:text-white bg-white/[0.04] border-white/10 hover:bg-white/10"
           >
             <X size={18} />
           </button>
@@ -97,26 +87,24 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
         <div className="p-6 flex flex-col gap-4 overflow-y-auto text-sm">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+              <label className="text-xs font-semibold text-[#94A3B8]">
                 {t('label_transaction_type')}
               </label>
               <select 
                 name="type" 
                 value={formData.type || ''} 
                 onChange={handleChange} 
-                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-white/30 transition-colors font-medium cursor-pointer ${
-                  isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/40 border-white/10 text-white'
-                }`}
+                className="w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-white/30 transition-colors font-medium cursor-pointer bg-black/40 border-white/10 text-white"
               >
-                <option value="EXPENSE" className={isLight ? 'bg-white' : 'bg-[#111217]'}>{t('type_expense')}</option>
-                <option value="INCOME" className={isLight ? 'bg-white' : 'bg-[#111217]'}>{t('type_income')}</option>
-                <option value="TRANSFER" className={isLight ? 'bg-white' : 'bg-[#111217]'}>{t('type_transfer')}</option>
-                <option value="SETTLEMENT" className={isLight ? 'bg-white' : 'bg-[#111217]'}>{t('type_settlement')}</option>
+                <option value="EXPENSE" className="bg-[#111217]">{t('type_expense')}</option>
+                <option value="INCOME" className="bg-[#111217]">{t('type_income')}</option>
+                <option value="TRANSFER" className="bg-[#111217]">{t('type_transfer')}</option>
+                <option value="SETTLEMENT" className="bg-[#111217]">{t('type_settlement')}</option>
               </select>
             </div>
             
             <div className="flex flex-col gap-1.5">
-              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+              <label className="text-xs font-semibold text-[#94A3B8]">
                 {t('label_amount')}
               </label>
               <input 
@@ -124,15 +112,13 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 name="amount" 
                 value={formData.amount ?? ''} 
                 onChange={handleChange} 
-                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] font-bold transition-colors ${
-                  isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/40 border-white/10 text-white'
-                }`} 
+                className="w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] font-bold transition-colors bg-black/40 border-white/10 text-white" 
               />
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+            <label className="text-xs font-semibold text-[#94A3B8]">
               {t('label_description')}
             </label>
             <input 
@@ -140,15 +126,13 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               name="description" 
               value={formData.description || ''} 
               onChange={handleChange} 
-              className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors ${
-                isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/40 border-white/10 text-white'
-              }`} 
+              className="w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors bg-black/40 border-white/10 text-white" 
             />
           </div>
           
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+              <label className="text-xs font-semibold text-[#94A3B8]">
                 {t('label_category')}
               </label>
               <input 
@@ -157,9 +141,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 value={formData.category || ''} 
                 onChange={handleChange} 
                 placeholder={t('placeholder_category')}
-                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors ${
-                  isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/40 border-white/10 text-white'
-                }`} 
+                className="w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors bg-black/40 border-white/10 text-white" 
               />
               <div className="flex flex-wrap gap-1 mt-0.5">
                 {STANDARD_CATEGORIES.map(cat => (
@@ -169,12 +151,8 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                     onClick={() => setFormData(prev => ({ ...prev, category: cat.key }))}
                     className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
                       formData.category === cat.key || formData.category === cat.nameKo
-                        ? isLight
-                          ? 'bg-slate-900 border-slate-900 text-white font-medium'
-                          : 'bg-white text-black font-medium border-white'
-                        : isLight
-                          ? 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                          : 'bg-white/[0.04] border-white/[0.08] text-neutral-300 hover:text-white'
+                        ? 'bg-white text-black font-medium border-white'
+                        : 'bg-white/[0.04] border-white/[0.08] text-neutral-300 hover:text-white'
                     }`}
                   >
                     {getLocalizedCategory(cat.key)}
@@ -184,7 +162,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
             </div>
             
             <div className="flex flex-col gap-1.5">
-              <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+              <label className="text-xs font-semibold text-[#94A3B8]">
                 {t('label_payment_method')}
               </label>
               <input 
@@ -193,9 +171,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 value={formData.paymentMethod || ''} 
                 onChange={handleChange} 
                 placeholder={t('placeholder_payment_method')} 
-                className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-white/30 transition-colors ${
-                  isLight ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400' : 'bg-black/40 border-white/10 text-white placeholder:text-[#94A3B8]/50'
-                }`} 
+                className="w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-white/30 transition-colors bg-black/40 border-white/10 text-white placeholder:text-[#94A3B8]/50" 
               />
               {activeAssets.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-0.5">
@@ -206,12 +182,8 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                       onClick={() => setFormData(prev => ({ ...prev, paymentMethod: asset.name }))}
                       className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
                         formData.paymentMethod === asset.name
-                          ? isLight
-                            ? 'bg-slate-900 border-slate-900 text-white font-medium'
-                            : 'bg-white text-black font-medium border-white'
-                          : isLight
-                            ? 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                            : 'bg-white/[0.04] border-white/[0.08] text-neutral-300 hover:text-white'
+                          ? 'bg-white text-black font-medium border-white'
+                          : 'bg-white/[0.04] border-white/[0.08] text-neutral-300 hover:text-white'
                       }`}
                     >
                       {asset.name}
@@ -223,7 +195,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
+            <label className="text-xs font-semibold text-[#94A3B8]">
               {t('label_note')}
             </label>
             <input 
@@ -232,9 +204,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               value={formData.note || ''} 
               onChange={handleChange} 
               placeholder={t('placeholder_note')}
-              className={`w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors ${
-                isLight ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400' : 'bg-black/40 border-white/10 text-white placeholder:text-[#94A3B8]/50'
-              }`} 
+              className="w-full border rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#38bdf8] transition-colors bg-black/40 border-white/10 text-white placeholder:text-[#94A3B8]/50" 
             />
           </div>
           

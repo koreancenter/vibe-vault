@@ -11,6 +11,7 @@ import {
 import { SupportedCurrency, LaunchScreenMode } from '../types';
 import { getCurrencySymbol, getCategoryKo } from '../utils';
 import { useI18n } from '../i18n';
+import { isAnalyticalQueryInput } from '../financialParser';
 
 // Global Quick Suggestion Chips (Featured analytical query tags + quick ledger entries)
 const SUGGESTION_CHIPS = [
@@ -28,6 +29,7 @@ export interface RealtimePreviewData {
   category?: string;
   currency?: SupportedCurrency;
   isDutch?: boolean;
+  paidBy?: string;
 }
 
 export interface OmnibarDockProps {
@@ -97,9 +99,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
     if (!input.trim() || isProcessing) return;
     
     // Check if input is an analytical query
-    const isQueryIntent = /(?:환차익|환손익|환차|환율|외환|분석|총액|얼마|추이|주말\s*지출)/i.test(input) || 
-      /^(?:식비|교통비|생활비)(?:\s*분석)?$/i.test(input) || 
-      isInsightsMode;
+    const isQueryIntent = isAnalyticalQueryInput(input, mode);
 
     if (isQueryIntent && onRunQuery) {
       onRunQuery(input);
@@ -171,6 +171,14 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
           {realtimePreview.isDutch && (
             <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-amber-500/15 text-amber-300">
               정산/더치페이
+            </span>
+          )}
+
+          {/* Payer Chip */}
+          {realtimePreview.paidBy && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full shrink-0 bg-emerald-500/15 text-emerald-300">
+              <span>결제자:</span>
+              <strong className="font-bold">{realtimePreview.paidBy}</strong>
             </span>
           )}
         </div>

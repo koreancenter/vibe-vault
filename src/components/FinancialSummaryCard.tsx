@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
-import { Transaction, FxRates, LedgerSpace } from '../types';
+import { Transaction, FxRates, LedgerSpace, SubscriptionItem, SupportedCurrency } from '../types';
 import { subMonths, isSameMonth, isSameYear, parseISO, format } from 'date-fns';
 import { convertCurrency, DEFAULT_FX_RATES, getCurrencySymbol, getDualCurrencyComparison } from '../utils';
+import { computeSafeToSpend } from '../finance/cashflowForecast';
+import { loadSavedSubscriptions } from '../finance/subscriptionDetector';
 import { useI18n } from '../i18n';
 
 interface FinancialSummaryCardProps {
@@ -13,6 +15,8 @@ interface FinancialSummaryCardProps {
   secondaryCurrency?: string;
   isMultiCurrencyMode?: boolean;
   activeSpace?: LedgerSpace;
+  subscriptions?: SubscriptionItem[];
+  budget?: number;
 }
 
 export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
@@ -24,9 +28,10 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   secondaryCurrency,
   isMultiCurrencyMode = false,
   activeSpace,
+  subscriptions,
+  budget,
 }) => {
   const { t, language } = useI18n();
-  const isLight = theme === 'light';
   const currSymbol = getCurrencySymbol(currencySymbol);
   const isProjectMode = Boolean(activeSpace && activeSpace.id !== 'default');
 
@@ -133,6 +138,19 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
 
   const heroSpending = isProjectMode ? (projectMetrics?.totalSpending ?? 0) : monthlySummary.currentSpending;
 
+  // Safe-to-Spend Metric (오늘 사용 가능 금액)
+  const safeToSpendData = useMemo(() => {
+    const subs = subscriptions ?? loadSavedSubscriptions();
+    const targetBudget = budget ?? activeSpace?.budget;
+    return computeSafeToSpend(
+      transactions,
+      subs,
+      targetBudget,
+      (currencySymbol || 'KRW') as SupportedCurrency,
+      fxRates
+    );
+  }, [transactions, subscriptions, budget, activeSpace?.budget, currencySymbol, fxRates]);
+
   // Dual Currency Comparison (Primary + Secondary e.g. IDR + KRW)
   const dualCurrency = useMemo(() => {
     return getDualCurrencyComparison(heroSpending, currencySymbol, fxRates, secondaryCurrency);
@@ -147,29 +165,21 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
     return (
       <section 
         id="financial-summary-card"
-        className={`relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl ${
-          isLight 
-            ? 'bg-white/85 border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
-            : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
-        }`}
+        className="relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl bg-[#121318]/90 border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white"
       >
         {/* Top Header: Title & Subtle Status Badge (Zero Icons) */}
         <div className="flex items-center justify-between pb-3.5">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className={`text-fluid-heading font-medium tracking-wide ${
-                isLight ? 'text-slate-900' : 'text-white'
-              }`}>
+              <h2 className="text-fluid-heading font-medium tracking-wide text-white">
                 {t('financial_summary')}
               </h2>
               <span className="text-white/30 font-normal text-xs">·</span>
-              <span className={`text-xs font-normal ${
-                isLight ? 'text-slate-700' : 'text-neutral-300'
-              }`}>
+              <span className="text-xs font-normal text-neutral-300">
                 {t('project_settlement')}
               </span>
             </div>
-            <p className={`text-xs font-normal mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>
+            <p className="text-xs font-normal mt-0.5 text-neutral-300">
               {activeSpace.name}
               {memberCount ? ` · ${memberCount}${language === 'ko' ? '명 참여' : language === 'ja' ? '名参加' : ' members'}` : ''}
               {activeSpace.startDate && activeSpace.endDate ? ` · ${activeSpace.startDate} ~ ${activeSpace.endDate}` : ''}
@@ -180,30 +190,18 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           <div id="financial-status-indicator">
             {budget && budget > 0 ? (
               isOverBudget ? (
-                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border tabular-nums transition-all ${
-                  isLight 
-                    ? 'bg-neutral-100 text-neutral-700 border-neutral-200' 
-                    : 'bg-white/[0.06] border border-white/15 text-neutral-200'
-                }`}>
+                <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono tabular-nums transition-all bg-white/[0.06] border border-white/15 text-neutral-200">
                   <span>{t('status_over')}</span>
                   <span className="text-[10px] opacity-75 ml-1">(+{burnPercent - 100}%)</span>
                 </div>
               ) : (
-                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border tabular-nums transition-all ${
-                  isLight 
-                    ? 'bg-neutral-100 text-neutral-800 border-neutral-200' 
-                    : 'bg-white/[0.06] border border-white/15 text-neutral-200'
-                }`}>
+                <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono tabular-nums transition-all bg-white/[0.06] border border-white/15 text-neutral-200">
                   <span>{t('status_maintained')}</span>
                   <span className="text-[10px] opacity-75 ml-1">({Math.max(0, 100 - burnPercent)}% {language === 'ko' ? '잔여' : language === 'ja' ? '残り' : 'left'})</span>
                 </div>
               )
             ) : (
-              <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border ${
-                isLight 
-                  ? 'bg-neutral-100 text-neutral-700 border-neutral-200' 
-                  : 'bg-white/[0.06] border border-white/15 text-neutral-300'
-              }`}>
+              <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border bg-white/[0.06] border-white/15 text-neutral-300">
                 <span>{count > 0 ? `${count} items` : t('empty_ledger_title')}</span>
               </div>
             )}
@@ -211,14 +209,10 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         </div>
 
         {/* 3-Metrics Grid for Project State */}
-        <div className={`grid grid-cols-2 gap-4 pt-3.5 border-t ${
-          isLight ? 'border-slate-200/60' : 'border-t border-white/[0.06]'
-        }`}>
+        <div className="grid grid-cols-2 gap-4 pt-3.5 border-t border-t border-white/[0.06]">
           {/* Hero: Total Spending in Project */}
           <div className="col-span-2 flex flex-col justify-start min-w-0">
-            <span className={`text-xs font-normal truncate ${
-              isLight ? 'text-slate-700' : 'text-neutral-200'
-            }`}>
+            <span className="text-xs font-normal truncate text-neutral-200">
               {t('filter_expense')}
             </span>
             <div className="mt-1.5 flex flex-col justify-start min-w-0">
@@ -242,16 +236,12 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
 
           {/* Target Budget */}
           <div className="col-span-1 flex flex-col justify-between min-w-0">
-            <span className={`text-xs font-normal truncate ${
-              isLight ? 'text-slate-700' : 'text-neutral-200'
-            }`}>
+            <span className="text-xs font-normal truncate text-neutral-200">
               {t('project_budget')}
             </span>
             <div className={`mt-1.5 flex items-baseline whitespace-nowrap tabular-nums min-w-0 ${isStealth ? 'blur-xs select-none' : ''}`}>
               <span className="text-base font-normal text-neutral-300 mr-1 whitespace-nowrap">{currSymbol}</span>
-              <span className={`text-base sm:text-lg md:text-xl font-normal tabular-nums whitespace-nowrap ${
-                isLight ? 'text-slate-800' : 'text-white'
-              }`}>
+              <span className="text-base sm:text-lg md:text-xl font-normal tabular-nums whitespace-nowrap text-white">
                 {budget ? budget.toLocaleString() : '-'}
               </span>
             </div>
@@ -259,18 +249,14 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
 
           {/* Per-Person Share or Remaining Budget */}
           <div className="col-span-1 flex flex-col justify-between min-w-0">
-            <span className={`text-xs font-normal truncate ${
-              isLight ? 'text-slate-700' : 'text-neutral-200'
-            }`}>
+            <span className="text-xs font-normal truncate text-neutral-200">
               {memberCount && memberCount > 0 ? t('per_person_share') : t('remaining_budget')}
             </span>
             <div className={`flex flex-wrap items-baseline gap-1 mt-1.5 whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
               {memberCount && memberCount > 0 ? (
                 <div className="flex items-baseline gap-1">
                   <span className="text-base font-normal text-neutral-300">{currSymbol}</span>
-                  <span className={`text-sm md:text-base tracking-tight tabular-nums whitespace-nowrap font-medium ${
-                    isLight ? 'text-slate-800' : 'text-white'
-                  }`}>
+                  <span className="text-sm md:text-base tracking-tight tabular-nums whitespace-nowrap font-medium text-white">
                     {perPersonShare !== undefined ? perPersonShare.toLocaleString() : '0'}
                   </span>
                   <span className="text-xs text-neutral-300 font-normal">/p</span>
@@ -281,7 +267,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
                   <span className={`text-sm md:text-base tracking-tight tabular-nums whitespace-nowrap font-medium ${
                     remainingBudget < 0
                       ? 'text-amber-400 font-semibold'
-                      : isLight ? 'text-slate-800' : 'text-white'
+                      : 'text-white'
                   }`}>
                     {remainingBudget.toLocaleString()}
                   </span>
@@ -337,29 +323,21 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   return (
     <section 
       id="financial-summary-card"
-      className={`relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl ${
-        isLight 
-          ? 'bg-white/85 border border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
-          : 'bg-[#121318]/90 backdrop-blur-xl border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white'
-      }`}
+      className="relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl bg-[#121318]/90 border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white"
     >
       {/* Top Header: Title & Subtle Status Badge */}
       <div className="flex items-center justify-between pb-3.5">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className={`text-fluid-heading font-medium tracking-wide ${
-              isLight ? 'text-slate-900' : 'text-white'
-            }`}>
+            <h2 className="text-fluid-heading font-medium tracking-wide text-white">
               {t('financial_summary')}
             </h2>
             <span className="text-white/30 font-normal text-xs">·</span>
-            <span className={`text-xs font-normal ${
-              isLight ? 'text-slate-700' : 'text-neutral-300'
-            }`}>
+            <span className="text-xs font-normal text-neutral-300">
               {t('monthly_comparison')}
             </span>
           </div>
-          <p className={`text-xs font-normal mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>
+          <p className="text-xs font-normal mt-0.5 text-neutral-300">
             {prevMonthName} ➔ {currentMonthName} ({t('vs_previous_month')})
           </p>
         </div>
@@ -367,33 +345,21 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
         {/* Quiet Luxury Status Indicator */}
         <div id="financial-status-indicator">
           {diff !== 0 && status === 'better' && (
-            <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border tabular-nums transition-all ${
-              isLight 
-                ? 'bg-neutral-100 text-neutral-800 border-neutral-200' 
-                : 'bg-white/[0.06] border border-white/15 text-neutral-200'
-            }`}>
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border tabular-nums transition-all bg-white/[0.06] border-white/15 text-neutral-200">
               <span>{t('status_saving')}</span>
               <span className="text-[10px] opacity-75 ml-1">(-{percentChange}%)</span>
             </div>
           )}
 
           {diff !== 0 && status === 'worse' && (
-            <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border tabular-nums transition-all ${
-              isLight 
-                ? 'bg-neutral-100 text-neutral-700 border-neutral-200' 
-                : 'bg-white/[0.06] border border-white/15 text-neutral-200'
-            }`}>
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border tabular-nums transition-all bg-white/[0.06] border-white/15 text-neutral-200">
               <span>{t('status_over')}</span>
               <span className="text-[10px] opacity-75 ml-1">(+{percentChange}%)</span>
             </div>
           )}
 
           {(diff === 0 || status === 'neutral') && (
-            <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border ${
-              isLight 
-                ? 'bg-slate-100 text-slate-700 border-slate-200' 
-                : 'bg-white/[0.06] border border-white/15 text-neutral-300'
-            }`}>
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border bg-white/[0.06] border-white/15 text-neutral-300">
               <span>{t('status_maintained')}</span>
             </div>
           )}
@@ -401,14 +367,10 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
       </div>
 
       {/* Comparison metrics grid */}
-      <div className={`grid grid-cols-2 gap-4 pt-3.5 border-t ${
-        isLight ? 'border-slate-200/60' : 'border-t border-white/[0.06]'
-      }`}>
+      <div className="grid grid-cols-2 gap-4 pt-3.5 border-t border-t border-white/[0.06]">
         {/* Current Month Spending (Top hero row) */}
         <div className="col-span-2 flex flex-col justify-start min-w-0">
-          <span className={`text-xs font-normal truncate ${
-            isLight ? 'text-slate-700' : 'text-neutral-200'
-          }`}>
+          <span className="text-xs font-normal truncate text-neutral-200">
             {t('this_month')} ({currentMonthName})
           </span>
           <div className="mt-1.5 flex flex-col justify-start min-w-0">
@@ -432,16 +394,12 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
 
         {/* Previous Month Spending (Bottom left column) */}
         <div className="col-span-1 flex flex-col justify-between min-w-0">
-          <span className={`text-xs font-normal truncate ${
-            isLight ? 'text-slate-700' : 'text-neutral-200'
-          }`}>
+          <span className="text-xs font-normal truncate text-neutral-200">
             {t('last_month')} ({prevMonthName})
           </span>
           <div className={`mt-1.5 flex items-baseline whitespace-nowrap tabular-nums min-w-0 ${isStealth ? 'blur-xs select-none' : ''}`}>
             <span className="text-base font-normal text-neutral-300 mr-1 whitespace-nowrap">{currSymbol}</span>
-            <span className={`text-base sm:text-lg md:text-xl font-normal tabular-nums whitespace-nowrap ${
-              isLight ? 'text-slate-800' : 'text-neutral-200'
-            }`}>
+            <span className="text-base sm:text-lg md:text-xl font-normal tabular-nums whitespace-nowrap text-neutral-200">
               {prevSpending.toLocaleString()}
             </span>
           </div>
@@ -449,28 +407,52 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
 
         {/* Difference Amount (Bottom right column) */}
         <div className="col-span-1 flex flex-col justify-between min-w-0">
-          <span className={`text-xs font-normal truncate ${
-            isLight ? 'text-slate-700' : 'text-neutral-200'
-          }`}>
+          <span className="text-xs font-normal truncate text-neutral-200">
             {t('vs_previous_month')}
           </span>
           <div className={`flex flex-wrap items-baseline gap-1 mt-1.5 whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
             <span className={`text-sm md:text-base tracking-tight tabular-nums whitespace-nowrap font-medium ${
               diff === 0
-                ? (isLight ? 'text-slate-800' : 'text-neutral-200')
+                ? 'text-neutral-200'
                 : status === 'better'
-                ? (isLight ? 'text-neutral-800' : 'text-sky-400')
-                : (isLight ? 'text-slate-900 font-semibold' : 'text-amber-400 font-semibold')
+                ? 'text-sky-400'
+                : 'text-amber-400 font-semibold'
             }`}>
               {diff > 0 ? '+' : diff < 0 ? '-' : ''}{currSymbol} {Math.abs(diff).toLocaleString()}
             </span>
             {diff !== 0 && percentChange > 0 && (
-              <span className={`text-xs font-normal tabular-nums whitespace-nowrap ${
-                isLight ? 'text-neutral-700' : 'text-neutral-300'
-              }`}>
+              <span className="text-xs font-normal tabular-nums whitespace-nowrap text-neutral-300">
                 ({diff < 0 ? '▼' : '▲'}{percentChange}%)
               </span>
             )}
+          </div>
+        </div>
+
+        {/* Safe-to-Spend Today Metric (오늘 권장 지출 한도 · Safe-to-Spend) */}
+        <div className="col-span-2 pt-3.5 mt-1 border-t border-white/[0.06] flex items-center justify-between min-w-0">
+          <div className="flex flex-col justify-start min-w-0 pr-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-normal text-neutral-200">
+                오늘 권장 지출 한도
+              </span>
+              <span className="text-white/20 text-[10px]">·</span>
+              <span className="text-[11px] font-mono text-neutral-400">
+                Safe-to-Spend
+              </span>
+            </div>
+            <span className="text-[11px] font-light text-neutral-400 mt-0.5 tabular-nums truncate">
+              {safeToSpendData.targetPool > 0
+                ? `남은 ${safeToSpendData.remainingDays}일 기준 가용액 (월풀 ${currSymbol}${safeToSpendData.targetPool.toLocaleString()})`
+                : `남은 ${safeToSpendData.remainingDays}일 기준 일일 지출 페이스`}
+            </span>
+          </div>
+
+          <div className={`flex items-baseline whitespace-nowrap tabular-nums text-right shrink-0 ${isStealth ? 'blur-xs select-none' : ''}`}>
+            <span className="text-xs font-normal text-neutral-400 mr-1 whitespace-nowrap">{currSymbol}</span>
+            <span className="text-base sm:text-lg font-medium font-mono tracking-tight tabular-nums text-white">
+              {safeToSpendData.safeToSpendToday.toLocaleString()}
+            </span>
+            <span className="text-[11px] font-normal text-neutral-400 ml-1">/일</span>
           </div>
         </div>
       </div>

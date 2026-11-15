@@ -386,9 +386,9 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                 )}
               </div>
 
-              {/* Ollama Connection Status Badge & CORS Help */}
+              {/* Ollama Connection Status Badge & CORS / Mixed Content Help */}
               {ollamaStatus.status && (
-                <div className={`text-xs p-3 rounded-xl border space-y-1.5 ${
+                <div className={`text-xs p-3 rounded-xl border space-y-2 ${
                   ollamaStatus.status === 'connected'
                     ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                     : 'bg-amber-500/10 text-amber-200 border-amber-500/20'
@@ -403,17 +403,44 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                   </div>
 
                   {ollamaStatus.status === 'error' && (
-                    <div className="pt-1 border-t border-amber-500/15 text-[11px] font-mono leading-relaxed space-y-1">
-                      <div className="text-neutral-400 font-sans">
-                        브라우저 보안(CORS) 허용을 위해 터미널에서 다음 환경변수를 지정하여 Ollama를 실행해 주세요:
+                    <div className="pt-1.5 border-t border-amber-500/15 text-[11px] font-mono leading-relaxed space-y-2">
+                      <div className="space-y-1">
+                        <div className="text-neutral-300 font-sans">
+                          브라우저 보안(CORS) 허용을 위해 터미널에서 다음 환경변수를 지정하여 Ollama를 실행해 주세요:
+                        </div>
+                        <div className="px-2 py-1 rounded bg-black/40 text-amber-300 select-all font-light">
+                          OLLAMA_ORIGINS="*" ollama serve
+                        </div>
                       </div>
-                      <div className="px-2 py-1 rounded bg-black/40 text-amber-300 select-all font-light">
-                        OLLAMA_ORIGINS="*" ollama serve
+                      <div className="text-amber-200/90 font-sans leading-relaxed pt-1 border-t border-amber-500/10">
+                        HTTPS 환경에서는 브라우저가 HTTP localhost 요청(Mixed Content)을 차단할 수 있습니다. 로컬 데스크톱 앱을 사용하거나 브라우저 플래그(
+                        <code className="px-1 py-0.5 rounded bg-black/40 text-amber-300 font-mono select-all">
+                          chrome://flags/#allow-insecure-localhost
+                        </code>
+                        )에서 안전하지 않은 localhost 허용 설정이 필요할 수 있습니다.
                       </div>
                     </div>
                   )}
                 </div>
               )}
+
+              {/* Proactive HTTPS Mixed Content Advisory when targeting HTTP localhost */}
+              {ollamaStatus.status !== 'error' &&
+                ollamaStatus.status !== 'connected' &&
+                typeof window !== 'undefined' &&
+                window.location.protocol === 'https:' &&
+                /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(ollamaEndpoint.trim()) && (
+                  <div className="text-[11px] p-3 rounded-xl border bg-amber-500/10 text-amber-200 border-amber-500/20 flex items-start gap-2 leading-relaxed">
+                    <AlertTriangle size={14} className="shrink-0 text-amber-400 mt-0.5" />
+                    <div>
+                      HTTPS 환경에서는 브라우저가 HTTP localhost 요청(Mixed Content)을 차단할 수 있습니다. 로컬 데스크톱 앱을 사용하거나 브라우저 플래그(
+                      <code className="px-1 py-0.5 rounded bg-black/40 text-amber-300 font-mono select-all">
+                        chrome://flags/#allow-insecure-localhost
+                      </code>
+                      )에서 안전하지 않은 localhost 허용 설정이 필요할 수 있습니다.
+                    </div>
+                  </div>
+                )}
             </div>
           )}
 

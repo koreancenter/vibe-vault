@@ -123,7 +123,7 @@ export function useAutonomousEngine({
   const monthlySubscriptionTotal = useMemo(() => {
     return detectedSubscriptions
       .filter(s => s.isActive)
-      .reduce((acc, curr) => acc + curr.normalizedMonthlyAmount, 0);
+      .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
   }, [detectedSubscriptions]);
 
   /**
@@ -149,7 +149,7 @@ export function useAutonomousEngine({
 
   const hasLiquidityWarning = useMemo(() => {
     if (!cashflowForecast) return false;
-    return cashflowForecast.deficitDay !== null || cashflowForecast.projectedMonthEndBalance < 0;
+    return cashflowForecast.status === 'DEFICIT_WARNING' || cashflowForecast.projectedMonthEndBalance < 0;
   }, [cashflowForecast]);
 
   return {

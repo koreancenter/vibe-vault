@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { LedgerSpace, Transaction } from '../types';
 import { format, parseISO } from 'date-fns';
-import { getCurrencySymbol } from '../utils';
+import { getCurrencySymbol, sanitizeCsvCell } from '../utils';
 import { useI18n } from '../i18n';
 
 interface EventSettlementReportModalProps {
@@ -27,8 +27,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
   onUpdateSpace,
   theme = 'dark'
 }) => {
-  const { t, getLocalizedCategory } = useI18n();
-  const isLight = theme === 'light';
+  const { t, getLocalizedCategory, language } = useI18n();
 
   // Allow inline editing of member count for settlement recalculation
   const [memberCount, setMemberCount] = useState<number>(() => {
@@ -88,7 +87,8 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
         income: incomeAmt,
         expense: expenseAmt,
         runningBalance: running,
-        note: tx.note || tx.paymentMethod || '-'
+        note: tx.note || tx.paymentMethod || '-',
+        paidBy: tx.paidBy
       };
     });
 
@@ -104,6 +104,90 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
   const activeMembers = Math.max(1, memberCount);
   const perPersonExpense = Math.round(totalExpense / activeMembers);
   const perPersonNet = Math.round(finalBalance / activeMembers);
+
+  // Multi-Payer Minimum Cashflow Transfer Settlement Engine (선결제자 기반 최소 송금 정산)
+  const multiPayerSettlement = useMemo(() => {
+    const defaultUserName = language === 'ko' ? '나' : 'Me';
+    const payerMap: Record<string, number> = {};
+    const expenseTxs = chronologicalTxs.filter(t => t.type === 'EXPENSE');
+
+    for (const tx of expenseTxs) {
+      const payer = (tx.paidBy || defaultUserName).trim();
+      payerMap[payer] = (payerMap[payer] || 0) + tx.amount;
+    }
+
+    if (payerMap[defaultUserName] === undefined) {
+      payerMap[defaultUserName] = 0;
+    }
+
+    const allMembers: string[] = [...Object.keys(payerMap)];
+    let extraIndex = 1;
+    while (allMembers.length < activeMembers) {
+      const candidate = language === 'ko' ? `참여자 ${extraIndex + 1}` : `Participant ${extraIndex + 1}`;
+      if (!allMembers.includes(candidate)) {
+        allMembers.push(candidate);
+        payerMap[candidate] = 0;
+      }
+      extraIndex++;
+    }
+
+    const effectiveMemberCount = Math.max(1, allMembers.length);
+    const fairShare = Math.round(totalExpense / effectiveMemberCount);
+
+    const memberBalances = allMembers.map(member => {
+      const totalPaid = payerMap[member] || 0;
+      const netBalance = totalPaid - fairShare;
+      return {
+        member,
+        totalPaid,
+        fairShare,
+        netBalance
+      };
+    });
+
+    // Greedy Two-Pointer Minimum Transfer Algorithm
+    const creditors = memberBalances
+      .filter(m => m.netBalance > 0)
+      .map(m => ({ member: m.member, remaining: m.netBalance }))
+      .sort((a, b) => b.remaining - a.remaining);
+
+    const debtors = memberBalances
+      .filter(m => m.netBalance < 0)
+      .map(m => ({ member: m.member, remaining: Math.abs(m.netBalance) }))
+      .sort((a, b) => b.remaining - a.remaining);
+
+    const transferInstructions: Array<{ from: string; to: string; amount: number }> = [];
+
+    let cIdx = 0;
+    let dIdx = 0;
+
+    while (cIdx < creditors.length && dIdx < debtors.length) {
+      const creditor = creditors[cIdx];
+      const debtor = debtors[dIdx];
+
+      const amount = Math.min(debtor.remaining, creditor.remaining);
+      if (amount > 0) {
+        transferInstructions.push({
+          from: debtor.member,
+          to: creditor.member,
+          amount: Math.round(amount)
+        });
+      }
+
+      debtor.remaining -= amount;
+      creditor.remaining -= amount;
+
+      if (debtor.remaining <= 0.5) dIdx++;
+      if (creditor.remaining <= 0.5) cIdx++;
+    }
+
+    return {
+      allMembers,
+      memberBalances,
+      transferInstructions,
+      fairSharePerPerson: fairShare
+    };
+  }, [chronologicalTxs, activeMembers, totalExpense, language]);
 
   if (!isOpen) return null;
 
@@ -135,9 +219,10 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
       const incStr = r.income > 0 ? `+${r.income}` : '';
       const expStr = r.expense > 0 ? `-${r.expense}` : '';
       const dateFormatted = format(parseISO(r.date), 'yyyy.MM.dd HH:mm');
-      const safeDesc = (r.description || '').replace(/"/g, '""');
-      const safeNote = (r.note || '').replace(/"/g, '""');
-      csv += `"${r.no}","${dateFormatted}","${r.category}","${safeDesc}","${incStr}","${expStr}","${r.runningBalance}","${safeNote}"\r\n`;
+      const safeCategory = sanitizeCsvCell(r.category || '');
+      const safeDesc = sanitizeCsvCell(r.description || '');
+      const safeNote = sanitizeCsvCell(r.note || '');
+      csv += `"${r.no}","${dateFormatted}","${safeCategory}","${safeDesc}","${incStr}","${expStr}","${r.runningBalance}","${safeNote}"\r\n`;
     });
 
     csv += `\r\n`;
@@ -145,7 +230,14 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
     csv += `${t('total_expense_sum')},,,,,-${totalExpense},,\r\n`;
     csv += `${t('final_balance')},,,,,${finalBalance},,\r\n`;
     csv += `${t('per_person_actual_cost')} (${t('total_expense')} ÷ ${activeMembers}),,,,,${perPersonExpense},,\r\n`;
-    csv += `${t('per_person_settlement_title')} (${t('final_balance')} ÷ ${activeMembers}),,,,,${perPersonNet},,\r\n`;
+    csv += `${t('per_person_settlement_title')} (${t('final_balance')} ÷ ${activeMembers}),,,,,${perPersonNet},,\r\n\r\n`;
+
+    // Minimum Transfer Settlement Plan CSV Section
+    csv += `${language === 'ko' ? '선결제자 기반 최소 송금 정산표' : 'Minimum Transfer Settlement Plan'}\r\n`;
+    csv += `${language === 'ko' ? '보내는 사람,받는 사람,송금 금액' : 'From,To,Amount'}\r\n`;
+    multiPayerSettlement.transferInstructions.forEach((ins) => {
+      csv += `"${sanitizeCsvCell(ins.from)}","${sanitizeCsvCell(ins.to)}","${ins.amount}"\r\n`;
+    });
 
     const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -215,11 +307,7 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
       >
         <div 
           id="printable-settlement-modal"
-          className={`w-full max-w-4xl rounded-3xl border shadow-2xl flex flex-col my-auto transition-colors ${
-            isLight 
-              ? 'bg-white border-slate-200 text-slate-900 shadow-slate-300/60' 
-              : 'bg-[#0E1524] border-white/10 text-white shadow-2xl'
-          }`}
+          className="w-full max-w-4xl rounded-3xl border shadow-2xl flex flex-col my-auto transition-colors bg-[#0E1524] border-white/10 text-white"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top Interactive Screen Bar (Hidden on print) */}
@@ -387,7 +475,12 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                             {row.category}
                           </td>
                           <td className="py-2 px-3 text-white print:text-black font-medium border-r border-white/5 print:border-gray-300">
-                            {row.description}
+                            <div>{row.description}</div>
+                            {row.paidBy && row.paidBy !== '나' && (
+                              <div className="text-[10px] text-sky-400 print:text-gray-700 font-mono mt-0.5">
+                                선결제: {row.paidBy}
+                              </div>
+                            )}
                           </td>
                           <td className="py-2 px-3 text-right font-medium tabular-nums text-sky-400 print:text-black border-r border-white/5 print:border-gray-300">
                             {row.income > 0 ? `+${currencySymbol}${row.income.toLocaleString()}` : ''}
@@ -512,6 +605,118 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* 5. MULTI-PAYER MINIMUM CASHFLOW TRANSFER PLAN (선결제자 기반 최소 송금 정산표) */}
+            <div className="mt-6 p-5 sm:p-6 rounded-2xl border border-white/10 print:border-black bg-white/[0.02] print:bg-white space-y-4 print-break-inside-avoid">
+              <div className="border-b border-white/10 print:border-gray-300 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-bold tracking-tight text-white print:text-black">
+                      {language === 'ko' ? '선결제자 기반 최소 송금 정산표' : 'Minimum Cashflow Transfer Plan'}
+                    </h2>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 print:border-gray-400 print:text-black">
+                      {multiPayerSettlement.transferInstructions.length}건 송금
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 print:text-gray-600 mt-0.5">
+                    {language === 'ko'
+                      ? '참여자별 선결제액과 공평 분담액을 상계하여 최소 횟수로 모든 정산을 완료하는 최적 송금 계획입니다.'
+                      : 'Optimal settlement instructions minimizing total transactions between payers and participants.'}
+                  </p>
+                </div>
+                <div className="text-xs text-slate-400 print:text-gray-700 font-mono">
+                  1인당 분담: <strong className="text-white print:text-black">{currencySymbol}{multiPayerSettlement.fairSharePerPerson.toLocaleString()}</strong>
+                </div>
+              </div>
+
+              {/* Member Net Balances Table */}
+              <div className="overflow-x-auto rounded-xl border border-white/10 print:border-gray-400">
+                <table className="w-full text-left border-collapse text-xs print:text-[11px]">
+                  <thead>
+                    <tr className="bg-white/[0.04] print:bg-gray-100 text-slate-300 print:text-black font-semibold border-b border-white/10 print:border-gray-400">
+                      <th className="py-2.5 px-3 border-r border-white/5 print:border-gray-300">
+                        {language === 'ko' ? '참여자 / 선결제자' : 'Participant'}
+                      </th>
+                      <th className="py-2.5 px-3 text-right border-r border-white/5 print:border-gray-300">
+                        {language === 'ko' ? '선결제 총액' : 'Total Paid'}
+                      </th>
+                      <th className="py-2.5 px-3 text-right border-r border-white/5 print:border-gray-300">
+                        {language === 'ko' ? '공평 분담액' : 'Fair Share'}
+                      </th>
+                      <th className="py-2.5 px-3 text-right">
+                        {language === 'ko' ? '정산 결과 (순 잔액)' : 'Net Settlement'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 print:divide-gray-300">
+                    {multiPayerSettlement.memberBalances.map((m) => (
+                      <tr key={m.member} className="hover:bg-white/[0.02] print:hover:bg-transparent">
+                        <td className="py-2 px-3 font-medium text-white print:text-black border-r border-white/5 print:border-gray-300">
+                          {m.member}
+                        </td>
+                        <td className="py-2 px-3 text-right tabular-nums text-slate-300 print:text-black border-r border-white/5 print:border-gray-300">
+                          {currencySymbol}{m.totalPaid.toLocaleString()}
+                        </td>
+                        <td className="py-2 px-3 text-right tabular-nums text-slate-300 print:text-black border-r border-white/5 print:border-gray-300">
+                          {currencySymbol}{m.fairShare.toLocaleString()}
+                        </td>
+                        <td className="py-2 px-3 text-right tabular-nums font-bold">
+                          {m.netBalance > 0 ? (
+                            <span className="text-sky-400 print:text-black">
+                              +{currencySymbol}{m.netBalance.toLocaleString()} {language === 'ko' ? '(받을 돈)' : '(to receive)'}
+                            </span>
+                          ) : m.netBalance < 0 ? (
+                            <span className="text-amber-400 print:text-black">
+                              -{currencySymbol}{Math.abs(m.netBalance).toLocaleString()} {language === 'ko' ? '(보낼 돈)' : '(to send)'}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 print:text-black">
+                              {currencySymbol}0 {language === 'ko' ? '(정산 완료)' : '(settled)'}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Exact Transfer Execution Instructions */}
+              <div className="pt-2">
+                <span className="text-xs font-semibold text-slate-300 print:text-black block mb-2">
+                  {language === 'ko' ? '최적 송금 실행 안내 (Transfer Actions)' : 'Direct Transfer Actions'}
+                </span>
+
+                {multiPayerSettlement.transferInstructions.length === 0 ? (
+                  <div className="p-4 rounded-xl border border-white/10 print:border-gray-400 bg-white/[0.02] print:bg-gray-50 text-center text-xs text-slate-400 print:text-gray-600">
+                    {language === 'ko' ? '모든 참여자의 정산 잔액이 0원으로 완전히 일치하여 송금이 필요하지 않습니다.' : 'All member balances are perfectly settled. No transfers required.'}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {multiPayerSettlement.transferInstructions.map((t, idx) => (
+                      <div
+                        key={`${t.from}-${t.to}-${idx}`}
+                        className="p-3.5 rounded-xl border border-white/10 print:border-gray-400 bg-black/20 print:bg-gray-50 flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className="font-semibold text-white print:text-black">{t.from}</span>
+                          <span className="text-slate-500 print:text-gray-600 text-xs">➔</span>
+                          <span className="font-semibold text-sky-400 print:text-black">{t.to}</span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-mono font-bold text-white print:text-black tabular-nums">
+                            {currencySymbol}{t.amount.toLocaleString()}
+                          </span>
+                          <span className="text-[11px] text-slate-400 print:text-gray-600 ml-1">
+                            {language === 'ko' ? '송금' : 'transfer'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

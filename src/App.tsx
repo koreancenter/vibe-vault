@@ -1,14 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
 import { 
-  parseFinancialInputDeterministically, 
-  parseFinancialText,
-  ParsedItem,
   inferCategoryAndMerchant,
-  detectPeerDebt,
-  planPeerDebtUpdate,
-  findRefundTarget,
-  buildLinkedRefund,
-  PeerDebtEvent
 } from './financialParser';
 import { DebtItem, CurrencyCode, Transaction, TransactionType, SupportedCurrency, FxRates, ParsedReceiptData, LaunchScreenMode, LedgerSpace, FinancialQueryResult } from './types';
 import { isFxRatesPayload } from './fxRates';
@@ -35,28 +27,40 @@ import {
 import { format, parseISO } from 'date-fns';
 import { cleanMerchantTitle } from './merchantSanitizer';
 import { 
-  getAIEngineConfig, 
   getCategoryKo, 
   getPaymentMethodKo,
   DEFAULT_FX_RATES,
   getCurrencySymbol,
   getUserActiveCurrencies,
-  convertCurrency
+  convertCurrency,
+  sanitizeCsvCell,
+  getAIEngineConfig
 } from './utils';
-import { saveDebt, getAllDebts, getAllAssetAccounts, loadSampleData, ensureCleanSlateIfGuest, getSpaces, createSpace, deleteSpace, DEFAULT_SPACE } from './db';
-import { commitAutonomousLoanSplit, commitAutonomousReceivableRecovery, executeFinancialQuery } from './autonomousFinance';
+import { 
+  loadSampleData, 
+  ensureCleanSlateIfGuest, 
+  getSpaces, 
+  createSpace, 
+  deleteSpace, 
+  DEFAULT_SPACE,
+  getPendingScans,
+  deletePendingScan,
+  notifyVaultDataChanged
+} from './db';
+import { parseReceiptWithResilience } from './autonomousFinance';
 
 // Architectural Domain Custom Hooks
 import { useTransactions, LedgerFilterType } from './hooks/useTransactions';
 import { useBudgetAnalytics } from './hooks/useBudgetAnalytics';
 import { useAutonomousEngine } from './hooks/useAutonomousEngine';
+import { useOmnibarController } from './hooks/useOmnibarController';
 
 // Extracted Modals and Visual Modules
 import { FinancialSummaryCard } from './components/FinancialSummaryCard';
 import { PWAInstallBanner } from './components/PWAInstallButton';
 import { VaultOverviewSection } from './components/VaultOverviewSection';
 import { VaultLockScreen } from './components/VaultLockScreen';
-import { OmnibarDock } from './components/OmnibarDock';
+import { OmnibarDock, type RealtimePreviewData } from './components/OmnibarDock';
 import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault, subscribeVaultLock } from './vaultSecurity';
 import { I18nProvider, useI18n, DEFAULT_CURRENCY_BY_LANGUAGE } from './i18n';
 
@@ -114,11 +118,6 @@ const EXAMPLE_PROMPTS = [
   { text: '이번 달 월급 3,500,000원 기업은행 입금', category: '수입' },
   { text: '주택청약 통장으로 150만원 자동이체', category: '저축 / 이체' },
 ];
-
-async function applyPeerDebt(event: PeerDebtEvent, debts: DebtItem[], currency?: string): Promise<void> {
-  const planned = planPeerDebtUpdate(event, debts, (currency as CurrencyCode) || 'KRW');
-  if (planned) await saveDebt(planned);
-}
 
 function AppInner() {
   const { t, language } = useI18n();
@@ -224,16 +223,8 @@ function AppInner() {
   });
 
   // ---------------------------------------------------------------------------
-  // 5. Omnibar, Speech Recognition & UI Interaction States
+  // 5. Toast Notifications & Mode States
   // ---------------------------------------------------------------------------
-  const [input, setInput] = useState('');
-  const [isOmnibarFocused, setIsOmnibarFocused] = useState(false);
-  const isTypingInOmnibar = input.trim().length > 0 || isOmnibarFocused;
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [activeQueryResult, setActiveQueryResult] = useState<FinancialQueryResult | null>(null);
-  const [isQuerying, setIsQuerying] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -279,27 +270,6 @@ function AppInner() {
     };
   }, []);
 
-  const handleUnlocked = useCallback(() => {
-    setIsVaultLockedState(false);
-    loadTransactions();
-  }, [loadTransactions]);
-
-  // Ephemeral Guest Mode Startup Check
-  useEffect(() => {
-    const initializeVault = async () => {
-      await ensureCleanSlateIfGuest();
-      if (!hasVaultPin() && !isVaultLocked()) {
-        const result = await unlockVault();
-        if (!result.success) {
-          throw new Error(result.error || '금고 초기화에 실패했습니다.');
-        }
-      }
-    };
-    initializeVault().catch((err: unknown) => {
-      console.error('Vault initialization failed:', err);
-    });
-  }, []);
-
   // ---------------------------------------------------------------------------
   // Multi-Ledger Spaces State (프로젝트 / 행사 장부)
   // ---------------------------------------------------------------------------
@@ -329,6 +299,112 @@ function AppInner() {
   useEffect(() => {
     refreshSpaces();
   }, [refreshSpaces]);
+
+  const isSyncingPendingScansRef = useRef(false);
+
+  const processPendingScansOnReconnect = useCallback(async () => {
+    if (isSyncingPendingScansRef.current) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    if (isVaultLocked()) return;
+
+    isSyncingPendingScansRef.current = true;
+    try {
+      const queuedItems = await getPendingScans();
+      if (!queuedItems || queuedItems.length === 0) return;
+
+      let processedCount = 0;
+      const engineConfig = getAIEngineConfig();
+
+      for (const scan of queuedItems) {
+        try {
+          const result = await parseReceiptWithResilience({
+            imageBase64: scan.imageBase64,
+            mimeType: scan.mimeType || 'image/webp',
+            engineConfig,
+            defaultCurrency: currentCurrency,
+            maxRetries: 2
+          });
+
+          const merchantTitle = result.receipt.merchantName || result.receipt.merchant || '영수증 스캔 지출';
+          const newTx: Transaction = {
+            id: generateSecureId('tx-receipt'),
+            type: 'EXPENSE',
+            amount: Math.abs(result.receipt.totalAmount) || 0,
+            currency: (result.receipt.currency as SupportedCurrency) || currentCurrency,
+            category: result.receipt.category || result.receipt.suggestedCategory || 'Living',
+            subCategory: 'Receipt',
+            description: `${merchantTitle} (영수증)`,
+            date: result.receipt.date ? new Date(result.receipt.date).toISOString() : new Date().toISOString(),
+            paymentMethod: result.receipt.paymentMethod || '카드결제',
+            spaceId: scan.spaceId || activeSpaceId || 'default',
+          };
+
+          await addTx(newTx);
+          await deletePendingScan(scan.id);
+          processedCount += 1;
+        } catch (scanErr) {
+          console.warn('Failed to process offline pending scan:', scan.id, scanErr);
+        }
+      }
+
+      if (processedCount > 0) {
+        showToast(`오프라인 보관 영수증 ${processedCount}건이 자동 기장되었습니다.`);
+        notifyVaultDataChanged('offline_scans_synced');
+        loadTransactions();
+      }
+    } catch (err) {
+      console.error('Error in processPendingScansOnReconnect:', err);
+    } finally {
+      isSyncingPendingScansRef.current = false;
+    }
+  }, [activeSpaceId, addTx, currentCurrency, loadTransactions, showToast]);
+
+  const handleUnlocked = useCallback(() => {
+    setIsVaultLockedState(false);
+    loadTransactions();
+    processPendingScansOnReconnect();
+  }, [loadTransactions, processPendingScansOnReconnect]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      processPendingScansOnReconnect();
+    };
+
+    const handleQueuedOffline = (e: Event) => {
+      const custom = e as CustomEvent<{ message: string }>;
+      if (custom.detail?.message) {
+        showToast(custom.detail.message);
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('vibe-scan-queued-offline', handleQueuedOffline);
+
+    if (typeof navigator !== 'undefined' && navigator.onLine && !isVaultLocked()) {
+      processPendingScansOnReconnect();
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('vibe-scan-queued-offline', handleQueuedOffline);
+    };
+  }, [processPendingScansOnReconnect, showToast]);
+
+  // Ephemeral Guest Mode Startup Check
+  useEffect(() => {
+    const initializeVault = async () => {
+      await ensureCleanSlateIfGuest();
+      if (!hasVaultPin() && !isVaultLocked()) {
+        const result = await unlockVault();
+        if (!result.success) {
+          throw new Error(result.error || '금고 초기화에 실패했습니다.');
+        }
+      }
+    };
+    initializeVault().catch((err: unknown) => {
+      console.error('Vault initialization failed:', err);
+    });
+  }, []);
 
   const activeSpace = useMemo(() => {
     return spaces.find(s => s.id === activeSpaceId) || DEFAULT_SPACE;
@@ -522,12 +598,12 @@ function AppInner() {
     const bom = '\uFEFF';
     let csv = `날짜,구분,카테고리,상세카테고리,내역,금액,통화,결제수단,비고\r\n`;
     list.forEach(t => {
-      const typeStr = t.type === 'EXPENSE' ? '지출' : t.type === 'INCOME' ? '수입' : t.type === 'TRANSFER' ? '이체' : '정산';
-      const catStr = getCategoryKo(t.category, t.subCategory);
-      const subCat = t.subCategory || '';
-      const safeDesc = (t.description || '').replace(/"/g, '""');
-      const safeNote = (t.note || '').replace(/"/g, '""');
-      const pay = t.paymentMethod || '';
+      const typeStr = sanitizeCsvCell(t.type === 'EXPENSE' ? '지출' : t.type === 'INCOME' ? '수입' : t.type === 'TRANSFER' ? '이체' : '정산');
+      const catStr = sanitizeCsvCell(getCategoryKo(t.category, t.subCategory));
+      const subCat = sanitizeCsvCell(t.subCategory || '');
+      const safeDesc = sanitizeCsvCell(t.description || '');
+      const safeNote = sanitizeCsvCell(t.note || '');
+      const pay = sanitizeCsvCell(t.paymentMethod || '');
       csv += `"${t.date}","${typeStr}","${catStr}","${subCat}","${safeDesc}",${t.amount},"${t.currency || activeSpace.currency || currentCurrency}","${pay}","${safeNote}"\r\n`;
     });
     const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
@@ -615,384 +691,43 @@ function AppInner() {
     }
   }, [removeTx]);
 
-  // Voice Input SpeechRecognition Toggle
-  const toggleListen = useCallback(() => {
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
-      return;
-    }
+  // ---------------------------------------------------------------------------
+  // 5. Omnibar & Conversational AI Query Controller
+  // ---------------------------------------------------------------------------
+  const {
+    input,
+    setInput,
+    isOmnibarFocused,
+    setIsOmnibarFocused,
+    isProcessing,
+    setIsProcessing,
+    isListening,
+    error,
+    setError,
+    activeQueryResult,
+    setActiveQueryResult,
+    isQuerying,
+    toggleListen,
+    handleRunFinancialQuery,
+    handleProcessInput,
+    realtimePreview
+  } = useOmnibarController({
+    transactions,
+    fxRates,
+    currentCurrency,
+    mainMode,
+    setMainMode,
+    activeSpaceId,
+    activeSpaceCurrency: activeSpace.currency,
+    userPrefs,
+    isOnline,
+    batchAddTxs,
+    setPendingCategorizationTxs,
+    showToast,
+    scrollContainerRef
+  });
 
-    const SpeechRecognition = 
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      setError('이 브라우저에서는 음성 인식을 지원하지 않습니다.');
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'ko-KR';
-    recognition.interimResults = true;
-    recognition.continuous = false;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      setError(null);
-    };
-
-    recognition.onresult = (event: any) => {
-      let finalTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        }
-      }
-      if (finalTranscript) {
-        setInput(prev => (prev ? `${prev} ${finalTranscript}` : finalTranscript));
-      }
-    };
-
-    recognition.onerror = (event: any) => {
-      console.error('Speech recognition error', event.error);
-      setIsListening(false);
-      if (event.error !== 'no-speech') {
-        setError(`음성 인식 오류: ${event.error}`);
-      }
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    try {
-      recognition.start();
-    } catch (e) {
-      console.error(e);
-      setIsListening(false);
-    }
-  }, [isListening]);
-
-  // Conversational Financial Query Execution (Ask AI Vault / Omnibar)
-  const handleRunFinancialQuery = useCallback(async (queryText: string) => {
-    const trimmed = queryText.trim();
-    if (!trimmed || isQuerying) return;
-
-    setIsQuerying(true);
-    setError(null);
-
-    try {
-      const accounts = await getAllAssetAccounts();
-      const result = await executeFinancialQuery(
-        trimmed,
-        transactions,
-        accounts,
-        fxRates,
-        currentCurrency,
-        getAIEngineConfig()
-      );
-      setActiveQueryResult(result);
-      setInput('');
-      setMainMode('insights');
-      showToast(`AI 재정 브리핑 생성 완료`);
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } catch (err: unknown) {
-      console.error('Financial query error:', err);
-      const msg = err instanceof Error ? err.message : '금융 질문을 분석하는 중 오류가 발생했습니다.';
-      setError(msg);
-    } finally {
-      setIsQuerying(false);
-    }
-  }, [isQuerying, transactions, fxRates, currentCurrency, showToast]);
-
-  // AI Omnibar Ingestion Process
-  const handleProcessInput = useCallback(async (customText?: string) => {
-    const textToProcess = (customText || input).trim();
-    if (!textToProcess || isProcessing || isQuerying) return;
-
-    // 1. Detect if standard transaction was entered (e.g. "점심 9천원", "커피 4,500원 결제")
-    const hasExplicitTransactionAmount = /(?:\d+(?:,\d+)*(?:\s*원|\s*만원|\s*천원|\s*KRW|\s*USD|\s*EUR|\s*JPY)|[\$₩€¥]\s*\d+)/i.test(textToProcess);
-    const hasExplicitExpenseAction = /(?:결제|썼음|썼어|사먹|구입|구매|지출함|이체|입금|더치페이)/i.test(textToProcess);
-
-    // 2. Analytical intent keywords (환차익, 분석, 총액, 얼마, 추이, 주말 지출, 식비)
-    const hasAnalyticalKeywords = /(?:환차익|환손익|환차|환율|외환|분석|총액|얼마|추이|주말\s*지출)/i.test(textToProcess);
-    const isCategoryQueryAlone = /^(?:식비|교통비|생활비|고정비|문화비|여가비|의료비)(?:\s*(?:분석|조회|현황|통계))?$/i.test(textToProcess);
-    const isQuestionOrInsightMode = mainMode === 'insights' || textToProcess.endsWith('?') || /알려줘|어때|조회/i.test(textToProcess);
-
-    // If it's a standard transaction like "점심 9천원", proceed to recording as normal
-    const isStandardTransaction = hasExplicitTransactionAmount && !hasAnalyticalKeywords && !isQuestionOrInsightMode;
-
-    const isAnalyticalQuery = !isStandardTransaction && (
-      hasAnalyticalKeywords ||
-      isCategoryQueryAlone ||
-      (textToProcess.includes('식비') && !hasExplicitTransactionAmount) ||
-      isQuestionOrInsightMode
-    );
-
-    if (isAnalyticalQuery) {
-      await handleRunFinancialQuery(textToProcess);
-      return;
-    }
-
-    setIsProcessing(true);
-    setError(null);
-
-    try {
-      const config = getAIEngineConfig();
-      let parsedTransactions: any[] = [];
-
-      if (isOnline) {
-        try {
-          const response = await fetch('/api/parse', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              text: textToProcess,
-              engineConfig: config
-            })
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data.items) && data.items.length > 0) {
-              parsedTransactions = data.items.map((it: any) => ({
-                ...it,
-                type: it.type ? it.type.toUpperCase() : 'EXPENSE',
-                description: it.merchant || it.description || '지출',
-              }));
-            } else if (Array.isArray(data.transactions) && data.transactions.length > 0) {
-              parsedTransactions = data.transactions;
-            }
-          }
-        } catch (fetchErr) {
-          console.warn('Network parse failed, using client deterministic engine:', fetchErr);
-        }
-      }
-
-      const debts = await getAllDebts();
-
-      if (parsedTransactions.length === 0) {
-        const debtOrCardResults = parseFinancialInputDeterministically(textToProcess, debts);
-        const hasSpecialFlow = debtOrCardResults.some(r => r.loanSplitSuggestion || r.receivableRecoverySuggestion || r.isInternalTransfer || r.peerDebt || r.splitInfo || r.clarification || r.subCategory === 'Refund' || r.type === 'SETTLEMENT' || Boolean(r.installment));
-        
-        if (hasSpecialFlow) {
-          parsedTransactions = debtOrCardResults;
-        } else {
-          const items: ParsedItem[] = parseFinancialText(
-            textToProcess, 
-            (activeSpace.currency as SupportedCurrency) || userPrefs.currencySymbol || 'KRW'
-          );
-          parsedTransactions = items.map(it => ({
-            type: it.type.toUpperCase() as TransactionType,
-            amount: it.amount,
-            currency: it.currency,
-            category: it.category,
-            description: it.merchant,
-            merchant: it.merchant,
-            date: it.date,
-            note: it.note
-          }));
-        }
-      }
-
-      const needsClarification = parsedTransactions.find((t: any) => t.clarification);
-      if (needsClarification) {
-        throw new Error(needsClarification.clarification);
-      }
-
-      if (!Array.isArray(parsedTransactions) || parsedTransactions.length === 0) {
-        throw new Error(
-          detectPeerDebt(textToProcess)
-            ? '상대방이 대신 낸 금액은 갚을 돈으로 기록해야 합니다. 다시 시도해 주세요.'
-            : '내역을 정확히 인식하지 못했습니다. 다시 말씀해 주세요.'
-        );
-      }
-
-      const newTxs: Transaction[] = [];
-      let debtOnlyCount = 0;
-
-      for (const t of parsedTransactions) {
-        if (t.loanSplitSuggestion) {
-          const splitRes = await commitAutonomousLoanSplit(t.loanSplitSuggestion, t.paymentMethod);
-          newTxs.push({ ...splitRes.principalTx, spaceId: activeSpaceId });
-          if (splitRes.interestTx) {
-            newTxs.push({ ...splitRes.interestTx, spaceId: activeSpaceId });
-          }
-          continue;
-        }
-
-        if (t.receivableRecoverySuggestion) {
-          const recRes = await commitAutonomousReceivableRecovery(t.receivableRecoverySuggestion, t.paymentMethod);
-          newTxs.push({ ...recRes.settlementTx, spaceId: activeSpaceId });
-          continue;
-        }
-
-        if (t.peerDebt) {
-          await applyPeerDebt(t.peerDebt, debts, t.currency);
-          if (t.peerDebt.debtOnly) {
-            debtOnlyCount += 1;
-            continue;
-          }
-        }
-
-        if (t.subCategory === 'Refund' && t.type === 'INCOME') {
-          const target = findRefundTarget(
-            { amount: Math.abs(Number(t.amount)), text: `${textToProcess} ${t.description || ''}`, currency: t.currency },
-            transactions.filter(x => (x.spaceId || 'default') === activeSpaceId)
-          );
-          if (target) {
-            const linked = buildLinkedRefund(target, {
-              amount: Math.abs(Number(t.amount)),
-              date: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
-              description: t.description || '',
-              paymentMethod: t.paymentMethod
-            });
-            newTxs.push({ ...linked, id: generateSecureId('tx-refund'), spaceId: activeSpaceId });
-            continue;
-          }
-        }
-
-        let type: TransactionType = t.type || 'EXPENSE';
-        // For multi-item input, judge each item by its own text so a mixed sentence keeps its income/expense split.
-        const keywordSource = parsedTransactions.length > 1 ? (t.description || '') : textToProcess;
-        const isIncomeKeyword = /(?:월급|급여|보너스|상여금|수당|용돈|배당금|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|벌었|salary|paycheck|bonus|allowance)/i.test(keywordSource) || /(?:월급|급여|보너스|상여금|수당|용돈|배당금|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|벌었|salary|paycheck|bonus|allowance)/i.test(t.description || '');
-        const isExplicitExpense = /(?:결제|지출|썼|씀|냄|냈|사먹|구입|구매|샀)/i.test(keywordSource);
-
-        if (isIncomeKeyword && !isExplicitExpense && type !== 'TRANSFER' && type !== 'SETTLEMENT') {
-          type = 'INCOME';
-        }
-
-        let category = 'Living';
-        let subCategory = 'General';
-        const rawCat = t.category || '';
-
-        if (rawCat.includes('식비') || rawCat === 'Food') {
-          category = 'Food';
-          subCategory = 'Dining';
-        } else if (rawCat.includes('카페') || rawCat.includes('간식')) {
-          category = 'Food';
-          subCategory = 'Cafe';
-        } else if (rawCat.includes('교통') || rawCat === 'Transport') {
-          category = 'Transport';
-          subCategory = 'Public Transport';
-        } else if (rawCat.includes('생활') || rawCat.includes('쇼핑') || rawCat === 'Living') {
-          category = 'Living';
-          subCategory = 'Shopping';
-        } else if (rawCat.includes('의료') || rawCat.includes('건강') || rawCat === 'Health') {
-          category = 'Health';
-          subCategory = 'Medical';
-        } else if (rawCat.includes('문화') || rawCat.includes('여가') || rawCat === 'Leisure') {
-          category = 'Leisure';
-          subCategory = 'Entertainment';
-        } else if (rawCat.includes('주거') || rawCat.includes('통신') || rawCat === 'Fixed') {
-          category = 'Fixed';
-          subCategory = 'Utilities';
-        } else if (t.subCategory === 'Refund') {
-          category = 'Living';
-          subCategory = 'Refund';
-        } else if (rawCat.includes('급여') || rawCat.includes('수입') || type === 'INCOME') {
-          category = 'Fixed';
-          subCategory = 'Salary';
-        } else if (rawCat.includes('이체') || rawCat.includes('저축') || type === 'TRANSFER') {
-          category = 'Fixed';
-          subCategory = t.subCategory || 'Savings';
-        } else if (!t.category || t.category === 'Uncategorized' || t.category === '미분류') {
-          const inferred = inferCategoryAndMerchant(t.description || textToProcess);
-          category = inferred.category;
-          subCategory = inferred.subCategory;
-        } else {
-          category = t.category;
-          subCategory = t.subCategory || 'General';
-        }
-
-        let desc = (t.description || t.merchant || '').trim();
-        desc = desc.replace(/만\s*원\s*들어옴/i, '들어옴')
-                   .replace(/^[\s,·\.\-원\d]+(?:\s*원)?\s*/i, '')
-                   .replace(/\s+/g, ' ')
-                   .trim();
-        if (!desc || desc === '원') {
-          desc = type === 'INCOME' ? '급여 수입' : '지출 내역';
-        }
-
-        newTxs.push({
-          id: generateSecureId('tx-import'),
-          type,
-          amount: Math.abs(Number(t.amount)) || 0,
-          currency: t.currency || (activeSpace.currency as SupportedCurrency) || userPrefs.currencySymbol || 'KRW',
-          category,
-          subCategory,
-          description: desc,
-          date: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
-          paymentMethod: t.paymentMethod || (type === 'INCOME' ? '통장' : '카드'),
-          groupId: t.groupId,
-          originalTotal: t.originalTotal ? Math.abs(Number(t.originalTotal)) : undefined,
-          isInternalTransfer: Boolean(t.isInternalTransfer),
-          spaceId: activeSpaceId,
-          note: t.note,
-          installment: t.installment,
-        });
-      }
-
-      if (newTxs.length === 0 && debtOnlyCount > 0) {
-        if (!customText) setInput('');
-        showToast('상대방이 대신 낸 금액을 갚을 돈으로 기록했습니다.');
-        return;
-      }
-
-      if (userPrefs.autoCategorization === false) {
-        setPendingCategorizationTxs(newTxs);
-        if (!customText) {
-          setInput('');
-        }
-        return;
-      }
-
-      await batchAddTxs(newTxs);
-      if (!customText) {
-        setInput('');
-      }
-
-      const itemSummaries = newTxs.map(tx => {
-        let catLabel = tx.category;
-        if (catLabel === 'Food') {
-          catLabel = tx.subCategory === 'Cafe' ? '카페' : '식비';
-        } else if (catLabel === 'Living') {
-          catLabel = '생활';
-        } else if (catLabel === 'Transport') {
-          catLabel = '교통';
-        } else if (catLabel === 'Fixed') {
-          catLabel = tx.subCategory === 'Salary' ? '급여' : '고정지출';
-        } else if (catLabel === 'Health') {
-          catLabel = '건강';
-        } else if (catLabel === 'Leisure') {
-          catLabel = '문화';
-        } else if (catLabel.includes('카페') || catLabel.includes('간식')) {
-          catLabel = '카페';
-        } else if (catLabel.includes('식비')) {
-          catLabel = '식비';
-        }
-        const currPrefix = tx.currency === 'USD' ? '$' : '₩';
-        return `${catLabel} ${currPrefix}${tx.amount.toLocaleString()}`;
-      }).join(', ');
-
-      showToast(`${newTxs.length}건의 거래가 기록되었습니다 (${itemSummaries})`);
-
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } catch (err: unknown) {
-      console.error(err);
-      const msg = err instanceof Error ? err.message : '장부 처리 중 오류가 발생했습니다.';
-      setError(msg);
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [input, isProcessing, isOnline, userPrefs.currencySymbol, userPrefs.autoCategorization, batchAddTxs, activeSpace.currency, activeSpaceId, showToast]);
+  const isTypingInOmnibar = input.trim().length > 0 || isOmnibarFocused;
 
   return (
     <div className="w-full h-[100dvh] flex justify-center bg-[#07080A] text-neutral-100 overflow-hidden font-sans antialiased">
@@ -1330,7 +1065,14 @@ function AppInner() {
                                 </>
                               )}
                               <span className="opacity-30">·</span>
-                              <span>{format(parseISO(tx.date), 'M.d HH:mm')}</span>
+                              <span>{(() => {
+                                try {
+                                  const d = parseISO(tx.date);
+                                  return Number.isNaN(d.getTime()) ? '' : format(d, 'M.d HH:mm');
+                                } catch {
+                                  return '';
+                                }
+                              })()}</span>
                               {tx.note && (
                                 <>
                                   <span className="opacity-30">·</span>
@@ -1352,7 +1094,7 @@ function AppInner() {
                                     ? 'text-sky-400'
                                     : 'text-blue-400'
                             }`}>
-                              {tx.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+')}{currSymbol}{tx.amount.toLocaleString()}
+                              {tx.isInternalTransfer ? '⇄ ' : (isExpense ? '-' : '+')}{currSymbol}{(Number(tx.amount) || 0).toLocaleString()}
                             </span>
 
                             {isMultiCurrencyMode && (() => {
@@ -1416,7 +1158,7 @@ function AppInner() {
               isOnline={isOnline}
               currentCurrency={currentCurrency}
               isMultiCurrencyMode={isMultiCurrencyMode}
-              realtimePreview={null}
+              realtimePreview={realtimePreview}
               engineStatus={engineStatus}
               onSubmit={handleProcessInput}
               onOpenReceiptScanner={handleOpenReceiptModal}
@@ -1557,6 +1299,8 @@ function AppInner() {
             onOpenSettings={(tab) => handleOpenSettingsModal(tab || 'engine')}
             theme="dark"
             currentCurrency={currentCurrency}
+            activeSpaceId={activeSpaceId}
+            onQueueOffline={showToast}
           />
         )}
       </Suspense>

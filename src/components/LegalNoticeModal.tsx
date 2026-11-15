@@ -66,13 +66,6 @@ const CORE_DEPENDENCIES: OpenSourceDependency[] = [
     category: 'Iconography',
   },
   {
-    name: 'Motion',
-    license: 'MIT License',
-    author: 'Framer / Motion Team',
-    description: '유려한 마이크로 인터랙션, 모달 제스처 및 트랜지션 애니메이션',
-    category: 'Animation',
-  },
-  {
     name: 'Google Gen AI SDK',
     license: 'Apache-2.0 License',
     author: 'Google LLC',

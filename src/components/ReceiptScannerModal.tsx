@@ -15,6 +15,7 @@ import { getAIEngineConfig, getCurrencySymbol } from '../utils';
 import { parseReceiptWithResilience } from '../autonomousFinance';
 import { parseReceiptTextLocally } from '../financialParser';
 import { hasSecureGeminiApiKey } from '../geminiKeyManager';
+import { addPendingScan } from '../db';
 import {
   sanitizeAndProcessImage,
   extractImageFileFromClipboard,
@@ -31,6 +32,8 @@ interface ReceiptScannerModalProps {
   onOpenSettings?: (tab?: 'assets' | 'engine' | 'preferences' | 'privacy') => void;
   theme?: 'dark' | 'light';
   currentCurrency?: SupportedCurrency;
+  activeSpaceId?: string;
+  onQueueOffline?: (message: string) => void;
 }
 
 export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
@@ -39,7 +42,9 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
   onConfirm,
   onOpenSettings,
   theme = 'dark',
-  currentCurrency = 'KRW'
+  currentCurrency = 'KRW',
+  activeSpaceId,
+  onQueueOffline
 }) => {
   const { t, getLocalizedCategory, getLocalizedPaymentMethod } = useI18n();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -62,7 +67,6 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
   const dragCounterRef = useRef<number>(0);
   const objectUrlRef = useRef<string | null>(null);
   const imagePreviewRef = useRef<string | null>(null);
-  const isLight = theme === 'light';
 
   // Keep imagePreviewRef in sync with state for safe cleanup
   useEffect(() => {
@@ -158,10 +162,24 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
       setImagePreview(sanitized.dataUrl);
       setCompressionMeta(sanitized.metadata);
 
-      if (isOffline) {
+      if (!navigator.onLine || isOffline) {
         setIsScanning(false);
-        setInputMode('text');
-        setError(t('offline_banner'));
+        await addPendingScan({
+          imageBase64: sanitized.base64,
+          mimeType: sanitized.mimeType,
+          spaceId: activeSpaceId || 'default',
+          fileName: file.name
+        });
+        const confirmationMsg = '오프라인 암호화 큐에 보관되었습니다. 네트워크 연결 시 자동 분석됩니다.';
+        if (onQueueOffline) {
+          onQueueOffline(confirmationMsg);
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('vibe-scan-queued-offline', {
+            detail: { message: confirmationMsg, fileName: file.name }
+          }));
+        }
+        onClose();
         return;
       }
 
@@ -320,20 +338,14 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className={`w-full max-w-md rounded-3xl border shadow-2xl overflow-hidden transition-all flex flex-col max-h-[90dvh] ${
-          isLight 
-            ? 'bg-white border-slate-200 text-slate-900' 
-            : 'bg-[#0E1015] border-white/[0.08] text-neutral-200'
-        }`}
+        className="w-full max-w-md rounded-3xl border shadow-2xl overflow-hidden transition-all flex flex-col max-h-[90dvh] bg-[#0E1015] border-white/[0.08] text-neutral-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile top drag handle */}
         <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
         {/* Typographic Header */}
-        <div className={`px-5 sm:px-6 py-4 border-b flex items-center justify-between shrink-0 ${
-          isLight ? 'border-slate-100 bg-slate-50/50' : 'border-white/[0.06] bg-transparent'
-        }`}>
+        <div className="px-5 sm:px-6 py-4 border-b flex items-center justify-between shrink-0 border-white/[0.06] bg-transparent">
           <div>
             <h2 className="text-sm font-semibold text-white tracking-tight">{t('receipt_scanner_title')}</h2>
             <p className="text-xs text-neutral-400 font-light mt-0.5">
@@ -709,9 +721,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
         </div>
 
         {/* Unified Footer Actions */}
-        <div className={`px-5 sm:px-6 py-4 border-t flex items-center gap-2.5 shrink-0 ${
-          isLight ? 'bg-slate-50 border-slate-100' : 'bg-transparent border-white/[0.06]'
-        }`}>
+        <div className="px-5 sm:px-6 py-4 border-t flex items-center gap-2.5 shrink-0 bg-transparent border-white/[0.06]">
           {parsedResult ? (
             <>
               <button
@@ -741,8 +751,24 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (imagePreview && compressionMeta) {
+                    if (!navigator.onLine || isOffline) {
+                      await addPendingScan({
+                        imageBase64: imagePreview,
+                        mimeType: compressionMeta.mimeType,
+                        spaceId: activeSpaceId || 'default'
+                      });
+                      const confirmationMsg = '오프라인 암호화 큐에 보관되었습니다. 네트워크 연결 시 자동 분석됩니다.';
+                      if (onQueueOffline) onQueueOffline(confirmationMsg);
+                      if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('vibe-scan-queued-offline', {
+                          detail: { message: confirmationMsg }
+                        }));
+                      }
+                      onClose();
+                      return;
+                    }
                     runAnalysis(imagePreview, compressionMeta.mimeType);
                   }
                 }}

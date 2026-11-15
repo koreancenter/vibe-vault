@@ -280,6 +280,37 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
     };
   }, [accounts, debts, currentCurrency, fxRates, transactions]);
 
+  // Net Worth Attribution: Organic Savings (저축 기여분) vs FX Fluctuation (환율 변동분)
+  const netWorthAttribution = useMemo(() => {
+    let organicBaseAssets = 0;
+    let fxFluctuation = 0;
+    let hasForeignAssets = false;
+
+    for (const acc of accounts) {
+      const accCurr = acc.currency || 'KRW';
+      const balance = acc.currentBalance || 0;
+      if (accCurr !== 'KRW') {
+        hasForeignAssets = true;
+        const liveRate = fxRates.rates[accCurr] || 1;
+        const entryRate = acc.fxRateAtEntry || liveRate;
+        const baseCost = balance * entryRate;
+        const liveVal = balance * liveRate;
+        const diffInKrw = liveVal - baseCost;
+
+        organicBaseAssets += convertCurrency(baseCost, 'KRW', currentCurrency, fxRates);
+        fxFluctuation += convertCurrency(diffInKrw, 'KRW', currentCurrency, fxRates);
+      } else {
+        organicBaseAssets += convertCurrency(balance, 'KRW', currentCurrency, fxRates);
+      }
+    }
+
+    return {
+      hasForeignAssets,
+      organicBaseAssets: Math.round(organicBaseAssets),
+      fxFluctuation: Math.round(fxFluctuation)
+    };
+  }, [accounts, currentCurrency, fxRates]);
+
   // Integrated Financial Indicators
   const savingsRate = useMemo(() => {
     if (monthIncome <= 0) return 0;
@@ -577,20 +608,33 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       {/* 2. 4-Metric KPI Strip */}
       <div className="w-full rounded-2xl border border-white/10 bg-[#0E1015]/95 backdrop-blur-2xl overflow-hidden flex flex-col divide-y divide-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         {/* 1. 총 순자산 */}
-        <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-normal text-neutral-200">{t('net_worth')}</span>
+        <div className="p-4 sm:p-5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-normal text-neutral-200">{t('net_worth')}</span>
+              </div>
+              <span className="mt-1 text-[11px] font-normal text-neutral-300">
+                {t('total_assets')} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(totalAssets)}</span>
+              </span>
             </div>
-            <span className="mt-1 text-[11px] font-normal text-neutral-300">
-              {t('total_assets')} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(totalAssets)}</span>
-            </span>
+            <div className="text-right shrink-0">
+              <span className={`text-xl sm:text-2xl font-medium tracking-tight tabular-nums block text-white ${isStealth ? 'blur-sm select-none' : ''}`}>
+                {formatMoney(netWorth)}
+              </span>
+            </div>
           </div>
-          <div className="text-right shrink-0">
-            <span className={`text-xl sm:text-2xl font-medium tracking-tight tabular-nums block text-white ${isStealth ? 'blur-sm select-none' : ''}`}>
-              {formatMoney(netWorth)}
-            </span>
-          </div>
+          {/* Net Worth Attribution: Organic Savings vs FX Fluctuation */}
+          {netWorthAttribution.hasForeignAssets && (
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-neutral-400 font-light flex-wrap gap-1">
+              <span className="truncate">
+                저축 기여 <span className="font-mono text-neutral-300 font-medium tabular-nums">{formatMoney(netWorthAttribution.organicBaseAssets)}</span>
+              </span>
+              <span className={`font-mono font-medium tabular-nums ${netWorthAttribution.fxFluctuation >= 0 ? 'text-sky-400' : 'text-amber-400'}`}>
+                환율 변동 {netWorthAttribution.fxFluctuation >= 0 ? '+' : ''}{formatMoney(netWorthAttribution.fxFluctuation)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 2. 이번 달 저축률 */}

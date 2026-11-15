@@ -140,6 +140,30 @@ describe('Conversational Financial Query Engine (Ask AI Vault)', () => {
     expect(result.breakdownPills.some(p => p.label.includes('외화 평가익'))).toBe(true);
   });
 
+  it('returns clean zero value when no foreign currency assets or FX transactions exist', () => {
+    const params = {
+      metric: 'fx_gain_loss' as const,
+      month: 9,
+      year: 2026,
+      targetCurrency: 'EUR' as const
+    };
+
+    const result = computeDeterministicFinancialQuery(
+      params,
+      mockTransactions,
+      mockAccounts, // only has USD and KRW, no EUR
+      mockFxRates,
+      'KRW'
+    );
+
+    expect(result.metric).toBe('fx_gain_loss');
+    expect(result.calculatedValue).toBe(0);
+    expect(result.directAnswer).toContain('9월에는 기록된 EUR 외화 자산 또는 FX 거래 내역이 없습니다.');
+    expect(result.breakdownPills.find(p => p.label.includes('총 EUR 환차손익'))?.value).toBe('₩0');
+    expect(result.breakdownPills.find(p => p.label.includes('외화 평가익'))?.value).toBe('₩0');
+    expect(result.breakdownPills.find(p => p.label.includes('실현 환차익'))?.value).toBe('₩0');
+  });
+
   it('computes deterministic food category sum exactly', () => {
     const params = {
       metric: 'category_sum' as const,

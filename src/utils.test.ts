@@ -4,7 +4,8 @@ import {
   formatCurrency,
   getCategoryKo,
   sanitizeTextInput,
-  sanitizeTransactionInput
+  sanitizeTransactionInput,
+  sanitizeCsvCell
 } from './utils';
 import { AssetAccount, DebtItem, Transaction } from './types';
 
@@ -269,6 +270,27 @@ describe('Utils - Overdraft (마이너스 통장) & Financial Calculations Suite
       });
       expect(sanitizedTx.description).toBe('스타벅스');
       expect(sanitizedTx.paymentMethod).toBe('현대카드');
+    });
+
+    it('prevents CSV formula injection and escapes quotes with sanitizeCsvCell', () => {
+      // Formula injection prefixes (=, +, -, @, \t, \r)
+      expect(sanitizeCsvCell('=1+1')).toBe("'=1+1");
+      expect(sanitizeCsvCell('  =SUM(A1:A10)')).toBe("'  =SUM(A1:A10)");
+      expect(sanitizeCsvCell('+cmd|')).toBe("'+cmd|");
+      expect(sanitizeCsvCell('-20')).toBe("'-20");
+      expect(sanitizeCsvCell('@calc')).toBe("'@calc");
+      expect(sanitizeCsvCell('\tmalicious')).toBe("'\tmalicious");
+      expect(sanitizeCsvCell('\rhidden')).toBe("'\rhidden");
+
+      // Quotes escaping
+      expect(sanitizeCsvCell('Normal "quoted" text')).toBe('Normal ""quoted"" text');
+      expect(sanitizeCsvCell('="malicious"')).toBe('\'=""malicious""');
+
+      // Regular text and numbers
+      expect(sanitizeCsvCell('일반 텍스트')).toBe('일반 텍스트');
+      expect(sanitizeCsvCell(50000)).toBe('50000');
+      expect(sanitizeCsvCell(undefined)).toBe('');
+      expect(sanitizeCsvCell(null)).toBe('');
     });
   });
 });

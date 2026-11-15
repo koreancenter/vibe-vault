@@ -28,8 +28,6 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
-import { AnimatePresence } from 'motion/react';
-import * as m from 'motion/react-m';
 import { format, parseISO } from 'date-fns';
 import { 
   AssetAccount, 
@@ -1039,23 +1037,18 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
   return (
     <div className="w-full flex flex-col gap-4 pb-8">
       {/* Toast Notification */}
-      <AnimatePresence>
-        {notification && (
-          <m.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-semibold backdrop-blur-xl border ${
-              notification.type === 'success'
-                ? 'bg-sky-500/20 text-sky-400 border-sky-500/30'
-                : 'bg-white/10 text-neutral-200 border-white/20'
-            }`}
-          >
-            {notification.type === 'success' ? <Check size={14} /> : <AlertCircle size={14} />}
-            <span>{notification.message}</span>
-          </m.div>
-        )}
-      </AnimatePresence>
+      {notification && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-semibold backdrop-blur-xl border animate-in fade-in slide-in-from-top-2 duration-150 ${
+            notification.type === 'success'
+              ? 'bg-sky-500/20 text-sky-400 border-sky-500/30'
+              : 'bg-white/10 text-neutral-200 border-white/20'
+          }`}
+        >
+          {notification.type === 'success' ? <Check size={14} /> : <AlertCircle size={14} />}
+          <span>{notification.message}</span>
+        </div>
+      )}
 
       {/* 1. Hero Net Worth Card (총 순자산) */}
       <div className={`relative overflow-hidden rounded-2xl p-5 border backdrop-blur-xl transition-all ${
