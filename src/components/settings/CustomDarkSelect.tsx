@@ -5,6 +5,7 @@ export interface CustomSelectOption {
   value: string;
   label: string;
   sublabel?: string;
+  badge?: string;
 }
 
 export interface CustomSelectProps {
@@ -56,7 +57,7 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
         type="button"
         id={id}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full text-left rounded-xl text-xs flex items-center justify-between transition-all focus:outline-none active:scale-[0.99] ${
+        className={`w-full text-left rounded-xl text-xs flex items-center justify-between gap-2 transition-all focus:outline-none active:scale-[0.99] cursor-pointer ${
           isSm ? 'px-2.5 py-1.5 rounded-lg' : 'px-3.5 py-2.5 rounded-xl'
         } ${
           isLight
@@ -64,7 +65,7 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
             : 'bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-slate-100'
         }`}
       >
-        <span className="truncate font-medium">
+        <span className="truncate font-medium min-w-0">
           {selectedOption?.label}
           {showSublabelInTrigger && selectedOption?.sublabel && (
             <span className={`text-[11px] ml-2 font-normal ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
@@ -72,12 +73,25 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
             </span>
           )}
         </span>
-        <ChevronDown 
-          size={isSm ? 12 : 14} 
-          className={`transition-transform duration-200 shrink-0 ml-1 ${
-            isLight ? 'text-slate-600' : 'text-neutral-400'
-          } ${isOpen ? 'rotate-180 text-white' : ''}`} 
-        />
+        <div className="flex items-center gap-2 shrink-0">
+          {selectedOption?.badge && (
+            <span
+              className={`text-[9px] font-mono tracking-wider border px-1 rounded leading-tight ${
+                isLight
+                  ? 'border-slate-300 text-slate-500'
+                  : 'border-white/10 text-neutral-500'
+              }`}
+            >
+              {selectedOption.badge}
+            </span>
+          )}
+          <ChevronDown 
+            size={isSm ? 12 : 14} 
+            className={`transition-transform duration-200 shrink-0 ${
+              isLight ? 'text-slate-600' : 'text-neutral-400'
+            } ${isOpen ? 'rotate-180 text-white' : ''}`} 
+          />
+        </div>
       </button>
 
       {isOpen && (
@@ -96,8 +110,8 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
                   onChange(opt.value);
                   setIsOpen(false);
                 }}
-                className={`w-full text-left text-xs flex items-center justify-between transition-colors ${
-                  isSm ? 'px-2.5 py-1.5' : 'px-3.5 py-2.5'
+                className={`w-full text-left text-xs flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                  isSm ? 'px-2.5 py-1.5' : opt.sublabel ? 'px-3.5 py-2.5' : 'px-3.5 py-2'
                 } ${
                   isSelected 
                     ? isLight
@@ -108,7 +122,7 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
                       : 'text-neutral-300 hover:bg-white/[0.06] hover:text-white'
                 }`}
               >
-                <div className="truncate pr-2">
+                <div className="truncate pr-2 min-w-0">
                   <span className="block truncate font-medium">{opt.label}</span>
                   {opt.sublabel && (
                     <span className={`text-[11px] block truncate font-normal ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}>
@@ -116,7 +130,20 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
                     </span>
                   )}
                 </div>
-                {isSelected && <Check size={isSm ? 12 : 14} className={isLight ? 'text-black shrink-0' : 'text-white shrink-0'} />}
+                <div className="flex items-center gap-2 shrink-0">
+                  {opt.badge && (
+                    <span
+                      className={`text-[9px] font-mono tracking-wider border px-1 rounded leading-tight ${
+                        isLight
+                          ? 'border-slate-300 text-slate-500'
+                          : 'border-white/10 text-neutral-500'
+                      }`}
+                    >
+                      {opt.badge}
+                    </span>
+                  )}
+                  {isSelected && <Check size={isSm ? 12 : 14} className={isLight ? 'text-black shrink-0' : 'text-white shrink-0'} />}
+                </div>
               </button>
             );
           })}

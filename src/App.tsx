@@ -71,7 +71,7 @@ const SettingsModal = lazy(() => import('./components/SettingsModal').then(m => 
 const InsightsSection = lazy(() => import('./components/InsightsSection').then(m => ({ default: m.InsightsSection })));
 const ManualCategoryModal = lazy(() => import('./components/ManualCategoryModal').then(m => ({ default: m.ManualCategoryModal })));
 const NewSpaceModal = lazy(() => import('./components/NewSpaceModal').then(m => ({ default: m.NewSpaceModal })));
-const QuickStartGuideModal = lazy(() => import('./components/QuickStartGuideModal').then(m => ({ default: m.QuickStartGuideModal })));
+const WelcomeDashboardModal = lazy(() => import('./components/WelcomeDashboardModal').then(m => ({ default: m.WelcomeDashboardModal })));
 
 // Loads a lazy chunk on first open, then keeps it mounted so exit animations still run.
 const MountOnFirstOpen: React.FC<{ open: boolean; children: React.ReactNode }> = ({ open, children }) => {
@@ -431,7 +431,7 @@ function AppInner() {
   }, [currentSpaceTransactions, selectedCategory, ledgerFilter]);
 
   // Modal Visibility States
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'assets' | 'engine' | 'preferences' | 'privacy'>('assets');
   const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'assets' | 'budget' | 'subscriptions'>('assets');
@@ -773,7 +773,7 @@ function AppInner() {
               <button
                 id="quick-start-guide-btn"
                 type="button"
-                onClick={() => setIsGuideOpen(true)}
+                onClick={() => setIsWelcomeOpen(true)}
                 title="사용법 가이드"
                 aria-label="사용법 가이드"
                 className="px-2.5 h-8 rounded-full border border-white/15 bg-white/[0.06] text-xs font-medium text-neutral-200 hover:text-white hover:bg-white/[0.12] flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-xs"
@@ -1342,27 +1342,36 @@ function AppInner() {
         )}
       </Suspense>
 
-      {/* Interactive Quick Start Tutorial Modal */}
-      <MountOnFirstOpen open={isGuideOpen}>
-        <QuickStartGuideModal
-          isOpen={isGuideOpen}
-          onClose={() => setIsGuideOpen(false)}
+      {/* Unified Welcome Dashboard & Quick Start Modal */}
+      <MountOnFirstOpen open={isWelcomeOpen}>
+        <WelcomeDashboardModal
+          isOpen={isWelcomeOpen}
+          onClose={() => setIsWelcomeOpen(false)}
           onPopulateOmnibar={(text) => {
             setMainMode('ledger');
             setInput(text);
-            setIsGuideOpen(false);
+            setIsWelcomeOpen(false);
           }}
           onOpenScanner={() => {
-            setIsGuideOpen(false);
+            setIsWelcomeOpen(false);
             setIsReceiptModalOpen(true);
           }}
           onLoadSampleData={handleLoadSampleFromLedger}
-          theme="dark"
         />
       </MountOnFirstOpen>
 
       {/* Zero-Knowledge Privacy Vault PIN Lock Screen */}
-      <VaultLockScreen onUnlocked={handleUnlocked} />
+      <VaultLockScreen
+        onUnlocked={handleUnlocked}
+        onPopulateOmnibar={(text) => {
+          setMainMode('ledger');
+          setInput(text);
+        }}
+        onOpenScanner={() => {
+          setIsReceiptModalOpen(true);
+        }}
+        onLoadSampleData={handleLoadSampleFromLedger}
+      />
 
       {/* Automatic In-App PWA Install Banner */}
       <PWAInstallBanner 

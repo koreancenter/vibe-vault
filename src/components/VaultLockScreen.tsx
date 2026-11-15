@@ -10,17 +10,23 @@ import {
   isBiometricAvailable as checkBiometricAvailable
 } from '../vaultSecurity';
 import { LegalNoticeModal } from './LegalNoticeModal';
-import { OnboardingModal } from './OnboardingModal';
+import { WelcomeDashboardModal, WELCOME_SEEN_STORAGE_KEY } from './WelcomeDashboardModal';
 import { useI18n } from '../i18n';
 
 interface VaultLockScreenProps {
   onUnlocked?: () => void;
   onGuestMode?: () => void;
+  onPopulateOmnibar?: (exampleText: string) => void;
+  onOpenScanner?: () => void;
+  onLoadSampleData?: () => Promise<void> | void;
 }
 
 export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ 
   onUnlocked,
-  onGuestMode 
+  onGuestMode,
+  onPopulateOmnibar,
+  onOpenScanner,
+  onLoadSampleData,
 }) => {
   const { t, language } = useI18n();
   const [locked, setLocked] = useState<boolean>(() => {
@@ -29,11 +35,13 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
   });
 
   const [isPinSet, setIsPinSet] = useState<boolean>(() => hasVaultPin());
-  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState<boolean>(() => {
     if (typeof localStorage === 'undefined') return false;
     const isSetup = !hasVaultPin();
-    const completed = localStorage.getItem('vibe_onboarding_completed') === 'true';
-    return isSetup && !completed;
+    const seen =
+      localStorage.getItem(WELCOME_SEEN_STORAGE_KEY) === 'true' ||
+      localStorage.getItem('vibe_onboarding_completed') === 'true';
+    return isSetup && !seen;
   });
   const [pin, setPin] = useState<string>('');
   const [confirmPin, setConfirmPin] = useState<string>('');
@@ -447,7 +455,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
           <div className="flex items-center justify-center gap-2 text-[11px] text-neutral-300">
             <button 
               type="button" 
-              onClick={() => setShowOnboarding(true)} 
+              onClick={() => setIsWelcomeOpen(true)} 
               className="hover:text-white transition-colors cursor-pointer"
             >
               {language === 'ko' ? '기능 안내' : (t('replay_tour') || '기능 안내')}
@@ -471,9 +479,34 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
         </div>
       </div>
 
-      <OnboardingModal 
-        isOpen={showOnboarding} 
-        onClose={() => setShowOnboarding(false)} 
+      <WelcomeDashboardModal
+        isOpen={isWelcomeOpen}
+        onClose={() => setIsWelcomeOpen(false)}
+        isLocked={isPinSet}
+        onPopulateOmnibar={
+          !isPinSet && onPopulateOmnibar
+            ? (text) => {
+                handleGuestMode();
+                onPopulateOmnibar(text);
+              }
+            : undefined
+        }
+        onOpenScanner={
+          !isPinSet && onOpenScanner
+            ? () => {
+                handleGuestMode();
+                onOpenScanner();
+              }
+            : undefined
+        }
+        onLoadSampleData={
+          !isPinSet && onLoadSampleData
+            ? async () => {
+                handleGuestMode();
+                await onLoadSampleData();
+              }
+            : undefined
+        }
       />
 
       <LegalNoticeModal 

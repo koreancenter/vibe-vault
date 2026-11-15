@@ -116,11 +116,11 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
 }) => {
   const [isManualOllamaInput, setIsManualOllamaInput] = useState(false);
 
-  // Map fetched Ollama models to CustomSelectOption
+  // Map fetched Ollama models to CustomSelectOption with minimalist LOCAL badge
   const ollamaSelectOptions: CustomSelectOption[] = ollamaModelsList.map(name => ({
     value: name,
     label: name,
-    sublabel: '로컬 설치 모델'
+    badge: 'LOCAL',
   }));
 
   return (
@@ -300,16 +300,16 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                 <span className="truncate">Browser WebGPU (WebLLM)</span>
               </button>
             </div>
-            <p className="text-[10px] text-neutral-400 font-light leading-tight">
-              {localSubMode === 'ollama' 
-                ? '권장 · 데스크톱/로컬 PC에 설치된 Ollama 프로세스를 통해 고속 오프라인 추론'
-                : '클라이언트 순수 브라우저 환경에서 WebGPU 가속을 활용해 직접 추론'}
-            </p>
           </div>
 
           {/* SUB-MODE A: OLLAMA LOCAL SERVER */}
           {localSubMode === 'ollama' && (
-            <div className="space-y-3.5 pt-2 animate-in fade-in duration-150">
+            <div className="space-y-3.5 pt-1 animate-in fade-in duration-150">
+              {/* Dynamic Helper Text for currently selected engine */}
+              <p className="text-[11px] text-neutral-400 leading-snug">
+                권장 · 로컬 PC의 Ollama 프로세스를 통해 고속 오프라인 추론을 실행합니다.
+              </p>
+
               {/* Ollama Endpoint Input & Test Connection Button */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-neutral-300">
@@ -364,7 +364,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                     onChange={(val) => setOllamaModel(val)}
                     theme="dark"
                     size="md"
-                    showSublabelInTrigger={true}
+                    showSublabelInTrigger={false}
                   />
                 ) : (
                   <div className="space-y-1">
@@ -388,57 +388,57 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
 
               {/* Ollama Connection Status Badge & CORS / Mixed Content Help */}
               {ollamaStatus.status && (
-                <div className={`text-xs p-3 rounded-xl border space-y-2 ${
+                <div className={`text-xs px-3 py-2.5 rounded-xl border space-y-2 ${
                   ollamaStatus.status === 'connected'
-                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
-                    : 'bg-amber-500/10 text-amber-200 border-amber-500/20'
+                    ? 'bg-emerald-500/[0.04] text-emerald-300 border-emerald-500/20'
+                    : 'bg-amber-500/[0.03] text-neutral-300 border-amber-500/20'
                 }`}>
                   <div className="flex items-center gap-2 font-medium">
                     {ollamaStatus.status === 'connected' ? (
-                      <CheckCircle2 size={14} className="shrink-0 text-emerald-400" />
+                      <CheckCircle2 size={13} className="shrink-0 text-emerald-400" />
                     ) : (
-                      <AlertTriangle size={14} className="shrink-0 text-amber-400" />
+                      <AlertTriangle size={13} className="shrink-0 text-amber-400/90" />
                     )}
-                    <span>{ollamaStatus.message}</span>
+                    <span className="text-[11px]">{ollamaStatus.message}</span>
                   </div>
 
                   {ollamaStatus.status === 'error' && (
-                    <div className="pt-1.5 border-t border-amber-500/15 text-[11px] font-mono leading-relaxed space-y-2">
+                    <div className="pt-2 border-t border-amber-500/15 text-[11px] leading-relaxed space-y-2">
                       <div className="space-y-1">
-                        <div className="text-neutral-300 font-sans">
+                        <div className="text-neutral-400">
                           브라우저 보안(CORS) 허용을 위해 터미널에서 다음 환경변수를 지정하여 Ollama를 실행해 주세요:
                         </div>
-                        <div className="px-2 py-1 rounded bg-black/40 text-amber-300 select-all font-light">
+                        <div className="px-2 py-1 rounded bg-white/[0.04] border border-white/[0.06] text-neutral-200 font-mono text-[10px] select-all">
                           OLLAMA_ORIGINS="*" ollama serve
                         </div>
                       </div>
-                      <div className="text-amber-200/90 font-sans leading-relaxed pt-1 border-t border-amber-500/10">
+                      <p className="text-neutral-400 leading-relaxed pt-1.5 border-t border-white/[0.06]">
                         HTTPS 환경에서는 브라우저가 HTTP localhost 요청(Mixed Content)을 차단할 수 있습니다. 로컬 데스크톱 앱을 사용하거나 브라우저 플래그(
-                        <code className="px-1 py-0.5 rounded bg-black/40 text-amber-300 font-mono select-all">
+                        <code className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-neutral-300 font-mono text-[10px] select-all">
                           chrome://flags/#allow-insecure-localhost
                         </code>
                         )에서 안전하지 않은 localhost 허용 설정이 필요할 수 있습니다.
-                      </div>
+                      </p>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Proactive HTTPS Mixed Content Advisory when targeting HTTP localhost */}
+              {/* Proactive HTTPS Mixed Content Advisory (Quiet Obsidian Style) */}
               {ollamaStatus.status !== 'error' &&
                 ollamaStatus.status !== 'connected' &&
                 typeof window !== 'undefined' &&
                 window.location.protocol === 'https:' &&
                 /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(ollamaEndpoint.trim()) && (
-                  <div className="text-[11px] p-3 rounded-xl border bg-amber-500/10 text-amber-200 border-amber-500/20 flex items-start gap-2 leading-relaxed">
-                    <AlertTriangle size={14} className="shrink-0 text-amber-400 mt-0.5" />
-                    <div>
+                  <div className="px-3 py-2.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.03] flex items-start gap-2">
+                    <AlertTriangle size={13} className="shrink-0 text-amber-400/90 mt-0.5" />
+                    <p className="text-[11px] text-neutral-400 leading-relaxed">
                       HTTPS 환경에서는 브라우저가 HTTP localhost 요청(Mixed Content)을 차단할 수 있습니다. 로컬 데스크톱 앱을 사용하거나 브라우저 플래그(
-                      <code className="px-1 py-0.5 rounded bg-black/40 text-amber-300 font-mono select-all">
+                      <code className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-neutral-300 font-mono text-[10px] select-all">
                         chrome://flags/#allow-insecure-localhost
                       </code>
                       )에서 안전하지 않은 localhost 허용 설정이 필요할 수 있습니다.
-                    </div>
+                    </p>
                   </div>
                 )}
             </div>
@@ -446,7 +446,12 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
 
           {/* SUB-MODE B: BROWSER WEBGPU (WEBLLM) */}
           {localSubMode === 'webllm' && (
-            <div className="space-y-3.5 pt-2 animate-in fade-in duration-150">
+            <div className="space-y-3.5 pt-1 animate-in fade-in duration-150">
+              {/* Dynamic Helper Text for currently selected engine */}
+              <p className="text-[11px] text-neutral-400 leading-snug">
+                클라이언트 순수 브라우저 환경에서 WebGPU 가속을 활용해 직접 추론합니다.
+              </p>
+
               {/* WebGPU Status Check */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -459,7 +464,7 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
                     </span>
                   ) : webGpuStatus.supported ? (
                     <span className="text-[10px] font-normal flex items-center gap-1 text-emerald-400">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <CheckCircle2 size={11} className="text-emerald-400" />
                       WebGPU 가속 지원
                     </span>
                   ) : (
