@@ -65,10 +65,10 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
             : 'bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-slate-100'
         }`}
       >
-        <span className="truncate font-medium min-w-0">
+        <span className="truncate font-medium min-w-0 text-white">
           {selectedOption?.label}
           {showSublabelInTrigger && selectedOption?.sublabel && (
-            <span className={`text-[11px] ml-2 font-normal ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+            <span className={`text-xs ml-2 font-normal ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>
               {selectedOption.sublabel}
             </span>
           )}
@@ -76,10 +76,10 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
         <div className="flex items-center gap-2 shrink-0">
           {selectedOption?.badge && (
             <span
-              className={`text-[9px] font-mono tracking-wider border px-1 rounded leading-tight ${
+              className={`px-1.5 py-0.5 border rounded-md text-[9px] font-mono tracking-wider leading-tight ${
                 isLight
                   ? 'border-slate-300 text-slate-500'
-                  : 'border-white/10 text-neutral-500'
+                  : 'border-white/10 text-neutral-400'
               }`}
             >
               {selectedOption.badge}
@@ -88,7 +88,7 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
           <ChevronDown 
             size={isSm ? 12 : 14} 
             className={`transition-transform duration-200 shrink-0 ${
-              isLight ? 'text-slate-600' : 'text-neutral-400'
+              isLight ? 'text-slate-600' : 'text-neutral-300'
             } ${isOpen ? 'rotate-180 text-white' : ''}`} 
           />
         </div>
@@ -119,13 +119,13 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
                       : 'bg-white/10 text-white font-medium' 
                     : isLight
                       ? 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
-                      : 'text-neutral-300 hover:bg-white/[0.06] hover:text-white'
+                      : 'text-neutral-200 hover:bg-white/[0.06] hover:text-white'
                 }`}
               >
                 <div className="truncate pr-2 min-w-0">
-                  <span className="block truncate font-medium">{opt.label}</span>
+                  <span className="block truncate font-medium text-white">{opt.label}</span>
                   {opt.sublabel && (
-                    <span className={`text-[11px] block truncate font-normal ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}>
+                    <span className={`text-xs block truncate font-normal ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>
                       {opt.sublabel}
                     </span>
                   )}
@@ -133,10 +133,10 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
                 <div className="flex items-center gap-2 shrink-0">
                   {opt.badge && (
                     <span
-                      className={`text-[9px] font-mono tracking-wider border px-1 rounded leading-tight ${
+                      className={`px-1.5 py-0.5 border rounded-md text-[9px] font-mono tracking-wider leading-tight ${
                         isLight
                           ? 'border-slate-300 text-slate-500'
-                          : 'border-white/10 text-neutral-500'
+                          : 'border-white/10 text-neutral-400'
                       }`}
                     >
                       {opt.badge}

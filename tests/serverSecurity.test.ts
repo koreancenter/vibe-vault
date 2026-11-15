@@ -34,6 +34,8 @@ describe('local server security guards', () => {
     expect(isAllowedOrigin(undefined, '127.0.0.1:3000')).toBe(true);
     expect(isAllowedOrigin('https://app-123.scf.usercontent.goog', '127.0.0.1:3000')).toBe(true);
     expect(isAllowedOrigin('https://preview.usercontent.goog', 'localhost:3000')).toBe(true);
+    expect(isAllowedOrigin('https://vibevault.pages.dev', '127.0.0.1:3000')).toBe(true);
+    expect(isAllowedOrigin('https://evil-pages.dev', 'localhost:3000')).toBe(false);
     expect(isAllowedOrigin('https://custom.example.com', '127.0.0.1:3000', 'custom.example.com, proxy.internal')).toBe(true);
     expect(isAllowedOrigin('http://127.0.0.1:3000', '127.0.0.1:3000')).toBe(true);
     expect(isAllowedOrigin('https://evil-usercontent.goog', 'localhost:3000')).toBe(false);

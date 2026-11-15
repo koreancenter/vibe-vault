@@ -83,7 +83,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className={`w-full max-w-lg rounded-2xl border shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 transition-colors ${
+        className={`w-full max-w-lg rounded-2xl border shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 transition-colors antialiased ${
           isLight 
             ? 'bg-white border-neutral-200 text-neutral-900 shadow-neutral-300/50' 
             : 'bg-[#0B0F17]/95 border-white/10 text-white shadow-2xl backdrop-blur-2xl'
@@ -91,7 +91,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className={`flex justify-between items-center px-6 py-4.5 border-b transition-colors ${
+        <div className={`flex justify-between items-center px-6 py-5 border-b transition-colors ${
           isLight ? 'border-neutral-200 bg-neutral-50/80' : 'border-white/10 bg-white/[0.02]'
         }`}>
           <h2 className={`text-base font-semibold tracking-tight ${isLight ? 'text-neutral-900' : 'text-white'}`}>

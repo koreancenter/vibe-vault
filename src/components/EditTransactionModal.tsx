@@ -56,19 +56,19 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden animate-in slide-in-from-bottom-6 duration-200 transition-colors bg-[#111217] border-white/[0.08] text-white shadow-2xl backdrop-blur-2xl"
+        className="w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden animate-in slide-in-from-bottom-6 duration-200 transition-colors bg-[#111217] border-white/[0.08] text-white backdrop-blur-2xl antialiased"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile drag handle */}
         <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden bg-white/20" />
 
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b transition-colors border-white/10 bg-white/[0.02]">
+        <div className="flex justify-between items-center px-6 py-5 border-b transition-colors border-white/10 bg-white/[0.02]">
           <div>
-            <h2 className="text-base font-bold text-white">
+            <h2 className="text-base font-semibold tracking-tight text-white">
               {t('edit_transaction_title')}
             </h2>
-            <p className="text-xs text-[#94A3B8]">
+            <p className="text-xs text-neutral-300 mt-0.5">
               {t('edit_transaction_desc')}
             </p>
           </div>

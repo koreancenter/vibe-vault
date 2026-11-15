@@ -60,6 +60,7 @@ import { FinancialSummaryCard } from './components/FinancialSummaryCard';
 import { PWAInstallBanner } from './components/PWAInstallButton';
 import { VaultOverviewSection } from './components/VaultOverviewSection';
 import { VaultLockScreen } from './components/VaultLockScreen';
+import { WelcomeDashboardModal } from './components/WelcomeDashboardModal';
 import { OmnibarDock, type RealtimePreviewData } from './components/OmnibarDock';
 import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault, subscribeVaultLock } from './vaultSecurity';
 import { I18nProvider, useI18n, DEFAULT_CURRENCY_BY_LANGUAGE } from './i18n';
@@ -71,7 +72,6 @@ const SettingsModal = lazy(() => import('./components/SettingsModal').then(m => 
 const InsightsSection = lazy(() => import('./components/InsightsSection').then(m => ({ default: m.InsightsSection })));
 const ManualCategoryModal = lazy(() => import('./components/ManualCategoryModal').then(m => ({ default: m.ManualCategoryModal })));
 const NewSpaceModal = lazy(() => import('./components/NewSpaceModal').then(m => ({ default: m.NewSpaceModal })));
-const WelcomeDashboardModal = lazy(() => import('./components/WelcomeDashboardModal').then(m => ({ default: m.WelcomeDashboardModal })));
 
 // Loads a lazy chunk on first open, then keeps it mounted so exit animations still run.
 const MountOnFirstOpen: React.FC<{ open: boolean; children: React.ReactNode }> = ({ open, children }) => {
@@ -431,7 +431,7 @@ function AppInner() {
   }, [currentSpaceTransactions, selectedCategory, ledgerFilter]);
 
   // Modal Visibility States
-  const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(() => typeof localStorage !== 'undefined' && !localStorage.getItem('vibe_welcome_seen'));
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'assets' | 'engine' | 'preferences' | 'privacy'>('assets');
   const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'assets' | 'budget' | 'subscriptions'>('assets');
@@ -1342,35 +1342,18 @@ function AppInner() {
         )}
       </Suspense>
 
-      {/* Unified Welcome Dashboard & Quick Start Modal */}
+      {/* Unified Welcome Manifesto Modal */}
       <MountOnFirstOpen open={isWelcomeOpen}>
         <WelcomeDashboardModal
           isOpen={isWelcomeOpen}
           onClose={() => setIsWelcomeOpen(false)}
-          onPopulateOmnibar={(text) => {
-            setMainMode('ledger');
-            setInput(text);
-            setIsWelcomeOpen(false);
-          }}
-          onOpenScanner={() => {
-            setIsWelcomeOpen(false);
-            setIsReceiptModalOpen(true);
-          }}
-          onLoadSampleData={handleLoadSampleFromLedger}
         />
       </MountOnFirstOpen>
 
       {/* Zero-Knowledge Privacy Vault PIN Lock Screen */}
       <VaultLockScreen
         onUnlocked={handleUnlocked}
-        onPopulateOmnibar={(text) => {
-          setMainMode('ledger');
-          setInput(text);
-        }}
-        onOpenScanner={() => {
-          setIsReceiptModalOpen(true);
-        }}
-        onLoadSampleData={handleLoadSampleFromLedger}
+        onOpenWelcome={() => setIsWelcomeOpen(true)}
       />
 
       {/* Automatic In-App PWA Install Banner */}

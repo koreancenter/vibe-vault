@@ -10,23 +10,19 @@ import {
   isBiometricAvailable as checkBiometricAvailable
 } from '../vaultSecurity';
 import { LegalNoticeModal } from './LegalNoticeModal';
-import { WelcomeDashboardModal, WELCOME_SEEN_STORAGE_KEY } from './WelcomeDashboardModal';
+import { WelcomeDashboardModal } from './WelcomeDashboardModal';
 import { useI18n } from '../i18n';
 
 interface VaultLockScreenProps {
   onUnlocked?: () => void;
   onGuestMode?: () => void;
-  onPopulateOmnibar?: (exampleText: string) => void;
-  onOpenScanner?: () => void;
-  onLoadSampleData?: () => Promise<void> | void;
+  onOpenWelcome?: () => void;
 }
 
 export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({ 
   onUnlocked,
   onGuestMode,
-  onPopulateOmnibar,
-  onOpenScanner,
-  onLoadSampleData,
+  onOpenWelcome,
 }) => {
   const { t, language } = useI18n();
   const [locked, setLocked] = useState<boolean>(() => {
@@ -35,14 +31,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
   });
 
   const [isPinSet, setIsPinSet] = useState<boolean>(() => hasVaultPin());
-  const [isWelcomeOpen, setIsWelcomeOpen] = useState<boolean>(() => {
-    if (typeof localStorage === 'undefined') return false;
-    const isSetup = !hasVaultPin();
-    const seen =
-      localStorage.getItem(WELCOME_SEEN_STORAGE_KEY) === 'true' ||
-      localStorage.getItem('vibe_onboarding_completed') === 'true';
-    return isSetup && !seen;
-  });
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState<boolean>(false);
   const [pin, setPin] = useState<string>('');
   const [confirmPin, setConfirmPin] = useState<string>('');
   const [setupStep, setSetupStep] = useState<'create' | 'confirm'>('create');
@@ -291,13 +280,13 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300 select-none"
     >
       <div
-        className={`w-full max-w-[320px] bg-[#090A0D] border border-white/[0.08] rounded-3xl p-5 shadow-2xl flex flex-col justify-between my-auto transition-all ${
+        className={`w-full max-w-[320px] bg-[#090A0D] border border-white/[0.08] rounded-3xl p-6 antialiased shadow-2xl flex flex-col justify-between my-auto transition-all ${
           shake ? 'animate-bounce duration-200' : ''
         }`}
       >
         {/* 1. Streamlined Top Header */}
         <div className="text-center mb-4">
-          <h1 className="text-base font-bold tracking-tight text-white">{t('vault_lock_title')}</h1>
+          <h1 className="text-base font-semibold tracking-tight text-white">{t('vault_lock_title')}</h1>
           <p className="text-xs text-neutral-300 font-normal mt-1">
             {isSetupMode 
               ? (setupStep === 'confirm' ? t('confirm_pin') : t('setup_pin'))
@@ -455,7 +444,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
           <div className="flex items-center justify-center gap-2 text-[11px] text-neutral-300">
             <button 
               type="button" 
-              onClick={() => setIsWelcomeOpen(true)} 
+              onClick={() => (onOpenWelcome ? onOpenWelcome() : setIsWelcomeOpen(true))} 
               className="hover:text-white transition-colors cursor-pointer"
             >
               {language === 'ko' ? '기능 안내' : (t('replay_tour') || '기능 안내')}
@@ -482,31 +471,6 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       <WelcomeDashboardModal
         isOpen={isWelcomeOpen}
         onClose={() => setIsWelcomeOpen(false)}
-        isLocked={isPinSet}
-        onPopulateOmnibar={
-          !isPinSet && onPopulateOmnibar
-            ? (text) => {
-                handleGuestMode();
-                onPopulateOmnibar(text);
-              }
-            : undefined
-        }
-        onOpenScanner={
-          !isPinSet && onOpenScanner
-            ? () => {
-                handleGuestMode();
-                onOpenScanner();
-              }
-            : undefined
-        }
-        onLoadSampleData={
-          !isPinSet && onLoadSampleData
-            ? async () => {
-                handleGuestMode();
-                await onLoadSampleData();
-              }
-            : undefined
-        }
       />
 
       <LegalNoticeModal 

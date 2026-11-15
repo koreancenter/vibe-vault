@@ -355,6 +355,7 @@ export const translations = {
     // Quick Start Guide & Welcome Dashboard Modal
     quick_start_title: 'Vibe Vault Quick Start Guide',
     welcome_subtitle: 'Private Wealth & Episodic Ledger',
+    welcome_manifesto: 'Encrypt every transaction inside your browser with zero cloud lock-in, and command multi-currency assets from one quiet workspace.',
     welcome_col_philosophy: 'Core Architecture',
     welcome_col_quickstart: 'Quick Start & Actions',
     welcome_phil1_tag: 'Zero-Knowledge Privacy',
@@ -667,6 +668,7 @@ export const translations = {
     // Quick Start Guide & Welcome Dashboard Modal
     quick_start_title: 'Vibe Vault 시작 가이드',
     welcome_subtitle: '프라이빗 자산 금고 & 스마트 가계부',
+    welcome_manifesto: '모든 금융 기록을 기기 안에 암호화해 보관하고, 클라우드 의존 없이 다중 통화 자산과 지출 흐름을 한눈에 지휘합니다.',
     welcome_col_philosophy: '아키텍처 철학',
     welcome_col_quickstart: '빠른 시작 & 실행',
     welcome_phil1_tag: 'Zero-Knowledge Privacy',
@@ -979,6 +981,7 @@ export const translations = {
     // Quick Start Guide & Welcome Dashboard Modal
     quick_start_title: 'Vibe Vault スタートガイド',
     welcome_subtitle: 'プライベート資産保管庫・家計簿',
+    welcome_manifesto: 'すべての金融データを端末内に暗号化して保管し、クラウドに依存せず多通貨資産と支出を一つの静かな画面で統括します。',
     welcome_col_philosophy: '設計思想',
     welcome_col_quickstart: 'クイックスタート',
     welcome_phil1_tag: 'Zero-Knowledge Privacy',
@@ -1291,6 +1294,7 @@ export const translations = {
     // Quick Start Guide & Welcome Dashboard Modal
     quick_start_title: 'Vibe Vault Quick Start Guide',
     welcome_subtitle: 'Private Wealth & Episodic Ledger',
+    welcome_manifesto: 'Encrypt every transaction inside your browser with zero cloud lock-in, and command multi-currency assets from one quiet workspace.',
     welcome_col_philosophy: 'Core Architecture',
     welcome_col_quickstart: 'Quick Start & Actions',
     welcome_phil1_tag: 'Zero-Knowledge Privacy',

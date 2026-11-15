@@ -158,7 +158,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col max-h-[85dvh] sm:max-h-[88dvh] overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+        className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col max-h-[85dvh] sm:max-h-[88dvh] overflow-hidden transition-colors antialiased animate-in slide-in-from-bottom-6 duration-200 ${
           isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#111217] text-neutral-100'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -166,10 +166,10 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         {/* Mobile drag handle */}
         <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.06] shrink-0">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06] shrink-0">
           <div>
-            <h3 className="text-sm sm:text-base font-semibold text-white">계좌 간 자산 이체</h3>
-            <p className="text-xs text-neutral-400 mt-0.5">
+            <h3 className={`text-base font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>계좌 간 자산 이체</h3>
+            <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>
               내 계좌 간 이체는 가계부 소비 지출에서 제외됩니다.
             </p>
           </div>
@@ -218,7 +218,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-5 sm:px-6 sm:py-5 space-y-4 overscroll-contain">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 overscroll-contain">
               {error && (
                 <div className="p-3 rounded-xl bg-white/[0.05] border border-white/10 text-neutral-300 text-xs flex items-center gap-2">
                   <AlertCircle size={15} className="shrink-0 text-amber-400" />
@@ -281,7 +281,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 p-5 sm:px-6 sm:py-4 border-t border-white/[0.06] shrink-0">
+            <div className="flex items-center gap-2.5 px-6 py-4 border-t border-white/[0.06] shrink-0">
               <button
                 type="button"
                 onClick={onClose}
@@ -1545,7 +1545,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           onClick={() => setEditingBalanceAccount(null)}
         >
           <div 
-            className={`w-full max-w-sm rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+            className={`w-full max-w-sm rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors antialiased animate-in slide-in-from-bottom-6 duration-200 ${
               isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#111217] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -1553,10 +1553,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             {/* Mobile drag handle */}
             <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
-            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">{editingBalanceAccount.accountName}</h3>
-                <p className="text-xs text-neutral-400 mt-0.5">
+                <h3 className={`text-base font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>{editingBalanceAccount.accountName}</h3>
+                <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>
                   {editingBalanceAccount.institution} 잔고 수정
                 </p>
               </div>
@@ -1570,7 +1570,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               </button>
             </div>
 
-            <div className="p-5 sm:p-6 space-y-4">
+            <div className="p-6 space-y-4">
               <div>
                 <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
                   새 잔고 금액 ({editingBalanceAccount.currency || currentCurrency})
@@ -1643,7 +1643,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           }}
         >
           <div 
-            className={`w-full max-w-md max-h-[90dvh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+            className={`w-full max-w-md max-h-[90dvh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors antialiased animate-in slide-in-from-bottom-6 duration-200 ${
               isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#111217] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -1651,10 +1651,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             {/* Mobile drag handle */}
             <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
-            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.06] shrink-0">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06] shrink-0">
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">계좌/증권 잔고 캡처 스캔</h3>
-                <p className="text-xs text-neutral-400 mt-0.5">
+                <h3 className={`text-base font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>계좌/증권 잔고 캡처 스캔</h3>
+                <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>
                   Gemini 멀티모달 AI가 스크린샷에서 잔고를 자동 추출합니다.
                 </p>
               </div>
@@ -1672,7 +1672,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               </button>
             </div>
 
-            <div className="p-5 sm:px-6 sm:py-5 overflow-y-auto">
+            <div className="p-6 overflow-y-auto">
               {!scannedResult ? (
                 <div className="space-y-4">
                   {/* Upload Drop Zone */}
@@ -1864,7 +1864,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           onClick={() => setShowAddModal(false)}
         >
           <div 
-            className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88dvh] overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+            className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88dvh] overflow-hidden transition-colors antialiased animate-in slide-in-from-bottom-6 duration-200 ${
               isLight 
                 ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' 
                 : 'bg-[#111217] text-neutral-100'
@@ -1875,12 +1875,12 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.06] shrink-0">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06] shrink-0">
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">
+                <h3 className={`text-base font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
                   새 자산 계좌 추가
                 </h3>
-                <p className="text-xs text-neutral-400 mt-0.5">
+                <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>
                   증권, 은행, 가상자산, 부동산 등
                 </p>
               </div>
@@ -1897,7 +1897,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
             {/* Form */}
             <form onSubmit={handleCreateAccount} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-5 sm:px-6 sm:py-5 space-y-4 overscroll-contain">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 overscroll-contain">
                 {/* 자산 유형 */}
                 <div>
                   <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
@@ -2025,7 +2025,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               </div>
 
               {/* Action Footer */}
-              <div className="flex items-center gap-2.5 p-5 sm:px-6 sm:py-4 border-t border-white/[0.06] shrink-0">
+              <div className="flex items-center gap-2.5 px-6 py-4 border-t border-white/[0.06] shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -2054,17 +2054,17 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           onClick={() => setDeletingAccount(null)}
         >
           <div 
-            className={`w-full max-w-sm rounded-3xl border border-white/[0.08] p-5 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 ${
+            className={`w-full max-w-sm rounded-3xl border border-white/[0.08] p-6 shadow-2xl space-y-4 antialiased animate-in zoom-in-95 duration-150 ${
               isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#111217] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
             <div>
-              <h3 className="text-sm sm:text-base font-semibold text-white">자산 계좌 삭제</h3>
-              <p className="text-xs text-neutral-400 mt-0.5">계좌 잔고 및 연결 데이터 제거</p>
+              <h3 className={`text-base font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>자산 계좌 삭제</h3>
+              <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>계좌 잔고 및 연결 데이터 제거</p>
             </div>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              <span className="font-semibold text-white">'{deletingAccount.name}'</span> 계좌를 삭제하시겠습니까? 계좌 잔고 및 연결 데이터가 목록에서 완전히 제외됩니다.
+            <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>
+              <span className={`font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>'{deletingAccount.name}'</span> 계좌를 삭제하시겠습니까? 계좌 잔고 및 연결 데이터가 목록에서 완전히 제외됩니다.
             </p>
             <div className="flex items-center gap-2.5 pt-1">
               <button
@@ -2094,7 +2094,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           onClick={() => setReconcilingCard(null)}
         >
           <div 
-            className={`w-full max-w-sm rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors animate-in slide-in-from-bottom-6 duration-200 ${
+            className={`w-full max-w-sm rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors antialiased animate-in slide-in-from-bottom-6 duration-200 ${
               isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#111217] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -2102,12 +2102,12 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             {/* Mobile drag handle */}
             <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
-            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">
+                <h3 className={`text-base font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
                   {reconcilingCard.name} 차액 조정 (Reconcile)
                 </h3>
-                <p className="text-xs text-neutral-400 mt-0.5">
+                <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>
                   청구할인 · 해외수수료 · 할부 차액 정산
                 </p>
               </div>
@@ -2121,7 +2121,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               </button>
             </div>
 
-            <div className="p-5 sm:p-6 space-y-4">
+            <div className="p-6 space-y-4">
               <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2 text-xs">
                 <div className="flex justify-between text-neutral-400">
                   <span>누적 카드 지출 합계</span>

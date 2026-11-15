@@ -338,17 +338,17 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-md rounded-3xl border shadow-2xl overflow-hidden transition-all flex flex-col max-h-[90dvh] bg-[#0E1015] border-white/[0.08] text-neutral-200"
+        className="w-full max-w-md rounded-3xl border shadow-2xl overflow-hidden transition-all flex flex-col max-h-[90dvh] bg-[#0E1015] border-white/[0.08] text-neutral-200 antialiased"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile top drag handle */}
         <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
         {/* Typographic Header */}
-        <div className="px-5 sm:px-6 py-4 border-b flex items-center justify-between shrink-0 border-white/[0.06] bg-transparent">
+        <div className="px-6 py-5 border-b flex items-center justify-between shrink-0 border-white/[0.06] bg-transparent">
           <div>
-            <h2 className="text-sm font-semibold text-white tracking-tight">{t('receipt_scanner_title')}</h2>
-            <p className="text-xs text-neutral-400 font-light mt-0.5">
+            <h2 className="text-base font-semibold text-white tracking-tight">{t('receipt_scanner_title')}</h2>
+            <p className="text-xs text-neutral-300 font-normal mt-0.5">
               {t('receipt_scanner_desc')}
             </p>
           </div>
@@ -364,14 +364,14 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
 
         {/* Network & Offline Status Banner */}
         {isOffline && (
-          <div className="px-5 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-amber-400 text-xs flex items-center gap-2">
+          <div className="px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-amber-400 text-xs flex items-center gap-2">
             <WifiOff size={14} className="shrink-0" />
-            <span className="font-medium text-[11px]">{t('offline_banner')}</span>
+            <span className="font-medium text-xs">{t('offline_banner')}</span>
           </div>
         )}
 
         {/* Content Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
+        <div className="p-6 overflow-y-auto space-y-4 flex-1">
           {/* Actionable Guidance for Missing or Invalid Keys */}
           {error && (error.includes('API_KEY_REQUIRED') || error.includes('INVALID_API_KEY')) ? (
             <div className="p-4 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] flex flex-col gap-3 animate-in fade-in duration-200">
@@ -721,7 +721,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
         </div>
 
         {/* Unified Footer Actions */}
-        <div className="px-5 sm:px-6 py-4 border-t flex items-center gap-2.5 shrink-0 bg-transparent border-white/[0.06]">
+        <div className="px-6 py-4 border-t flex items-center gap-2.5 shrink-0 bg-transparent border-white/[0.06]">
           {parsedResult ? (
             <>
               <button

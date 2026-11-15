@@ -51,6 +51,7 @@ export function isAllowedOrigin(
     if (host && originHost === host) return true;
     if (forwardedHost && originHost === forwardedHost) return true;
     if (originHostname.endsWith('.usercontent.goog')) return true;
+    if (originHostname.endsWith('.pages.dev')) return true;
     if (isLocalHostname(originHostname)) return true;
 
     return false;

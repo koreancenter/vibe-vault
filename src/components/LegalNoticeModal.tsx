@@ -131,18 +131,18 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
         Prevents vertical displacement or wobble when toggling between tabs.
       */}
       <div
-        className="w-full max-w-lg h-[580px] sm:h-[600px] max-h-[85vh] flex flex-col bg-[#0E1015] border border-white/[0.08] rounded-3xl overflow-hidden text-neutral-200 shadow-2xl"
+        className="w-full max-w-lg h-[580px] sm:h-[600px] max-h-[85vh] flex flex-col bg-[#0E1015] border border-white/[0.08] rounded-3xl overflow-hidden text-neutral-200 antialiased shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header - Fixed Height & Position */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-white/[0.06] shrink-0 bg-[#0E1015]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06] shrink-0 bg-[#0E1015]">
           <div>
-            <h2 id="legal-notice-title" className="text-sm font-semibold text-white tracking-tight">
+            <h2 id="legal-notice-title" className="text-base font-semibold text-white tracking-tight">
               {activeTab === 'legal'
                 ? '법적 고지 및 면책 조항'
                 : '소프트웨어 라이센스 및 이용약관'}
             </h2>
-            <p className="text-[11px] text-neutral-400 font-light mt-0.5">
+            <p className="text-xs text-neutral-300 font-normal mt-0.5">
               {activeTab === 'legal'
                 ? 'Vibe Vault 이용자 유의사항 및 서비스 운영 원칙'
                 : '개인 비영리 무상 사용 허가 및 상업적 배포·수정 금지 규정'}
@@ -188,7 +188,7 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
         </div>
 
         {/* Scrollable Content Body - Optimized Typography without Box-in-Box Nesting */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 text-xs text-neutral-300 leading-relaxed scrollbar-none font-sans [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 overflow-y-auto p-6 text-xs text-neutral-300 leading-relaxed scrollbar-none font-sans [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {activeTab === 'legal' ? (
             <div className="divide-y divide-white/[0.05] space-y-4">
               {/* Section 1: Financial & Investment Advisory Disclaimer */}
@@ -324,7 +324,7 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
         </div>
 
         {/* Footer - Fixed Height & Position */}
-        <div className="px-6 py-3.5 border-t border-white/[0.06] shrink-0 bg-[#0E1015] space-y-2.5">
+        <div className="px-6 py-4 border-t border-white/[0.06] shrink-0 bg-[#0E1015] space-y-2.5">
           <div className="text-[10.5px] text-neutral-400 space-y-0.5">
             <div className="flex items-center justify-between">
               <span className="font-medium text-neutral-300">한국센터글로벌네트워크 지식관리실</span>

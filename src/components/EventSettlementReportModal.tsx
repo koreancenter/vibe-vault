@@ -307,11 +307,11 @@ export const EventSettlementReportModal: React.FC<EventSettlementReportModalProp
       >
         <div 
           id="printable-settlement-modal"
-          className="w-full max-w-4xl rounded-3xl border shadow-2xl flex flex-col my-auto transition-colors bg-[#0E1524] border-white/10 text-white"
+          className="w-full max-w-4xl rounded-3xl border shadow-2xl flex flex-col my-auto transition-colors bg-[#0E1524] border-white/10 text-white antialiased"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top Interactive Screen Bar (Hidden on print) */}
-          <div className="screen-only flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-white/10 bg-white/[0.02]">
+          <div className="screen-only flex flex-wrap items-center justify-between gap-3 px-6 py-5 border-b border-white/10 bg-white/[0.02]">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-500/10 border border-sky-500/20 text-sky-400">
                 📄 {t('official_settlement_report')}
