@@ -52,22 +52,25 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
   const pillars = [
     {
       id: 'privacy',
-      icon: <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
+      icon: <ShieldCheck className="w-[18px] h-[18px] sm:w-5 sm:h-5 text-emerald-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
       titleColor: 'text-emerald-300',
+      delayClass: '[animation-delay:60ms]',
       title: t('welcome_phil1_title'),
       desc: t('welcome_phil1_desc'),
     },
     {
       id: 'currency',
-      icon: <Coins className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
+      icon: <Coins className="w-[18px] h-[18px] sm:w-5 sm:h-5 text-amber-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
       titleColor: 'text-amber-300',
+      delayClass: '[animation-delay:140ms]',
       title: t('welcome_phil2_title'),
       desc: t('welcome_phil2_desc'),
     },
     {
       id: 'space',
-      icon: <Layers className="w-5 h-5 text-sky-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
+      icon: <Layers className="w-[18px] h-[18px] sm:w-5 sm:h-5 text-sky-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
       titleColor: 'text-sky-300',
+      delayClass: '[animation-delay:220ms]',
       title: t('welcome_phil3_title'),
       desc: t('welcome_phil3_desc'),
     },
@@ -82,7 +85,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-3xl rounded-3xl bg-[#090A0D]/95 backdrop-blur-2xl border border-white/[0.08] text-neutral-100 antialiased shadow-[0_32px_64px_-16px_rgba(0,0,0,0.95)] p-6 sm:p-10 relative max-h-[92dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
+        className="w-full max-w-3xl rounded-3xl bg-[#090A0D]/95 backdrop-blur-3xl border border-white/5 text-neutral-100 antialiased shadow-[0_32px_64px_-16px_rgba(0,0,0,0.95)] px-6 py-7 sm:p-10 relative max-h-[94dvh] sm:max-h-[92dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -94,32 +97,35 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
           <X size={18} />
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-12 items-start pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-10 md:gap-12 items-start sm:pt-2">
           {/* Left Side: Hero Typography */}
-          <div className="md:col-span-5 flex flex-col justify-between">
+          <div className="md:col-span-5 flex flex-col justify-between pr-9 sm:pr-0">
             <div>
               <h2
                 id="welcome-dashboard-title"
-                className="text-3xl sm:text-4xl font-semibold tracking-tight text-white"
+                className="text-[28px] leading-tight sm:text-4xl font-semibold tracking-tight text-white"
               >
                 Vibe Vault
               </h2>
-              <p className="text-sm font-normal text-neutral-300 leading-relaxed mt-5">
+              <p className="text-[13.5px] sm:text-sm font-normal text-neutral-300 leading-relaxed mt-2.5 sm:mt-5">
                 {t('welcome_manifesto')}
               </p>
             </div>
           </div>
 
           {/* Right Side: 3 Core Pillars (Borderless Editorial List) */}
-          <div className="md:col-span-7 flex flex-col gap-8">
+          <div className="md:col-span-7 flex flex-col gap-5 sm:gap-8">
             {pillars.map((pillar) => (
-              <div key={pillar.id} className="flex items-start gap-4">
+              <div
+                key={pillar.id}
+                className={`flex items-start gap-3.5 sm:gap-4 animate-in fade-in slide-in-from-bottom-2 ${pillar.delayClass}`}
+              >
                 {pillar.icon}
                 <div className="min-w-0 flex-1">
-                  <h3 className={`text-base font-semibold tracking-tight ${pillar.titleColor}`}>
+                  <h3 className={`text-[15px] sm:text-base font-semibold tracking-tight ${pillar.titleColor}`}>
                     {pillar.title}
                   </h3>
-                  <p className="text-sm font-normal text-neutral-300 leading-relaxed mt-1.5">
+                  <p className="text-[13px] sm:text-sm font-normal text-neutral-300 leading-relaxed mt-1.5">
                     {pillar.desc}
                   </p>
                 </div>
@@ -129,7 +135,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
         </div>
 
         {/* Single Primary Action */}
-        <div className="mt-10 sm:mt-12 flex justify-end">
+        <div className="mt-7 sm:mt-12 flex justify-end">
           <button
             type="button"
             onClick={handleClose}

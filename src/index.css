@@ -140,3 +140,53 @@ input[type="number"] {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.25);
 }
+
+/* Native keyframe support for animate-in entrance utilities */
+@keyframes vibe-enter {
+  from {
+    opacity: var(--vibe-enter-opacity, 1);
+    transform: translate3d(var(--vibe-enter-x, 0), var(--vibe-enter-y, 0), 0) scale(var(--vibe-enter-scale, 1));
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-in {
+  animation-name: vibe-enter;
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  --vibe-enter-opacity: 0;
+}
+
+.slide-in-from-bottom-1 {
+  --vibe-enter-y: 0.25rem;
+}
+
+.slide-in-from-bottom-2 {
+  --vibe-enter-y: 0.5rem;
+}
+
+.slide-in-from-bottom-6 {
+  --vibe-enter-y: 1.5rem;
+}
+
+.slide-in-from-top-4 {
+  --vibe-enter-y: -1rem;
+}
+
+.zoom-in-95 {
+  --vibe-enter-scale: 0.95;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in {
+    animation: none;
+  }
+}
+
