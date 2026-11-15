@@ -283,21 +283,21 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300 select-none"
     >
       <div
-        className={`w-full max-w-[320px] bg-[#090A0D] border border-white/[0.08] rounded-3xl p-6 antialiased shadow-2xl flex flex-col justify-between my-auto transition-all ${
+        className={`w-full max-w-[320px] bg-[#101218]/95 border border-white/[0.14] rounded-3xl p-6 antialiased shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.12)] flex flex-col justify-between my-auto transition-all ${
           shake ? 'animate-bounce duration-200' : ''
         }`}
       >
         {/* 1. Streamlined Top Header */}
         <div className="text-center mb-4">
-          <h1 className="text-base font-semibold tracking-tight text-white">{t('vault_lock_title')}</h1>
-          <p className="text-xs text-neutral-300 font-normal mt-1">
+          <h1 className="text-xl font-bold tracking-tight text-white">{t('vault_lock_title')}</h1>
+          <p className="text-xs text-neutral-100 font-medium mt-1">
             {isSetupMode 
               ? (setupStep === 'confirm' ? t('confirm_pin') : t('setup_pin'))
               : t('enter_pin')}
           </p>
 
           {/* Compact PIN Dots */}
-          <div className="flex justify-center items-center gap-2 my-2.5 mx-auto w-fit">
+          <div className="flex justify-center items-center gap-2 my-3 mx-auto w-fit">
             {[0, 1, 2, 3, 4, 5].map((idx) => {
               const isFilled = idx < activeInput.length;
               return (
@@ -305,8 +305,8 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                   key={idx}
                   className={
                     isFilled
-                      ? 'w-2 h-2 rounded-full bg-white border border-white shadow-[0_0_8px_rgba(255,255,255,0.4)] transition-all'
-                      : 'w-2 h-2 rounded-full border border-white/25 bg-white/[0.04] transition-all'
+                      ? 'w-2.5 h-2.5 rounded-full bg-white border border-white shadow-[0_0_10px_rgba(255,255,255,0.65)] transition-all'
+                      : 'w-2.5 h-2.5 rounded-full border border-white/45 bg-white/[0.08] transition-all'
                   }
                 />
               );
@@ -315,7 +315,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
 
           {/* Error Message */}
           {error && (
-            <div className="text-[11px] text-neutral-300 font-light mt-1 animate-in fade-in duration-150">
+            <div className="text-xs text-amber-200 font-medium mt-1 animate-in fade-in duration-150">
               {error}
             </div>
           )}
@@ -330,7 +330,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                 type="button"
                 onClick={() => handleKeypadPress(digit)}
                 aria-label={`숫자 ${digit}`}
-                className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.06] text-white text-lg font-medium transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none"
+                className="h-12 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] border border-white/[0.14] text-white text-lg font-semibold transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
               >
                 {digit}
               </button>
@@ -341,7 +341,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
               type="button"
               onClick={() => handleKeypadPress('clear')}
               aria-label="입력 전체 지우기"
-              className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.06] text-neutral-300 hover:text-white text-sm font-medium transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none"
+              className="h-12 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] border border-white/[0.14] text-neutral-100 hover:text-white text-sm font-semibold transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
             >
               C
             </button>
@@ -351,7 +351,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
               type="button"
               onClick={() => handleKeypadPress('0')}
               aria-label="숫자 0"
-              className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.06] text-white text-lg font-medium transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none"
+              className="h-12 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] border border-white/[0.14] text-white text-lg font-semibold transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
             >
               0
             </button>
@@ -361,7 +361,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
               type="button"
               onClick={() => handleKeypadPress('backspace')}
               aria-label="지우기"
-              className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.06] text-neutral-300 hover:text-white text-base font-medium transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none"
+              className="h-12 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] border border-white/[0.14] text-neutral-100 hover:text-white text-base font-semibold transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
             >
               ←
             </button>
@@ -373,9 +373,9 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
               type="button"
               onClick={handleBiometricUnlock}
               disabled={isSubmitting}
-              className="mt-2.5 flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500/[0.08] hover:bg-emerald-500/[0.15] border border-emerald-500/25 text-[11px] font-medium text-emerald-300 hover:text-white transition-all cursor-pointer mx-auto active:scale-95 shadow-xs"
+              className="mt-2.5 flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500/[0.12] hover:bg-emerald-500/[0.2] border border-emerald-400/35 text-xs font-medium text-emerald-200 hover:text-white transition-all cursor-pointer mx-auto active:scale-95 shadow-xs"
             >
-              <Fingerprint className="w-3.5 h-3.5 text-emerald-400" />
+              <Fingerprint className="w-3.5 h-3.5 text-emerald-300" />
               <span>{t('biometric_unlock')}</span>
             </button>
           )}
@@ -388,7 +388,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                   type="button"
                   onClick={handleCompleteSetup}
                   disabled={activeInput.length < 4 || isSubmitting}
-                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-neutral-200 transition-all active:scale-95 mt-3 disabled:bg-white/[0.08] disabled:text-neutral-400 disabled:border-white/[0.06] disabled:pointer-events-none border border-transparent shadow-xs cursor-pointer flex items-center justify-center"
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-neutral-100 transition-all active:scale-95 mt-3 disabled:bg-white/[0.14] disabled:text-white/75 disabled:border-white/[0.18] disabled:pointer-events-none border border-transparent shadow-xs cursor-pointer flex items-center justify-center"
                 >
                   {setupStep === 'create' 
                     ? (language === 'ko' ? 'PIN 확인 단계로 이동' : language === 'ja' ? 'PIN確認へ進む' : 'Next: Confirm PIN')
@@ -403,7 +403,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                       setConfirmPin('');
                       setError(null);
                     }}
-                    className="text-xs text-neutral-300 hover:text-white transition-colors mt-2 block mx-auto underline underline-offset-4 cursor-pointer"
+                    className="text-xs font-medium text-white/90 hover:text-white transition-colors mt-2.5 block mx-auto underline underline-offset-4 cursor-pointer"
                   >
                     {language === 'ko' ? '이전 단계로 돌아가기' : language === 'ja' ? '前の手順に戻る' : 'Back to previous step'}
                   </button>
@@ -411,7 +411,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                   <button
                     type="button"
                     onClick={onGuestMode || handleGuestMode}
-                    className="text-xs text-neutral-300 hover:text-white transition-colors mt-2 block mx-auto underline underline-offset-4 cursor-pointer"
+                    className="text-xs font-medium text-white/90 hover:text-white transition-colors mt-2.5 block mx-auto underline underline-offset-4 cursor-pointer"
                   >
                     {t('guest_mode')}
                   </button>
@@ -423,7 +423,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                   type="button"
                   onClick={() => handleAttemptUnlock(pin)}
                   disabled={pin.length < 4 || isSubmitting}
-                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-neutral-200 transition-all active:scale-95 mt-3 disabled:bg-white/[0.08] disabled:text-neutral-400 disabled:border-white/[0.06] disabled:pointer-events-none border border-transparent shadow-xs cursor-pointer flex items-center justify-center"
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-neutral-100 transition-all active:scale-95 mt-3 disabled:bg-white/[0.14] disabled:text-white/75 disabled:border-white/[0.18] disabled:pointer-events-none border border-transparent shadow-xs cursor-pointer flex items-center justify-center"
                 >
                   {isSubmitting ? '...' : t('unlock')}
                 </button>
@@ -431,7 +431,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                 <button
                   type="button"
                   onClick={onGuestMode || handleGuestMode}
-                  className="text-xs text-neutral-300 hover:text-white transition-colors mt-2 block mx-auto underline underline-offset-4 cursor-pointer"
+                  className="text-xs font-medium text-white/90 hover:text-white transition-colors mt-2.5 block mx-auto underline underline-offset-4 cursor-pointer"
                 >
                   {t('guest_mode')}
                 </button>
@@ -441,10 +441,10 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
         </div>
 
         {/* 4. Minimal Footer & Credits */}
-        <div className="w-full flex flex-col items-center mt-1">
-          <div className="my-2.5 border-t border-white/[0.04] w-full" />
+        <div className="w-full flex flex-col items-center mt-1.5">
+          <div className="my-2.5 border-t border-white/[0.1] w-full" />
           
-          <div className="flex items-center justify-center gap-2 text-[11px] text-neutral-300">
+          <div className="flex items-center justify-center gap-2 text-xs text-neutral-100 font-medium">
             <button 
               type="button" 
               onClick={() => (onOpenWelcome ? onOpenWelcome() : setIsWelcomeOpen(true))} 
@@ -452,7 +452,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
             >
               {language === 'ko' ? '기능 안내' : (t('replay_tour') || '기능 안내')}
             </button>
-            <span className="text-neutral-400">·</span>
+            <span className="text-neutral-300">·</span>
             <button 
               type="button" 
               onClick={() => {
@@ -465,7 +465,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
             </button>
           </div>
 
-          <p className="text-[10px] text-neutral-400 text-center mt-1.5 leading-normal">
+          <p className="text-[11px] text-neutral-200 text-center mt-1.5 leading-normal">
             © 2026 Vibe Vault Pro · Zero-Knowledge
           </p>
         </div>
