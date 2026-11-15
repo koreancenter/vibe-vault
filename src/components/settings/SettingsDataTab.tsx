@@ -1,6 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { CustomDarkSelect } from './CustomDarkSelect';
-import { VaultLockConfig, lockVault } from '../../vaultSecurity';
+import { 
+  VaultLockConfig, 
+  lockVault,
+  registerBiometricUnlock,
+  disableBiometricUnlock,
+  isBiometricUnlockEnabled,
+  isBiometricAvailable as checkBiometricAvailable
+} from '../../vaultSecurity';
+import { useI18n } from '../../i18n';
 
 interface SettingsDataTabProps {
   onClose: () => void;
@@ -22,6 +30,7 @@ interface SettingsDataTabProps {
   handleResetAllData: () => void;
   isClearingData: boolean;
   setLegalOpen: (open: boolean) => void;
+  onStatusMessage?: (msg: { type: 'success' | 'error'; text: string }) => void;
 }
 
 export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
@@ -44,7 +53,55 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
   handleResetAllData,
   isClearingData,
   setLegalOpen,
+  onStatusMessage
 }) => {
+  const { t } = useI18n();
+  const [isBiometricSupported, setIsBiometricSupported] = useState<boolean>(false);
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState<boolean>(() => isBiometricUnlockEnabled());
+  const [showBiometricEnrollModal, setShowBiometricEnrollModal] = useState<boolean>(false);
+  const [biometricPin, setBiometricPin] = useState<string>('');
+  const [biometricError, setBiometricError] = useState<string | null>(null);
+  const [isEnrollingBiometric, setIsEnrollingBiometric] = useState<boolean>(false);
+
+  useEffect(() => {
+    checkBiometricAvailable()
+      .then((available) => setIsBiometricSupported(available))
+      .catch(() => setIsBiometricSupported(false));
+    setIsBiometricEnabled(isBiometricUnlockEnabled());
+  }, [isPinSet]);
+
+  const handleEnrollBiometric = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBiometricError(null);
+    setIsEnrollingBiometric(true);
+    try {
+      const res = await registerBiometricUnlock(biometricPin);
+      if (res.success) {
+        setIsBiometricEnabled(true);
+        setShowBiometricEnrollModal(false);
+        setBiometricPin('');
+        if (onStatusMessage) {
+          onStatusMessage({ type: 'success', text: '생체인증 빠른 잠금 해제가 설정되었습니다.' });
+        }
+      } else {
+        setBiometricError(res.error || '생체인증 등록에 실패했습니다.');
+      }
+    } catch (err: any) {
+      setBiometricError(err.message || '생체인증 등록 중 오류가 발생했습니다.');
+    } finally {
+      setIsEnrollingBiometric(false);
+    }
+  };
+
+  const handleDisableBiometric = async () => {
+    await disableBiometricUnlock();
+    setIsBiometricEnabled(false);
+    if (onStatusMessage) {
+      onStatusMessage({ type: 'success', text: '생체인증 잠금 해제가 비활성화되었습니다.' });
+    }
+  };
+
+
   return (
     <div className="space-y-3.5 animate-in fade-in duration-150">
       {/* Group 1: 금고 보안 & 자동 잠금 */}
@@ -159,6 +216,54 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
               />
             </div>
           </div>
+
+          {/* 생체인증 잠금 해제 (WebAuthn / Passkey) */}
+          <div className="flex items-center justify-between gap-2 py-1.5 border-t border-white/[0.04]">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-neutral-400 font-light">생체인증 잠금 해제</span>
+                {isBiometricEnabled ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    활성화됨
+                  </span>
+                ) : !isBiometricSupported ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-normal bg-white/[0.04] text-neutral-400 border border-white/[0.06]">
+                    기기 미지원
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-normal bg-white/[0.04] text-neutral-400 border border-white/[0.06]">
+                    {isPinSet ? '미설정' : 'PIN 필요'}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] text-neutral-400 font-light mt-0.5">
+                지문 / Face ID / Windows Hello 빠른 잠금 해제
+              </span>
+            </div>
+
+            {isBiometricEnabled ? (
+              <button
+                type="button"
+                onClick={handleDisableBiometric}
+                className="h-10 px-3.5 rounded-xl text-xs font-normal bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] text-neutral-300 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+              >
+                해제
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setBiometricPin('');
+                  setBiometricError(null);
+                  setShowBiometricEnrollModal(true);
+                }}
+                disabled={!isPinSet || !isBiometricSupported}
+                className="h-10 px-4 rounded-xl text-xs font-normal bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              >
+                등록
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -236,11 +341,71 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
           type="button"
           id="legal-notice-btn"
           onClick={() => setLegalOpen(true)}
-          className="w-full py-2 mt-1 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.06] text-[11px] text-neutral-400 hover:text-white transition-all"
+          className="w-full py-2 mt-1 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.06] text-[11px] text-neutral-400 hover:text-white transition-all cursor-pointer"
         >
-          <span>법적 고지 및 면책 조항</span>
+          <span>{t('legal_notice_link')}</span>
         </button>
       </div>
+
+      {/* WebAuthn Biometric Enrollment Modal */}
+      {showBiometricEnrollModal && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-150"
+          onClick={() => setShowBiometricEnrollModal(false)}
+        >
+          <div
+            className="w-full max-w-xs border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0B0C0E]/95 backdrop-blur-2xl text-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="text-sm font-semibold text-white">생체인증 빠른 잠금 해제 등록</h3>
+              <p className="text-[11px] text-neutral-400 font-light mt-0.5">
+                지문 / Face ID 등록을 위해 현재 금고 PIN 번호를 입력해주세요.
+              </p>
+            </div>
+
+            <form onSubmit={handleEnrollBiometric} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-neutral-400 block">
+                  현재 PIN 번호 입력
+                </label>
+                <input
+                  type="password"
+                  maxLength={12}
+                  value={biometricPin}
+                  onChange={(e) => setBiometricPin(e.target.value)}
+                  placeholder="PIN 번호 입력"
+                  className="w-full px-3 py-2 rounded-xl text-xs border outline-none font-mono tracking-widest text-center bg-white/[0.03] border-white/10 text-white focus:border-white/30"
+                  autoFocus
+                />
+              </div>
+
+              {biometricError && (
+                <div className="text-[11px] text-neutral-300 flex items-center gap-1">
+                  <span>{biometricError}</span>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBiometricEnrollModal(false)}
+                  className="flex-1 py-2 rounded-xl border border-white/10 text-neutral-300 hover:text-white hover:bg-white/[0.06] text-xs font-normal transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  disabled={biometricPin.length < 4 || isEnrollingBiometric}
+                  className="flex-1 py-2 rounded-xl bg-white text-black hover:bg-neutral-200 font-medium text-xs transition-all active:scale-95 shadow-sm disabled:opacity-50"
+                >
+                  {isEnrollingBiometric ? '등록 중...' : '생체인증 등록'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -9,8 +9,6 @@ import {
   CheckCircle2,
   ExternalLink
 } from 'lucide-react';
-import { AnimatePresence } from 'motion/react';
-import * as m from 'motion/react-m';
 import { usePWAInstall } from '../usePWAInstall';
 
 interface PWAInstallProps {
@@ -31,19 +29,14 @@ export const IOSInstallModal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
-        onClick={onClose}
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm flex flex-col bg-[#0E1015] border border-white/[0.08] rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
       >
-        <m.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="w-full max-w-sm flex flex-col bg-[#0E1015] border border-white/[0.08] rounded-3xl shadow-2xl overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
           {/* Header */}
           <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/[0.06] shrink-0">
             <div>
@@ -111,9 +104,8 @@ export const IOSInstallModal: React.FC<{
               확인 완료
             </button>
           </div>
-        </m.div>
+        </div>
       </div>
-    </AnimatePresence>
   );
 };
 
@@ -140,7 +132,7 @@ export const PWAInstallButton: React.FC<PWAInstallProps> = ({
         } ${className}`}>
           <div className="text-xs">
             <span className="font-semibold text-white">독립 앱으로 설치되어 실행 중</span>
-            <p className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>오프라인 캐싱 및 전체화면 모드가 활성화되어 있습니다.</p>
+            <p className={`text-[11px] ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}>오프라인 캐싱 및 전체화면 모드가 활성화되어 있습니다.</p>
           </div>
         </div>
       );
@@ -153,7 +145,7 @@ export const PWAInstallButton: React.FC<PWAInstallProps> = ({
         } ${className}`}>
           <div className="min-w-0">
             <span className="text-xs font-semibold text-white block truncate">홈 화면 / 데스크톱 앱 설치</span>
-            <p className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
+            <p className={`text-[11px] truncate ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}>
               브라우저 주소창 없이 네이티브 앱처럼 실행하세요.
             </p>
           </div>
@@ -279,16 +271,11 @@ export const PWAInstallBanner: React.FC<{
 
   return (
     <>
-      <AnimatePresence>
-        <m.div
-          initial={{ opacity: 0, y: position === 'bottom' ? 20 : -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: position === 'bottom' ? 20 : -20 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-          className={`fixed left-4 right-4 z-40 max-w-md mx-auto pointer-events-auto ${
-            position === 'bottom' ? 'bottom-20' : 'top-18'
-          }`}
-        >
+      <div
+        className={`fixed left-4 right-4 z-40 max-w-md mx-auto pointer-events-auto animate-in fade-in duration-300 ${
+          position === 'bottom' ? 'bottom-20 slide-in-from-bottom-4' : 'top-18 slide-in-from-top-4'
+        }`}
+      >
           <div className={`p-3.5 rounded-2xl shadow-xl backdrop-blur-xl border flex items-center justify-between gap-3 ${
             isLight
               ? 'bg-white/95 text-slate-900 border-slate-200/80 shadow-slate-200/50'
@@ -311,7 +298,7 @@ export const PWAInstallBanner: React.FC<{
                   <span className="text-xs font-semibold tracking-tight truncate text-white">Vibe Vault 앱 설치</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-neutral-300 font-mono">PWA</span>
                 </div>
-                <span className={`text-[11px] truncate ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
+                <span className={`text-[11px] truncate ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}>
                   홈 화면에서 더 빠르고 편리하게 사용하세요
                 </span>
               </div>
@@ -362,8 +349,7 @@ export const PWAInstallBanner: React.FC<{
               </button>
             </div>
           </div>
-        </m.div>
-      </AnimatePresence>
+        </div>
 
       <IOSInstallModal
         isOpen={showIOSModal}

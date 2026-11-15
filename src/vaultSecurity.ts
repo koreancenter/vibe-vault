@@ -30,6 +30,8 @@ const CIPHER_PREFIX = '__VBE256__:';
 const PIN_STORAGE_KEY = 'vibe_vault_pin_meta';
 const LOCK_CONFIG_KEY = 'vibe_vault_lock_config';
 const DEVICE_KEY_ID = 'device';
+const BIOMETRIC_STORAGE_KEY = 'vibe_vault_biometric_meta';
+const BIOMETRIC_WRAP_KEY_ID = 'biometric_wrap_key_v1';
 
 export interface VaultLockConfig {
   enabled: boolean;
@@ -41,6 +43,14 @@ interface PinMetadata {
   saltHex: string;
   verifyIvHex: string;
   verifyCiphertextB64: string;
+}
+
+interface BiometricMetadata {
+  credId: string;
+  ivHex: string;
+  wrappedPinB64: string;
+  enabled: boolean;
+  registeredAt: string;
 }
 
 export type VaultKeyMigrationHandler = (
@@ -102,6 +112,18 @@ function base64ToBuffer(base64: string): ArrayBuffer {
 /**
  * Isolated IndexedDB Keystore for storing non-extractable CryptoKeys
  */
+let activeKeystoreDb: IDBPDatabase<any> | null = null;
+
+function closeKeystoreDB(): void {
+  if (activeKeystoreDb) {
+    try {
+      activeKeystoreDb.close();
+    } catch {}
+    activeKeystoreDb = null;
+  }
+  keystoreDbPromise = null;
+}
+
 function getKeystoreDB(): Promise<IDBPDatabase<any>> {
   if (!keystoreDbPromise) {
     keystoreDbPromise = openDB(KEYSTORE_DB_NAME, 1, {
@@ -110,7 +132,25 @@ function getKeystoreDB(): Promise<IDBPDatabase<any>> {
           db.createObjectStore(KEYSTORE_STORE_NAME);
         }
       },
-    });
+      blocked() {
+        closeKeystoreDB();
+      },
+      blocking() {
+        closeKeystoreDB();
+      },
+      terminated() {
+        activeKeystoreDb = null;
+        keystoreDbPromise = null;
+      },
+    })
+      .then((db) => {
+        activeKeystoreDb = db;
+        return db;
+      })
+      .catch((err) => {
+        keystoreDbPromise = null;
+        throw err;
+      });
   }
   return keystoreDbPromise;
 }
@@ -319,6 +359,7 @@ export async function removeVaultPin(currentPin: string): Promise<boolean> {
   }
 
   localStorage.removeItem(PIN_STORAGE_KEY);
+  localStorage.removeItem(BIOMETRIC_STORAGE_KEY);
   isLocked = false;
   notifyLockState();
   return true;
@@ -330,6 +371,7 @@ export async function removeVaultPin(currentPin: string): Promise<boolean> {
 export function resetVaultSecurity(): void {
   localStorage.removeItem(PIN_STORAGE_KEY);
   localStorage.removeItem(LOCK_CONFIG_KEY);
+  localStorage.removeItem(BIOMETRIC_STORAGE_KEY);
   sessionStorage.removeItem('vibe_vault_setup_skipped');
   inMemoryCryptoKey = null;
   clearSecureGeminiApiKey();
@@ -364,35 +406,66 @@ export async function wipeGuestSessionData(): Promise<void> {
       console.warn('[Ephemeral Guest Mode] Callback wipe error:', err);
     }
   } else if (typeof indexedDB !== 'undefined') {
+    let db: IDBPDatabase<any> | null = null;
     try {
-      const db = await openDB('vibe-vault-db', 6, {
-        upgrade(database) {
+      db = await openDB('vibe-vault-db', 7, {
+        upgrade(database, _oldVersion, _newVersion, transaction) {
+          let txStore;
           if (!database.objectStoreNames.contains('transactions')) {
-            const store = database.createObjectStore('transactions', { keyPath: 'id' });
-            store.createIndex('by-date', 'date');
-            store.createIndex('by-category', 'category');
-            store.createIndex('by-type', 'type');
+            txStore = database.createObjectStore('transactions', { keyPath: 'id' });
+          } else {
+            txStore = transaction.objectStore('transactions');
           }
+          if (!txStore.indexNames.contains('by-date')) txStore.createIndex('by-date', 'date');
+          if (!txStore.indexNames.contains('by-category')) txStore.createIndex('by-category', 'category');
+          if (!txStore.indexNames.contains('by-type')) txStore.createIndex('by-type', 'type');
+
+          let assetStore;
           if (!database.objectStoreNames.contains('assetAccounts')) {
-            const store = database.createObjectStore('assetAccounts', { keyPath: 'id' });
-            store.createIndex('by-type', 'assetType');
-            store.createIndex('by-institution', 'institution');
+            assetStore = database.createObjectStore('assetAccounts', { keyPath: 'id' });
+          } else {
+            assetStore = transaction.objectStore('assetAccounts');
           }
+          if (!assetStore.indexNames.contains('by-type')) assetStore.createIndex('by-type', 'assetType');
+          if (!assetStore.indexNames.contains('by-institution')) assetStore.createIndex('by-institution', 'institution');
+
+          let debtStore;
           if (!database.objectStoreNames.contains('debts')) {
-            const store = database.createObjectStore('debts', { keyPath: 'id' });
-            store.createIndex('by-type', 'type');
-            store.createIndex('by-counterparty', 'counterpartyOrBank');
+            debtStore = database.createObjectStore('debts', { keyPath: 'id' });
+          } else {
+            debtStore = transaction.objectStore('debts');
           }
+          if (!debtStore.indexNames.contains('by-type')) debtStore.createIndex('by-type', 'type');
+          if (!debtStore.indexNames.contains('by-counterparty')) debtStore.createIndex('by-counterparty', 'counterpartyOrBank');
+
+          let spaceStore;
           if (!database.objectStoreNames.contains('spaces')) {
-            const store = database.createObjectStore('spaces', { keyPath: 'id' });
-            store.createIndex('by-created', 'createdAt');
+            spaceStore = database.createObjectStore('spaces', { keyPath: 'id' });
+          } else {
+            spaceStore = transaction.objectStore('spaces');
           }
+          if (!spaceStore.indexNames.contains('by-created')) spaceStore.createIndex('by-created', 'createdAt');
+
           if (!database.objectStoreNames.contains('vaultMetadata')) {
             database.createObjectStore('vaultMetadata');
           }
+
+          let scanStore;
+          if (!database.objectStoreNames.contains('pending_scans')) {
+            scanStore = database.createObjectStore('pending_scans', { keyPath: 'id' });
+          } else {
+            scanStore = transaction.objectStore('pending_scans');
+          }
+          if (!scanStore.indexNames.contains('by-created')) scanStore.createIndex('by-created', 'createdAt');
+        },
+        blocked() {
+          try { db?.close(); } catch {}
+        },
+        blocking() {
+          try { db?.close(); } catch {}
         }
       });
-      const storeNames = ['transactions', 'assetAccounts', 'debts'].filter(name => db.objectStoreNames.contains(name));
+      const storeNames = ['transactions', 'assetAccounts', 'debts', 'pending_scans'].filter(name => db!.objectStoreNames.contains(name));
       if (storeNames.length > 0) {
         const tx = db.transaction(storeNames as any, 'readwrite');
         for (const store of storeNames) {
@@ -402,6 +475,10 @@ export async function wipeGuestSessionData(): Promise<void> {
       }
     } catch (err) {
       console.warn('[Ephemeral Guest Mode] Direct IDB wipe error:', err);
+    } finally {
+      try {
+        db?.close();
+      } catch {}
     }
   }
 
@@ -492,6 +569,197 @@ export async function unlockVault(pin?: string): Promise<{ success: boolean; err
   notifyLockState();
   return { success: true };
 }
+
+/**
+ * WebAuthn Biometric & Passkey Quick Unlock Helpers
+ */
+async function getOrCreateBiometricWrapKey(): Promise<CryptoKey> {
+  const db = await getKeystoreDB();
+  const existingKey = await db.get(KEYSTORE_STORE_NAME, BIOMETRIC_WRAP_KEY_ID);
+  if (existingKey instanceof CryptoKey) {
+    return existingKey;
+  }
+  const newKey = await window.crypto.subtle.generateKey(
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+  await db.put(KEYSTORE_STORE_NAME, newKey, BIOMETRIC_WRAP_KEY_ID);
+  return newKey;
+}
+
+export async function isBiometricAvailable(): Promise<boolean> {
+  if (
+    typeof window === 'undefined' ||
+    !window.PublicKeyCredential ||
+    typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function'
+  ) {
+    return false;
+  }
+  try {
+    return await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  } catch {
+    return false;
+  }
+}
+
+export function isBiometricUnlockEnabled(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    const metaStr = localStorage.getItem(BIOMETRIC_STORAGE_KEY);
+    if (!metaStr) return false;
+    const meta: BiometricMetadata = JSON.parse(metaStr);
+    return Boolean(meta.enabled && meta.credId && hasVaultPin());
+  } catch {
+    return false;
+  }
+}
+
+export async function registerBiometricUnlock(pin: string): Promise<{ success: boolean; error?: string }> {
+  if (!pin || pin.length < 4) {
+    return { success: false, error: 'PIN 번호는 최소 4자리 이상이어야 합니다.' };
+  }
+  if (!hasVaultPin()) {
+    return { success: false, error: '생체 인증을 활성화하려면 먼저 마스터 PIN을 설정해야 합니다.' };
+  }
+
+  const valid = await verifyVaultPin(pin);
+  if (!valid) {
+    return { success: false, error: '입력하신 PIN 번호가 올바르지 않습니다.' };
+  }
+
+  if (typeof window === 'undefined' || !window.PublicKeyCredential || !navigator.credentials) {
+    return { success: false, error: '현재 환경에서 WebAuthn 생체 인증을 지원하지 않습니다.' };
+  }
+
+  const supported = await isBiometricAvailable();
+  if (!supported) {
+    return { success: false, error: '기기 생체 인증 장치(지문/Face ID/Windows Hello)를 사용할 수 없습니다.' };
+  }
+
+  try {
+    const challenge = window.crypto.getRandomValues(new Uint8Array(32));
+    const userId = window.crypto.getRandomValues(new Uint8Array(16));
+
+    const credential = (await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: {
+          name: 'Vibe Vault Pro'
+        },
+        user: {
+          id: userId,
+          name: 'vault-master-user',
+          displayName: 'Vault Master User'
+        },
+        pubKeyCredParams: [
+          { alg: -7, type: 'public-key' },  // ES256
+          { alg: -257, type: 'public-key' } // RS256
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+          residentKey: 'preferred'
+        },
+        timeout: 60000,
+        attestation: 'none'
+      }
+    })) as PublicKeyCredential | null;
+
+    if (!credential) {
+      return { success: false, error: '생체 인증 등록이 취소되었습니다.' };
+    }
+
+    const wrapKey = await getOrCreateBiometricWrapKey();
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const enc = new TextEncoder();
+    const encryptedPinBuf = await window.crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      wrapKey,
+      enc.encode(pin)
+    );
+
+    const meta: BiometricMetadata = {
+      credId: bufferToBase64(credential.rawId),
+      ivHex: bufferToHex(iv.buffer),
+      wrappedPinB64: bufferToBase64(encryptedPinBuf),
+      enabled: true,
+      registeredAt: new Date().toISOString()
+    };
+
+    localStorage.setItem(BIOMETRIC_STORAGE_KEY, JSON.stringify(meta));
+    return { success: true };
+  } catch (err: any) {
+    console.warn('[WebAuthn] Enrollment failed:', err);
+    return { success: false, error: err.message || '생체 인증 등록 중 오류가 발생했습니다.' };
+  }
+}
+
+export async function authenticateBiometricUnlock(): Promise<{ success: boolean; error?: string }> {
+  if (typeof window === 'undefined' || !navigator.credentials) {
+    return { success: false, error: '생체 인증을 지원하지 않는 환경입니다.' };
+  }
+
+  const metaStr = localStorage.getItem(BIOMETRIC_STORAGE_KEY);
+  if (!metaStr) {
+    return { success: false, error: '등록된 생체 인증 정보가 없습니다.' };
+  }
+
+  try {
+    const meta: BiometricMetadata = JSON.parse(metaStr);
+    if (!meta.enabled || !meta.credId || !meta.wrappedPinB64) {
+      return { success: false, error: '생체 인증이 비활성화되어 있습니다.' };
+    }
+
+    const challenge = window.crypto.getRandomValues(new Uint8Array(32));
+    const credIdBuffer = base64ToBuffer(meta.credId);
+
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        timeout: 60000,
+        userVerification: 'required',
+        allowCredentials: [
+          {
+            id: credIdBuffer,
+            type: 'public-key'
+          }
+        ]
+      }
+    });
+
+    if (!assertion) {
+      return { success: false, error: '생체 인증이 완료되지 않았습니다.' };
+    }
+
+    const wrapKey = await getOrCreateBiometricWrapKey();
+    const iv = new Uint8Array(hexToBuffer(meta.ivHex));
+    const ciphertext = base64ToBuffer(meta.wrappedPinB64);
+
+    const decryptedBuffer = await window.crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      wrapKey,
+      ciphertext
+    );
+
+    const pin = new TextDecoder().decode(decryptedBuffer);
+    return await unlockVault(pin);
+  } catch (err: any) {
+    console.warn('[WebAuthn] Authentication failed:', err);
+    return { success: false, error: err.message || '생체 인증에 실패했습니다.' };
+  }
+}
+
+export async function disableBiometricUnlock(): Promise<void> {
+  localStorage.removeItem(BIOMETRIC_STORAGE_KEY);
+  try {
+    const db = await getKeystoreDB();
+    await db.delete(KEYSTORE_STORE_NAME, BIOMETRIC_WRAP_KEY_ID);
+  } catch {
+    // Ignore keystore cleanup error
+  }
+}
+
 
 /**
  * Auto-Lock Configuration & Inactivity Watcher

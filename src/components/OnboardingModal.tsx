@@ -220,7 +220,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
           </div>
 
           <div className="text-center">
-            <span className="text-[10px] text-neutral-500 font-mono">
+            <span className="text-[10px] text-neutral-400 font-mono">
               {currentStep + 1} / 3
             </span>
           </div>

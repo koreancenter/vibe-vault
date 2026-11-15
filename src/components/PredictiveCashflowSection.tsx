@@ -79,7 +79,7 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
         {/* 3-Metric KPI Row: Clean Flat Surface (No divide-x lines) */}
         <div className="grid grid-cols-3 gap-2 pt-2">
           <div className="min-w-0">
-            <span className={`text-[10px] sm:text-[11px] font-medium block truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <span className={`text-[10px] sm:text-[11px] font-medium block truncate ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               현재 순자금
             </span>
             <span className={`text-sm sm:text-base font-black tracking-tight mt-0.5 block truncate ${
@@ -89,13 +89,13 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
             } ${isStealth ? 'blur-sm select-none' : ''}`}>
               {formatMoney(forecast.currentBalance)}
             </span>
-            <span className={`text-[10px] mt-0.5 block font-medium truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <span className={`text-[10px] mt-0.5 block font-medium truncate ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               이번 달 수입 - 지출
             </span>
           </div>
 
           <div className="min-w-0">
-            <span className={`text-[10px] sm:text-[11px] font-medium block truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <span className={`text-[10px] sm:text-[11px] font-medium block truncate ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               월말 예상
             </span>
             <span className={`text-sm sm:text-base font-black tracking-tight mt-0.5 block truncate ${
@@ -105,13 +105,13 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
             } ${isStealth ? 'blur-sm select-none' : ''}`}>
               {formatMoney(forecast.projectedMonthEndBalance)}
             </span>
-            <span className={`text-[10px] mt-0.5 block font-medium truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <span className={`text-[10px] mt-0.5 block font-medium truncate ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               잔여 {forecast.daysRemainingInMonth}일 후
             </span>
           </div>
 
           <div className="min-w-0">
-            <span className={`text-[10px] sm:text-[11px] font-medium block truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <span className={`text-[10px] sm:text-[11px] font-medium block truncate ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               남은 고정비
             </span>
             <span className={`text-sm sm:text-base font-black tracking-tight mt-0.5 block truncate ${
@@ -119,7 +119,7 @@ export const PredictiveCashflowSection: React.FC<PredictiveCashflowSectionProps>
             } ${isStealth ? 'blur-sm select-none' : ''}`}>
               {formatMoney(forecast.totalUpcomingSubscriptions)}
             </span>
-            <span className={`text-[10px] mt-0.5 block font-medium truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <span className={`text-[10px] mt-0.5 block font-medium truncate ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               결제 예정액
             </span>
           </div>

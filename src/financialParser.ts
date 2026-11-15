@@ -1,4 +1,4 @@
-import { Transaction, TransactionType, CurrencyCode, ParsedReceiptData, ReceiptItem, DebtItem, LoanSplitSuggestion, ReceivableRecoverySuggestion, InstallmentMetadata } from './types';
+import { Transaction, TransactionType, CurrencyCode, ParsedReceiptData, ReceiptItem, DebtItem, LoanSplitSuggestion, ReceivableRecoverySuggestion, InstallmentMetadata, FinancialQueryParameters, FinancialQueryMetric, SupportedCurrency, LaunchScreenMode } from './types';
 import { cleanMerchantTitle } from './merchantSanitizer';
 import { generateSecureId } from './identifiers';
 import { anonymizeFinancialInput } from './piiSanitizer';
@@ -60,6 +60,9 @@ export interface ParsedTransactionResult {
   isOverdraft?: boolean;
   overdraftLimit?: number;
   currentBalance?: number;
+  paidBy?: string;
+  splitParticipants?: string[];
+  fxRateAtEntry?: number;
 }
 
 /**
@@ -1640,6 +1643,48 @@ export async function parseFinancialTextWithGeminiFallback(
   return parseFinancialText(text, baseCurrency);
 }
 
+const NON_PERSON_PAYERS = new Set([
+  '카드', '신용카드', '체크카드', '현금', '계좌이체', '삼성페이', '애플페이', '토스',
+  '카카오페이', '네이버페이', '법인카드', '법카', '할부', '일시불', '직접', '온라인',
+  '모바일', '현장', '간편', '통장', '은행', '나', 'me'
+]);
+
+/**
+ * Extracts payer name from natural language input (e.g., "김대리 결제", "선결제: 박과장", "paid by Alice")
+ */
+export function extractPayer(text: string): string | undefined {
+  if (!text) return undefined;
+
+  // 1. Explicit labels: "결제자: 김대리", "선결제: 박과장", "paid by Alice", "payer: Bob"
+  const labelMatch = text.match(/(?:선결제자?|결제자|paid\s*by|payer)\s*[:=]\s*([가-힣a-zA-Z0-9]{2,12})/i);
+  if (labelMatch) {
+    const candidate = labelMatch[1].trim();
+    if (!NON_PERSON_PAYERS.has(candidate.toLowerCase())) {
+      return candidate;
+    }
+  }
+
+  // 2. Trailing/inline pattern: "김대리 결제", "김대리 선결제", "김대리가 결제", "김대리가 냄", "박과장 결제"
+  const suffixMatch = text.match(/([가-힣a-zA-Z]{2,10})\s*(?:가|이|께서)?\s*(?:선결제|결제|지불|냄|냈음|부담|쏨)(?:\s|$|[:=])/i);
+  if (suffixMatch) {
+    const candidate = suffixMatch[1].trim();
+    if (!NON_PERSON_PAYERS.has(candidate.toLowerCase()) && !/^(?:신용|체크|법인|현금|계좌|삼성|애플|토스|네이버|카카오)$/.test(candidate)) {
+      return candidate;
+    }
+  }
+
+  // 3. English "paid by [Name]" without colon
+  const engMatch = text.match(/paid\s+by\s+([a-zA-Z]{2,15})/i);
+  if (engMatch) {
+    const candidate = engMatch[1].trim();
+    if (!NON_PERSON_PAYERS.has(candidate.toLowerCase())) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
 /**
  * Parses full natural language string deterministically into structured transactions.
  */
@@ -1649,10 +1694,20 @@ export function parseFinancialInputDeterministically(rawPrompt: string, debts: D
   const currency = detectCurrency(sanitized);
   const paymentMethod = detectPaymentMethod(sanitized);
   const results: ParsedTransactionResult[] = [];
+  const payer = extractPayer(sanitized);
+
+  const finalize = (list: ParsedTransactionResult[]): ParsedTransactionResult[] => {
+    if (payer) {
+      for (const item of list) {
+        if (!item.paidBy) item.paidBy = payer;
+      }
+    }
+    return list;
+  };
 
   const clarification = detectClarificationNeeded(sanitized);
   if (clarification) {
-    return [{ type: 'EXPENSE', amount: 0, currency, category: 'Living', description: '확인 필요', date: now, clarification, rawClause: sanitized }];
+    return finalize([{ type: 'EXPENSE', amount: 0, currency, category: 'Living', description: '확인 필요', date: now, clarification, rawClause: sanitized }]);
   }
 
   const peer = detectPeerDebt(sanitized);
@@ -2107,12 +2162,12 @@ export function parseFinancialInputDeterministically(rawPrompt: string, debts: D
         originalTotal: item.note ? (item.amount * 2) : undefined
       });
     }
-    if (results.length > 0) return results;
+    if (results.length > 0) return finalize(results);
   }
 
   // 5. Standard Single Transaction
   // Never fabricate an amount: without one the caller must ask the user again.
-  if (!detectedAmount) return results;
+  if (!detectedAmount) return finalize(results);
   const amount = detectedAmount;
   const isFallbackIncome = /월급|급여|보너스|상여금|수당|용돈|배당금|환급|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|벌었|받았|받음|salary|paycheck|bonus|allowance/i.test(sanitized) && notExpense;
 
@@ -2122,6 +2177,10 @@ export function parseFinancialInputDeterministically(rawPrompt: string, debts: D
   const type = isFallbackIncome ? 'INCOME' : 'EXPENSE';
 
   let cleanDesc = cleanMerchantTitle(stripDateExpressions(sanitized), isFallbackIncome ? '급여 수입' : merchant || '지출 내역');
+  if (payer) {
+    cleanDesc = cleanDesc.replace(new RegExp(`\\s*${payer}\\s*(?:가|이|께서)?\\s*(?:선결제|결제|지불|냄|냈음|부담|쏨)?$`, 'i'), '').trim();
+    if (!cleanDesc) cleanDesc = isFallbackIncome ? '급여 수입' : '지출 내역';
+  }
 
   const finalPaymentMethod = isFallbackIncome 
     ? detectPaymentMethod(sanitized, true) 
@@ -2138,10 +2197,11 @@ export function parseFinancialInputDeterministically(rawPrompt: string, debts: D
     date: dateToIsoTimestamp(type === 'EXPENSE' ? resolveExpenseDate(sanitized, extractCommonDate(sanitized)) : extractCommonDate(sanitized)),
     paymentMethod: finalPaymentMethod,
     confidenceScore: confidence,
-    rawClause: sanitized
+    rawClause: sanitized,
+    paidBy: payer
   });
 
-  return results;
+  return finalize(results);
 }
 
 /**
@@ -2155,6 +2215,7 @@ export interface RealtimePreviewData {
   category?: string;
   paymentMethod?: string;
   isDutch?: boolean;
+  paidBy?: string;
 }
 
 export function extractRealtimePreview(text: string): RealtimePreviewData | null {
@@ -2179,7 +2240,11 @@ export function extractRealtimePreview(text: string): RealtimePreviewData | null
   const isIncome = /월급|급여|보너스|상여금|수당|용돈|배당금|환급|이자수익|알바비|연봉|퇴직금|주급|들어옴|입금|수입|벌었/i.test(sanitized) && !/결제|지출|썼|사먹|구입|구매/i.test(sanitized);
   const paymentMethod = detectPaymentMethod(sanitized, isIncome);
   const isDutch = /더치페이|더치|n빵|정산|반띵/i.test(sanitized);
-  const cleanedTitle = cleanMerchantTitle(sanitized, merchant);
+  const paidBy = extractPayer(sanitized);
+  let cleanedTitle = cleanMerchantTitle(sanitized, merchant);
+  if (paidBy) {
+    cleanedTitle = cleanedTitle.replace(new RegExp(`\\s*${paidBy}\\s*(?:가|이|께서)?\\s*(?:선결제|결제|지불|냄|냈음|부담|쏨)?$`, 'i'), '').trim();
+  }
 
   // Return preview if at least an amount, category or merchant was detected
   if (amount || merchant || (category && category !== 'Living')) {
@@ -2189,7 +2254,8 @@ export function extractRealtimePreview(text: string): RealtimePreviewData | null
       currency,
       category: isIncome ? '급여' : category,
       paymentMethod: paymentMethod || undefined,
-      isDutch
+      isDutch,
+      paidBy
     };
   }
 
@@ -2477,3 +2543,193 @@ export function parseReceiptTextLocally(
     paymentMethod: paymentMethod || undefined
   };
 }
+
+/**
+ * Shared deterministic rule-based financial query intent parser with multilingual support (KO, EN, JA, EU).
+ * Extracted from autonomousFinance.ts and server.ts to unify query classification logic.
+ */
+export function parseQueryIntentLocally(query: string, now: Date = new Date()): FinancialQueryParameters {
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  let metric: FinancialQueryMetric = 'general_financial';
+  let category: string | undefined = undefined;
+  let targetCurrency: SupportedCurrency = 'KRW';
+  let month = currentMonth;
+  let year = currentYear;
+  let merchantKeyword: string | undefined = undefined;
+
+  // Month matching
+  // Korean: "9월", "2026년 9월"
+  // Japanese: "9月", "2026年9月"
+  const koJaMonthMatch = query.match(/(?:(\d{4})[년年]\s*)?(\d{1,2})[월月]/);
+  // English month names
+  const enMonthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+  const enMonthShort = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+  if (koJaMonthMatch) {
+    if (koJaMonthMatch[1]) year = parseInt(koJaMonthMatch[1], 10);
+    month = parseInt(koJaMonthMatch[2], 10);
+  } else if (/지난달|지난\s*달|last\s*month|先月|le\s*mois\s*dernier|letzter\s*monat|el\s*mes\s*pasado/i.test(query)) {
+    month = currentMonth === 1 ? 12 : currentMonth - 1;
+    if (currentMonth === 1) year = currentYear - 1;
+  } else {
+    for (let i = 0; i < 12; i++) {
+      const regex = new RegExp(`\\b(?:${enMonthNames[i]}|${enMonthShort[i]})\\b`, 'i');
+      if (regex.test(query)) {
+        month = i + 1;
+        break;
+      }
+    }
+  }
+
+  // Target currency detection
+  if (/usd|dollar|달러|\$|환차|환율|외환|fx|forex|為替/i.test(query)) {
+    targetCurrency = 'USD';
+  } else if (/eur|euro|유로|€/i.test(query)) {
+    targetCurrency = 'EUR';
+  } else if (/jpy|yen|엔화|円|¥/i.test(query)) {
+    targetCurrency = 'JPY';
+  } else if (/gbp|pound|파운드|£/i.test(query)) {
+    targetCurrency = 'GBP';
+  }
+
+  // FX Gain / Loss matching
+  if (/환차|환율|달러|usd|외환|환전|환손익|환차익|환차손|fx|forex|exchange\s*rate|foreign\s*exchange|currency\s*gain|為替|為替差益|為替差損|為替レート|taux\s*de\s*change|wechselkurs|tipo\s*de\s*cambio/i.test(query)) {
+    metric = 'fx_gain_loss';
+    targetCurrency = targetCurrency || 'USD';
+  } else if (/주말|토요일|일요일|weekend|samedi|dimanche|wochenende|fin\s*de\s*semana|週末|土曜日|日曜日/i.test(query)) {
+    metric = 'weekend_expense';
+  } else if (/식비|카페|커피|외식|음식|배달|점심|저녁|마트|장보기|food|dining|restaurant|coffee|cafe|groceries|lunch|dinner|meal|essen|lebensmittel|nourriture|repas|comida|cibo|食費|カフェ|外食|ランチ|ディナー/i.test(query)) {
+    metric = 'category_sum';
+    category = 'Food';
+  } else if (/교통|지하철|버스|택시|주유|주차|transport|transit|subway|metro|bus|taxi|flight|fuel|gas|essence|verkehr|transporte|trasporti|交通|電車|バス|タクシー|ガソリン/i.test(query)) {
+    metric = 'category_sum';
+    category = 'Transport';
+  } else if (/생활|쇼핑|다이소|쿠팡|올리브영|편의점|shopping|living|store|market|courses|einkaufen|compras|spesa|日用品|買い物|ショッピング/i.test(query)) {
+    metric = 'category_sum';
+    category = 'Living';
+  } else if (/고정비|월세|관리비|통신비|보험|공과금|fixed|rent|utility|utilities|bill|insurance|subscription|miete|loyer|alquiler|bollette|固定費|家賃|光熱費|保険|サブスク/i.test(query)) {
+    metric = 'category_sum';
+    category = 'Fixed';
+  } else if (/의료|병원|약국|헬스|운동|health|medical|doctor|hospital|pharmacy|fitness|gym|santé|gesundheit|salud|salute|医療|健康|病院|薬局|フィットネス/i.test(query)) {
+    metric = 'category_sum';
+    category = 'Health';
+  } else if (/여가|문화|영화|여행|숙박|leisure|culture|movie|cinema|trip|travel|hotel|hobby|vacation|loisirs|freizeit|ocio|tempo\s*libero|娯楽|趣味|旅行|映画/i.test(query)) {
+    metric = 'category_sum';
+    category = 'Leisure';
+  } else if (/총\s*지출|얼마\s*썼|지출\s*총액|total\s*expense|how\s*much\s*did\s*i\s*spend|total\s*spending|dépenses\s*totales|gesamtausgaben|gastos\s*totales|総支出|支出合計/i.test(query)) {
+    metric = 'total_expense';
+  } else if (/수입|월급|급여|들어온\s*돈|income|salary|earnings|revenue|revenu|einkommen|ingresos|entrata|収入|給料/i.test(query)) {
+    metric = 'total_income';
+  } else if (/저축|순수익|흑자|잉여|savings|net\s*savings|surplus|épargne|ersparnis|ahorro|risparmio|貯蓄|余剰/i.test(query)) {
+    metric = 'net_savings';
+  }
+
+  const dateRange = `${year}-${String(month).padStart(2, '0')}`;
+  return {
+    metric,
+    dateRange,
+    year,
+    month,
+    targetCurrency,
+    category,
+    merchantKeyword,
+    querySummary: `${month} / ${year} (${metric === 'fx_gain_loss' ? 'FX' : metric === 'weekend_expense' ? 'Weekend' : category || 'Finance'})`
+  };
+}
+
+/**
+ * Consolidates server and client transaction category normalization into a single shared function.
+ * Maps multingual category inputs and descriptors to standard Obsidian vault category keys.
+ */
+export function normalizeTransactionCategory(
+  rawCat?: string,
+  description?: string,
+  type?: TransactionType
+): { category: string; subCategory?: string } {
+  const raw = (rawCat || '').trim();
+  const lower = raw.toLowerCase();
+
+  // 1. Explicit Refund check
+  if (/환불|refund|remboursement|rückerstattung|reembolso|rimborso|返金/i.test(lower)) {
+    return { category: 'Living', subCategory: 'Refund' };
+  }
+
+  // 2. Transfer / Savings check
+  if (type === 'TRANSFER' || /이체|저축|적금|예금|savings|deposit|épargne|sparen|ahorro|risparmio|貯蓄|預金/i.test(lower)) {
+    return { category: 'Fixed', subCategory: 'Savings' };
+  }
+
+  // 3. Income / Salary check
+  if (type === 'INCOME' || /급여|월급|수입|소득|salary|income|wage|paycheck|salaire|gehalt|salario|stipendio|給与|給料|収入/i.test(lower)) {
+    return { category: 'Fixed', subCategory: 'Salary' };
+  }
+
+  // 4. Food: Cafe vs Dining
+  if (/식비|외식|카페|간식|food|dining|restaurant|grocery|groceries|lunch|dinner|breakfast|meal|repas|déjeuner|essen|lebensmittel|comida|cibo|食費|外食|ランチ|ディナー/i.test(lower)) {
+    const isCafe = /cafe|카페|coffee|커피|간식|디저트|dessert|カフェ/i.test(lower);
+    return { category: 'Food', subCategory: isCafe ? 'Cafe' : 'Dining' };
+  }
+
+  // 5. Transport: Public Transport
+  if (/교통|지하철|버스|택시|주유|주차|transport|transit|subway|metro|bus|taxi|flight|fuel|gas|essence|verkehr|transporte|trasporti|交通|電車|バス|タクシー|ガソリン/i.test(lower)) {
+    return { category: 'Transport', subCategory: 'Public Transport' };
+  }
+
+  // 6. Fixed: Utilities
+  if (/고정|주거|월세|관리비|통신비|통신|보험|공과금|fixed|rent|utilities|bill|subscription|sub|abono|miete|loyer|affitto|固定費|家賃|光熱費|保険/i.test(lower)) {
+    return { category: 'Fixed', subCategory: 'Utilities' };
+  }
+
+  // 7. Health: Medical
+  if (/의료|건강|병원|약국|헬스|운동|health|medical|fitness|pharmacy|doctor|hospital|santé|gesundheit|salud|salute|医療|健康|病院|薬局|フィットネス/i.test(lower)) {
+    return { category: 'Health', subCategory: 'Medical' };
+  }
+
+  // 8. Leisure: Entertainment
+  if (/여가|문화|영화|여행|숙박|leisure|culture|entertainment|travel|hotel|hobby|vacation|loisirs|freizeit|ocio|tempo\s*libero|娯楽|趣味|旅行|映画/i.test(lower)) {
+    return { category: 'Leisure', subCategory: 'Entertainment' };
+  }
+
+  // 9. Living: Shopping
+  if (/생활|쇼핑|생필품|living|shopping|clothes|fashion|store|market|courses|einkaufen|compras|spesa|日用品|買い物|ショッピング/i.test(lower)) {
+    return { category: 'Living', subCategory: 'Shopping' };
+  }
+
+  // 10. If raw is empty, 'Uncategorized', or '미분류', attempt inference from description
+  if (!raw || /^(?:uncategorized|미분류)$/i.test(raw)) {
+    if (description && description.trim()) {
+      const inferred = inferCategoryAndMerchant(description);
+      return { category: inferred.category, subCategory: inferred.subCategory };
+    }
+    return { category: 'Living', subCategory: 'General' };
+  }
+
+  // 11. Preserved raw category fallback
+  return { category: raw, subCategory: 'General' };
+}
+
+/**
+ * Shared helper to determine whether an input string represents an analytical query
+ * (e.g., asking for currency gains, category totals, weekend expenses) or a standard transaction record.
+ */
+export function isAnalyticalQueryInput(text: string, currentMode: LaunchScreenMode | string = 'ledger'): boolean {
+  const clean = text.trim();
+  if (!clean) return false;
+
+  const hasExplicitTransactionAmount = /(?:\d+(?:,\d+)*(?:\s*원|\s*만원|\s*천원|\s*KRW|\s*USD|\s*EUR|\s*JPY)|[\$₩€¥]\s*\d+)/i.test(clean);
+  const hasAnalyticalKeywords = /(?:환차익|환손익|환차|환율|외환|분석|총액|얼마|추이|주말\s*지출)/i.test(clean);
+  const isCategoryQueryAlone = /^(?:식비|교통비|생활비|고정비|문화비|여가비|의료비)(?:\s*(?:분석|조회|현황|통계))?$/i.test(clean);
+  const isQuestionOrInsightMode = currentMode === 'insights' || clean.endsWith('?') || /알려줘|어때|조회/i.test(clean);
+
+  const isStandardTransaction = hasExplicitTransactionAmount && !hasAnalyticalKeywords && !isQuestionOrInsightMode;
+
+  return !isStandardTransaction && (
+    hasAnalyticalKeywords ||
+    isCategoryQueryAlone ||
+    (clean.includes('식비') && !hasExplicitTransactionAmount) ||
+    isQuestionOrInsightMode
+  );
+}
+

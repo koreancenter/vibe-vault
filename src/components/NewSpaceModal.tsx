@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { LedgerSpace } from '../types';
 import { createSpace } from '../db';
 import { generateSecureId } from '../identifiers';
+import { useI18n } from '../i18n';
 
 interface NewSpaceModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
   onCreated,
   theme = 'dark'
 }) => {
+  const { t } = useI18n();
   const isLight = theme === 'light';
 
   const [name, setName] = useState('');
@@ -42,7 +44,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
     e.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('장부 이름을 입력해 주세요.');
+      setError(t('space_name_placeholder'));
       return;
     }
 
@@ -69,7 +71,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error('[NewSpaceModal] Failed to create space:', err);
-      setError('장부 공간을 생성하지 못했습니다. 다시 시도해 주세요.');
+      setError(err?.message || 'Failed to create ledger space');
     } finally {
       setIsSubmitting(false);
     }
@@ -93,17 +95,17 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
           isLight ? 'border-neutral-200 bg-neutral-50/80' : 'border-white/10 bg-white/[0.02]'
         }`}>
           <h2 className={`text-base font-semibold tracking-tight ${isLight ? 'text-neutral-900' : 'text-white'}`}>
-            새 프로젝트 / 행사 장부 만들기
+            {t('new_space_title')}
           </h2>
           <button 
             type="button"
             onClick={onClose} 
-            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
               isLight 
                 ? 'text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100' 
                 : 'text-neutral-400 hover:text-white hover:bg-white/[0.06]'
             }`}
-            aria-label="닫기"
+            aria-label={t('close')}
           >
             <X size={16} />
           </button>
@@ -120,8 +122,8 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
           {/* 1. Project Name (Required) */}
           <div className="space-y-1.5">
             <label className={`text-xs font-medium flex items-center justify-between ${isLight ? 'text-neutral-700' : 'text-neutral-300'}`}>
-              <span>장부 이름 <span className="text-neutral-400 font-normal">*</span></span>
-              <span className="text-[11px] text-neutral-400 font-normal">필수</span>
+              <span>{t('space_name')} <span className="text-neutral-400 font-normal">*</span></span>
+              <span className="text-[11px] text-neutral-400 font-normal">{t('required')}</span>
             </label>
             <input 
               type="text" 
@@ -130,7 +132,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                 setName(e.target.value);
                 if (error) setError(null);
               }}
-              placeholder="장부 이름을 입력하세요" 
+              placeholder={t('space_name_placeholder')} 
               className={`w-full border rounded-xl px-3.5 py-2.5 text-xs outline-none transition-colors ${
                 isLight 
                   ? 'bg-neutral-50 border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900' 
@@ -143,8 +145,8 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
           {/* 2. Base Currency (Simplified clean selector) */}
           <div className="space-y-1.5 pt-0.5">
             <label className={`text-xs font-medium flex items-center justify-between ${isLight ? 'text-neutral-700' : 'text-neutral-300'}`}>
-              <span>기본 통화</span>
-              <span className="text-[11px] text-neutral-400 font-normal">정산서 기준 통화</span>
+              <span>{t('base_currency')}</span>
+              <span className="text-[11px] text-neutral-400 font-normal">{t('settlement_base_currency_desc')}</span>
             </label>
             <div className="grid grid-cols-5 gap-1.5">
               {PRESET_CURRENCIES.map((cur) => (
@@ -152,7 +154,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                   key={cur.code}
                   type="button"
                   onClick={() => setCurrency(cur.code)}
-                  className={`py-2 px-1 rounded-xl text-xs transition-all border text-center ${
+                  className={`py-2 px-1 rounded-xl text-xs transition-all border text-center cursor-pointer ${
                     currency === cur.code
                       ? isLight
                         ? 'bg-neutral-900 border-neutral-900 text-white font-semibold shadow-xs'
@@ -173,7 +175,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
             {/* Target Budget / Total Dues */}
             <div className="space-y-1.5">
               <label className={`text-xs font-medium ${isLight ? 'text-neutral-700' : 'text-neutral-300'}`}>
-                목표 예산 / 총 회비
+                {t('target_budget_total_dues')}
               </label>
               <div className="relative">
                 <input 
@@ -183,7 +185,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                     const raw = e.target.value.replace(/[^0-9]/g, '');
                     setBudget(raw ? Number(raw).toLocaleString() : '');
                   }}
-                  placeholder="예: 2,000,000" 
+                  placeholder="2,000,000" 
                   className={`w-full border rounded-xl pl-3 pr-11 py-2 text-xs outline-none transition-colors tabular-nums font-medium ${
                     isLight 
                       ? 'bg-neutral-50 border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900' 
@@ -199,7 +201,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
             {/* Member Count */}
             <div className="space-y-1.5">
               <label className={`text-xs font-medium ${isLight ? 'text-neutral-700' : 'text-neutral-300'}`}>
-                참여 인원
+                {t('member_count')}
               </label>
               <div className="flex items-center gap-1.5">
                 <div className="relative flex-1">
@@ -209,7 +211,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                     max="100"
                     value={memberCount}
                     onChange={(e) => setMemberCount(e.target.value)}
-                    placeholder="인원수" 
+                    placeholder="4" 
                     className={`w-full border rounded-xl pl-3 pr-8 py-2 text-xs outline-none transition-colors tabular-nums font-medium ${
                       isLight 
                         ? 'bg-neutral-50 border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900' 
@@ -217,7 +219,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                     }`}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 pointer-events-none">
-                    명
+                    {t('member_count_unit')}
                   </span>
                 </div>
                 {/* Quick Presets */}
@@ -227,7 +229,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                       key={n}
                       type="button"
                       onClick={() => setMemberCount(String(n))}
-                      className={`text-xs px-2.5 py-2 rounded-xl border transition-all ${
+                      className={`text-xs px-2.5 py-2 rounded-xl border transition-all cursor-pointer ${
                         memberCount === String(n)
                           ? isLight
                             ? 'bg-neutral-900 border-neutral-900 text-white font-semibold'
@@ -237,7 +239,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                             : 'bg-white/[0.04] border-white/10 text-neutral-400 hover:text-white'
                       }`}
                     >
-                      {n}명
+                      {n}{t('member_count_unit')}
                     </button>
                   ))}
                 </div>
@@ -245,17 +247,17 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
             </div>
           </div>
           <p className={`text-[11px] font-normal leading-relaxed ${isLight ? 'text-neutral-600' : 'text-neutral-400'}`}>
-            참여 인원수는 공식 결산서의 1인당 정산 금액(총지출 ÷ 인원수) 및 환급금 계산에 사용됩니다.
+            {t('member_count_explanation')}
           </p>
 
           {/* 5. Date Range (Optional) */}
           <div className="space-y-1.5 pt-0.5">
             <label className={`text-xs font-medium ${isLight ? 'text-neutral-700' : 'text-neutral-300'}`}>
-              진행 기간 (선택 사항)
+              {t('event_duration_optional')}
             </label>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <span className="text-[10px] text-neutral-400 block mb-1">시작일</span>
+                <span className="text-[10px] text-neutral-400 block mb-1">{t('start_date')}</span>
                 <input 
                   type="date" 
                   value={startDate}
@@ -268,7 +270,7 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-neutral-400 block mb-1">종료일</span>
+                <span className="text-[10px] text-neutral-400 block mb-1">{t('end_date')}</span>
                 <input 
                   type="date" 
                   value={endDate}
@@ -288,24 +290,24 @@ export const NewSpaceModal: React.FC<NewSpaceModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className={`h-10 px-4 rounded-xl text-xs font-medium border transition-colors ${
+              className={`h-10 px-4 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
                 isLight 
                   ? 'border-neutral-300 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900' 
                   : 'border-white/10 text-neutral-400 hover:bg-white/[0.05] hover:text-white'
               }`}
             >
-              취소
+              {t('cancel')}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
-              className={`flex-1 h-10 flex items-center justify-center rounded-xl font-semibold text-xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-[0.99] ${
+              className={`flex-1 h-10 flex items-center justify-center rounded-xl font-semibold text-xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-[0.99] cursor-pointer ${
                 isLight
                   ? 'bg-neutral-900 hover:bg-neutral-800 text-white shadow-sm'
                   : 'bg-white hover:bg-neutral-200 text-neutral-950 shadow-sm'
               }`}
             >
-              장부 공간 생성 및 바로 전환
+              {t('create_and_switch_space')}
             </button>
           </div>
         </form>

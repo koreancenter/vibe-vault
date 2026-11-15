@@ -4,10 +4,14 @@ import {
   isVaultLocked, 
   hasVaultPin, 
   unlockVault, 
-  setVaultPin 
+  setVaultPin,
+  authenticateBiometricUnlock,
+  isBiometricUnlockEnabled,
+  isBiometricAvailable as checkBiometricAvailable
 } from '../vaultSecurity';
 import { LegalNoticeModal } from './LegalNoticeModal';
 import { OnboardingModal } from './OnboardingModal';
+import { useI18n } from '../i18n';
 
 interface VaultLockScreenProps {
   onUnlocked?: () => void;
@@ -18,6 +22,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
   onUnlocked,
   onGuestMode 
 }) => {
+  const { t, language } = useI18n();
   const [locked, setLocked] = useState<boolean>(() => {
     if (typeof localStorage === 'undefined') return false;
     return isVaultLocked() || (!hasVaultPin() && !sessionStorage.getItem('vibe_vault_setup_skipped'));
@@ -37,21 +42,18 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [shake, setShake] = useState<boolean>(false);
   const [isLegalNoticeOpen, setIsLegalNoticeOpen] = useState<boolean>(false);
-  const [isBiometricAvailable, setIsBiometricAvailable] = useState<boolean>(false);
+  const [legalNoticeTab, setLegalNoticeTab] = useState<'legal' | 'licenses'>('legal');
+  const [isBiometricSupported, setIsBiometricSupported] = useState<boolean>(false);
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState<boolean>(() => isBiometricUnlockEnabled());
 
   const isSetupMode = !isPinSet;
 
   // Check WebAuthn platform authenticator availability
   useEffect(() => {
-    if (
-      typeof window !== 'undefined' && 
-      window.PublicKeyCredential && 
-      typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
-    ) {
-      window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-        .then((available) => setIsBiometricAvailable(available))
-        .catch(() => setIsBiometricAvailable(false));
-    }
+    checkBiometricAvailable()
+      .then((available) => setIsBiometricSupported(available))
+      .catch(() => setIsBiometricSupported(false));
+    setIsBiometricEnabled(isBiometricUnlockEnabled());
   }, []);
 
   // Sync state on custom event and mount
@@ -61,6 +63,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       const isNowLocked = custom.detail?.isLocked ?? isVaultLocked();
       const pinConfigured = hasVaultPin();
       setIsPinSet(pinConfigured);
+      setIsBiometricEnabled(isBiometricUnlockEnabled());
       setLocked(isNowLocked || (!pinConfigured && !sessionStorage.getItem('vibe_vault_setup_skipped')));
       setPin('');
       setConfirmPin('');
@@ -73,6 +76,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
     // Initial check
     const pinConfigured = hasVaultPin();
     setIsPinSet(pinConfigured);
+    setIsBiometricEnabled(isBiometricUnlockEnabled());
     if (!pinConfigured && !sessionStorage.getItem('vibe_vault_setup_skipped')) {
       setLocked(true);
     }
@@ -163,35 +167,21 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
   // Biometric Unlock Trigger (WebAuthn Platform Authenticator)
   const handleBiometricUnlock = useCallback(async () => {
     if (isSubmitting) return;
+    setIsSubmitting(true);
+    setError(null);
     try {
-      if (typeof window === 'undefined' || !navigator.credentials) {
-        triggerShake('현재 기기에서 생체 인증을 지원하지 않습니다.');
+      const res = await authenticateBiometricUnlock();
+      if (res.success) {
+        setLocked(false);
+        setPin('');
+        if (onUnlocked) onUnlocked();
         return;
       }
-
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-
-      const credential = await navigator.credentials.get({
-        publicKey: {
-          challenge,
-          timeout: 60000,
-          userVerification: 'preferred'
-        }
-      }).catch(() => null);
-
-      if (credential) {
-        const res = await unlockVault();
-        if (res.success) {
-          setLocked(false);
-          setPin('');
-          if (onUnlocked) onUnlocked();
-          return;
-        }
-      }
-      triggerShake('생체 인증이 완료되지 않았습니다. PIN 번호를 입력해주세요.');
+      triggerShake(res.error || '생체 인증에 실패했습니다. PIN 번호로 잠금을 해제해주세요.');
     } catch (err: any) {
-      triggerShake('생체 인증 실패: PIN 번호로 잠금을 해제해주세요.');
+      triggerShake(err.message || '생체 인증 실패: PIN 번호로 잠금을 해제해주세요.');
+    } finally {
+      setIsSubmitting(false);
     }
   }, [isSubmitting, onUnlocked, triggerShake]);
 
@@ -299,11 +289,11 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       >
         {/* 1. Streamlined Top Header */}
         <div className="text-center mb-4">
-          <h1 className="text-base font-bold tracking-tight text-white">Vibe Vault</h1>
+          <h1 className="text-base font-bold tracking-tight text-white">{t('vault_lock_title')}</h1>
           <p className="text-xs text-neutral-300 font-normal mt-1">
             {isSetupMode 
-              ? (setupStep === 'confirm' ? '확인을 위해 동일한 PIN 번호를 다시 입력해주세요' : '마스터 PIN을 설정해주세요 (4~6자리)')
-              : '마스터 PIN을 입력해주세요'}
+              ? (setupStep === 'confirm' ? t('confirm_pin') : t('setup_pin'))
+              : t('enter_pin')}
           </p>
 
           {/* Compact PIN Dots */}
@@ -339,6 +329,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                 key={digit}
                 type="button"
                 onClick={() => handleKeypadPress(digit)}
+                aria-label={`숫자 ${digit}`}
                 className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.06] text-white text-lg font-medium transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none"
               >
                 {digit}
@@ -359,6 +350,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
             <button
               type="button"
               onClick={() => handleKeypadPress('0')}
+              aria-label="숫자 0"
               className="h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.06] text-white text-lg font-medium transition-all active:scale-95 flex items-center justify-center cursor-pointer select-none"
             >
               0
@@ -375,15 +367,16 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
             </button>
           </div>
 
-          {/* Biometric Unlock Option (if supported on platform) */}
-          {isPinSet && isBiometricAvailable && (
+          {/* Biometric Quick Unlock (Sub-second Platform Authenticator) */}
+          {isPinSet && isBiometricSupported && isBiometricEnabled && (
             <button
               type="button"
               onClick={handleBiometricUnlock}
-              className="mt-2.5 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-[11px] text-neutral-300 hover:text-white transition-all cursor-pointer mx-auto"
+              disabled={isSubmitting}
+              className="mt-2.5 flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500/[0.08] hover:bg-emerald-500/[0.15] border border-emerald-500/25 text-[11px] font-medium text-emerald-300 hover:text-white transition-all cursor-pointer mx-auto active:scale-95 shadow-xs"
             >
               <Fingerprint className="w-3.5 h-3.5 text-emerald-400" />
-              <span>생체 인증(지문/Face ID)으로 해제</span>
+              <span>{t('biometric_unlock')}</span>
             </button>
           )}
 
@@ -397,7 +390,9 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                   disabled={activeInput.length < 4 || isSubmitting}
                   className="w-full py-2.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-neutral-200 transition-all active:scale-95 mt-3 disabled:bg-white/[0.08] disabled:text-neutral-400 disabled:border-white/[0.06] disabled:pointer-events-none border border-transparent shadow-xs cursor-pointer flex items-center justify-center"
                 >
-                  {setupStep === 'create' ? 'PIN 확인 단계로 이동' : '마스터 PIN 설정 완료'}
+                  {setupStep === 'create' 
+                    ? (language === 'ko' ? 'PIN 확인 단계로 이동' : language === 'ja' ? 'PIN確認へ進む' : 'Next: Confirm PIN')
+                    : (language === 'ko' ? '마스터 PIN 설정 완료' : language === 'ja' ? 'マスターPIN設定完了' : 'Complete PIN Setup')}
                 </button>
 
                 {setupStep === 'confirm' ? (
@@ -410,7 +405,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                     }}
                     className="text-xs text-neutral-300 hover:text-white transition-colors mt-2 block mx-auto underline underline-offset-4 cursor-pointer"
                   >
-                    이전 단계로 돌아가기
+                    {language === 'ko' ? '이전 단계로 돌아가기' : language === 'ja' ? '前の手順に戻る' : 'Back to previous step'}
                   </button>
                 ) : (
                   <button
@@ -418,7 +413,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                     onClick={onGuestMode || handleGuestMode}
                     className="text-xs text-neutral-300 hover:text-white transition-colors mt-2 block mx-auto underline underline-offset-4 cursor-pointer"
                   >
-                    나중에 설정하기 (게스트 모드)
+                    {t('guest_mode')}
                   </button>
                 )}
               </>
@@ -430,7 +425,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                   disabled={pin.length < 4 || isSubmitting}
                   className="w-full py-2.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-neutral-200 transition-all active:scale-95 mt-3 disabled:bg-white/[0.08] disabled:text-neutral-400 disabled:border-white/[0.06] disabled:pointer-events-none border border-transparent shadow-xs cursor-pointer flex items-center justify-center"
                 >
-                  {isSubmitting ? '잠금 해제 중...' : '잠금 해제'}
+                  {isSubmitting ? '...' : t('unlock')}
                 </button>
 
                 <button
@@ -438,7 +433,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
                   onClick={onGuestMode || handleGuestMode}
                   className="text-xs text-neutral-300 hover:text-white transition-colors mt-2 block mx-auto underline underline-offset-4 cursor-pointer"
                 >
-                  나중에 설정하기 (게스트 모드)
+                  {t('guest_mode')}
                 </button>
               </>
             )}
@@ -455,20 +450,23 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
               onClick={() => setShowOnboarding(true)} 
               className="hover:text-white transition-colors cursor-pointer"
             >
-              기능 다시보기
+              {language === 'ko' ? '기능 안내' : (t('replay_tour') || '기능 안내')}
             </button>
-            <span className="text-neutral-500">·</span>
+            <span className="text-neutral-400">·</span>
             <button 
               type="button" 
-              onClick={() => setIsLegalNoticeOpen(true)} 
+              onClick={() => {
+                setLegalNoticeTab('legal');
+                setIsLegalNoticeOpen(true);
+              }} 
               className="hover:text-white transition-colors cursor-pointer"
             >
-              개인정보취급방침
+              {t('legal_notice_link')}
             </button>
           </div>
 
           <p className="text-[10px] text-neutral-400 text-center mt-1.5 leading-normal">
-            © 2026 한국센터글로벌네트워크 지식관리실
+            © 2026 Vibe Vault Pro · Zero-Knowledge
           </p>
         </div>
       </div>
@@ -481,6 +479,7 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       <LegalNoticeModal 
         isOpen={isLegalNoticeOpen} 
         onClose={() => setIsLegalNoticeOpen(false)} 
+        initialTab={legalNoticeTab}
       />
     </div>
   );

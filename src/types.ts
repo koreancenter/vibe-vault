@@ -28,6 +28,7 @@ export interface AssetAccount {
   holdings?: HoldingItem[];
   isOverdraft?: boolean; // 마이너스 통장 여부
   overdraftLimit?: number; // 마이너스 대출 한도액 (e.g. 30000000)
+  fxRateAtEntry?: number; // Historical FX rate against KRW when entered/updated
 }
 
 export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'SETTLEMENT';
@@ -94,10 +95,13 @@ export interface Transaction {
   isInternalTransfer?: boolean; // Transfer between user's own accounts
   spaceId?: string; // defaults to 'default'
   note?: string; // for settlement remarks, receipt info, or payer
+  paidBy?: string; // Payer name for shared expenses (default: '나')
+  splitParticipants?: string[]; // Specific members splitting this expense
   refundOfId?: string; // Original expense this negative-amount refund offsets
   installment?: InstallmentMetadata;
   isOverdraft?: boolean; // 마이너스 통장 관련 여부
   overdraftLimit?: number;
+  fxRateAtEntry?: number; // Historical FX rate against KRW when transaction recorded
 }
 
 export interface CategoryBudget {
@@ -316,4 +320,14 @@ export interface FinancialQueryResult {
   calculatedCurrency: SupportedCurrency;
   details?: Record<string, any>;
   timestamp: string;
+}
+
+// Phase 5: Offline Encrypted Scan Queue
+export interface PendingScanItem {
+  id: string;
+  createdAt: string;
+  imageBase64: string; // Encrypted with AES-GCM-256 in IndexedDB
+  mimeType: string;
+  spaceId?: string;
+  fileName?: string;
 }

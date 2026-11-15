@@ -67,7 +67,7 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
         <span className="truncate font-medium">
           {selectedOption?.label}
           {showSublabelInTrigger && selectedOption?.sublabel && (
-            <span className={`text-[11px] ml-2 font-normal ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <span className={`text-[11px] ml-2 font-normal ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               {selectedOption.sublabel}
             </span>
           )}
@@ -75,7 +75,7 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
         <ChevronDown 
           size={isSm ? 12 : 14} 
           className={`transition-transform duration-200 shrink-0 ml-1 ${
-            isLight ? 'text-slate-500' : 'text-neutral-400'
+            isLight ? 'text-slate-600' : 'text-neutral-400'
           } ${isOpen ? 'rotate-180 text-white' : ''}`} 
         />
       </button>
@@ -111,7 +111,7 @@ export const CustomDarkSelect: React.FC<CustomSelectProps> = ({
                 <div className="truncate pr-2">
                   <span className="block truncate font-medium">{opt.label}</span>
                   {opt.sublabel && (
-                    <span className={`text-[11px] block truncate font-normal ${isLight ? 'text-slate-500' : 'text-neutral-400'}`}>
+                    <span className={`text-[11px] block truncate font-normal ${isLight ? 'text-slate-600' : 'text-neutral-400'}`}>
                       {opt.sublabel}
                     </span>
                   )}

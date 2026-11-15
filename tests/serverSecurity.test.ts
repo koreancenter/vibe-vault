@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CONTENT_SECURITY_POLICY,
   consumeAiRequest,
+  isAllowedOrigin,
   isLocalHostname,
   isSameLocalOrigin,
   isValidEngineConfig,
@@ -10,13 +12,34 @@ import {
 } from '../src/serverSecurity';
 
 describe('local server security guards', () => {
+  it('allows local Ollama and WebLLM endpoints in Content-Security-Policy connect-src', () => {
+    expect(CONTENT_SECURITY_POLICY).toContain('http://localhost:*');
+    expect(CONTENT_SECURITY_POLICY).toContain('http://127.0.0.1:*');
+    expect(CONTENT_SECURITY_POLICY).toContain('ws://localhost:*');
+    expect(CONTENT_SECURITY_POLICY).toContain('ws://127.0.0.1:*');
+    expect(CONTENT_SECURITY_POLICY).toContain('https://generativelanguage.googleapis.com');
+  });
   it('accepts only loopback hostnames and matching local origins', () => {
     expect(isLocalHostname('localhost')).toBe(true);
     expect(isLocalHostname('127.0.0.1')).toBe(true);
     expect(isLocalHostname('public.example')).toBe(false);
     expect(isSameLocalOrigin('http://localhost:3000', 'localhost:3000')).toBe(true);
     expect(isSameLocalOrigin('https://attacker.example', 'localhost:3000')).toBe(false);
+    expect(isSameLocalOrigin('https://evil-localhost.com', 'localhost:3000')).toBe(false);
+    expect(isSameLocalOrigin('https://localhost.attacker.com', 'localhost:3000')).toBe(false);
     expect(isSameLocalOrigin(undefined, 'localhost:3000')).toBe(true);
+  });
+
+  it('allows matching host, x-forwarded-host, local hosts, and AI Studio usercontent.goog origins strictly', () => {
+    expect(isAllowedOrigin(undefined, '127.0.0.1:3000')).toBe(true);
+    expect(isAllowedOrigin('https://app-123.scf.usercontent.goog', '127.0.0.1:3000')).toBe(true);
+    expect(isAllowedOrigin('https://preview.usercontent.goog', 'localhost:3000')).toBe(true);
+    expect(isAllowedOrigin('https://custom.example.com', '127.0.0.1:3000', 'custom.example.com, proxy.internal')).toBe(true);
+    expect(isAllowedOrigin('http://127.0.0.1:3000', '127.0.0.1:3000')).toBe(true);
+    expect(isAllowedOrigin('https://evil-usercontent.goog', 'localhost:3000')).toBe(false);
+    expect(isAllowedOrigin('https://usercontent.goog.evil.com', 'localhost:3000')).toBe(false);
+    expect(isAllowedOrigin('javascript://app.usercontent.goog', 'localhost:3000')).toBe(false);
+    expect(isAllowedOrigin('https://attacker.example', 'localhost:3000', 'different.example')).toBe(false);
   });
 
   it('validates engine configuration and bounded text inputs', () => {

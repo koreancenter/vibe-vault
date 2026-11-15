@@ -1,12 +1,21 @@
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { Asset, AssetType, AssetCategoryType, LaunchScreenMode, SupportedCurrency, FxRates, Transaction, AssetAccount, DebtItem } from './types';
 import { getSecureGeminiApiKey, sanitizeApiKey, maskApiKey } from './geminiKeyManager';
 import { detectCreditCardSettlement } from './financialParser';
 import { DEFAULT_FX_RATES } from './fxRates';
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+export function cn(...inputs: (string | boolean | undefined | null | { [key: string]: boolean })[]): string {
+  const classes: string[] = [];
+  for (const input of inputs) {
+    if (!input) continue;
+    if (typeof input === 'string') {
+      classes.push(input);
+    } else if (typeof input === 'object') {
+      for (const [key, value] of Object.entries(input)) {
+        if (value) classes.push(key);
+      }
+    }
+  }
+  return classes.join(' ');
 }
 
 export interface AIEngineConfig {
@@ -15,6 +24,9 @@ export interface AIEngineConfig {
   provider: 'gemini' | 'openai' | 'anthropic';
   modelTier: string;
   apiKey: string;
+  localSubMode?: 'ollama' | 'webllm';
+  ollamaEndpoint?: string;
+  ollamaModel?: string;
 }
 
 export type ThemeMode = 'dark';
@@ -41,7 +53,10 @@ export function getAIEngineConfig(): AIEngineConfig {
         localModel: parsed.localModel || 'gemma-2b',
         provider: parsed.provider || 'gemini',
         modelTier: parsed.modelTier || 'gemini-3.8-flash',
-        apiKey: secureKey
+        apiKey: secureKey,
+        localSubMode: parsed.localSubMode || 'ollama',
+        ollamaEndpoint: parsed.ollamaEndpoint || 'http://localhost:11434',
+        ollamaModel: parsed.ollamaModel || 'gemma2:9b',
       };
     }
   } catch (e) {}
@@ -51,7 +66,10 @@ export function getAIEngineConfig(): AIEngineConfig {
     localModel: 'gemma-2b',
     provider: 'gemini',
     modelTier: 'gemini-3.8-flash',
-    apiKey: secureKey || ''
+    apiKey: secureKey || '',
+    localSubMode: 'ollama',
+    ollamaEndpoint: 'http://localhost:11434',
+    ollamaModel: 'gemma2:9b',
   };
 }
 
@@ -816,6 +834,22 @@ export function sanitizeDebtItemInput<T extends Partial<DebtItem>>(debt: T): T {
   };
 }
 
+/**
+ * Sanitizes a CSV cell to prevent formula injection (CSV Injection / CWE-1236).
+ * Converts value to string, escapes double quotes (" -> ""),
+ * and prefixes a single quote (') if the trimmed string starts with =, +, -, @, \t, or \r.
+ */
+export function sanitizeCsvCell(value: string | number | undefined | null): string {
+  if (value === undefined || value === null) return '';
+  const str = String(value);
+  const escaped = str.replace(/"/g, '""');
+  const trimmed = escaped.trim();
+  if (/^[=+\-@\t\r]/.test(trimmed) || /^[=+\-@\t\r]/.test(escaped)) {
+    return `'${escaped}`;
+  }
+  return escaped;
+}
+
 // Security Hardening Item #4: Image Upload Pipeline Hardening & Memory Leak / XSS Mitigation
 export {
   ALLOWED_IMAGE_MIME_TYPES,
@@ -841,3 +875,4 @@ export type {
   SanitizedImageMetadata,
   SanitizedImageOutput
 } from './imageSanitizer';
+

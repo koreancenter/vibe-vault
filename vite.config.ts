@@ -162,6 +162,9 @@ export default defineConfig({
       },
     },
     server: {
+      host: '0.0.0.0',
+      port: 3000,
+      allowedHosts: true,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       hmr: false,
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
@@ -169,7 +172,32 @@ export default defineConfig({
     build: {
       target: 'esnext',
       minify: 'esbuild',
+      cssCodeSplit: true,
       sourcemap: true,
       chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (
+                id.includes('recharts') ||
+                id.includes('d3') ||
+                id.includes('victory-vendor')
+              ) {
+                return 'vendor-charts';
+              }
+              if (id.includes('@google/genai')) {
+                return 'vendor-genai';
+              }
+              if (
+                id.includes('motion') ||
+                id.includes('framer-motion')
+              ) {
+                return 'vendor-ui';
+              }
+            }
+          },
+        },
+      },
     },
 });

@@ -37,7 +37,8 @@ import {
   computeFinancialAggregates,
   LUXURY_CATEGORY_COLORS
 } from '../utils';
-import { getAllAssetAccounts, getAllDebts } from '../db';
+import { getAllAssetAccounts, getAllDebts, loadSampleData } from '../db';
+import { useI18n } from '../i18n';
 
 import {
   ResponsiveContainer,
@@ -73,6 +74,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
   queryResult: externalQueryResult,
   onDismissQueryResult,
 }) => {
+  const { t, language } = useI18n();
   const currSymbol = getCurrencySymbol(currentCurrency);
   const briefingCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -193,6 +195,18 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
     };
   }, []);
 
+  const [isLoadingSample, setIsLoadingSample] = useState(false);
+  const handleLoadSampleData = async () => {
+    try {
+      setIsLoadingSample(true);
+      await loadSampleData();
+    } catch (err) {
+      console.error('Failed to load sample data:', err);
+    } finally {
+      setIsLoadingSample(false);
+    }
+  };
+
   const isCurrentMonth = useMemo(() => {
     const now = new Date();
     return isSameMonth(selectedMonth, now) && isSameYear(selectedMonth, now);
@@ -265,6 +279,37 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       liquidAssets: liquid
     };
   }, [accounts, debts, currentCurrency, fxRates, transactions]);
+
+  // Net Worth Attribution: Organic Savings (저축 기여분) vs FX Fluctuation (환율 변동분)
+  const netWorthAttribution = useMemo(() => {
+    let organicBaseAssets = 0;
+    let fxFluctuation = 0;
+    let hasForeignAssets = false;
+
+    for (const acc of accounts) {
+      const accCurr = acc.currency || 'KRW';
+      const balance = acc.currentBalance || 0;
+      if (accCurr !== 'KRW') {
+        hasForeignAssets = true;
+        const liveRate = fxRates.rates[accCurr] || 1;
+        const entryRate = acc.fxRateAtEntry || liveRate;
+        const baseCost = balance * entryRate;
+        const liveVal = balance * liveRate;
+        const diffInKrw = liveVal - baseCost;
+
+        organicBaseAssets += convertCurrency(baseCost, 'KRW', currentCurrency, fxRates);
+        fxFluctuation += convertCurrency(diffInKrw, 'KRW', currentCurrency, fxRates);
+      } else {
+        organicBaseAssets += convertCurrency(balance, 'KRW', currentCurrency, fxRates);
+      }
+    }
+
+    return {
+      hasForeignAssets,
+      organicBaseAssets: Math.round(organicBaseAssets),
+      fxFluctuation: Math.round(fxFluctuation)
+    };
+  }, [accounts, currentCurrency, fxRates]);
 
   // Integrated Financial Indicators
   const savingsRate = useMemo(() => {
@@ -490,47 +535,69 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           <button
             type="button"
             onClick={handleResetToCurrentMonth}
-            className="absolute right-0 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-full text-xs font-normal transition-all active:scale-95 bg-sky-500/10 text-sky-300 border border-sky-500/20 hover:bg-sky-500/20 cursor-pointer"
+            className="absolute right-0 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-full text-xs font-medium transition-all active:scale-95 bg-sky-500/15 text-sky-300 border border-sky-500/30 hover:bg-sky-500/25 cursor-pointer shadow-xs"
           >
             이번 달
           </button>
         )}
       </div>
 
+      {/* Top Quick-Start Prompt Banner when no transactions or accounts exist */}
+      {transactions.length === 0 && accounts.length === 0 && (
+        <div className="w-full p-5 sm:p-6 rounded-2xl bg-white/[0.04] border border-white/15 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
+          <div className="space-y-1 text-center sm:text-left">
+            <h3 className="text-sm sm:text-base font-semibold text-white">
+              첫 자산 계좌를 등록하거나 샘플 데이터로 체험해보세요
+            </h3>
+            <p className="text-xs text-neutral-300 font-normal leading-relaxed">
+              샘플 데이터를 불러오면 현금흐름 궤적, 지출 카테고리 분석, AI 재정 진단을 즉시 확인할 수 있습니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleLoadSampleData}
+            disabled={isLoadingSample}
+            className="px-4 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-200 font-semibold text-xs transition-all shadow-sm shrink-0 cursor-pointer active:scale-95 disabled:opacity-50 flex items-center justify-center whitespace-nowrap"
+          >
+            <span>{isLoadingSample ? '불러오는 중...' : '샘플 데이터로 체험하기'}</span>
+          </button>
+        </div>
+      )}
+
       {/* Conditionally Rendered Transient AI Briefing Card */}
       {queryResult && (
         <div 
           ref={briefingCardRef}
-          className="w-full p-4 rounded-2xl bg-[#121318] border border-white/[0.08] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 space-y-2.5"
+          className="w-full p-4 rounded-2xl bg-[#121318] border border-white/15 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 space-y-2.5"
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs text-sky-400 font-medium">
+            <div className="flex items-center gap-1.5 text-xs text-sky-400 font-semibold">
               <Sparkles className="w-3.5 h-3.5"/>
               <span>AI 재정 브리핑</span>
-              <span className="text-neutral-500 font-light">· "{queryResult.query}"</span>
+              <span className="text-neutral-300 font-normal">· "{queryResult.query}"</span>
             </div>
             <button 
               onClick={() => setQueryResult(null)} 
-              className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+              className="p-1 rounded-lg text-neutral-300 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
               aria-label="브리핑 닫기"
             >
               <X className="w-3.5 h-3.5"/>
             </button>
           </div>
 
-          <div className="text-sm font-medium text-white leading-snug">
+          <div className="text-sm font-semibold text-white leading-snug">
             {queryResult.directAnswer}
           </div>
 
-          <p className="text-xs text-neutral-400 font-light leading-relaxed">
+          <p className="text-xs text-neutral-200 font-normal leading-relaxed">
             {queryResult.summarySentence}
           </p>
 
           {/* Metric Breakdown Pills */}
           <div className="flex flex-wrap gap-1.5 pt-1">
             {queryResult.breakdownPills.map((pill, i) => (
-              <div key={i} className="px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[11px] tabular-nums">
-                <span className="text-neutral-400 mr-1.5">{pill.label}</span>
+              <div key={i} className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] tabular-nums">
+                <span className="text-neutral-300 mr-1.5">{pill.label}</span>
                 <span className="text-white font-medium">{pill.value}</span>
               </div>
             ))}
@@ -538,40 +605,53 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         </div>
       )}
 
-      {/* 2. 4-Metric KPI Strip: Vertically stacked sections to prevent overlap and text clipping */}
-      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl overflow-hidden flex flex-col divide-y divide-white/[0.04] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      {/* 2. 4-Metric KPI Strip */}
+      <div className="w-full rounded-2xl border border-white/10 bg-[#0E1015]/95 backdrop-blur-2xl overflow-hidden flex flex-col divide-y divide-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         {/* 1. 총 순자산 */}
-        <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-light text-slate-300">총 순자산</span>
+        <div className="p-4 sm:p-5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-normal text-neutral-200">{t('net_worth')}</span>
+              </div>
+              <span className="mt-1 text-[11px] font-normal text-neutral-300">
+                {t('total_assets')} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(totalAssets)}</span>
+              </span>
             </div>
-            <span className="mt-1 text-[11px] font-light text-slate-400">
-              총 자산 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(totalAssets)}</span>
-            </span>
+            <div className="text-right shrink-0">
+              <span className={`text-xl sm:text-2xl font-medium tracking-tight tabular-nums block text-white ${isStealth ? 'blur-sm select-none' : ''}`}>
+                {formatMoney(netWorth)}
+              </span>
+            </div>
           </div>
-          <div className="text-right shrink-0">
-            <span className={`text-xl sm:text-2xl font-light tracking-tight tabular-nums block text-white ${isStealth ? 'blur-sm select-none' : ''}`}>
-              {formatMoney(netWorth)}
-            </span>
-          </div>
+          {/* Net Worth Attribution: Organic Savings vs FX Fluctuation */}
+          {netWorthAttribution.hasForeignAssets && (
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-neutral-400 font-light flex-wrap gap-1">
+              <span className="truncate">
+                저축 기여 <span className="font-mono text-neutral-300 font-medium tabular-nums">{formatMoney(netWorthAttribution.organicBaseAssets)}</span>
+              </span>
+              <span className={`font-mono font-medium tabular-nums ${netWorthAttribution.fxFluctuation >= 0 ? 'text-sky-400' : 'text-amber-400'}`}>
+                환율 변동 {netWorthAttribution.fxFluctuation >= 0 ? '+' : ''}{formatMoney(netWorthAttribution.fxFluctuation)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 2. 이번 달 저축률 */}
         <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-light text-slate-300">이번 달 저축률</span>
+              <span className="text-xs font-normal text-neutral-200">{t('savings_rate')}</span>
             </div>
-            <div className="mt-1 text-[11px] font-light text-slate-400 flex items-center gap-1.5 flex-wrap">
-              <span>수입 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(monthIncome)}</span> 대비</span>
-              <span className="opacity-30">·</span>
-              <span>{monthNet >= 0 ? '순흑자' : '순적자'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(Math.abs(monthNet))}</span></span>
+            <div className="mt-1 text-[11px] font-normal text-neutral-300 flex items-center gap-1.5 flex-wrap">
+              <span>{language === 'ko' ? '수입' : language === 'ja' ? '収入' : 'Income'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(monthIncome)}</span></span>
+              <span className="opacity-40">·</span>
+              <span>{monthNet >= 0 ? (language === 'ko' ? '순흑자' : language === 'ja' ? '黒字' : 'Surplus') : (language === 'ko' ? '순적자' : language === 'ja' ? '赤字' : 'Deficit')} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(Math.abs(monthNet))}</span></span>
             </div>
           </div>
           <div className="text-right shrink-0">
-            <span className={`text-xl sm:text-2xl font-light tracking-tight tabular-nums block ${
-              savingsRate >= 30 ? 'text-sky-400' : savingsRate >= 0 ? 'text-slate-200' : 'text-neutral-300'
+            <span className={`text-xl sm:text-2xl font-medium tracking-tight tabular-nums block ${
+              savingsRate >= 30 ? 'text-sky-400' : 'text-white'
             }`}>
               {savingsRate}%
             </span>
@@ -582,14 +662,14 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-light text-slate-300">순자산 대비 소비</span>
+              <span className="text-xs font-normal text-neutral-200">{t('burn_rate')}</span>
             </div>
-            <span className="mt-1 text-[11px] font-light text-slate-400">
-              월 지출 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(monthExpense)}</span>
+            <span className="mt-1 text-[11px] font-normal text-neutral-300">
+              {language === 'ko' ? '월 지출' : language === 'ja' ? '月支出' : 'Monthly expense'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(monthExpense)}</span>
             </span>
           </div>
           <div className="text-right shrink-0">
-            <span className={`text-xl sm:text-2xl font-light tracking-tight tabular-nums block ${
+            <span className={`text-xl sm:text-2xl font-medium tracking-tight tabular-nums block ${
               parseFloat(String(burnRateToNetWorth)) < 3 
                 ? 'text-sky-400' 
                 : parseFloat(String(burnRateToNetWorth)) < 7 
@@ -605,28 +685,26 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-light text-slate-300">비상 유동성 완충</span>
+              <span className="text-xs font-normal text-neutral-200">{t('runway_months')}</span>
             </div>
-            <span className="mt-1 text-[11px] font-light text-slate-400">
-              현금·예금 <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(liquidAssets)}</span>
+            <span className="mt-1 text-[11px] font-normal text-neutral-300">
+              {language === 'ko' ? '현금·예금' : language === 'ja' ? '現預金' : 'Liquid cash'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(liquidAssets)}</span>
             </span>
           </div>
           <div className="text-right shrink-0">
             {monthExpense === 0 ? (
-              <span className={`text-xl sm:text-2xl font-light tracking-tight ${
-                liquidAssets > 0 ? 'text-sky-400' : 'text-neutral-400'
-              }`}>
-                {liquidAssets > 0 ? '충분' : '-'}
+              <span className="text-xl sm:text-2xl font-medium tracking-tight text-white">
+                {liquidAssets > 0 ? (language === 'ko' ? '충분' : language === 'ja' ? '十分' : 'Safe') : '-'}
               </span>
             ) : (
               <div className="flex items-baseline justify-end gap-1">
-                <span className={`text-xl sm:text-2xl font-light tracking-tight tabular-nums ${
-                  parseFloat(runwayMonths) >= 6 ? 'text-sky-400' : parseFloat(runwayMonths) >= 3 ? 'text-amber-400' : 'text-neutral-300'
+                <span className={`text-xl sm:text-2xl font-medium tracking-tight tabular-nums ${
+                  parseFloat(runwayMonths) >= 6 ? 'text-sky-400' : parseFloat(runwayMonths) >= 3 ? 'text-amber-400' : 'text-neutral-200'
                 }`}>
                   {parseFloat(runwayMonths) > 99 ? '99+' : runwayMonths}
                 </span>
-                <span className="text-xs font-light text-slate-400">
-                  개월
+                <span className="text-xs font-normal text-neutral-300">
+                  {language === 'ko' ? '개월' : language === 'ja' ? 'ヶ月' : 'mo'}
                 </span>
               </div>
             )}
@@ -634,8 +712,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         </div>
       </div>
 
-      {/* 3. AI Executive Diagnosis Card (Quiet Luxury Obsidian #0E1015, subtle dividers) */}
-      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      {/* 3. AI Executive Diagnosis Card */}
+      <div className="w-full rounded-2xl border border-white/10 bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="space-y-3">
           {/* Unboxed typographic status */}
           <div className="flex items-center gap-2 text-xs">
@@ -645,18 +723,18 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 : integratedDiagnosis.status === 'HEALTHY'
                 ? 'text-blue-400'
                 : integratedDiagnosis.status === 'MODERATE'
-                ? 'text-slate-300'
+                ? 'text-neutral-200'
                 : 'text-amber-400'
             }`}>
               {integratedDiagnosis.statusLabel}
             </span>
-            <span className="opacity-30">·</span>
-            <span className="font-light text-slate-400">
-              AI 총괄 재정 진단
+            <span className="opacity-40">·</span>
+            <span className="font-normal text-neutral-300">
+              {t('ai_diagnosis')}
             </span>
-            <span className="opacity-30">·</span>
-            <span className="font-light text-slate-400 tabular-nums">
-              {format(selectedMonth, 'yyyy년 M월')}
+            <span className="opacity-40">·</span>
+            <span className="font-normal text-neutral-300 tabular-nums">
+              {format(selectedMonth, language === 'ko' ? 'yyyy년 M월' : language === 'ja' ? 'yyyy年M月' : 'MMM yyyy')}
             </span>
           </div>
 
@@ -666,17 +744,17 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
           </h2>
 
           {/* Executive Summary */}
-          <p className="text-xs sm:text-sm font-light leading-relaxed text-slate-300">
+          <div className="text-xs sm:text-sm font-normal leading-relaxed text-neutral-200">
             {integratedDiagnosis.summary}
-          </p>
+          </div>
 
-          {/* Quiet Recommendation Footer with subtle hairline divider */}
+          {/* Recommendation Footer */}
           {integratedDiagnosis.recommendation && (
-            <div className="pt-3.5 border-t border-white/[0.06] text-xs font-light leading-relaxed flex flex-col gap-1.5">
+            <div className="pt-3.5 border-t border-white/[0.08] text-xs font-normal leading-relaxed flex flex-col gap-1.5">
               <span className="font-medium text-sky-400 text-xs tracking-tight">
-                실행 가이드
+                {t('action_guide')}
               </span>
-              <p className="text-slate-300 text-xs sm:text-sm font-light leading-relaxed">
+              <p className="text-neutral-300 text-xs sm:text-sm font-normal leading-relaxed">
                 {integratedDiagnosis.recommendation}
               </p>
             </div>
@@ -685,24 +763,24 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       </div>
 
       {/* 4. Spending Category Breakdown (Full-width clean horizontal bars) */}
-      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      <div className="w-full rounded-2xl border border-white/10 bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-sm font-semibold tracking-tight text-white">
-              카테고리별 지출 분석
+              {t('category_analysis')}
             </h2>
-            <p className="text-xs font-light text-slate-400 mt-0.5">
-              {format(selectedMonth, 'yyyy년 M월')} 총 지출: <span className="font-medium text-slate-200 tabular-nums">{formatMoney(monthExpense)}</span>
-              {monthExpenseCount > 0 && <span className="text-slate-400 ml-1">({monthExpenseCount}건)</span>}
+            <p className="text-xs font-normal text-neutral-300 mt-0.5">
+              {format(selectedMonth, language === 'ko' ? 'yyyy년 M월' : language === 'ja' ? 'yyyy年M月' : 'MMM yyyy')} {language === 'ko' ? '총 지출' : language === 'ja' ? '総支出' : 'Total spending'}: <span className="font-medium text-white tabular-nums">{formatMoney(monthExpense)}</span>
+              {monthExpenseCount > 0 && <span className="text-neutral-400 ml-1">({monthExpenseCount} items)</span>}
             </p>
           </div>
           {selectedCategory && (
             <button
               type="button"
               onClick={() => setSelectedCategory(null)}
-              className="text-xs font-normal px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 hover:bg-sky-500/20 transition-all cursor-pointer"
+              className="text-xs font-medium px-2.5 py-1 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 hover:bg-sky-500/25 transition-all cursor-pointer shadow-xs"
             >
-              {getCategoryKo(selectedCategory)} 해제 ×
+              {getCategoryKo(selectedCategory)} ×
             </button>
           )}
         </div>
@@ -710,8 +788,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         {/* Horizontal Category Ratio Bars with zero-data fallback */}
         <div className="space-y-3">
           {categoryBreakdownList.length === 0 ? (
-            <div className="py-8 text-center text-xs font-light text-slate-500 flex flex-col items-center justify-center gap-1">
-              <span className="text-slate-400 font-normal">이 달의 지출 내역이 없습니다</span>
+            <div className="py-8 text-center text-xs font-normal text-neutral-300 flex flex-col items-center justify-center gap-1">
+              <span className="text-white font-medium">이 달의 지출 내역이 없습니다</span>
               <span>선택된 기간에 기록된 지출 거래가 존재하지 않습니다.</span>
             </div>
           ) : (
@@ -722,25 +800,25 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                   key={item.category}
                   onClick={() => setSelectedCategory(isSelected ? null : item.category)}
                   className={`p-2.5 rounded-xl transition-all cursor-pointer ${
-                    isSelected ? 'bg-sky-500/10 border border-sky-500/30 shadow-[0_0_12px_rgba(56,189,248,0.12)]' : 'border border-transparent hover:bg-white/[0.03]'
+                    isSelected ? 'bg-sky-500/15 border border-sky-500/30 shadow-[0_0_12px_rgba(56,189,248,0.12)]' : 'border border-transparent hover:bg-white/[0.04]'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs mb-1.5">
                     <div className="flex items-center gap-1.5">
-                      <span className={`font-medium ${isSelected ? 'text-sky-300' : 'text-slate-200'}`}>{item.name}</span>
-                      <span className="text-[11px] font-light text-slate-400">({item.count}건)</span>
+                      <span className={`font-medium ${isSelected ? 'text-sky-300' : 'text-white'}`}>{item.name}</span>
+                      <span className="text-[11px] font-normal text-neutral-300">({item.count}건)</span>
                     </div>
                     <div className="flex items-center gap-2 tabular-nums">
-                      <span className={`font-normal ${isSelected ? 'text-sky-200' : 'text-slate-200'} ${isStealth ? 'blur-sm select-none' : ''}`}>
+                      <span className={`font-medium ${isSelected ? 'text-sky-200' : 'text-white'} ${isStealth ? 'blur-sm select-none' : ''}`}>
                         {formatMoney(item.amount)}
                       </span>
-                      <span className="text-xs font-medium text-slate-400 min-w-[32px] text-right">
+                      <span className="text-xs font-mono font-medium text-neutral-200 min-w-[32px] text-right">
                         {item.percentage}%
                       </span>
                     </div>
                   </div>
                   {/* Flat hairline horizontal ratio bar */}
-                  <div className="w-full h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{ 
@@ -756,32 +834,32 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         </div>
       </div>
 
-      {/* 5. Daily Spending Trend Chart (Full width, h-52, smooth Recharts curve with zero-data fallback & min-height 200px) */}
-      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      {/* 5. Daily Spending Trend Chart */}
+      <div className="w-full rounded-2xl border border-white/10 bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
             <h2 className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
               <span>일별 지출 추이</span>
               {selectedCategory && (
-                <span className="text-[11px] font-normal text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                <span className="text-[11px] font-medium text-sky-400 bg-sky-500/15 px-2 py-0.5 rounded-full border border-sky-500/25">
                   {getCategoryKo(selectedCategory)} 포커스
                 </span>
               )}
             </h2>
-            <p className="text-xs font-light text-slate-400 mt-0.5">
-              {format(selectedMonth, 'yyyy년 M월')} · {selectedCategory ? `${getCategoryKo(selectedCategory)} ` : ''}일평균 <span className="text-slate-200 tabular-nums">{formatMoney(dailyAverage)}</span>
+            <p className="text-xs font-normal text-neutral-300 mt-0.5">
+              {format(selectedMonth, 'yyyy년 M월')} · {selectedCategory ? `${getCategoryKo(selectedCategory)} ` : ''}일평균 <span className="text-white font-medium tabular-nums">{formatMoney(dailyAverage)}</span>
             </p>
           </div>
           {highestSpendingDay.amount > 0 && (
-            <div className="text-xs font-light text-slate-400">
-              최고 지출일: <span className="text-neutral-200 font-medium tabular-nums">{highestSpendingDay.day}일 ({formatMoney(highestSpendingDay.amount)})</span>
+            <div className="text-xs font-normal text-neutral-300">
+              최고 지출일: <span className="text-white font-medium tabular-nums">{highestSpendingDay.day}일 ({formatMoney(highestSpendingDay.amount)})</span>
             </div>
           )}
         </div>
 
         {!hasDailyData ? (
-          <div className="w-full h-52 min-h-[200px] flex flex-col items-center justify-center text-center text-slate-400 text-xs font-light space-y-1">
-            <span className="text-slate-300 font-normal">일별 지출 데이터 없음</span>
+          <div className="w-full h-52 min-h-[200px] flex flex-col items-center justify-center text-center text-neutral-300 text-xs font-normal space-y-1">
+            <span className="text-white font-medium">일별 지출 데이터 없음</span>
             <span>선택하신 기간 동안 발생한 지출 내역이 없습니다.</span>
           </div>
         ) : (
@@ -797,18 +875,18 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                     <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis
                   dataKey="day"
-                  stroke="#64748b"
+                  stroke="#94a3b8"
                   fontSize={10}
                   tickLine={false}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                  axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
                   tickFormatter={(v) => `${v}일`}
                   interval={Math.max(1, Math.floor(dailySpendingChartData.length / 8))}
                 />
                 <YAxis
-                  stroke="#64748b"
+                  stroke="#94a3b8"
                   fontSize={9}
                   tickLine={false}
                   axisLine={false}
@@ -823,8 +901,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className="p-2.5 rounded-xl border border-white/[0.08] bg-[#090A0D]/95 text-xs shadow-xl backdrop-blur-2xl text-white">
-                          <div className="font-medium text-slate-300 border-b border-white/[0.06] pb-1 mb-1">
+                        <div className="p-2.5 rounded-xl border border-white/15 bg-[#090A0D]/95 text-xs shadow-xl backdrop-blur-2xl text-white">
+                          <div className="font-medium text-neutral-200 border-b border-white/[0.08] pb-1 mb-1">
                             {data.dateLabel} {data.isToday ? '(오늘)' : ''}
                           </div>
                           <div className="flex items-center justify-between gap-3 text-sky-400 font-medium tabular-nums">
@@ -833,7 +911,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                               {formatMoney(data.amount)}
                             </span>
                           </div>
-                          <div className="text-[11px] text-slate-400 mt-0.5">
+                          <div className="text-[11px] text-neutral-300 mt-0.5">
                             결제 건수: {data.count}건
                           </div>
                         </div>
@@ -847,7 +925,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                     y={dailyAverage} 
                     stroke="#94a3b8" 
                     strokeDasharray="3 3" 
-                    strokeOpacity={0.4} 
+                    strokeOpacity={0.6} 
                   />
                 )}
                 <Area
@@ -863,20 +941,20 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         )}
       </div>
 
-      {/* 6. Predictive Cashflow & Runway Chart (Full width, h-52, area curve with zero-data fallback & min-height 200px) */}
-      <div className="w-full rounded-2xl border border-white/[0.06] bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      {/* 6. Predictive Cashflow & Runway Chart */}
+      <div className="w-full rounded-2xl border border-white/10 bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
             <h2 className="text-sm font-semibold tracking-tight text-white">
               월간 현금흐름 궤적 & 유동성 예측
             </h2>
-            <p className="text-xs font-light text-slate-400 mt-0.5">
+            <p className="text-xs font-normal text-neutral-300 mt-0.5">
               자율 지출 궤적 분석 및 월말 잔액 시뮬레이션
             </p>
           </div>
-          <div className="flex items-center gap-3 text-[10px] text-slate-400">
+          <div className="flex items-center gap-3 text-[10px] text-neutral-300 font-medium">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-0.5 bg-sky-400 inline-block" />
+              <span className="w-2.5 h-0.5 bg-sky-400 inline-block" />
               <span>실제 실적</span>
             </span>
             <span className="flex items-center gap-1.5">
@@ -887,32 +965,32 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         </div>
 
         {/* 3-Metric KPI Row */}
-        <div className="grid grid-cols-3 gap-2 py-2 border-y border-white/[0.04]">
+        <div className="grid grid-cols-3 gap-2 py-2 border-y border-white/[0.06]">
           <div>
-            <span className="text-[11px] font-light text-slate-400 block truncate">
+            <span className="text-[11px] font-normal text-neutral-300 block truncate">
               현재 누적
             </span>
-            <span className={`text-sm sm:text-base font-normal tracking-tight tabular-nums mt-0.5 block truncate ${
-              forecast.currentBalance >= 0 ? 'text-white' : 'text-neutral-200'
+            <span className={`text-sm sm:text-base font-semibold tracking-tight tabular-nums mt-0.5 block truncate ${
+              forecast.currentBalance >= 0 ? 'text-white' : 'text-amber-400'
             } ${isStealth ? 'blur-sm select-none' : ''}`}>
               {formatMoney(forecast.currentBalance)}
             </span>
           </div>
           <div>
-            <span className="text-[11px] font-light text-slate-400 block truncate">
+            <span className="text-[11px] font-normal text-neutral-300 block truncate">
               월말 예상 잔액
             </span>
-            <span className={`text-sm sm:text-base font-normal tracking-tight tabular-nums mt-0.5 block truncate ${
-              forecast.projectedMonthEndBalance >= 0 ? 'text-sky-400' : 'text-neutral-200'
+            <span className={`text-sm sm:text-base font-semibold tracking-tight tabular-nums mt-0.5 block truncate ${
+              forecast.projectedMonthEndBalance >= 0 ? 'text-sky-400' : 'text-amber-400'
             } ${isStealth ? 'blur-sm select-none' : ''}`}>
               {formatMoney(forecast.projectedMonthEndBalance)}
             </span>
           </div>
           <div>
-            <span className="text-[11px] font-light text-slate-400 block truncate">
+            <span className="text-[11px] font-normal text-neutral-300 block truncate">
               예정 고정비
             </span>
-            <span className={`text-sm sm:text-base font-normal tracking-tight tabular-nums mt-0.5 block truncate text-amber-300 ${
+            <span className={`text-sm sm:text-base font-semibold tracking-tight tabular-nums mt-0.5 block truncate text-amber-300 ${
               isStealth ? 'blur-sm select-none' : ''
             }`}>
               {formatMoney(forecast.totalUpcomingSubscriptions)}
@@ -922,8 +1000,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
 
         {/* Area Chart with fallback */}
         {!forecast.dataPoints || forecast.dataPoints.length === 0 ? (
-          <div className="w-full h-52 min-h-[200px] flex flex-col items-center justify-center text-center text-slate-500 text-xs font-light space-y-1">
-            <span className="text-slate-400 font-normal">예측 데이터 없음</span>
+          <div className="w-full h-52 min-h-[200px] flex flex-col items-center justify-center text-center text-neutral-300 text-xs font-normal space-y-1">
+            <span className="text-white font-medium">예측 데이터 없음</span>
             <span>현금흐름 궤적을 예측할 수 있는 거래 데이터가 아직 충분하지 않습니다.</span>
           </div>
         ) : (

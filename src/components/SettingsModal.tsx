@@ -72,6 +72,7 @@ import { CustomSelectOption } from './settings/CustomDarkSelect';
 import { SettingsAITab } from './settings/SettingsAITab';
 import { SettingsPreferencesTab } from './settings/SettingsPreferencesTab';
 import { SettingsDataTab } from './settings/SettingsDataTab';
+import { useI18n } from '../i18n';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -107,6 +108,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onDeleteSpace,
   onOpenNewSpace
 }) => {
+  const { t, language } = useI18n();
   // Multi-Ledger Spaces State in Settings
   const [internalSpaces, setInternalSpaces] = useState<LedgerSpace[]>(spaces || [DEFAULT_SPACE]);
   const [legalOpen, setLegalOpen] = useState<boolean>(false);
@@ -125,12 +127,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     } else if (typeof localStorage !== 'undefined') {
       localStorage.setItem('vibe_active_space_id', sp.id);
     }
-    setStatusMessage({ type: 'success', text: `'${sp.name}' 장부로 전환되었습니다.` });
+    const msg = language === 'ko' ? `'${sp.name}' 장부로 전환되었습니다.` : `Switched to '${sp.name}' ledger.`;
+    setStatusMessage({ type: 'success', text: msg });
   };
 
   const handleDeleteSpaceItem = async (spId: string) => {
     if (spId === 'default') return;
-    if (!window.confirm('이 프로젝트 장부와 관련 거래 내역을 삭제하시겠습니까?')) return;
+    const confirmMsg = language === 'ko'
+      ? '이 프로젝트 장부와 관련 거래 내역을 삭제하시겠습니까?'
+      : 'Are you sure you want to delete this project ledger and its transactions?';
+    if (!window.confirm(confirmMsg)) return;
     if (onDeleteSpace) {
       onDeleteSpace(spId);
     } else {
@@ -183,6 +189,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [showKey, setShowKey] = useState(false);
   const [isTestingKey, setIsTestingKey] = useState(false);
   const [testResult, setTestResult] = useState<{ status: 'valid' | 'invalid' | null; message: string }>({
+    status: null,
+    message: ''
+  });
+
+  // Local AI (Ollama vs WebLLM) state
+  const [localSubMode, setLocalSubMode] = useState<'ollama' | 'webllm'>('ollama');
+  const [ollamaEndpoint, setOllamaEndpoint] = useState<string>('http://localhost:11434');
+  const [ollamaModel, setOllamaModel] = useState<string>('gemma2:9b');
+  const [ollamaModelsList, setOllamaModelsList] = useState<string[]>([]);
+  const [isTestingOllama, setIsTestingOllama] = useState<boolean>(false);
+  const [ollamaStatus, setOllamaStatus] = useState<{ status: 'connected' | 'error' | null; message: string }>({
     status: null,
     message: ''
   });
@@ -265,10 +282,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setEngineType(engineCfg.engineType || 'byok');
       setLocalModel(engineCfg.localModel || 'gemma-2b');
       setProvider(engineCfg.provider || 'gemini');
-      setModelTier(engineCfg.modelTier || (engineCfg.provider === 'openai' ? 'gpt-4o-mini' : 'gemini-3.8-flash'));
+      setModelTier(engineCfg.modelTier || 'gemini-3.8-flash');
       setApiKey(engineCfg.apiKey || getSecureGeminiApiKey() || '');
       setShowKey(false);
       setTestResult({ status: null, message: '' });
+      setLocalSubMode(engineCfg.localSubMode || 'ollama');
+      setOllamaEndpoint(engineCfg.ollamaEndpoint || 'http://localhost:11434');
+      setOllamaModel(engineCfg.ollamaModel || 'gemma2:9b');
+      setOllamaStatus({ status: null, message: '' });
 
       // Check WebGPU hardware & model cache state
       checkWebGPUSupport().then(res => setWebGpuStatus(res));
@@ -430,6 +451,81 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  // Ollama Connection Test Handler
+  const handleTestOllamaConnection = async () => {
+    const ep = ollamaEndpoint.trim().replace(/\/+$/, '');
+    if (!ep) {
+      setOllamaStatus({
+        status: 'error',
+        message: 'Ollama 엔드포인트 URL을 입력해주세요.'
+      });
+      return;
+    }
+
+    setIsTestingOllama(true);
+    setOllamaStatus({ status: null, message: '' });
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const res = await fetch(`${ep}/api/tags`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        const models: string[] = Array.isArray(data?.models)
+          ? data.models.map((m: any) => m.name || m.model).filter(Boolean)
+          : [];
+
+        setOllamaModelsList(models);
+
+        if (models.length > 0 && (!ollamaModel || !models.includes(ollamaModel))) {
+          setOllamaModel(models[0]);
+        }
+
+        setOllamaStatus({
+          status: 'connected',
+          message: models.length > 0
+            ? `Ollama 서버 연결 성공 (${models.length}개 로컬 모델 감지)`
+            : 'Ollama 서버 연결 성공 (설치된 모델 없음)'
+        });
+      } else {
+        setOllamaStatus({
+          status: 'error',
+          message: `HTTP ${res.status}: Ollama 서버 응답 오류`
+        });
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setOllamaStatus({
+          status: 'error',
+          message: '연결 시간 초과 (6초). Ollama가 실행 중인지 확인해주세요.'
+        });
+      } else {
+        const isHttpsMixedLocalhost =
+          typeof window !== 'undefined'
+          && window.location.protocol === 'https:'
+          && /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(ep);
+
+        setOllamaStatus({
+          status: 'error',
+          message: isHttpsMixedLocalhost
+            ? 'Ollama 서버에 연결할 수 없습니다. CORS 설정 및 HTTPS 환경에서의 HTTP localhost 차단(Mixed Content) 여부를 확인해 주세요.'
+            : 'Ollama 서버에 연결할 수 없습니다. Ollama 실행 여부 및 CORS 설정을 확인해 주세요 (OLLAMA_ORIGINS="*" ollama serve).'
+        });
+      }
+    } finally {
+      setIsTestingOllama(false);
+    }
+  };
+
   // WebLLM Model Management Handlers
   const handleStartWebLLMDownload = async () => {
     setIsDownloadingModel(true);
@@ -485,6 +581,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         modelTier,
         localModel,
         apiKey: cleanKey,
+        localSubMode,
+        ollamaEndpoint: ollamaEndpoint.trim(),
+        ollamaModel: ollamaModel.trim(),
       });
 
       const currentPrefs = getUserPreferences();
@@ -783,13 +882,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       >
         {/* Sticky Header: Fixed h-14 px-5 border-b border-white/[0.06] */}
         <div className="h-14 px-5 border-b border-white/[0.06] flex items-center justify-between shrink-0">
-          <h2 className="text-sm font-semibold tracking-tight text-white">설정</h2>
+          <h2 className="text-sm font-semibold tracking-tight text-white">{t('settings')}</h2>
           <button 
             type="button" 
             onClick={onClose}
             className="p-1.5 -mr-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
-            title="닫기"
-            aria-label="닫기"
+            title={t('close')}
+            aria-label={t('close')}
           >
             <X size={16} />
           </button>
@@ -801,49 +900,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <button
               id="tab-assets"
               onClick={() => setActiveTab('assets')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 ${
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'assets'
                   ? 'border-b-2 border-white text-white font-medium'
                   : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
               }`}
             >
-              스마트 자산
+              {t('tab_smart_assets')}
             </button>
 
             <button
               id="tab-ai-engine"
               onClick={() => setActiveTab('engine')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 ${
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'engine'
                   ? 'border-b-2 border-white text-white font-medium'
                   : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
               }`}
             >
-              AI 엔진
+              {t('tab_ai_engine')}
             </button>
 
             <button
               id="tab-prefs"
               onClick={() => setActiveTab('preferences')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 ${
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'preferences'
                   ? 'border-b-2 border-white text-white font-medium'
                   : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
               }`}
             >
-              일반 설정
+              {t('tab_preferences')}
             </button>
 
             <button
               id="tab-data"
               onClick={() => setActiveTab('privacy')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 ${
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'privacy'
                   ? 'border-b-2 border-white text-white font-medium'
                   : 'text-neutral-400 hover:text-white font-normal border-b-2 border-transparent'
               }`}
             >
-              데이터 관리
+              {t('tab_privacy_data')}
             </button>
           </div>
         </div>
@@ -856,7 +955,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               : 'bg-white/[0.06] border border-white/10 text-neutral-200'
           }`}>
             <span className="truncate">{statusMessage.text}</span>
-            <button onClick={() => setStatusMessage(null)} className="ml-1 text-sm font-bold">×</button>
+            <button 
+              type="button"
+              onClick={() => setStatusMessage(null)} 
+              aria-label="상태 메시지 닫기"
+              className="ml-1 text-sm font-bold text-neutral-400 hover:text-white cursor-pointer transition-colors"
+            >
+              ×
+            </button>
           </div>
         )}
 
@@ -882,6 +988,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               engineType={engineType}
               setEngineType={setEngineType}
               setProvider={setProvider}
+              modelTier={modelTier}
+              setModelTier={setModelTier}
               apiKey={apiKey}
               setApiKey={setApiKey}
               showKey={showKey}
@@ -891,6 +999,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               isTestingKey={isTestingKey}
               testResult={testResult}
               setTestResult={setTestResult}
+              localSubMode={localSubMode}
+              setLocalSubMode={setLocalSubMode}
+              ollamaEndpoint={ollamaEndpoint}
+              setOllamaEndpoint={setOllamaEndpoint}
+              ollamaModel={ollamaModel}
+              setOllamaModel={setOllamaModel}
+              ollamaModelsList={ollamaModelsList}
+              isTestingOllama={isTestingOllama}
+              ollamaStatus={ollamaStatus}
+              handleTestOllamaConnection={handleTestOllamaConnection}
               localModel={localModel}
               setLocalModel={setLocalModel}
               webGpuStatus={webGpuStatus}
@@ -960,6 +1078,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               handleResetAllData={handleResetAllData}
               isClearingData={isClearingData}
               setLegalOpen={setLegalOpen}
+              onStatusMessage={setStatusMessage}
             />
           )}
         </div>
@@ -972,11 +1091,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onClose();
               lockVault();
             }}
-            title="금고 잠그기"
+            title={t('lock_vault')}
+            aria-label={t('lock_vault')}
             className="h-9 px-3 rounded-xl font-normal text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 hover:text-white shrink-0 cursor-pointer"
           >
             <Lock size={13} className="shrink-0 text-neutral-400" />
-            <span>금고 잠그기</span>
+            <span>{t('lock_vault')}</span>
           </button>
 
           <button
@@ -985,7 +1105,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             className="bg-white text-black hover:bg-neutral-200 font-medium rounded-xl px-4 py-2 text-xs transition-all active:scale-95 flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
           >
             <Check size={14} />
-            <span>설정 저장</span>
+            <span>{t('save_settings')}</span>
           </button>
         </div>
 

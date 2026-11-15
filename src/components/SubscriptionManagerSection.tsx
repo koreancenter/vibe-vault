@@ -138,7 +138,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
         {/* 2-Metric Summary: Clean Flat Grid (No redundant subtitles) */}
         <div className="grid grid-cols-2 gap-4 pt-2">
           <div>
-            <span className={`text-[11px] font-medium block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <span className={`text-[11px] font-medium block ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               월간 고정 지출
             </span>
             <span className={`text-lg font-black tracking-tight mt-0.5 block ${
@@ -149,7 +149,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
           </div>
 
           <div>
-            <span className={`text-[11px] font-medium block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <span className={`text-[11px] font-medium block ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               연간 환산 고정비
             </span>
             <span className={`text-lg font-bold tracking-tight mt-0.5 block ${
@@ -189,7 +189,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
                   placeholder="예: 넷플릭스, 유튜브 프리미엄, 통신비"
                   value={newMerchant}
                   onChange={(e) => setNewMerchant(e.target.value)}
-                  className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-full outline-none focus:border-white/20 transition-colors"
+                  className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-400 w-full outline-none focus:border-white/20 transition-colors"
                 />
               </div>
 
@@ -203,7 +203,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
                     placeholder="예: 14900"
                     value={newAmount}
                     onChange={(e) => setNewAmount(e.target.value)}
-                    className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl pl-8 pr-3 text-xs text-white placeholder:text-neutral-500 w-full font-semibold outline-none focus:border-white/20 transition-colors"
+                    className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl pl-8 pr-3 text-xs text-white placeholder:text-neutral-400 w-full font-semibold outline-none focus:border-white/20 transition-colors"
                   />
                 </div>
               </div>
@@ -215,7 +215,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-full outline-none focus:border-white/20 transition-colors"
+                  className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-400 w-full outline-none focus:border-white/20 transition-colors"
                 >
                   <option value="Living" className="bg-[#111217] text-white">주거/통신</option>
                   <option value="Subscriptions" className="bg-[#111217] text-white">구독/스트리밍</option>
@@ -231,7 +231,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
                   type="number"
                   value={newCycleDays}
                   onChange={(e) => setNewCycleDays(Number(e.target.value))}
-                  className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-full outline-none focus:border-white/20 transition-colors"
+                  className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-400 w-full outline-none focus:border-white/20 transition-colors"
                 />
               </div>
 
@@ -241,7 +241,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
                   type="date"
                   value={newBillingDate}
                   onChange={(e) => setNewBillingDate(e.target.value)}
-                  className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-500 w-full outline-none focus:border-white/20 transition-colors"
+                  className="h-10 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 text-xs text-white placeholder:text-neutral-400 w-full outline-none focus:border-white/20 transition-colors"
                 />
               </div>
             </div>
@@ -271,7 +271,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
           <span className={`font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
             감지된 정기 결제 ({subscriptions.length})
           </span>
-          <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+          <span className={`text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
             D-Day 순 정렬
           </span>
         </div>
@@ -310,7 +310,7 @@ export const SubscriptionManagerSection: React.FC<SubscriptionManagerSectionProp
                       <button
                         type="button"
                         onClick={() => handleDeleteSubscription(s.id)}
-                        className="p-1 -mr-1 rounded-lg text-neutral-500 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+                        className="p-1 -mr-1 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
                         title="삭제"
                         aria-label={`${s.merchant} 구독 삭제`}
                       >

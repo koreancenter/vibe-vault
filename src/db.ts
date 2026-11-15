@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { Transaction, AssetAccount, DebtItem, LedgerSpace } from './types';
+import { Transaction, AssetAccount, DebtItem, LedgerSpace, SubscriptionItem, PendingScanItem } from './types';
 import { generateSecureId } from './identifiers';
 import {
   encryptTransaction,
@@ -8,6 +8,8 @@ import {
   decryptAssetAccount,
   encryptDebtItem,
   decryptDebtItem,
+  encryptField,
+  decryptField,
   decryptFieldWithKey,
   encryptFieldWithKey,
   resetVaultSecurity,
@@ -287,83 +289,307 @@ interface VibeVaultDB extends DBSchema {
     key: string;
     value: string;
   };
+  pending_scans: {
+    key: string;
+    value: PendingScanItem;
+    indexes: {
+      'by-created': string;
+    };
+  };
 }
 
-let dbPromise: Promise<IDBPDatabase<VibeVaultDB>>;
+let dbPromise: Promise<IDBPDatabase<VibeVaultDB>> | null = null;
+let activeDbInstance: IDBPDatabase<VibeVaultDB> | null = null;
+
+function hasStore(db: IDBPDatabase<VibeVaultDB> | null | undefined, storeName: string): boolean {
+  try {
+    return Boolean(db && db.objectStoreNames && db.objectStoreNames.contains(storeName as any));
+  } catch {
+    return false;
+  }
+}
+
+export function closeDBConnection(): void {
+  if (activeDbInstance) {
+    try {
+      activeDbInstance.close();
+    } catch {}
+    activeDbInstance = null;
+  }
+  dbPromise = null;
+}
 
 export function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<VibeVaultDB>('vibe-vault-db', 6, {
-      upgrade(db, oldVersion, _newVersion, transaction) {
+    dbPromise = openDB<VibeVaultDB>('vibe-vault-db', 7, {
+      upgrade(db, _oldVersion, _newVersion, transaction) {
         let txStore;
-        if (oldVersion < 1) {
+        if (!db.objectStoreNames.contains('transactions')) {
           txStore = db.createObjectStore('transactions', {
             keyPath: 'id',
           });
-          txStore.createIndex('by-date', 'date');
         } else {
           txStore = transaction.objectStore('transactions');
         }
-
-        // Migration to Schema v2: Multi-index support
-        if (oldVersion < 2) {
-          if (!txStore.indexNames.contains('by-category')) {
-            txStore.createIndex('by-category', 'category');
-          }
-          if (!txStore.indexNames.contains('by-type')) {
-            txStore.createIndex('by-type', 'type');
-          }
+        if (!txStore.indexNames.contains('by-date')) {
+          txStore.createIndex('by-date', 'date');
+        }
+        if (!txStore.indexNames.contains('by-category')) {
+          txStore.createIndex('by-category', 'category');
+        }
+        if (!txStore.indexNames.contains('by-type')) {
+          txStore.createIndex('by-type', 'type');
         }
 
-        // Migration to Schema v3: Multi-Brokerage Asset Accounts Store
-        if (oldVersion < 3) {
-          if (!db.objectStoreNames.contains('assetAccounts')) {
-            const assetStore = db.createObjectStore('assetAccounts', {
-              keyPath: 'id',
-            });
-            assetStore.createIndex('by-type', 'assetType');
-            assetStore.createIndex('by-institution', 'institution');
-          }
+        // Multi-Brokerage Asset Accounts Store
+        let assetStore;
+        if (!db.objectStoreNames.contains('assetAccounts')) {
+          assetStore = db.createObjectStore('assetAccounts', {
+            keyPath: 'id',
+          });
+        } else {
+          assetStore = transaction.objectStore('assetAccounts');
+        }
+        if (!assetStore.indexNames.contains('by-type')) {
+          assetStore.createIndex('by-type', 'assetType');
+        }
+        if (!assetStore.indexNames.contains('by-institution')) {
+          assetStore.createIndex('by-institution', 'institution');
         }
 
-        // Migration to Schema v4: Debts & Loans Store
-        if (oldVersion < 4) {
-          if (!db.objectStoreNames.contains('debts')) {
-            const debtStore = db.createObjectStore('debts', {
-              keyPath: 'id',
-            });
-            debtStore.createIndex('by-type', 'type');
-            debtStore.createIndex('by-counterparty', 'counterpartyOrBank');
-          }
+        // Debts & Loans Store
+        let debtStore;
+        if (!db.objectStoreNames.contains('debts')) {
+          debtStore = db.createObjectStore('debts', {
+            keyPath: 'id',
+          });
+        } else {
+          debtStore = transaction.objectStore('debts');
+        }
+        if (!debtStore.indexNames.contains('by-type')) {
+          debtStore.createIndex('by-type', 'type');
+        }
+        if (!debtStore.indexNames.contains('by-counterparty')) {
+          debtStore.createIndex('by-counterparty', 'counterpartyOrBank');
         }
 
-        // Migration to Schema v5: Multi-Ledger Spaces Store
-        if (oldVersion < 5) {
-          if (!db.objectStoreNames.contains('spaces')) {
-            const spaceStore = db.createObjectStore('spaces', {
-              keyPath: 'id',
-            });
-            spaceStore.createIndex('by-created', 'createdAt');
-            spaceStore.put({
-              id: 'default',
-              name: '일상 장부',
-              currency: 'KRW',
-              createdAt: new Date().toISOString(),
-            });
-          }
+        // Multi-Ledger Spaces Store
+        let spaceStore;
+        if (!db.objectStoreNames.contains('spaces')) {
+          spaceStore = db.createObjectStore('spaces', {
+            keyPath: 'id',
+          });
+          spaceStore.put({
+            id: 'default',
+            name: '일상 장부',
+            currency: 'KRW',
+            createdAt: new Date().toISOString(),
+          });
+        } else {
+          spaceStore = transaction.objectStore('spaces');
+        }
+        if (!spaceStore.indexNames.contains('by-created')) {
+          spaceStore.createIndex('by-created', 'createdAt');
         }
 
-        if (oldVersion < 6 && !db.objectStoreNames.contains('vaultMetadata')) {
+        if (!db.objectStoreNames.contains('vaultMetadata')) {
           db.createObjectStore('vaultMetadata');
         }
+
+        // Offline Encrypted Scan Queue
+        let scanStore;
+        if (!db.objectStoreNames.contains('pending_scans')) {
+          scanStore = db.createObjectStore('pending_scans', {
+            keyPath: 'id',
+          });
+        } else {
+          scanStore = transaction.objectStore('pending_scans');
+        }
+        if (!scanStore.indexNames.contains('by-created')) {
+          scanStore.createIndex('by-created', 'createdAt');
+        }
       },
-    });
+      blocked() {
+        closeDBConnection();
+      },
+      blocking() {
+        closeDBConnection();
+      },
+      terminated() {
+        activeDbInstance = null;
+        dbPromise = null;
+      },
+    })
+      .then((db) => {
+        activeDbInstance = db;
+        // Eagerly hydrate subscriptions in background once DB handle is ready
+        initSubscriptionsStorage().catch(() => {});
+        return db;
+      })
+      .catch((err) => {
+        dbPromise = null;
+        throw err;
+      });
   }
   return dbPromise;
 }
 
+export const STORAGE_KEY_SUBSCRIPTIONS = 'vibe_subscriptions_v2';
+export const VAULT_METADATA_SUBSCRIPTIONS_KEY = 'encrypted-subscriptions';
+
+let cachedSubscriptions: SubscriptionItem[] = [];
+let isSubscriptionsHydrated = false;
+let subscriptionsWriteRevision = 0;
+let initSubscriptionsPromise: Promise<SubscriptionItem[]> | null = null;
+type SubscriptionsSyncListener = (items: SubscriptionItem[]) => void;
+const subscriptionsSyncListeners = new Set<SubscriptionsSyncListener>();
+
+export function subscribeSavedSubscriptions(listener: SubscriptionsSyncListener): () => void {
+  subscriptionsSyncListeners.add(listener);
+  return () => {
+    subscriptionsSyncListeners.delete(listener);
+  };
+}
+
+function setCachedSubscriptions(items: SubscriptionItem[]): SubscriptionItem[] {
+  const safeItems = Array.isArray(items) ? items : [];
+  cachedSubscriptions = safeItems;
+  for (const listener of subscriptionsSyncListeners) {
+    try {
+      listener(safeItems);
+    } catch {}
+  }
+  return safeItems;
+}
+
+/**
+ * Initializes and hydrates subscriptions from encrypted IndexedDB with one-time localStorage migration.
+ */
+export async function initSubscriptionsStorage(): Promise<SubscriptionItem[]> {
+  if (initSubscriptionsPromise) {
+    return initSubscriptionsPromise;
+  }
+
+  const startWriteRevision = subscriptionsWriteRevision;
+  initSubscriptionsPromise = (async () => {
+    // Ensure initSubscriptionsPromise is assigned before any re-entrant call to getDB()
+    await Promise.resolve();
+    try {
+      const db = await getDB();
+      if (!hasStore(db, 'vaultMetadata')) {
+        isSubscriptionsHydrated = true;
+        return cachedSubscriptions;
+      }
+      const encryptedRaw = await db.get('vaultMetadata', VAULT_METADATA_SUBSCRIPTIONS_KEY);
+
+      if (encryptedRaw) {
+        const decrypted = await decryptField(encryptedRaw);
+        const parsed = JSON.parse(decrypted);
+        if (subscriptionsWriteRevision !== startWriteRevision) {
+          isSubscriptionsHydrated = true;
+          return cachedSubscriptions;
+        }
+        if (Array.isArray(parsed)) {
+          setCachedSubscriptions(parsed);
+        }
+        isSubscriptionsHydrated = true;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(STORAGE_KEY_SUBSCRIPTIONS);
+        }
+        return cachedSubscriptions;
+      }
+
+      // One-time fallback migration from legacy plaintext localStorage
+      if (typeof localStorage !== 'undefined') {
+        const legacyRaw = localStorage.getItem(STORAGE_KEY_SUBSCRIPTIONS);
+        if (legacyRaw) {
+          try {
+            const parsed = JSON.parse(legacyRaw);
+            if (subscriptionsWriteRevision !== startWriteRevision) {
+              isSubscriptionsHydrated = true;
+              return cachedSubscriptions;
+            }
+            if (Array.isArray(parsed)) {
+              setCachedSubscriptions(parsed);
+              isSubscriptionsHydrated = true;
+              await saveSubscriptions(parsed);
+              localStorage.removeItem(STORAGE_KEY_SUBSCRIPTIONS);
+              return cachedSubscriptions;
+            }
+          } catch {
+            localStorage.removeItem(STORAGE_KEY_SUBSCRIPTIONS);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load subscriptions from encrypted IndexedDB:', err);
+    }
+
+    isSubscriptionsHydrated = true;
+    return cachedSubscriptions;
+  })();
+
+  try {
+    return await initSubscriptionsPromise;
+  } finally {
+    initSubscriptionsPromise = null;
+  }
+}
+
+/**
+ * Saves subscriptions to encrypted IndexedDB (vibe-vault-db under vaultMetadata).
+ * Automatically purges legacy plaintext localStorage copy.
+ */
+export async function saveSubscriptions(items: SubscriptionItem[]): Promise<void> {
+  subscriptionsWriteRevision += 1;
+  const safeItems = setCachedSubscriptions(items);
+  isSubscriptionsHydrated = true;
+  try {
+    const db = await getDB();
+    if (!hasStore(db, 'vaultMetadata')) {
+      return;
+    }
+    const serialized = JSON.stringify(safeItems);
+    const encrypted = await encryptField(serialized);
+    await db.put('vaultMetadata', encrypted, VAULT_METADATA_SUBSCRIPTIONS_KEY);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY_SUBSCRIPTIONS);
+    }
+  } catch (err) {
+    console.error('Failed to persist subscriptions to encrypted IndexedDB:', err);
+  }
+}
+
+/**
+ * Loads subscriptions from memory cache with synchronous fallback to localStorage on initial read before DB hydration.
+ */
+export function loadSavedSubscriptions(): SubscriptionItem[] {
+  if (!isSubscriptionsHydrated && typeof localStorage !== 'undefined') {
+    const legacyRaw = localStorage.getItem(STORAGE_KEY_SUBSCRIPTIONS);
+    if (legacyRaw) {
+      try {
+        const parsed = JSON.parse(legacyRaw);
+        if (Array.isArray(parsed)) {
+          setCachedSubscriptions(parsed);
+          initSubscriptionsStorage().catch(console.error);
+          return cachedSubscriptions;
+        }
+      } catch {}
+    }
+  }
+  return Array.isArray(cachedSubscriptions) ? cachedSubscriptions : [];
+}
+
+export async function getSavedSubscriptionsAsync(): Promise<SubscriptionItem[]> {
+  if (!isSubscriptionsHydrated) {
+    await initSubscriptionsStorage();
+  }
+  return Array.isArray(cachedSubscriptions) ? cachedSubscriptions : [];
+}
+
 export async function addTransaction(transaction: Transaction) {
   const db = await getDB();
+  if (!hasStore(db, 'transactions')) return;
   const sanitized = sanitizeTransactionInput(transaction) as Transaction;
   const encrypted = await encryptTransaction(sanitized);
   await db.add('transactions', encrypted);
@@ -371,6 +597,7 @@ export async function addTransaction(transaction: Transaction) {
 
 export async function addTransactions(transactions: Transaction[]) {
   const db = await getDB();
+  if (!hasStore(db, 'transactions')) return;
   const encryptedList = await Promise.all(
     transactions.map(t => encryptTransaction(sanitizeTransactionInput(t) as Transaction))
   );
@@ -383,6 +610,7 @@ export async function addTransactions(transactions: Transaction[]) {
 
 export async function replaceAllTransactions(transactions: Transaction[]) {
   const db = await getDB();
+  if (!hasStore(db, 'transactions')) return;
   const encryptedList = await Promise.all(
     transactions.map(t => encryptTransaction(sanitizeTransactionInput(t) as Transaction))
   );
@@ -396,6 +624,7 @@ export async function replaceAllTransactions(transactions: Transaction[]) {
 
 export async function getAllTransactions(): Promise<Transaction[]> {
   const db = await getDB();
+  if (!hasStore(db, 'transactions')) return [];
   const txs = await db.getAllFromIndex('transactions', 'by-date');
   const decrypted = await Promise.all(txs.map(decryptTransaction));
   return decrypted.reverse(); // newest first
@@ -403,11 +632,13 @@ export async function getAllTransactions(): Promise<Transaction[]> {
 
 export async function deleteTransaction(id: string) {
   const db = await getDB();
+  if (!hasStore(db, 'transactions')) return;
   await db.delete('transactions', id);
 }
 
 export async function updateTransaction(transaction: Transaction) {
   const db = await getDB();
+  if (!hasStore(db, 'transactions')) return;
   const sanitized = sanitizeTransactionInput(transaction) as Transaction;
   const encrypted = await encryptTransaction(sanitized);
   await db.put('transactions', encrypted);
@@ -415,6 +646,7 @@ export async function updateTransaction(transaction: Transaction) {
 
 export async function clearAllTransactions() {
   const db = await getDB();
+  if (!hasStore(db, 'transactions')) return;
   await db.clear('transactions');
 }
 
@@ -424,6 +656,7 @@ export async function clearAllTransactions() {
  */
 export async function getTransactionsSince(sinceIsoDate: string): Promise<Transaction[]> {
   const db = await getDB();
+  if (!hasStore(db, 'transactions')) return [];
   const all = await db.getAllFromIndex('transactions', 'by-date');
   const filtered = all.filter(t => t.date >= sinceIsoDate);
   const decrypted = await Promise.all(filtered.map(decryptTransaction));
@@ -435,12 +668,14 @@ export async function getTransactionsSince(sinceIsoDate: string): Promise<Transa
  */
 export async function getTransactionsByCategory(category: string): Promise<Transaction[]> {
   const db = await getDB();
+  if (!hasStore(db, 'transactions')) return [];
   const txs = await db.getAllFromIndex('transactions', 'by-category', category);
   return Promise.all(txs.map(decryptTransaction));
 }
 
 export async function getTransactionsByType(type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'SETTLEMENT'): Promise<Transaction[]> {
   const db = await getDB();
+  if (!hasStore(db, 'transactions')) return [];
   const txs = await db.getAllFromIndex('transactions', 'by-type', type);
   return Promise.all(txs.map(decryptTransaction));
 }
@@ -462,6 +697,7 @@ export function notifyVaultDataChanged(source?: string): void {
  */
 export async function getAllAssetAccounts(): Promise<AssetAccount[]> {
   const db = await getDB();
+  if (!hasStore(db, 'assetAccounts')) return [];
   const accounts = await db.getAll('assetAccounts');
   if (!accounts || accounts.length === 0) {
     return [];
@@ -471,12 +707,14 @@ export async function getAllAssetAccounts(): Promise<AssetAccount[]> {
 
 export async function clearAllAssetAccounts(): Promise<void> {
   const db = await getDB();
+  if (!hasStore(db, 'assetAccounts')) return;
   await db.clear('assetAccounts');
   notifyVaultDataChanged('clearAllAssetAccounts');
 }
 
 export async function saveAssetAccount(account: AssetAccount): Promise<void> {
   const db = await getDB();
+  if (!hasStore(db, 'assetAccounts')) return;
   const sanitized = sanitizeAssetAccountInput(account) as AssetAccount;
   const encrypted = await encryptAssetAccount(sanitized);
   await db.put('assetAccounts', encrypted);
@@ -485,12 +723,14 @@ export async function saveAssetAccount(account: AssetAccount): Promise<void> {
 
 export async function deleteAssetAccount(id: string): Promise<void> {
   const db = await getDB();
+  if (!hasStore(db, 'assetAccounts')) return;
   await db.delete('assetAccounts', id);
   notifyVaultDataChanged('deleteAssetAccount');
 }
 
 export async function updateAssetAccountBalance(id: string, newBalance: number): Promise<AssetAccount | null> {
   const db = await getDB();
+  if (!hasStore(db, 'assetAccounts')) return null;
   const account = await db.get('assetAccounts', id);
   if (!account) return null;
 
@@ -503,6 +743,7 @@ export async function updateAssetAccountBalance(id: string, newBalance: number):
 
 export async function bulkSaveAssetAccounts(accounts: AssetAccount[]): Promise<void> {
   const db = await getDB();
+  if (!hasStore(db, 'assetAccounts')) return;
   const encryptedList = await Promise.all(
     accounts.map(acc => encryptAssetAccount(sanitizeAssetAccountInput(acc) as AssetAccount))
   );
@@ -533,6 +774,9 @@ export async function executeAccountTransfer(
   }
 
   const db = await getDB();
+  if (!hasStore(db, 'assetAccounts') || !hasStore(db, 'transactions')) {
+    throw new Error('필요한 데이터 저장소가 초기화되지 않았습니다.');
+  }
   const rawSource = await db.get('assetAccounts', sourceAccountId);
   const rawTarget = await db.get('assetAccounts', targetAccountId);
 
@@ -587,6 +831,7 @@ export async function executeAccountTransfer(
  */
 export async function getAllDebts(): Promise<DebtItem[]> {
   const db = await getDB();
+  if (!hasStore(db, 'debts')) return [];
   const debts = await db.getAll('debts');
   if (!debts || debts.length === 0) {
     return [];
@@ -596,12 +841,14 @@ export async function getAllDebts(): Promise<DebtItem[]> {
 
 export async function clearAllDebts(): Promise<void> {
   const db = await getDB();
+  if (!hasStore(db, 'debts')) return;
   await db.clear('debts');
   notifyVaultDataChanged('clearAllDebts');
 }
 
 export async function saveDebt(debt: DebtItem): Promise<void> {
   const db = await getDB();
+  if (!hasStore(db, 'debts')) return;
   const sanitized = sanitizeDebtItemInput(debt) as DebtItem;
   const encrypted = await encryptDebtItem(sanitized);
   await db.put('debts', encrypted);
@@ -610,12 +857,14 @@ export async function saveDebt(debt: DebtItem): Promise<void> {
 
 export async function deleteDebt(id: string): Promise<void> {
   const db = await getDB();
+  if (!hasStore(db, 'debts')) return;
   await db.delete('debts', id);
   notifyVaultDataChanged('deleteDebt');
 }
 
 export async function updateDebtRemainingPrincipal(id: string, newRemaining: number): Promise<DebtItem | null> {
   const db = await getDB();
+  if (!hasStore(db, 'debts')) return null;
   const debt = await db.get('debts', id);
   if (!debt) return null;
 
@@ -642,6 +891,9 @@ export async function executeLoanRepaymentSplit(
   paymentMethod?: string
 ): Promise<{ interestTransaction?: Transaction; principalTransaction: Transaction; updatedDebt: DebtItem }> {
   const db = await getDB();
+  if (!hasStore(db, 'debts') || !hasStore(db, 'transactions')) {
+    throw new Error('필요한 데이터 저장소가 초기화되지 않았습니다.');
+  }
   const rawDebt = await db.get('debts', debtId);
   if (!rawDebt) throw new Error('대출/부채 항목을 찾을 수 없습니다.');
 
@@ -724,6 +976,9 @@ export async function executeReceivableRecovery(
   paymentMethod?: string
 ): Promise<{ settlementTransaction: Transaction; updatedDebt: DebtItem }> {
   const db = await getDB();
+  if (!hasStore(db, 'debts') || !hasStore(db, 'transactions')) {
+    throw new Error('필요한 데이터 저장소가 초기화되지 않았습니다.');
+  }
   const rawDebt = await db.get('debts', debtId);
   if (!rawDebt) throw new Error('미수금/빌려준 돈 항목을 찾을 수 없습니다.');
 
@@ -770,6 +1025,9 @@ export async function executeReceivableRecovery(
  */
 export async function getSpaces(): Promise<LedgerSpace[]> {
   const db = await getDB();
+  if (!hasStore(db, 'spaces')) {
+    return [{ ...DEFAULT_SPACE, createdAt: new Date().toISOString() }];
+  }
   let spaces: LedgerSpace[] = [];
   try {
     spaces = await db.getAll('spaces');
@@ -791,13 +1049,16 @@ export async function getSpaces(): Promise<LedgerSpace[]> {
 
 export async function createSpace(space: LedgerSpace): Promise<void> {
   const db = await getDB();
+  if (!hasStore(db, 'spaces')) return;
   await db.put('spaces', space);
 }
 
 export async function deleteSpace(id: string): Promise<void> {
   if (id === 'default') return; // Cannot delete default space
   const db = await getDB();
-  await db.delete('spaces', id);
+  if (hasStore(db, 'spaces')) {
+    await db.delete('spaces', id);
+  }
   // Clean up all transactions belonging to this space
   try {
     const allTxs = await getAllTransactions();
@@ -807,6 +1068,84 @@ export async function deleteSpace(id: string): Promise<void> {
     }
   } catch (err) {
     console.warn('[db] Error cleaning up transactions for space:', id, err);
+  }
+}
+
+/**
+ * Phase 5: Offline Encrypted Scan Queue (pending_scans)
+ */
+export async function addPendingScan(scan: {
+  imageBase64: string;
+  mimeType: string;
+  spaceId?: string;
+  fileName?: string;
+}): Promise<PendingScanItem> {
+  const db = await getDB();
+  const id = generateSecureId('scan');
+  const encryptedBase64 = await encryptField(scan.imageBase64);
+  const item: PendingScanItem = {
+    id,
+    createdAt: new Date().toISOString(),
+    imageBase64: encryptedBase64,
+    mimeType: scan.mimeType || 'image/webp',
+    spaceId: scan.spaceId || 'default',
+    fileName: scan.fileName
+  };
+  if (!hasStore(db, 'pending_scans')) {
+    console.warn('[db] pending_scans store missing; skipping persistence');
+    return item;
+  }
+  await db.put('pending_scans', item);
+  return item;
+}
+
+export async function getPendingScans(): Promise<PendingScanItem[]> {
+  const db = await getDB();
+  if (!hasStore(db, 'pending_scans')) {
+    return [];
+  }
+  let rawList: PendingScanItem[] = [];
+  try {
+    rawList = await db.getAllFromIndex('pending_scans', 'by-created');
+  } catch {
+    try {
+      rawList = await db.getAll('pending_scans');
+    } catch {
+      return [];
+    }
+  }
+  const decryptedList = await Promise.all(
+    rawList.map(async (item) => ({
+      ...item,
+      imageBase64: await decryptField(item.imageBase64)
+    }))
+  );
+  return decryptedList;
+}
+
+export async function deletePendingScan(id: string): Promise<void> {
+  const db = await getDB();
+  if (!hasStore(db, 'pending_scans')) return;
+  await db.delete('pending_scans', id);
+}
+
+export async function getPendingScansCount(): Promise<number> {
+  const db = await getDB();
+  if (!hasStore(db, 'pending_scans')) return 0;
+  try {
+    return await db.count('pending_scans');
+  } catch {
+    return 0;
+  }
+}
+
+export async function clearAllPendingScans(): Promise<void> {
+  const db = await getDB();
+  if (!hasStore(db, 'pending_scans')) return;
+  try {
+    await db.clear('pending_scans');
+  } catch (err) {
+    console.warn('Failed to clear pending_scans:', err);
   }
 }
 
@@ -843,18 +1182,27 @@ export async function loadSampleData(): Promise<{
     )
   );
 
-  // Write atomically across stores
-  const tx = db.transaction(['assetAccounts', 'debts', 'transactions'], 'readwrite');
-  for (const acc of encryptedAccounts) {
-    tx.objectStore('assetAccounts').put(acc);
+  // Write atomically across available stores
+  const sampleStoreNames = (['assetAccounts', 'debts', 'transactions'] as const).filter(name => hasStore(db, name));
+  if (sampleStoreNames.length > 0) {
+    const tx = db.transaction(sampleStoreNames as any, 'readwrite');
+    if (hasStore(db, 'assetAccounts')) {
+      for (const acc of encryptedAccounts) {
+        tx.objectStore('assetAccounts').put(acc);
+      }
+    }
+    if (hasStore(db, 'debts')) {
+      for (const d of encryptedDebts) {
+        tx.objectStore('debts').put(d);
+      }
+    }
+    if (hasStore(db, 'transactions')) {
+      for (const t of encryptedTxs) {
+        tx.objectStore('transactions').put(t);
+      }
+    }
+    await tx.done;
   }
-  for (const d of encryptedDebts) {
-    tx.objectStore('debts').put(d);
-  }
-  for (const t of encryptedTxs) {
-    tx.objectStore('transactions').put(t);
-  }
-  await tx.done;
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('vibe-vault-data-changed', {
@@ -876,18 +1224,23 @@ export async function loadSampleData(): Promise<{
  */
 export async function resetAllDataToZero(): Promise<void> {
   const db = await getDB();
-  const tx = db.transaction(['transactions', 'assetAccounts', 'debts', 'spaces'], 'readwrite');
-  await tx.objectStore('transactions').clear();
-  await tx.objectStore('assetAccounts').clear();
-  await tx.objectStore('debts').clear();
-  await tx.objectStore('spaces').clear();
-  await tx.objectStore('spaces').put({
-    id: 'default',
-    name: '일상 장부',
-    currency: 'KRW',
-    createdAt: new Date().toISOString(),
-  });
-  await tx.done;
+  const candidateStores = ['transactions', 'assetAccounts', 'debts', 'spaces', 'pending_scans'] as const;
+  const storeNames = candidateStores.filter(name => hasStore(db, name));
+  if (storeNames.length > 0) {
+    const tx = db.transaction(storeNames as any, 'readwrite');
+    for (const store of storeNames) {
+      await tx.objectStore(store as any).clear();
+    }
+    if (hasStore(db, 'spaces')) {
+      await tx.objectStore('spaces').put({
+        id: 'default',
+        name: '일상 장부',
+        currency: 'KRW',
+        createdAt: new Date().toISOString(),
+      });
+    }
+    await tx.done;
+  }
 
   // Clear related localStorage flags
   if (typeof localStorage !== 'undefined') {
@@ -921,18 +1274,23 @@ export async function resetAllDataToZero(): Promise<void> {
 registerGuestWipeHandler(async () => {
   try {
     const db = await getDB();
-    const tx = db.transaction(['transactions', 'assetAccounts', 'debts', 'spaces'], 'readwrite');
-    await tx.objectStore('transactions').clear();
-    await tx.objectStore('assetAccounts').clear();
-    await tx.objectStore('debts').clear();
-    await tx.objectStore('spaces').clear();
-    await tx.objectStore('spaces').put({
-      id: 'default',
-      name: '일상 장부',
-      currency: 'KRW',
-      createdAt: new Date().toISOString(),
-    });
-    await tx.done;
+    const candidateStores = ['transactions', 'assetAccounts', 'debts', 'spaces', 'pending_scans'] as const;
+    const storeNames = candidateStores.filter(name => hasStore(db, name));
+    if (storeNames.length > 0) {
+      const tx = db.transaction(storeNames as any, 'readwrite');
+      for (const store of storeNames) {
+        await tx.objectStore(store as any).clear();
+      }
+      if (hasStore(db, 'spaces')) {
+        await tx.objectStore('spaces').put({
+          id: 'default',
+          name: '일상 장부',
+          currency: 'KRW',
+          createdAt: new Date().toISOString(),
+        });
+      }
+      await tx.done;
+    }
   } catch (err) {
     console.warn('[Ephemeral Guest Mode] IndexedDB clear failed:', err);
   }
@@ -1000,20 +1358,34 @@ export async function migrateVaultDataKey(
   sourceKeys: CryptoKey[]
 ): Promise<void> {
   const db = await getDB();
-  const [transactions, accounts, debts, currentKeyId] = await Promise.all([
-    db.getAll('transactions'),
-    db.getAll('assetAccounts'),
-    db.getAll('debts'),
-    db.get('vaultMetadata', 'active-key-id')
+  const [transactions, accounts, debts, currentKeyId, pendingScans] = await Promise.all([
+    hasStore(db, 'transactions') ? db.getAll('transactions') : Promise.resolve([]),
+    hasStore(db, 'assetAccounts') ? db.getAll('assetAccounts') : Promise.resolve([]),
+    hasStore(db, 'debts') ? db.getAll('debts') : Promise.resolve([]),
+    hasStore(db, 'vaultMetadata') ? db.get('vaultMetadata', 'active-key-id') : Promise.resolve(undefined),
+    hasStore(db, 'pending_scans') ? db.getAll('pending_scans') : Promise.resolve([])
   ]);
 
   if (currentKeyId === targetKeyId) return;
 
   const records: EncryptedRecord[] = [...transactions, ...accounts, ...debts];
-  const candidates = [targetKey, ...sourceKeys.filter((key) => key !== targetKey)];
+  const candidates = [...sourceKeys.filter((key) => key !== targetKey), targetKey];
   let sourceKey: CryptoKey | undefined;
   for (const candidate of candidates) {
-    if (await canDecryptRecordSet(records, candidate)) {
+    let candidateValid = false;
+    try {
+      if (records.length > 0) {
+        candidateValid = await canDecryptRecordSet(records, candidate);
+      } else if (pendingScans.length > 0) {
+        await decryptFieldWithKey(pendingScans[0].imageBase64, candidate);
+        candidateValid = true;
+      } else {
+        candidateValid = true;
+      }
+    } catch {
+      candidateValid = false;
+    }
+    if (candidateValid) {
       sourceKey = candidate;
       break;
     }
@@ -1023,18 +1395,54 @@ export async function migrateVaultDataKey(
   }
   const selectedSourceKey = sourceKey;
 
-  const [encryptedTransactions, encryptedAccounts, encryptedDebts] = await Promise.all([
+  const [encryptedTransactions, encryptedAccounts, encryptedDebts, existingEncryptedSubs, encryptedPendingScans] = await Promise.all([
     Promise.all(transactions.map((record) => reencryptTransaction(record, selectedSourceKey, targetKey))),
     Promise.all(accounts.map((record) => reencryptAssetAccount(record, selectedSourceKey, targetKey))),
-    Promise.all(debts.map((record) => reencryptDebtItem(record, selectedSourceKey, targetKey)))
+    Promise.all(debts.map((record) => reencryptDebtItem(record, selectedSourceKey, targetKey))),
+    hasStore(db, 'vaultMetadata') ? db.get('vaultMetadata', VAULT_METADATA_SUBSCRIPTIONS_KEY) : Promise.resolve(undefined),
+    Promise.all(pendingScans.map(async (scan) => {
+      try {
+        const decryptedImg = await decryptFieldWithKey(scan.imageBase64, selectedSourceKey);
+        return {
+          ...scan,
+          imageBase64: await encryptFieldWithKey(decryptedImg, targetKey)
+        };
+      } catch {
+        return scan;
+      }
+    }))
   ]);
 
-  const tx = db.transaction(['transactions', 'assetAccounts', 'debts', 'vaultMetadata'], 'readwrite');
+  let reencryptedSubs: string | undefined;
+  if (existingEncryptedSubs) {
+    try {
+      const decryptedSubs = await decryptFieldWithKey(existingEncryptedSubs, selectedSourceKey);
+      reencryptedSubs = await encryptFieldWithKey(decryptedSubs, targetKey);
+    } catch {
+      // If decryption fails, preserve as is
+    }
+  }
+
+  const txStoreNames: ('transactions' | 'assetAccounts' | 'debts' | 'vaultMetadata' | 'pending_scans')[] = [];
+  if (hasStore(db, 'transactions')) txStoreNames.push('transactions');
+  if (hasStore(db, 'assetAccounts')) txStoreNames.push('assetAccounts');
+  if (hasStore(db, 'debts')) txStoreNames.push('debts');
+  if (hasStore(db, 'vaultMetadata')) txStoreNames.push('vaultMetadata');
+  if (hasStore(db, 'pending_scans') && encryptedPendingScans.length > 0) {
+    txStoreNames.push('pending_scans');
+  }
+  if (txStoreNames.length === 0) return;
+
+  const tx = db.transaction(txStoreNames as any, 'readwrite');
   const writes = [
-    ...encryptedTransactions.map((record) => tx.objectStore('transactions').put(record)),
-    ...encryptedAccounts.map((record) => tx.objectStore('assetAccounts').put(record)),
-    ...encryptedDebts.map((record) => tx.objectStore('debts').put(record)),
-    tx.objectStore('vaultMetadata').put(targetKeyId, 'active-key-id')
+    ...(hasStore(db, 'transactions') ? encryptedTransactions.map((record) => tx.objectStore('transactions').put(record)) : []),
+    ...(hasStore(db, 'assetAccounts') ? encryptedAccounts.map((record) => tx.objectStore('assetAccounts').put(record)) : []),
+    ...(hasStore(db, 'debts') ? encryptedDebts.map((record) => tx.objectStore('debts').put(record)) : []),
+    ...(hasStore(db, 'vaultMetadata') ? [tx.objectStore('vaultMetadata').put(targetKeyId, 'active-key-id')] : []),
+    ...(hasStore(db, 'vaultMetadata') && reencryptedSubs ? [tx.objectStore('vaultMetadata').put(reencryptedSubs, VAULT_METADATA_SUBSCRIPTIONS_KEY)] : []),
+    ...(hasStore(db, 'pending_scans') && encryptedPendingScans.length > 0
+      ? encryptedPendingScans.map((scan) => tx.objectStore('pending_scans' as any).put(scan))
+      : [])
   ];
   await Promise.all([...writes, tx.done]);
 }
@@ -1051,18 +1459,23 @@ export async function ensureCleanSlateIfGuest(): Promise<void> {
     if (!sessionStorage.getItem('vibe_active_guest_session')) {
       try {
         const db = await getDB();
-        const tx = db.transaction(['transactions', 'assetAccounts', 'debts', 'spaces'], 'readwrite');
-        await tx.objectStore('transactions').clear();
-        await tx.objectStore('assetAccounts').clear();
-        await tx.objectStore('debts').clear();
-        await tx.objectStore('spaces').clear();
-        await tx.objectStore('spaces').put({
-          id: 'default',
-          name: '일상 장부',
-          currency: 'KRW',
-          createdAt: new Date().toISOString(),
-        });
-        await tx.done;
+        const candidateStores = ['transactions', 'assetAccounts', 'debts', 'spaces', 'pending_scans'] as const;
+        const storeNames = candidateStores.filter(name => hasStore(db, name));
+        if (storeNames.length > 0) {
+          const tx = db.transaction(storeNames as any, 'readwrite');
+          for (const store of storeNames) {
+            await tx.objectStore(store as any).clear();
+          }
+          if (hasStore(db, 'spaces')) {
+            await tx.objectStore('spaces').put({
+              id: 'default',
+              name: '일상 장부',
+              currency: 'KRW',
+              createdAt: new Date().toISOString(),
+            });
+          }
+          await tx.done;
+        }
       } catch (err) {
         console.warn('[Ephemeral Guest Mode] Startup clear error:', err);
       }
