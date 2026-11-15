@@ -14,6 +14,8 @@ import {
   getUserPreferences, 
   saveUserPreferences, 
   getAIEngineConfig, 
+  saveAIEngineConfig,
+  AIEngineConfig,
   applyTheme,
   UserPreferences
 } from '../utils';
@@ -41,6 +43,8 @@ export interface UseAutonomousEngineReturn {
   setUserPrefs: React.Dispatch<React.SetStateAction<UserPreferences>>;
   isStealth: boolean;
   toggleStealthMode: () => void;
+  engineConfig: AIEngineConfig;
+  updateEngineConfig: (partial: Partial<AIEngineConfig>) => void;
   engineStatus: string;
   refreshEngineStatus: () => void;
   syncPreferences: () => void;
@@ -60,6 +64,7 @@ export function useAutonomousEngine({
 }: UseAutonomousEngineOptions): UseAutonomousEngineReturn {
   const [userPrefs, setUserPrefs] = useState<UserPreferences>(() => getUserPreferences());
   const [isStealth, setIsStealth] = useState<boolean>(() => userPrefs.stealthMode);
+  const [engineConfig, setEngineConfig] = useState<AIEngineConfig>(() => getAIEngineConfig());
   const [engineStatus, setEngineStatus] = useState<string>('🔒 온디바이스 AI 작동 중');
 
   /**
@@ -67,14 +72,33 @@ export function useAutonomousEngine({
    */
   const refreshEngineStatus = useCallback((): void => {
     const config = getAIEngineConfig();
+    setEngineConfig(config);
     if (config.engineType === 'local') {
-      const model = config.localModel === 'llama3-8b' ? 'Llama 3' : 'Gemma 2B';
-      setEngineStatus(`🔒 온디바이스 AI 작동 중 (${model})`);
+      if (config.localSubMode === 'ollama') {
+        setEngineStatus(`🔒 온디바이스 AI 작동 중 (Ollama · ${config.ollamaModel || 'local'})`);
+      } else {
+        const model = config.localModel === 'llama3-8b' ? 'Llama 3' : 'Gemma 2B';
+        setEngineStatus(`🔒 온디바이스 AI 작동 중 (${model})`);
+      }
     } else {
       const provider = config.provider === 'gemini' ? 'Gemini' : config.provider === 'openai' ? 'OpenAI' : 'Claude';
       setEngineStatus(`✨ 클라우드 AI 연결됨 (${provider})`);
     }
   }, []);
+
+  /**
+   * Updates and persists AI engine configuration immediately
+   */
+  const updateEngineConfig = useCallback((partial: Partial<AIEngineConfig>): void => {
+    const current = getAIEngineConfig();
+    const next: AIEngineConfig = {
+      ...current,
+      ...partial,
+    };
+    saveAIEngineConfig(next);
+    setEngineConfig(next);
+    refreshEngineStatus();
+  }, [refreshEngineStatus]);
 
   /**
    * Syncs user preferences across theme, stealth mode, and AI engines
@@ -166,6 +190,8 @@ export function useAutonomousEngine({
     setUserPrefs,
     isStealth,
     toggleStealthMode,
+    engineConfig,
+    updateEngineConfig,
     engineStatus,
     refreshEngineStatus,
     syncPreferences
