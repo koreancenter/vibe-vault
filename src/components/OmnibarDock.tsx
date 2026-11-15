@@ -3,6 +3,7 @@ import {
   Camera, 
   Mic, 
   MicOff, 
+  Plus,
   X, 
   Send, 
   Sparkles,
@@ -41,19 +42,19 @@ const ENGINE_OPTIONS: {
   {
     id: 'cloud',
     menuLabel: 'Cloud AI',
-    badgeLabel: 'CLOUD',
+    badgeLabel: 'C',
     patch: { engineType: 'byok' },
   },
   {
     id: 'ollama',
     menuLabel: 'Ollama Local',
-    badgeLabel: 'OLLAMA',
+    badgeLabel: 'O',
     patch: { engineType: 'local', localSubMode: 'ollama' },
   },
   {
     id: 'webllm',
     menuLabel: 'WebLLM',
-    badgeLabel: 'WEBLLM',
+    badgeLabel: 'W',
     patch: { engineType: 'local', localSubMode: 'webllm' },
   },
 ];
@@ -115,8 +116,10 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
   const { t } = useI18n();
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isEngineMenuOpen, setIsEngineMenuOpen] = useState(false);
+  const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
   const [localFallbackConfig, setLocalFallbackConfig] = useState<AIEngineConfig>(() => getAIEngineConfig());
   const engineMenuRef = useRef<HTMLDivElement | null>(null);
+  const plusMenuRef = useRef<HTMLDivElement | null>(null);
 
   const isInsightsMode = mode === 'insights';
   const isTyping = input.trim().length > 0;
@@ -133,17 +136,21 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
     ENGINE_OPTIONS.find((opt) => opt.id === activeEngineId) || ENGINE_OPTIONS[0];
 
   useEffect(() => {
-    if (!isEngineMenuOpen) return;
+    if (!isEngineMenuOpen && !isPlusMenuOpen) return;
 
     const handlePointerDown = (e: MouseEvent) => {
       if (engineMenuRef.current && !engineMenuRef.current.contains(e.target as Node)) {
         setIsEngineMenuOpen(false);
+      }
+      if (plusMenuRef.current && !plusMenuRef.current.contains(e.target as Node)) {
+        setIsPlusMenuOpen(false);
       }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsEngineMenuOpen(false);
+        setIsPlusMenuOpen(false);
       }
     };
 
@@ -153,7 +160,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
       document.removeEventListener('mousedown', handlePointerDown);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isEngineMenuOpen]);
+  }, [isEngineMenuOpen, isPlusMenuOpen]);
 
   const handleSelectEngine = (option: (typeof ENGINE_OPTIONS)[number]) => {
     if (updateEngineConfig) {
@@ -272,7 +279,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
 
       {/* Search Bar Wrapper with Floating Suggestion Chips (Zero DOM Reflow) */}
       <div className="relative">
-        {isInputFocused && !isEngineMenuOpen && !realtimePreview && (
+        {isInputFocused && !isEngineMenuOpen && !isPlusMenuOpen && !realtimePreview && (
           <div className="absolute bottom-full mb-2 left-0 w-full z-30 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 animate-in fade-in slide-in-from-bottom-1 duration-150">
             {SUGGESTION_CHIPS.map(chip => (
               <button
@@ -297,59 +304,107 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
         {/* Modern AI Search Bar */}
         <form 
           onSubmit={handleFormSubmit}
-          className={`relative rounded-2xl p-[1px] transition-all duration-200 ${
-            isInputFocused 
-              ? 'bg-white/30 shadow-[0_0_15px_rgba(255,255,255,0.08)]' 
-              : 'bg-white/15'
+          className={`relative rounded-2xl p-[1px] transition-all duration-500 border ${
+            isProcessing
+              ? 'border-sky-500/40 bg-sky-500/10 shadow-[0_0_24px_rgba(56,189,248,0.25)] animate-pulse'
+              : isInputFocused
+              ? 'border-transparent bg-white/30 shadow-[0_0_15px_rgba(255,255,255,0.08)]'
+              : 'border-transparent bg-white/15'
           }`}
         >
           <div className="flex items-center gap-1.5 rounded-[15px] px-2.5 py-1.5 transition-colors bg-[#090A0D]/95 backdrop-blur-2xl">
-            {/* Compact Left Controls: Camera, Mic (hidden when typing) + Inline Icon-less Engine Switcher */}
-            <div className="flex items-center gap-1 shrink-0">
-              {!isTyping && (
-                <>
-                  {/* Camera / Receipt Scanner Trigger */}
-                  <button
-                    id="omnibar-receipt-scanner-btn"
-                    type="button"
-                    onClick={onOpenReceiptScanner}
-                    title="영수증 AI 스캔"
-                    aria-label="영수증 AI 스캔"
-                    className="w-7 h-7 rounded-lg flex items-center justify-center transition-all text-neutral-300 hover:text-white hover:bg-white/[0.08] active:scale-95 cursor-pointer shrink-0"
-                  >
-                    <Camera size={15} />
-                  </button>
-
-                  {/* Mic button */}
-                  {onToggleListen && (
-                    <button
-                      id="voice-stt-btn"
-                      type="button"
-                      onClick={onToggleListen}
-                      title={isListening ? '음성 입력 중지' : '음성으로 입력하기'}
-                      aria-label="음성으로 입력하기"
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                        isListening
-                          ? 'bg-white/20 text-white shadow-[0_0_12px_rgba(255,255,255,0.3)] animate-pulse'
-                          : 'text-neutral-300 hover:text-white hover:bg-white/[0.08] active:scale-95'
-                      }`}
-                    >
-                      {isListening ? <MicOff size={15} /> : <Mic size={15} />}
-                    </button>
+            {/* Compact Left Controls: Consolidated + Action Menu (Camera & Mic) + Single-letter Engine Switcher */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div ref={plusMenuRef} className="relative shrink-0">
+                <button
+                  id="omnibar-plus-menu-btn"
+                  type="button"
+                  onClick={() => {
+                    setIsEngineMenuOpen(false);
+                    setIsPlusMenuOpen((prev) => !prev);
+                  }}
+                  aria-haspopup="menu"
+                  aria-expanded={isPlusMenuOpen}
+                  title={isListening ? '음성 입력 중 · 추가 기능' : '영수증 스캔 및 음성 입력'}
+                  aria-label={isListening ? '음성 입력 중 · 추가 기능' : '영수증 스캔 및 음성 입력'}
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                    isListening
+                      ? 'bg-sky-500/20 text-sky-300 border border-sky-400/40 shadow-[0_0_12px_rgba(56,189,248,0.25)] animate-pulse'
+                      : isPlusMenuOpen
+                      ? 'bg-white/[0.1] text-white'
+                      : 'text-neutral-300 hover:text-white hover:bg-white/[0.08] active:scale-95'
+                  }`}
+                >
+                  {isListening ? (
+                    <Mic size={14} />
+                  ) : (
+                    <Plus size={15} className={`transition-transform duration-150 ${isPlusMenuOpen ? 'rotate-45' : ''}`} />
                   )}
-                </>
-              )}
+                </button>
 
-              {/* Icon-less Inline AI Engine Switcher Badge + Floating Quick Menu */}
+                {isPlusMenuOpen && (
+                  <div
+                    role="menu"
+                    aria-label="입력 도구"
+                    className="absolute bottom-full mb-2.5 left-0 min-w-[152px] rounded-xl bg-[#090A0D]/95 backdrop-blur-2xl border border-white/[0.06] text-neutral-200 shadow-2xl p-1 z-40 animate-in fade-in slide-in-from-bottom-1 duration-150"
+                  >
+                    <button
+                      id="omnibar-receipt-scanner-btn"
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsPlusMenuOpen(false);
+                        onOpenReceiptScanner();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-neutral-200 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                    >
+                      <Camera size={14} className="text-neutral-300 shrink-0" />
+                      <span className="whitespace-nowrap">영수증 AI 스캔</span>
+                    </button>
+
+                    {onToggleListen && (
+                      <button
+                        id="voice-stt-btn"
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setIsPlusMenuOpen(false);
+                          onToggleListen();
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                          isListening
+                            ? 'bg-sky-500/15 text-sky-300 hover:bg-sky-500/20'
+                            : 'text-neutral-200 hover:text-white hover:bg-white/[0.06]'
+                        }`}
+                      >
+                        {isListening ? (
+                          <MicOff size={14} className="text-sky-400 shrink-0" />
+                        ) : (
+                          <Mic size={14} className="text-neutral-300 shrink-0" />
+                        )}
+                        <span className="whitespace-nowrap">
+                          {isListening ? '음성 입력 중지' : '음성으로 입력하기'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Single-letter Inline AI Engine Switcher Badge + Floating Quick Menu */}
               <div ref={engineMenuRef} className="relative shrink-0">
                 <button
                   id="omnibar-engine-switcher-btn"
                   type="button"
-                  onClick={() => setIsEngineMenuOpen((prev) => !prev)}
+                  onClick={() => {
+                    setIsPlusMenuOpen(false);
+                    setIsEngineMenuOpen((prev) => !prev);
+                  }}
                   aria-haspopup="menu"
                   aria-expanded={isEngineMenuOpen}
                   title={`AI 엔진 전환 (${activeEngineOption.menuLabel})`}
-                  className="px-1.5 py-0.5 text-[9px] font-bold tracking-wider uppercase border border-white/10 rounded text-neutral-400 hover:text-white cursor-pointer transition-colors whitespace-nowrap"
+                  aria-label={`AI 엔진 전환 (${activeEngineOption.menuLabel})`}
+                  className="w-6 h-6 text-[10px] font-bold tracking-wider uppercase border border-white/10 rounded-md text-neutral-300 hover:text-white hover:border-white/25 cursor-pointer transition-colors flex items-center justify-center shrink-0"
                 >
                   {activeEngineOption.badgeLabel}
                 </button>
@@ -424,13 +479,15 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
               title={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
               aria-label={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer ${
-                isTyping
+                isProcessing
+                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30 pointer-events-none'
+                  : isTyping
                   ? 'bg-white text-black hover:bg-neutral-200 active:scale-95 shadow-sm'
                   : 'bg-white/[0.06] text-neutral-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none'
               }`}
             >
               {isProcessing ? (
-                <Loader2 size={14} className="animate-spin text-current" />
+                <Loader2 size={14} className="animate-spin text-sky-400" />
               ) : isInsightsMode ? (
                 <Sparkles size={14} />
               ) : (
