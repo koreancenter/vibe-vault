@@ -1,6 +1,6 @@
 import { Asset, AssetType, AssetCategoryType, LaunchScreenMode, SupportedCurrency, FxRates, Transaction, AssetAccount, DebtItem } from './types';
 import { getSecureGeminiApiKey, sanitizeApiKey, maskApiKey } from './geminiKeyManager';
-import { detectCreditCardSettlement } from './financialParser';
+import { detectCreditCardSettlement } from './finance/lightweightDetectors';
 import { DEFAULT_FX_RATES } from './fxRates';
 
 export function cn(...inputs: (string | boolean | undefined | null | { [key: string]: boolean })[]): string {

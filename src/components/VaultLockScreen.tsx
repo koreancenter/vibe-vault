@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Fingerprint } from 'lucide-react';
 import { 
   isVaultLocked, 
@@ -9,9 +9,10 @@ import {
   isBiometricUnlockEnabled,
   isBiometricAvailable as checkBiometricAvailable
 } from '../vaultSecurity';
-import { LegalNoticeModal } from './LegalNoticeModal';
-import { WelcomeDashboardModal } from './WelcomeDashboardModal';
 import { useI18n } from '../i18n';
+
+const LegalNoticeModal = lazy(() => import('./LegalNoticeModal').then(m => ({ default: m.LegalNoticeModal })));
+const WelcomeDashboardModal = lazy(() => import('./WelcomeDashboardModal').then(m => ({ default: m.WelcomeDashboardModal })));
 
 interface VaultLockScreenProps {
   onUnlocked?: () => void;
@@ -470,16 +471,24 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
         </div>
       </div>
 
-      <WelcomeDashboardModal
-        isOpen={isWelcomeOpen}
-        onClose={() => setIsWelcomeOpen(false)}
-      />
+      {isWelcomeOpen && (
+        <Suspense fallback={null}>
+          <WelcomeDashboardModal
+            isOpen={isWelcomeOpen}
+            onClose={() => setIsWelcomeOpen(false)}
+          />
+        </Suspense>
+      )}
 
-      <LegalNoticeModal 
-        isOpen={isLegalNoticeOpen} 
-        onClose={() => setIsLegalNoticeOpen(false)} 
-        initialTab={legalNoticeTab}
-      />
+      {isLegalNoticeOpen && (
+        <Suspense fallback={null}>
+          <LegalNoticeModal 
+            isOpen={isLegalNoticeOpen} 
+            onClose={() => setIsLegalNoticeOpen(false)} 
+            initialTab={legalNoticeTab}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

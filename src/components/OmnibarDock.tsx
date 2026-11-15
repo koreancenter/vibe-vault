@@ -19,7 +19,7 @@ import {
   saveAIEngineConfig 
 } from '../utils';
 import { useI18n } from '../i18n';
-import { isAnalyticalQueryInput } from '../financialParser';
+import { isAnalyticalQueryInput } from '../finance/lightweightDetectors';
 
 // Global Quick Suggestion Chips (Featured analytical query tags + quick ledger entries)
 const SUGGESTION_CHIPS = [

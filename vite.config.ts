@@ -180,9 +180,25 @@ export default defineConfig({
           manualChunks(id) {
             if (id.includes('node_modules')) {
               if (
+                id.includes('/node_modules/react/') ||
+                id.includes('/node_modules/react-dom/') ||
+                id.includes('/node_modules/scheduler/')
+              ) {
+                return 'vendor-react';
+              }
+              if (
                 id.includes('recharts') ||
-                id.includes('d3') ||
-                id.includes('victory-vendor')
+                id.includes('d3-') ||
+                id.includes('victory-vendor') ||
+                id.includes('decimal.js-light') ||
+                id.includes('@reduxjs/toolkit') ||
+                id.includes('/node_modules/redux') ||
+                id.includes('/node_modules/react-redux') ||
+                id.includes('/node_modules/reselect') ||
+                id.includes('/node_modules/immer') ||
+                id.includes('/node_modules/es-toolkit') ||
+                id.includes('/node_modules/use-sync-external-store') ||
+                id.includes('/node_modules/eventemitter3')
               ) {
                 return 'vendor-charts';
               }

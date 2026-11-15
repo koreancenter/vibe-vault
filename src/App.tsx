@@ -1,14 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
-import { 
-  inferCategoryAndMerchant,
-} from './financialParser';
 import { DebtItem, CurrencyCode, Transaction, TransactionType, SupportedCurrency, FxRates, ParsedReceiptData, LaunchScreenMode, LedgerSpace, FinancialQueryResult } from './types';
 import { isFxRatesPayload } from './fxRates';
 import { generateSecureId } from './identifiers';
 import { 
   Settings, 
-  Edit2, 
-  Trash2, 
   WifiOff, 
   ArrowLeftRight, 
   Sparkles,
@@ -16,12 +11,6 @@ import {
   Check,
   ShieldCheck,
   Wallet,
-  Receipt,
-  Coffee,
-  ShoppingBag,
-  Car,
-  UtensilsCrossed,
-  Camera,
   HelpCircle
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -47,7 +36,6 @@ import {
   deletePendingScan,
   notifyVaultDataChanged
 } from './db';
-import { parseReceiptWithResilience } from './autonomousFinance';
 
 // Architectural Domain Custom Hooks
 import { useTransactions, LedgerFilterType } from './hooks/useTransactions';
@@ -56,16 +44,16 @@ import { useAutonomousEngine } from './hooks/useAutonomousEngine';
 import { useOmnibarController } from './hooks/useOmnibarController';
 
 // Extracted Modals and Visual Modules
-import { FinancialSummaryCard } from './components/FinancialSummaryCard';
 import { PWAInstallBanner } from './components/PWAInstallButton';
 import { VaultOverviewSection } from './components/VaultOverviewSection';
 import { VaultLockScreen } from './components/VaultLockScreen';
-import { WelcomeDashboardModal } from './components/WelcomeDashboardModal';
 import { OmnibarDock, type RealtimePreviewData } from './components/OmnibarDock';
 import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault, subscribeVaultLock } from './vaultSecurity';
 import { I18nProvider, useI18n, DEFAULT_CURRENCY_BY_LANGUAGE } from './i18n';
 
-// Dynamic Code-Split Components (Heavy Modals)
+// Dynamic Code-Split Components (Heavy Modals & Secondary Views)
+const FinancialSummaryCard = lazy(() => import('./components/FinancialSummaryCard').then(m => ({ default: m.FinancialSummaryCard })));
+const WelcomeDashboardModal = lazy(() => import('./components/WelcomeDashboardModal').then(m => ({ default: m.WelcomeDashboardModal })));
 const TransactionActionModal = lazy(() => import('./components/TransactionActionModal').then(m => ({ default: m.TransactionActionModal })));
 const EditTransactionModal = lazy(() => import('./components/EditTransactionModal').then(m => ({ default: m.EditTransactionModal })));
 const SettingsModal = lazy(() => import('./components/SettingsModal').then(m => ({ default: m.SettingsModal })));
@@ -316,6 +304,7 @@ function AppInner() {
 
       let processedCount = 0;
       const engineConfig = getAIEngineConfig();
+      const { parseReceiptWithResilience } = await import('./autonomousFinance');
 
       for (const scan of queuedItems) {
         try {
@@ -854,6 +843,7 @@ function AppInner() {
           {mainMode === 'ledger' && (
             <div className="w-full space-y-4">
               {/* Financial Summary Card */}
+              <Suspense fallback={null}>
               <FinancialSummaryCard
                 transactions={currentSpaceTransactions}
                 currencySymbol={activeSpace.currency || currentCurrency}
@@ -864,6 +854,7 @@ function AppInner() {
                 secondaryCurrency={activeCurrencies.find(c => c.toUpperCase() !== (activeSpace.currency || currentCurrency).toUpperCase())}
                 activeSpace={activeSpace}
               />
+              </Suspense>
 
               {/* In Event Ledger mode: Event Budget Summary */}
               {activeSpace.id !== 'default' && (
@@ -1056,7 +1047,7 @@ function AppInner() {
                                 <>
                                   <span className="opacity-30">·</span>
                                   <span className="text-amber-400/90 font-medium truncate max-w-[150px]">
-                                    📝 {tx.note}
+                                    {tx.note}
                                   </span>
                                 </>
                               )}
