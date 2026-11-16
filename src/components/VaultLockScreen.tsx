@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { Fingerprint } from 'lucide-react';
 import { 
   isVaultLocked, 
@@ -10,9 +10,10 @@ import {
   isBiometricAvailable as checkBiometricAvailable
 } from '../vaultSecurity';
 import { useI18n } from '../i18n';
+import { lazyWithRetry, LazyErrorBoundary } from '../lazyWithRetry';
 
-const LegalNoticeModal = lazy(() => import('./LegalNoticeModal').then(m => ({ default: m.LegalNoticeModal })));
-const WelcomeDashboardModal = lazy(() => import('./WelcomeDashboardModal').then(m => ({ default: m.WelcomeDashboardModal })));
+const LegalNoticeModal = lazyWithRetry(() => import('./LegalNoticeModal').then(m => ({ default: m.LegalNoticeModal })));
+const WelcomeDashboardModal = lazyWithRetry(() => import('./WelcomeDashboardModal').then(m => ({ default: m.WelcomeDashboardModal })));
 
 interface VaultLockScreenProps {
   onUnlocked?: () => void;
@@ -472,22 +473,26 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       </div>
 
       {isWelcomeOpen && (
-        <Suspense fallback={null}>
-          <WelcomeDashboardModal
-            isOpen={isWelcomeOpen}
-            onClose={() => setIsWelcomeOpen(false)}
-          />
-        </Suspense>
+        <LazyErrorBoundary>
+          <Suspense fallback={null}>
+            <WelcomeDashboardModal
+              isOpen={isWelcomeOpen}
+              onClose={() => setIsWelcomeOpen(false)}
+            />
+          </Suspense>
+        </LazyErrorBoundary>
       )}
 
       {isLegalNoticeOpen && (
-        <Suspense fallback={null}>
-          <LegalNoticeModal 
-            isOpen={isLegalNoticeOpen} 
-            onClose={() => setIsLegalNoticeOpen(false)} 
-            initialTab={legalNoticeTab}
-          />
-        </Suspense>
+        <LazyErrorBoundary>
+          <Suspense fallback={null}>
+            <LegalNoticeModal 
+              isOpen={isLegalNoticeOpen} 
+              onClose={() => setIsLegalNoticeOpen(false)} 
+              initialTab={legalNoticeTab}
+            />
+          </Suspense>
+        </LazyErrorBoundary>
       )}
     </div>
   );

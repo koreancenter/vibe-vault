@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
+import { lazyWithRetry } from '../lazyWithRetry';
 import { createPortal } from 'react-dom';
 import { 
   ShieldCheck, 
@@ -66,7 +67,7 @@ import { generateSecureId } from '../identifiers';
 import { detectCreditCardSettlement } from '../finance/lightweightDetectors';
 import { useI18n } from '../i18n';
 
-const TransferModal = lazy(() => import('./VaultTransferModal'));
+const TransferModal = lazyWithRetry(() => import('./VaultTransferModal'));
 
 // TransferModal extracted to ./VaultTransferModal.tsx for lazy loading
 

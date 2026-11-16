@@ -1083,30 +1083,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
         </div>
 
-        {/* Sticky Footer Action Bar: px-6 py-4 border-t border-white/[0.06] bg-[#0B0D11] */}
-        <div className="px-6 py-4 border-t border-white/[0.06] bg-[#0B0D11] flex items-center justify-between gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              lockVault();
-            }}
-            title={t('lock_vault')}
-            aria-label={t('lock_vault')}
-            className="h-9 px-3 rounded-xl font-medium text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-white shrink-0 cursor-pointer"
-          >
-            <Lock size={13} className="shrink-0 text-neutral-100" />
-            <span>{t('lock_vault')}</span>
-          </button>
+        {/* Sticky Footer Action Bar: px-6 py-3.5 border-t border-white/[0.06] bg-[#0B0D11] */}
+        <div className="px-6 py-3.5 border-t border-white/[0.06] bg-[#0B0D11] flex flex-col gap-2.5 shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                lockVault();
+              }}
+              title={t('lock_vault')}
+              aria-label={t('lock_vault')}
+              className="h-9 px-3 rounded-xl font-medium text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-white shrink-0 cursor-pointer"
+            >
+              <Lock size={13} className="shrink-0 text-neutral-100" />
+              <span>{t('lock_vault')}</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={handleSaveAll}
-            className="bg-white text-black hover:bg-neutral-100 font-semibold rounded-xl px-4 py-2 text-xs transition-all active:scale-95 flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
-          >
-            <Check size={14} />
-            <span>{t('save_settings')}</span>
-          </button>
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              className="bg-white text-black hover:bg-neutral-100 font-semibold rounded-xl px-4 py-2 text-xs transition-all active:scale-95 flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
+            >
+              <Check size={14} />
+              <span>{t('save_settings')}</span>
+            </button>
+          </div>
+
+          <p className="text-center font-mono text-[10px] text-neutral-400">
+            © 2026 Vibe Vault. A proud initiative of the{' '}
+            <a
+              href="https://nettodot.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-neutral-300 hover:text-sky-400 transition-colors underline underline-offset-2 decoration-white/20"
+            >
+              Net to Dot Movement
+            </a>
+            .
+          </p>
         </div>
 
       </div>

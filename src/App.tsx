@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
+import { lazyWithRetry, LazyErrorBoundary } from './lazyWithRetry';
 import { DebtItem, CurrencyCode, Transaction, TransactionType, SupportedCurrency, FxRates, ParsedReceiptData, LaunchScreenMode, LedgerSpace, FinancialQueryResult } from './types';
 import { isFxRatesPayload } from './fxRates';
 import { generateSecureId } from './identifiers';
@@ -52,24 +53,29 @@ import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault
 import { I18nProvider, useI18n, DEFAULT_CURRENCY_BY_LANGUAGE } from './i18n';
 
 // Dynamic Code-Split Components (Heavy Modals & Secondary Views)
-const FinancialSummaryCard = lazy(() => import('./components/FinancialSummaryCard').then(m => ({ default: m.FinancialSummaryCard })));
-const WelcomeDashboardModal = lazy(() => import('./components/WelcomeDashboardModal').then(m => ({ default: m.WelcomeDashboardModal })));
-const TransactionActionModal = lazy(() => import('./components/TransactionActionModal').then(m => ({ default: m.TransactionActionModal })));
-const EditTransactionModal = lazy(() => import('./components/EditTransactionModal').then(m => ({ default: m.EditTransactionModal })));
-const SettingsModal = lazy(() => import('./components/SettingsModal').then(m => ({ default: m.SettingsModal })));
-const InsightsSection = lazy(() => import('./components/InsightsSection').then(m => ({ default: m.InsightsSection })));
-const ManualCategoryModal = lazy(() => import('./components/ManualCategoryModal').then(m => ({ default: m.ManualCategoryModal })));
-const NewSpaceModal = lazy(() => import('./components/NewSpaceModal').then(m => ({ default: m.NewSpaceModal })));
+const FinancialSummaryCard = lazyWithRetry(() => import('./components/FinancialSummaryCard').then(m => ({ default: m.FinancialSummaryCard })));
+const WelcomeDashboardModal = lazyWithRetry(() => import('./components/WelcomeDashboardModal').then(m => ({ default: m.WelcomeDashboardModal })));
+const ChangelogModal = lazyWithRetry(() => import('./components/ChangelogModal').then(m => ({ default: m.ChangelogModal })));
+const TransactionActionModal = lazyWithRetry(() => import('./components/TransactionActionModal').then(m => ({ default: m.TransactionActionModal })));
+const EditTransactionModal = lazyWithRetry(() => import('./components/EditTransactionModal').then(m => ({ default: m.EditTransactionModal })));
+const SettingsModal = lazyWithRetry(() => import('./components/SettingsModal').then(m => ({ default: m.SettingsModal })));
+const InsightsSection = lazyWithRetry(() => import('./components/InsightsSection').then(m => ({ default: m.InsightsSection })));
+const ManualCategoryModal = lazyWithRetry(() => import('./components/ManualCategoryModal').then(m => ({ default: m.ManualCategoryModal })));
+const NewSpaceModal = lazyWithRetry(() => import('./components/NewSpaceModal').then(m => ({ default: m.NewSpaceModal })));
 
 // Loads a lazy chunk on first open, then keeps it mounted so exit animations still run.
 const MountOnFirstOpen: React.FC<{ open: boolean; children: React.ReactNode }> = ({ open, children }) => {
   const [seen, setSeen] = useState(open);
   if (open && !seen) setSeen(true);
-  return seen ? <Suspense fallback={null}>{children}</Suspense> : null;
+  return seen ? (
+    <LazyErrorBoundary>
+      <Suspense fallback={null}>{children}</Suspense>
+    </LazyErrorBoundary>
+  ) : null;
 };
 
-export const ReceiptScannerModal = lazy(() => import('./components/ReceiptScannerModal'));
-export const EventSettlementReportModal = lazy(() => import('./components/EventSettlementReportModal'));
+export const ReceiptScannerModal = lazyWithRetry(() => import('./components/ReceiptScannerModal'));
+export const EventSettlementReportModal = lazyWithRetry(() => import('./components/EventSettlementReportModal'));
 
 /**
  * Online Connectivity Hook
@@ -423,6 +429,10 @@ function AppInner() {
 
   // Modal Visibility States
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(() => typeof localStorage !== 'undefined' && !localStorage.getItem('vibe_welcome_seen'));
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+  const [hasUnreadChangelog, setHasUnreadChangelog] = useState(() =>
+    typeof localStorage === 'undefined' || localStorage.getItem('vibe_changelog_seen_version') !== '0.1.2'
+  );
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'assets' | 'engine' | 'preferences' | 'privacy'>('assets');
   const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'assets' | 'budget' | 'subscriptions'>('assets');
@@ -589,6 +599,18 @@ function AppInner() {
     URL.revokeObjectURL(url);
   }, [spaceFilteredLedgerTransactions, activeSpace.name, activeSpace.currency, currentCurrency]);
 
+  const handleOpenChangelogModal = useCallback(() => {
+    setIsChangelogOpen(true);
+    setHasUnreadChangelog(false);
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('vibe_changelog_seen_version', '0.1.2');
+      } catch {
+        // Ignore storage quota or private mode restrictions
+      }
+    }
+  }, []);
+
   const handleOpenReceiptModal = useCallback(() => setIsReceiptModalOpen(true), []);
   const handleCloseReceiptModal = useCallback(() => setIsReceiptModalOpen(false), []);
 
@@ -729,9 +751,24 @@ function AppInner() {
           <div className="relative w-full h-full px-4 flex items-center justify-between transition-all duration-300">
             {/* Left: Brand with Version */}
             <div className="flex items-center min-w-0">
-              <h1 className="text-base font-bold tracking-tight text-white leading-tight flex items-baseline gap-1.5">
+              <h1 className="text-base font-bold tracking-tight text-white leading-tight flex items-center gap-1.5">
                 <span>Vibe Vault</span>
-                <span className="text-xs font-normal text-neutral-300 tabular-nums">0.1.2</span>
+                <button
+                  id="version-changelog-btn"
+                  type="button"
+                  onClick={handleOpenChangelogModal}
+                  title={language === 'ko' ? '업데이트 노트 보기 (v0.1.2)' : 'View Release Notes (v0.1.2)'}
+                  aria-label={language === 'ko' ? '버전 0.1.2 업데이트 노트 보기' : 'View version 0.1.2 release notes'}
+                  className="inline-flex items-center gap-1.5 text-xs font-normal text-neutral-300 hover:text-sky-400 cursor-pointer transition-colors tabular-nums rounded-md px-1 py-0.5 -mx-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50"
+                >
+                  <span>0.1.2</span>
+                  {hasUnreadChangelog && (
+                    <span
+                      aria-hidden="true"
+                      className="w-1.5 h-1.5 bg-sky-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(56,189,248,0.8)]"
+                    />
+                  )}
+                </button>
               </h1>
             </div>
 
@@ -822,19 +859,21 @@ function AppInner() {
           {/* TAB 1: INSIGHTS (인사이트) */}
           {mainMode === 'insights' && (
             <div className="w-full">
-              <Suspense fallback={null}>
-              <InsightsSection
-                transactions={transactions}
-                currentCurrency={currentCurrency}
-                fxRates={fxRates}
-                isStealth={isStealth}
-                onOpenThemeSettings={() => handleOpenSettingsModal('preferences')}
-                onNavigateToVault={() => setMainMode('vault')}
-                onNavigateToLedger={() => setMainMode('ledger')}
-                queryResult={activeQueryResult}
-                onDismissQueryResult={() => setActiveQueryResult(null)}
-              />
-              </Suspense>
+              <LazyErrorBoundary>
+                <Suspense fallback={null}>
+                  <InsightsSection
+                    transactions={transactions}
+                    currentCurrency={currentCurrency}
+                    fxRates={fxRates}
+                    isStealth={isStealth}
+                    onOpenThemeSettings={() => handleOpenSettingsModal('preferences')}
+                    onNavigateToVault={() => setMainMode('vault')}
+                    onNavigateToLedger={() => setMainMode('ledger')}
+                    queryResult={activeQueryResult}
+                    onDismissQueryResult={() => setActiveQueryResult(null)}
+                  />
+                </Suspense>
+              </LazyErrorBoundary>
             </div>
           )}
 
@@ -842,18 +881,20 @@ function AppInner() {
           {mainMode === 'ledger' && (
             <div className="w-full space-y-4">
               {/* Financial Summary Card */}
-              <Suspense fallback={null}>
-              <FinancialSummaryCard
-                transactions={currentSpaceTransactions}
-                currencySymbol={activeSpace.currency || currentCurrency}
-                fxRates={fxRates}
-                isStealth={isStealth}
-                theme={userPrefs.theme || 'dark'}
-                isMultiCurrencyMode={isMultiCurrencyMode}
-                secondaryCurrency={activeCurrencies.find(c => c.toUpperCase() !== (activeSpace.currency || currentCurrency).toUpperCase())}
-                activeSpace={activeSpace}
-              />
-              </Suspense>
+              <LazyErrorBoundary>
+                <Suspense fallback={null}>
+                  <FinancialSummaryCard
+                    transactions={currentSpaceTransactions}
+                    currencySymbol={activeSpace.currency || currentCurrency}
+                    fxRates={fxRates}
+                    isStealth={isStealth}
+                    theme={userPrefs.theme || 'dark'}
+                    isMultiCurrencyMode={isMultiCurrencyMode}
+                    secondaryCurrency={activeCurrencies.find(c => c.toUpperCase() !== (activeSpace.currency || currentCurrency).toUpperCase())}
+                    activeSpace={activeSpace}
+                  />
+                </Suspense>
+              </LazyErrorBoundary>
 
               {/* In Event Ledger mode: Event Budget Summary */}
               {activeSpace.id !== 'default' && (
@@ -1248,20 +1289,22 @@ function AppInner() {
       </MountOnFirstOpen>
 
       {/* Multimodal Receipt AI Scanner Modal */}
-      <Suspense fallback={null}>
-        {isReceiptModalOpen && (
-          <ReceiptScannerModal
-            isOpen={isReceiptModalOpen}
-            onClose={handleCloseReceiptModal}
-            onConfirm={handleConfirmReceipt}
-            onOpenSettings={(tab) => handleOpenSettingsModal(tab || 'engine')}
-            theme="dark"
-            currentCurrency={currentCurrency}
-            activeSpaceId={activeSpaceId}
-            onQueueOffline={showToast}
-          />
-        )}
-      </Suspense>
+      <LazyErrorBoundary>
+        <Suspense fallback={null}>
+          {isReceiptModalOpen && (
+            <ReceiptScannerModal
+              isOpen={isReceiptModalOpen}
+              onClose={handleCloseReceiptModal}
+              onConfirm={handleConfirmReceipt}
+              onOpenSettings={(tab) => handleOpenSettingsModal(tab || 'engine')}
+              theme="dark"
+              currentCurrency={currentCurrency}
+              activeSpaceId={activeSpaceId}
+              onQueueOffline={showToast}
+            />
+          )}
+        </Suspense>
+      </LazyErrorBoundary>
 
       {/* New Project / Event Space Modal */}
       <MountOnFirstOpen open={isNewSpaceModalOpen}>
@@ -1284,27 +1327,37 @@ function AppInner() {
       </MountOnFirstOpen>
 
       {/* Korean-Standard Event Settlement Report Modal */}
-      <Suspense fallback={null}>
-        {isReportModalOpen && (
-          <EventSettlementReportModal
-            isOpen={isReportModalOpen}
-            onClose={() => setIsReportModalOpen(false)}
-            space={activeSpace}
-            transactions={currentSpaceTransactions}
-            onUpdateSpace={async (updated) => {
-              await createSpace(updated);
-              setSpaces(prev => prev.map(s => s.id === updated.id ? updated : s));
-            }}
-            theme="dark"
-          />
-        )}
-      </Suspense>
+      <LazyErrorBoundary>
+        <Suspense fallback={null}>
+          {isReportModalOpen && (
+            <EventSettlementReportModal
+              isOpen={isReportModalOpen}
+              onClose={() => setIsReportModalOpen(false)}
+              space={activeSpace}
+              transactions={currentSpaceTransactions}
+              onUpdateSpace={async (updated) => {
+                await createSpace(updated);
+                setSpaces(prev => prev.map(s => s.id === updated.id ? updated : s));
+              }}
+              theme="dark"
+            />
+          )}
+        </Suspense>
+      </LazyErrorBoundary>
 
       {/* Unified Welcome Manifesto Modal */}
       <MountOnFirstOpen open={isWelcomeOpen}>
         <WelcomeDashboardModal
           isOpen={isWelcomeOpen}
           onClose={() => setIsWelcomeOpen(false)}
+        />
+      </MountOnFirstOpen>
+
+      {/* Offline Release Notes & Developer's Note Changelog Modal */}
+      <MountOnFirstOpen open={isChangelogOpen}>
+        <ChangelogModal
+          isOpen={isChangelogOpen}
+          onClose={() => setIsChangelogOpen(false)}
         />
       </MountOnFirstOpen>
 

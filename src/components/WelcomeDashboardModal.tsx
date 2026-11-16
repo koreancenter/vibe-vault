@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ShieldCheck, Coins, Layers, ArrowRight } from 'lucide-react';
-import { useI18n } from '../i18n';
+import { X, ShieldCheck, Coins, Layers, ArrowRight, ArrowUpRight } from 'lucide-react';
+import { useI18n, LanguageCode } from '../i18n';
 
 export interface WelcomeDashboardModalProps {
   isOpen: boolean;
@@ -20,11 +20,18 @@ export function persistWelcomeSeen(): void {
   }
 }
 
+const NET_TO_DOT_MANIFESTO: Record<LanguageCode, string> = {
+  ko: '거대 클라우드(Net)의 종속에서 벗어나, 당신의 기기(Dot) 안에서 완벽한 데이터 주권을 실현하세요.',
+  en: 'Break free from passive cloud (Net) dependency and realize complete data sovereignty inside your own device (Dot).',
+  ja: '巨大クラウド(Net)への依存から離れ、あなたのデバイス(Dot)の中で完全なデータ主権を実現しましょう。',
+  eu: 'Break free from passive cloud (Net) dependency and realize complete data sovereignty inside your own device (Dot).',
+};
+
 export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   const handleClose = useCallback(() => {
     persistWelcomeSeen();
@@ -110,6 +117,23 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
               <p className="text-[13.5px] sm:text-sm font-normal text-neutral-300 leading-relaxed mt-2.5 sm:mt-5">
                 {t('welcome_manifesto')}
               </p>
+              <p className="text-xs sm:text-[13px] font-normal text-neutral-400 leading-relaxed mt-3">
+                {NET_TO_DOT_MANIFESTO[language] || NET_TO_DOT_MANIFESTO.en}
+              </p>
+            </div>
+
+            <div className="mt-5 sm:mt-8 pt-4 border-t border-white/[0.06]">
+              <a
+                href="https://nettodot.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-neutral-400 hover:text-sky-400 transition-colors"
+              >
+                <span>A Net to Dot Movement Initiative</span>
+                <span aria-hidden="true" className="text-neutral-500">·</span>
+                <span className="underline underline-offset-2 decoration-white/20">nettodot.org</span>
+                <ArrowUpRight size={11} className="shrink-0 opacity-80" />
+              </a>
             </div>
           </div>
 

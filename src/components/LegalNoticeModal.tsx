@@ -242,8 +242,17 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
             <div className="space-y-4">
               {/* 1. Proprietary Software License Statement */}
               <div className="pb-4 border-b border-white/[0.06] space-y-2.5">
-                <p className="font-mono text-[10.5px] text-neutral-300">
-                  © 2026 한국센터글로벌네트워크 지식관리실. All rights reserved.
+                <p className="font-mono text-[10px] text-neutral-400">
+                  © 2026 Vibe Vault. A proud initiative of the{' '}
+                  <a
+                    href="https://nettodot.org"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-neutral-300 hover:text-sky-400 transition-colors underline underline-offset-2 decoration-white/20"
+                  >
+                    Net to Dot Movement
+                  </a>
+                  .
                 </p>
 
                 {/* Korean Official License Terms */}
@@ -335,8 +344,17 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
                 master@goguma.app
               </a>
             </div>
-            <p className="text-[9.5px] text-neutral-300">
-              © 2026 한국센터글로벌네트워크 지식관리실. All rights reserved.
+            <p className="font-mono text-[10px] text-neutral-400">
+              © 2026 Vibe Vault. A proud initiative of the{' '}
+              <a
+                href="https://nettodot.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral-300 hover:text-sky-400 transition-colors underline underline-offset-2 decoration-white/20"
+              >
+                Net to Dot Movement
+              </a>
+              .
             </p>
           </div>
 
