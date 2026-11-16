@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Sparkles, ShieldCheck, Layers, ArrowUpRight } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useI18n, LanguageCode } from '../i18n';
 
 export const APP_VERSION = '0.1.2';
@@ -41,9 +41,9 @@ const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     },
     highlights: {
       ko: [
-        'Omnibar AI 추론 대기 상태 스카이블루 브리딩 글로우 효과 추가',
-        'AI 엔진 뱃지 압축(C · O · W) 및 카메라·음성 입력 통합 메뉴(+) 적용',
-        '대시보드·설정·PIN 화면 텍스트 명도 개선 및 번들 경량화 최적화',
+        'Omnibar AI 추론 대기 상태 스카이블루 브리딩 글로우 효과',
+        'AI 엔진 뱃지 압축(C · O · W) 및 카메라·음성 입력 통합 메뉴(+)',
+        '대시보드·설정·PIN 화면 텍스트 명도 개선 및 초기 번들 경량화',
       ],
       en: [
         'Sky-blue breathing inference glow on the Omnibar during active AI parsing',
@@ -87,7 +87,7 @@ const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       ko: [
         'KRW · USD · EUR · JPY · IDR 다중 통화 통합 순자산 평가 및 환율 연동',
         '일상 가계부와 독립된 프로젝트·행사 장부(Spaces) 및 1/N 정산 리포트',
-        'Ollama Local Server 및 브라우저 내장 WebGPU(WebLLM) 오프라인 추론 지원',
+        'Ollama Local Server 및 브라우저 내장 WebGPU(WebLLM) 오프라인 추론',
       ],
       en: [
         'Unified multi-currency net worth valuation across KRW, USD, EUR, JPY & IDR',
@@ -157,57 +157,47 @@ const UI_COPY: Record<
   {
     kicker: string;
     heading: string;
-    subheading: string;
-    devNoteLabel: string;
-    missionLabel: string;
-    missionBody: string;
+    foreword: string;
+    forewordLinkLabel: string;
     privacyFooter: string;
     closeBtn: string;
   }
 > = {
   ko: {
-    kicker: 'Release Notes & Craftsmanship',
-    heading: '개발자 노트 & 업데이트 기록',
-    subheading: '외부 서버 통신 없이 앱 내부에 정적으로 내장된 릴리스 히스토리입니다.',
-    devNoteLabel: "Developer's Note",
-    missionLabel: 'Net to Dot Movement · Mission Statement',
-    missionBody:
+    kicker: 'Release Chronology',
+    heading: '개발자 노트 & 릴리스 연대기',
+    foreword:
       "Vibe Vault의 모든 업데이트는 Net to Dot Movement 철학에 따라 '로컬 우선(Local-First), 영지식 암호화(Zero-Knowledge), 능동적 기기 활용(Active Usage)'을 최우선 원칙으로 삼습니다.",
-    privacyFooter: '100% 오프라인 정적 아카이브 · 네트워크 전송 없음',
-    closeBtn: '확인했습니다',
+    forewordLinkLabel: 'Net to Dot Movement · nettodot.org',
+    privacyFooter: '100% 오프라인 정적 아카이브 · 외부 전송 없음',
+    closeBtn: '닫기',
   },
   en: {
-    kicker: 'Release Notes & Craftsmanship',
+    kicker: 'Release Chronology',
     heading: "Changelog & Developer's Notes",
-    subheading: 'Bundled statically inside your vault with zero network telemetry.',
-    devNoteLabel: "Developer's Note",
-    missionLabel: 'Net to Dot Movement · Mission Statement',
-    missionBody:
-      'In accordance with the Net to Dot Movement, every Vibe Vault update will always prioritize Local-First architecture, Zero-Knowledge encryption, and Active Mobile Device Usage.',
+    foreword:
+      'In accordance with the Net to Dot Movement, every Vibe Vault update will always prioritize Local-First architecture, Zero-Knowledge privacy, and Active Mobile Device Usage.',
+    forewordLinkLabel: 'Net to Dot Movement · nettodot.org',
     privacyFooter: '100% Offline Static Archive · Zero External Requests',
-    closeBtn: 'Got it',
+    closeBtn: 'Close',
   },
   ja: {
-    kicker: 'Release Notes & Craftsmanship',
-    heading: '開発者ノート & アップデート履歴',
-    subheading: '外部通信を行わず、アプリ内に静的に記録されたリリース履歴です。',
-    devNoteLabel: "Developer's Note",
-    missionLabel: 'Net to Dot Movement · Mission Statement',
-    missionBody:
+    kicker: 'Release Chronology',
+    heading: '開発者ノート & リリース年表',
+    foreword:
       'Vibe Vaultのすべてのアップデートは、Net to Dot Movementの理念に基づき「ローカル優先・ゼロ知識暗号化・能動的なデバイス活用」を最優先原則とします。',
+    forewordLinkLabel: 'Net to Dot Movement · nettodot.org',
     privacyFooter: '100% オフライン静的アーカイブ · 外部通信なし',
     closeBtn: '閉じる',
   },
   eu: {
-    kicker: 'Release Notes & Craftsmanship',
+    kicker: 'Release Chronology',
     heading: "Changelog & Developer's Notes",
-    subheading: 'Bundled statically inside your vault with zero network telemetry.',
-    devNoteLabel: "Developer's Note",
-    missionLabel: 'Net to Dot Movement · Mission Statement',
-    missionBody:
-      'In accordance with the Net to Dot Movement, every Vibe Vault update will always prioritize Local-First architecture, Zero-Knowledge encryption, and Active Mobile Device Usage.',
+    foreword:
+      'In accordance with the Net to Dot Movement, every Vibe Vault update will always prioritize Local-First architecture, Zero-Knowledge privacy, and Active Mobile Device Usage.',
+    forewordLinkLabel: 'Net to Dot Movement · nettodot.org',
     privacyFooter: '100% Offline Static Archive · Zero External Requests',
-    closeBtn: 'Got it',
+    closeBtn: 'Close',
   },
 };
 
@@ -251,158 +241,146 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-2xl rounded-3xl bg-[#090A0D]/95 backdrop-blur-2xl border border-white/[0.08] text-neutral-100 antialiased shadow-[0_32px_64px_-16px_rgba(0,0,0,0.95)] flex flex-col max-h-[90dvh] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="w-full max-w-2xl rounded-3xl bg-[#090A0D] border border-white/[0.08] text-neutral-100 antialiased shadow-[0_32px_64px_-16px_rgba(0,0,0,0.95)] flex flex-col max-h-[90dvh] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Editorial Modal Header */}
-        <div className="flex-none px-6 pt-6 pb-5 sm:px-8 sm:pt-8 sm:pb-6 border-b border-white/[0.06] flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-xs font-medium text-sky-400 tracking-wide">
-              <Sparkles size={13} className="shrink-0" />
-              <span>{copy.kicker}</span>
+        {/* Scrollable Borderless Editorial Canvas */}
+        <div className="flex-1 overflow-y-auto px-7 py-8 sm:px-11 sm:py-10">
+          {/* Header */}
+          <header className="flex items-start justify-between gap-6 mb-8">
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-sky-300">
+                {copy.kicker}
+              </p>
+              <h2
+                id="changelog-modal-title"
+                className="text-2xl sm:text-[26px] font-medium tracking-tight text-white mt-2 leading-tight"
+              >
+                {copy.heading}
+              </h2>
             </div>
-            <h2
-              id="changelog-modal-title"
-              className="text-xl sm:text-2xl font-semibold tracking-tight text-white mt-1.5"
+
+            <button
+              type="button"
+              onClick={handleClose}
+              aria-label={t('close')}
+              className="w-9 h-9 -mr-1.5 -mt-1 rounded-full flex items-center justify-center text-neutral-200 hover:text-white transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
-              {copy.heading}
-            </h2>
-            <p className="text-xs sm:text-sm text-neutral-300 mt-1.5 leading-relaxed">
-              {copy.subheading}
-            </p>
-          </div>
+              <X size={18} strokeWidth={1.75} />
+            </button>
+          </header>
 
-          <button
-            type="button"
-            onClick={handleClose}
-            aria-label={t('close')}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-300 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Scrollable Editorial Vertical Timeline */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7 space-y-7">
-          {/* Permanent Net to Dot Mission Statement */}
-          <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] px-4 py-3.5 sm:px-5 sm:py-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-mono text-[10px] tracking-wider uppercase text-neutral-400">
-                {copy.missionLabel}
-              </span>
+          {/* Foreword: Net to Dot Movement Manifesto */}
+          <blockquote className="mb-12 text-xs text-neutral-200 font-normal leading-relaxed border-l border-white/20 pl-4 space-y-2">
+            <p>{copy.foreword}</p>
+            <div>
               <a
                 href="https://nettodot.org"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-mono text-[10px] text-neutral-400 hover:text-sky-400 transition-colors"
+                className="font-mono text-[10px] text-neutral-100 hover:text-sky-300 transition-colors underline underline-offset-4 decoration-white/30"
               >
-                <span>nettodot.org</span>
-                <ArrowUpRight size={11} className="shrink-0" />
+                {copy.forewordLinkLabel}
               </a>
             </div>
-            <p className="text-xs sm:text-[13px] text-neutral-300 leading-relaxed mt-2">
-              {copy.missionBody}
-            </p>
-          </div>
+          </blockquote>
 
-          <div className="relative">
-            {CHANGELOG_ENTRIES.map((entry, idx) => {
-              const isLast = idx === CHANGELOG_ENTRIES.length - 1;
-              const entryTitle = entry.title[language] || entry.title.en;
-              const entryTag = entry.tag[language] || entry.tag.en;
-              const entryNote = entry.note[language] || entry.note.en;
-              const entryHighlights = entry.highlights[language] || entry.highlights.en;
+          {/* Vertical Editorial Timeline */}
+          <div className="relative pl-6 sm:pl-7">
+            {/* Continuous Subtle Vertical Hairline */}
+            <span
+              aria-hidden="true"
+              className="absolute left-[2.5px] top-1.5 bottom-2 w-px bg-white/10"
+            />
 
-              return (
-                <article
-                  key={entry.version}
-                  className={`relative pl-7 sm:pl-8 ${isLast ? '' : 'pb-9'}`}
-                >
-                  {/* Vertical Timeline Track */}
-                  {!isLast && (
+            <div className="flex flex-col gap-8">
+              {CHANGELOG_ENTRIES.map((entry, idx) => {
+                const isLast = idx === CHANGELOG_ENTRIES.length - 1;
+                const entryTitle = entry.title[language] || entry.title.en;
+                const entryTag = entry.tag[language] || entry.tag.en;
+                const entryNote = entry.note[language] || entry.note.en;
+                const entryHighlights = entry.highlights[language] || entry.highlights.en;
+
+                return (
+                  <article
+                    key={entry.version}
+                    className={`relative ${isLast ? '' : 'pb-2'}`}
+                  >
+                    {/* Timeline Node Dot aligned on the w-px hairline */}
                     <span
                       aria-hidden="true"
-                      className="absolute left-[5px] top-3 bottom-0 w-px bg-gradient-to-b from-white/20 via-white/10 to-white/[0.04]"
+                      className={`absolute -left-6 sm:-left-7 top-1.5 w-1.5 h-1.5 rounded-full ${
+                        entry.isLatest
+                          ? 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]'
+                          : 'bg-sky-400/70 shadow-[0_0_6px_rgba(56,189,248,0.35)]'
+                      }`}
                     />
-                  )}
 
-                  {/* Timeline Node */}
-                  <span
-                    aria-hidden="true"
-                    className={`absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full border ${
-                      entry.isLatest
-                        ? 'bg-sky-400 border-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.65)]'
-                        : 'bg-[#090A0D] border-white/30'
-                    }`}
-                  />
-
-                  {/* Metadata Line: Version Tag · Date · Editorial Category */}
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
-                    <span className="font-mono font-semibold text-sky-400 tabular-nums tracking-tight">
-                      {entry.version}
-                    </span>
-                    <span aria-hidden="true" className="text-neutral-500">·</span>
-                    <time
-                      dateTime={entry.date.replace(/\./g, '-')}
-                      className="font-mono text-neutral-300 tabular-nums"
-                    >
-                      {entry.date}
-                    </time>
-                    <span aria-hidden="true" className="text-neutral-500">·</span>
-                    <span className={entry.isLatest ? 'text-sky-300 font-medium' : 'text-neutral-300'}>
-                      {entryTag}
-                    </span>
-                  </div>
-
-                  {/* Release Title */}
-                  <h3 className="text-base sm:text-lg font-semibold tracking-tight text-white mt-2 leading-snug">
-                    {entryTitle}
-                  </h3>
-
-                  {/* Developer's Note Body */}
-                  <div className="mt-3 rounded-2xl bg-white/[0.025] border border-white/[0.06] p-4 sm:p-5">
-                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-sky-300/90 tracking-wide mb-2">
-                      <Layers size={12} className="shrink-0" />
-                      <span>{copy.devNoteLabel}</span>
+                    {/* Date & Version Row */}
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                      <span className="text-sky-300 font-mono text-xs font-medium tabular-nums">
+                        {entry.version}
+                      </span>
+                      <span aria-hidden="true" className="text-neutral-400 text-[10px]">
+                        /
+                      </span>
+                      <time
+                        dateTime={entry.date.replace(/\./g, '-')}
+                        className="text-[10px] text-neutral-200 font-mono tabular-nums"
+                      >
+                        {entry.date}
+                      </time>
+                      <span aria-hidden="true" className="text-neutral-400 text-[10px]">
+                        ·
+                      </span>
+                      <span className="text-[10px] text-neutral-200 font-mono tracking-wide">
+                        {entryTag}
+                      </span>
                     </div>
-                    <p className="text-[13.5px] sm:text-sm text-neutral-200 leading-relaxed">
+
+                    {/* Title */}
+                    <h3 className="text-base text-white font-medium tracking-tight mt-2 leading-snug">
+                      {entryTitle}
+                    </h3>
+
+                    {/* Free-flowing Developer's Note */}
+                    <p className="text-sm text-neutral-100 font-normal leading-relaxed mt-3">
                       {entryNote}
                     </p>
 
-                    {/* Key Highlights */}
-                    <ul className="mt-3.5 pt-3.5 border-t border-white/[0.06] space-y-1.5">
+                    {/* Borderless Typographic Highlights */}
+                    <ul className="mt-4 space-y-1.5">
                       {entryHighlights.map((item) => (
                         <li
                           key={item}
-                          className="flex items-start gap-2 text-xs sm:text-[13px] text-neutral-300 leading-relaxed"
+                          className="flex items-baseline gap-2.5 text-xs text-neutral-200 leading-relaxed"
                         >
-                          <span aria-hidden="true" className="text-sky-400 mt-0.5 shrink-0">
-                            •
+                          <span aria-hidden="true" className="font-mono text-sky-300 text-[10px] shrink-0">
+                            —
                           </span>
                           <span>{item}</span>
                         </li>
                       ))}
                     </ul>
-                  </div>
-                </article>
-              );
-            })}
+                  </article>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {/* Quiet Offline Footer */}
-        <div className="flex-none px-6 py-4 sm:px-8 border-t border-white/[0.06] bg-[#0B0D11]/90 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs text-neutral-300">
-            <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
-            <span>{copy.privacyFooter}</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 text-xs sm:text-sm font-semibold transition-all active:scale-95 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-          >
-            {copy.closeBtn}
-          </button>
+          {/* Quiet Typographic Sign-off */}
+          <footer className="mt-12 pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <span className="font-mono text-[10px] text-neutral-200 tracking-wide">
+              {copy.privacyFooter}
+            </span>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="self-start sm:self-auto font-mono text-xs text-white hover:text-sky-300 transition-colors underline underline-offset-4 decoration-white/30 cursor-pointer"
+            >
+              {copy.closeBtn}
+            </button>
+          </footer>
         </div>
       </div>
     </div>,
