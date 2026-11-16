@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, X, Smartphone, Trash2 } from 'lucide-react';
+import { Plus, X, Smartphone } from 'lucide-react';
 import { CustomDarkSelect, CustomSelectOption } from './CustomDarkSelect';
 import { IOSInstallModal } from '../PWAInstallButton';
 import { usePWAInstall } from '../../usePWAInstall';
-import { LedgerSpace, SupportedCurrency } from '../../types';
+import { SupportedCurrency } from '../../types';
 import { KNOWN_CURRENCY_NAMES, getCurrencySymbol } from '../../utils';
 import { useI18n, LanguageCode, DEFAULT_CURRENCY_BY_LANGUAGE, LANGUAGE_STORAGE_KEY } from '../../i18n';
 
@@ -26,14 +26,6 @@ interface SettingsPreferencesTabProps {
   budgetStartDay: number;
   setBudgetStartDay: (day: number) => void;
   budgetDayOptions: CustomSelectOption[];
-  newSpaceNameInput: string;
-  setNewSpaceNameInput: (name: string) => void;
-  handleCreateSpaceInline: () => void;
-  handleCreateNewSpace?: () => void;
-  internalSpaces: LedgerSpace[];
-  activeSpaceId?: string;
-  handleSelectSpaceItem: (space: LedgerSpace) => void;
-  handleDeleteSpaceItem: (spaceId: string) => void;
   onDataChanged?: () => void;
 }
 
@@ -55,14 +47,6 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
   budgetStartDay,
   setBudgetStartDay,
   budgetDayOptions,
-  newSpaceNameInput,
-  setNewSpaceNameInput,
-  handleCreateSpaceInline,
-  handleCreateNewSpace,
-  internalSpaces,
-  activeSpaceId,
-  handleSelectSpaceItem,
-  handleDeleteSpaceItem,
   onDataChanged,
 }) => {
   const { language, setLanguage, t } = useI18n();
@@ -72,7 +56,6 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
   const [isPwaDismissed, setIsPwaDismissed] = useState(() => {
     return typeof sessionStorage !== 'undefined' && sessionStorage.getItem('vibe_pref_pwa_dismissed') === 'true';
   });
-  const [isAddingSpace, setIsAddingSpace] = useState(false);
 
   const handleLanguageSelect = (lang: LanguageCode) => {
     setLanguage(lang);
@@ -538,130 +521,6 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               />
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Group 4: 장부 관리 (Sleek Collapsible / Inline Space Creator & List) */}
-      <div className="space-y-2.5 pt-3 border-t border-white/[0.06]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-white">
-              {t('multi_ledger_spaces')}
-            </span>
-            <span className="text-xs text-neutral-200 font-mono">
-              ({internalSpaces.length})
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsAddingSpace(!isAddingSpace)}
-            className="text-xs px-2.5 py-1 rounded-full font-medium border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-white transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
-          >
-            <Plus size={11} />
-            <span>{t('new_space')}</span>
-          </button>
-        </div>
-
-        {/* Collapsible / Inline Space Creation Card */}
-        {isAddingSpace && (
-          <div className="p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] space-y-2 animate-in fade-in duration-150">
-            <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                value={newSpaceNameInput}
-                onChange={(e) => setNewSpaceNameInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleCreateSpaceInline();
-                    setIsAddingSpace(false);
-                  }
-                }}
-                autoFocus
-                placeholder={t('space_name_placeholder')}
-                className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-lg px-2.5 py-1 text-xs text-white placeholder:text-neutral-300 focus:outline-none focus:border-white/25 transition-all"
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  await handleCreateSpaceInline();
-                  setIsAddingSpace(false);
-                }}
-                disabled={!newSpaceNameInput.trim()}
-                className="h-7 px-2.5 rounded-lg bg-white text-black hover:bg-neutral-100 active:scale-95 text-xs font-semibold transition-all disabled:bg-white/35 disabled:text-black shrink-0 cursor-pointer"
-              >
-                {t('create')}
-              </button>
-            </div>
-            {handleCreateNewSpace && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleCreateNewSpace}
-                  className="text-xs text-neutral-200 hover:text-white font-normal transition-colors underline underline-offset-2 cursor-pointer"
-                >
-                  {t('create_with_details')}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Compact Spaces List */}
-        <div className="space-y-1">
-          {internalSpaces.map((sp) => {
-            const isCurrent = sp.id === (activeSpaceId || 'default');
-            const isDefault = sp.id === 'default';
-
-            return (
-              <div
-                key={sp.id}
-                className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-colors ${
-                  isCurrent
-                    ? 'bg-white/[0.05] border-white/15 text-white'
-                    : 'bg-white/[0.02] border-white/[0.06] text-neutral-100 hover:border-white/[0.12]'
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className="font-medium text-xs text-white truncate">{sp.name}</span>
-                  {isDefault && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.05] text-neutral-100 border border-white/[0.08] font-medium">
-                      {t('default')}
-                    </span>
-                  )}
-                  {isCurrent && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">
-                      {t('active')}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                  {!isCurrent && (
-                    <button
-                      type="button"
-                      onClick={() => handleSelectSpaceItem(sp)}
-                      className="px-2.5 py-0.5 rounded-full text-xs font-medium border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-white transition-all active:scale-95 cursor-pointer"
-                    >
-                      {t('switch')}
-                    </button>
-                  )}
-                  {!isDefault && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSpaceItem(sp.id)}
-                      className="p-1 rounded-full text-neutral-200 hover:text-white hover:bg-white/[0.08] transition-all cursor-pointer"
-                      title={t('delete_space')}
-                      aria-label={`${sp.name} ${t('delete_space')}`}
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>

@@ -133,6 +133,7 @@ describe('i18n System Architecture', () => {
       'cat_leisure',
       'cat_uncategorized',
       'tab_smart_assets',
+      'tab_multi_ledger',
       'tab_monthly_budget',
       'tab_subscriptions',
       'tab_ai_engine',

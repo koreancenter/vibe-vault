@@ -5,7 +5,9 @@ import {
   Lock, 
   Check, 
   CheckCircle2, 
-  AlertTriangle
+  AlertTriangle,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { 
   getAIEngineConfig, 
@@ -74,12 +76,14 @@ import { SettingsPreferencesTab } from './settings/SettingsPreferencesTab';
 import { SettingsDataTab } from './settings/SettingsDataTab';
 import { useI18n } from '../i18n';
 
+export type SettingsTabKey = 'assets' | 'spaces' | 'engine' | 'preferences' | 'privacy';
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDataChanged?: () => void;
   onDataReset?: () => void;
-  initialTab?: 'assets' | 'engine' | 'preferences' | 'privacy';
+  initialTab?: SettingsTabKey;
   initialSubTab?: 'assets' | 'budget' | 'subscriptions';
   spaces?: LedgerSpace[];
   activeSpaceId?: string;
@@ -88,10 +92,10 @@ interface SettingsModalProps {
   onOpenNewSpace?: () => void;
 }
 
-const VALID_SETTINGS_TABS: ('assets' | 'engine' | 'preferences' | 'privacy')[] = ['assets', 'engine', 'preferences', 'privacy'];
-const resolveSafeTab = (tab: unknown): 'assets' | 'engine' | 'preferences' | 'privacy' => {
+const VALID_SETTINGS_TABS: SettingsTabKey[] = ['assets', 'spaces', 'engine', 'preferences', 'privacy'];
+const resolveSafeTab = (tab: unknown): SettingsTabKey => {
   return typeof tab === 'string' && (VALID_SETTINGS_TABS as string[]).includes(tab)
-    ? (tab as 'assets' | 'engine' | 'preferences' | 'privacy')
+    ? (tab as SettingsTabKey)
     : 'assets';
 };
 
@@ -170,8 +174,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (onDataChanged) onDataChanged();
   };
 
-  // 4-Tab Segmented Control: [ 스마트 자산 | AI 엔진 | 일반 설정 | 데이터 관리 ]
-  const [activeTab, setActiveTab] = useState<'assets' | 'engine' | 'preferences' | 'privacy'>(resolveSafeTab(initialTab));
+  // 5-Tab Segmented Control: [ 스마트 자산 | 다중 장부 | AI 엔진 | 일반 설정 | 데이터 관리 ]
+  const [activeTab, setActiveTab] = useState<SettingsTabKey>(resolveSafeTab(initialTab));
+  const [isAddingSpace, setIsAddingSpace] = useState<boolean>(false);
   const [subTab, setSubTab] = useState<'assets' | 'budget' | 'subscriptions'>(initialSubTab || 'assets');
 
   useEffect(() => {
@@ -896,9 +901,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Sticky Tab Bar: px-6 pt-2 border-b border-white/[0.06] */}
         <div className="px-6 pt-2 border-b border-white/[0.06] shrink-0">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <button
               id="tab-assets"
+              type="button"
               onClick={() => setActiveTab('assets')}
               className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'assets'
@@ -910,7 +916,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </button>
 
             <button
+              id="tab-spaces"
+              type="button"
+              onClick={() => setActiveTab('spaces')}
+              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
+                activeTab === 'spaces'
+                  ? 'border-b-2 border-white text-white font-semibold'
+                  : 'text-neutral-200 hover:text-white font-medium border-b-2 border-transparent'
+              }`}
+            >
+              {t('tab_multi_ledger')}
+            </button>
+
+            <button
               id="tab-ai-engine"
+              type="button"
               onClick={() => setActiveTab('engine')}
               className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'engine'
@@ -923,6 +943,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <button
               id="tab-prefs"
+              type="button"
               onClick={() => setActiveTab('preferences')}
               className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'preferences'
@@ -935,6 +956,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <button
               id="tab-data"
+              type="button"
               onClick={() => setActiveTab('privacy')}
               className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'privacy'
@@ -982,6 +1004,145 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
+          {/* TAB 1: MULTI-LEDGER SPACES */}
+          {activeTab === 'spaces' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-100">
+                      {t('multi_ledger_spaces')}
+                    </h3>
+                    <span className="text-xs text-neutral-200 font-mono tabular-nums">
+                      ({internalSpaces.length})
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-200 leading-relaxed font-normal">
+                    {t('multi_ledger_desc')}
+                  </p>
+                </div>
+
+                <button
+                  id="btn-new-space"
+                  type="button"
+                  onClick={() => setIsAddingSpace((prev) => !prev)}
+                  className="text-xs px-3 py-1.5 rounded-full font-medium border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-white transition-all flex items-center gap-1 active:scale-95 shrink-0 whitespace-nowrap cursor-pointer"
+                >
+                  <Plus size={12} />
+                  <span>{t('new_space')}</span>
+                </button>
+              </div>
+
+              {/* Collapsible / Inline Space Creation Card */}
+              {isAddingSpace && (
+                <div className="p-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] space-y-2.5 animate-in fade-in duration-150">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newSpaceNameInput}
+                      onChange={(e) => setNewSpaceNameInput(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          await handleCreateSpaceInline();
+                          setIsAddingSpace(false);
+                        }
+                      }}
+                      autoFocus
+                      placeholder={t('space_name_placeholder')}
+                      className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white placeholder:text-neutral-300 focus:outline-none focus:border-white/25 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await handleCreateSpaceInline();
+                        setIsAddingSpace(false);
+                      }}
+                      disabled={!newSpaceNameInput.trim()}
+                      className="h-8 px-3.5 rounded-xl bg-white text-black hover:bg-neutral-100 active:scale-95 text-xs font-semibold transition-all disabled:bg-white/35 disabled:text-black shrink-0 cursor-pointer"
+                    >
+                      {t('create')}
+                    </button>
+                  </div>
+                  {onOpenNewSpace && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleCreateNewSpace}
+                        className="text-xs text-neutral-200 hover:text-white font-normal transition-colors underline underline-offset-2 cursor-pointer"
+                      >
+                        {t('create_with_details')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Ledger Spaces List */}
+              <div className="space-y-2">
+                {internalSpaces.map((sp) => {
+                  const isCurrent = sp.id === (activeSpaceId || 'default');
+                  const isDefault = sp.id === 'default';
+
+                  return (
+                    <div
+                      key={sp.id}
+                      className={`flex items-center justify-between px-4 py-3 rounded-2xl border transition-colors ${
+                        isCurrent
+                          ? 'bg-white/[0.05] border-white/15 text-white'
+                          : 'bg-white/[0.02] border-white/[0.06] text-neutral-100 hover:border-white/[0.12]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="font-medium text-xs sm:text-[13px] text-white truncate">
+                          {sp.name}
+                        </span>
+                        {sp.currency && (
+                          <span className="text-[10px] font-mono text-neutral-200 shrink-0">
+                            · {sp.currency}
+                          </span>
+                        )}
+                        {isDefault && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.05] text-neutral-100 border border-white/[0.08] font-medium shrink-0">
+                            {t('default')}
+                          </span>
+                        )}
+                        {isCurrent && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium shrink-0">
+                            {t('active')}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {!isCurrent && (
+                          <button
+                            type="button"
+                            onClick={() => handleSelectSpaceItem(sp)}
+                            className="px-2.5 py-1 rounded-full text-xs font-medium border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-white transition-all active:scale-95 cursor-pointer"
+                          >
+                            {t('switch')}
+                          </button>
+                        )}
+                        {!isDefault && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSpaceItem(sp.id)}
+                            className="p-1.5 rounded-full text-neutral-200 hover:text-white hover:bg-white/[0.08] transition-all cursor-pointer"
+                            title={t('delete_space')}
+                            aria-label={`${sp.name} ${t('delete_space')}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: AI ENGINE CONFIGURATION */}
           {activeTab === 'engine' && (
             <SettingsAITab
@@ -1023,7 +1184,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             />
           )}
 
-          {/* TAB 2: GENERAL SETTINGS */}
+          {/* TAB 3: GENERAL SETTINGS */}
           {activeTab === 'preferences' && (
             <SettingsPreferencesTab
               defaultLaunchScreen={defaultLaunchScreen}
@@ -1044,14 +1205,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               budgetStartDay={budgetStartDay}
               setBudgetStartDay={setBudgetStartDay}
               budgetDayOptions={budgetDayOptions}
-              newSpaceNameInput={newSpaceNameInput}
-              setNewSpaceNameInput={setNewSpaceNameInput}
-              handleCreateSpaceInline={handleCreateSpaceInline}
-              handleCreateNewSpace={handleCreateNewSpace}
-              internalSpaces={internalSpaces}
-              activeSpaceId={activeSpaceId}
-              handleSelectSpaceItem={handleSelectSpaceItem}
-              handleDeleteSpaceItem={handleDeleteSpaceItem}
               onDataChanged={onDataChanged}
             />
           )}

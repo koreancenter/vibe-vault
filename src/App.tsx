@@ -434,7 +434,7 @@ function AppInner() {
     typeof localStorage === 'undefined' || localStorage.getItem('vibe_changelog_seen_version') !== '0.1.2'
   );
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<'assets' | 'engine' | 'preferences' | 'privacy'>('assets');
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'assets' | 'spaces' | 'engine' | 'preferences' | 'privacy'>('assets');
   const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'assets' | 'budget' | 'subscriptions'>('assets');
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -538,10 +538,10 @@ function AppInner() {
     tab?: unknown,
     subTab?: 'assets' | 'budget' | 'subscriptions'
   ) => {
-    const validTabs: ('assets' | 'engine' | 'preferences' | 'privacy')[] = ['assets', 'engine', 'preferences', 'privacy'];
-    const resolvedTab: 'assets' | 'engine' | 'preferences' | 'privacy' =
+    const validTabs: ('assets' | 'spaces' | 'engine' | 'preferences' | 'privacy')[] = ['assets', 'spaces', 'engine', 'preferences', 'privacy'];
+    const resolvedTab: 'assets' | 'spaces' | 'engine' | 'preferences' | 'privacy' =
       typeof tab === 'string' && (validTabs as string[]).includes(tab)
-        ? (tab as 'assets' | 'engine' | 'preferences' | 'privacy')
+        ? (tab as 'assets' | 'spaces' | 'engine' | 'preferences' | 'privacy')
         : 'assets';
     setSettingsInitialTab(resolvedTab);
     setSettingsInitialSubTab(subTab || 'assets');
@@ -1310,7 +1310,11 @@ function AppInner() {
       <MountOnFirstOpen open={isNewSpaceModalOpen}>
       <NewSpaceModal
         isOpen={isNewSpaceModalOpen}
-        onClose={() => setIsNewSpaceModalOpen(false)}
+        onClose={() => {
+          setIsNewSpaceModalOpen(false);
+          setSettingsInitialTab('spaces');
+          setIsSettingsOpen(true);
+        }}
         onCreated={(newSpace) => {
           setSpaces(prev => [...prev, newSpace]);
           setActiveSpaceId(newSpace.id);
@@ -1320,7 +1324,6 @@ function AppInner() {
           if (newSpace.currency) {
             handleSelectCurrency(newSpace.currency as SupportedCurrency);
           }
-          setMainMode('ledger');
         }}
         theme="dark"
       />

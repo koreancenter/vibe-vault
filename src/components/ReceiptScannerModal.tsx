@@ -29,7 +29,7 @@ interface ReceiptScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (receipt: ParsedReceiptData) => void;
-  onOpenSettings?: (tab?: 'assets' | 'engine' | 'preferences' | 'privacy') => void;
+  onOpenSettings?: (tab?: 'assets' | 'spaces' | 'engine' | 'preferences' | 'privacy') => void;
   theme?: 'dark' | 'light';
   currentCurrency?: SupportedCurrency;
   activeSpaceId?: string;

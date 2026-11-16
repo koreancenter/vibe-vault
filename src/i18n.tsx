@@ -157,6 +157,7 @@ export const translations = {
 
     // Settings Tabs
     tab_smart_assets: 'Smart Assets',
+    tab_multi_ledger: 'Multi-Ledger',
     tab_monthly_budget: 'Monthly Budget',
     tab_subscriptions: 'Subscriptions',
     tab_ai_engine: 'AI Engine',
@@ -191,6 +192,7 @@ export const translations = {
     ledger_settings: 'Ledger Settings',
     budget_start_day: 'Budget Start Day',
     multi_ledger_spaces: 'Multi-Ledger Spaces',
+    multi_ledger_desc: 'Separate trips, group events, and project budgets from your everyday personal ledger.',
     new_space: 'New Ledger',
     delete_space: 'Delete Ledger',
     create_with_details: 'Create with advanced options →',
@@ -470,6 +472,7 @@ export const translations = {
 
     // Settings Tabs
     tab_smart_assets: '스마트 자산',
+    tab_multi_ledger: '다중 장부',
     tab_monthly_budget: '월간 예산',
     tab_subscriptions: '구독 관리',
     tab_ai_engine: 'AI 엔진',
@@ -504,6 +507,7 @@ export const translations = {
     ledger_settings: '장부 설정',
     budget_start_day: '예산 시작일',
     multi_ledger_spaces: '다중 장부 관리',
+    multi_ledger_desc: '여행, 모임, 프로젝트 경비를 일상 가계부와 분리해 독립된 장부로 관리하세요.',
     new_space: '새 장부',
     delete_space: '장부 삭제',
     create_with_details: '상세 옵션으로 생성 →',
@@ -783,6 +787,7 @@ export const translations = {
 
     // Settings Tabs
     tab_smart_assets: 'スマート資産',
+    tab_multi_ledger: '複数帳簿',
     tab_monthly_budget: '月間予算',
     tab_subscriptions: '定額サブスク',
     tab_ai_engine: 'AIエンジン',
@@ -817,6 +822,7 @@ export const translations = {
     ledger_settings: '家計簿設定',
     budget_start_day: '予算開始日',
     multi_ledger_spaces: '複数帳簿管理',
+    multi_ledger_desc: '旅行やイベント、プロジェクトの経費を日常の家計簿から独立した帳簿で管理します。',
     new_space: '新規帳簿',
     delete_space: '帳簿を削除',
     create_with_details: '詳細オプションで作成 →',
@@ -1096,6 +1102,7 @@ export const translations = {
 
     // Settings Tabs
     tab_smart_assets: 'Smart Assets',
+    tab_multi_ledger: 'Multi-Ledger',
     tab_monthly_budget: 'Monthly Budget',
     tab_subscriptions: 'Subscriptions',
     tab_ai_engine: 'AI Engine',
@@ -1130,6 +1137,7 @@ export const translations = {
     ledger_settings: 'Ledger Settings',
     budget_start_day: 'Budget Start Day',
     multi_ledger_spaces: 'Multi-Ledger Spaces',
+    multi_ledger_desc: 'Separate trips, group events, and project budgets from your everyday personal ledger.',
     new_space: 'New Ledger',
     delete_space: 'Delete Ledger',
     create_with_details: 'Create with advanced options →',
