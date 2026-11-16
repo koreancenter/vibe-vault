@@ -202,14 +202,14 @@ export default defineConfig({
               ) {
                 return 'vendor-charts';
               }
-              if (id.includes('@google/genai')) {
-                return 'vendor-genai';
-              }
               if (
-                id.includes('motion') ||
-                id.includes('framer-motion')
+                id.includes('/node_modules/date-fns/') ||
+                id.includes('/node_modules/lucide-react/')
               ) {
-                return 'vendor-ui';
+                return 'vendor-utils';
+              }
+              if (id.includes('@google/genai')) {
+                return 'vendor-ai';
               }
             }
           },
