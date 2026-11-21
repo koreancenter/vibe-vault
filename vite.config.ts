@@ -97,37 +97,7 @@ export default defineConfig(({ command }) => ({
           ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^token$/, /^key$/, /^auth$/],
           // Security Hardening: Explicitly exclude dynamic, user-generated, or sensitive data routes
           runtimeCaching: [
-            // 1. Google Fonts stylesheets (Static, public typography)
-            {
-              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'google-fonts-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            // 2. Google Fonts web font binaries (Static WOFF2 files)
-            {
-              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'gstatic-fonts-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            // 3. SECURITY RULE: AI Endpoints (Google Generative Language / Gemini)
+            // 1. SECURITY RULE: AI Endpoints (Google Generative Language / Gemini)
             // MUST be NetworkOnly. Under NO circumstances may AI multimodal payloads, financial prompts,
             // or OCR extraction responses be cached in CacheStorage.
             {

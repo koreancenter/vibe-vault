@@ -7,10 +7,6 @@ import {
   CashflowForecastSummary
 } from '../types';
 import { 
-  detectSubscriptions, 
-  calculateCashflowForecast 
-} from '../autonomousFinance';
-import { 
   getUserPreferences, 
   saveUserPreferences, 
   getAIEngineConfig, 
@@ -132,49 +128,15 @@ export function useAutonomousEngine({
     });
   }, []);
 
-  /**
-   * Autonomous Subscription Detector
-   * Analyzes transaction histories for periodic cycles (28-32 days)
-   */
-  const detectedSubscriptions = useMemo((): SubscriptionItem[] => {
-    return detectSubscriptions(transactions, currentCurrency, fxRates);
-  }, [transactions, currentCurrency, fxRates]);
-
-  const detectedSubsCount = useMemo(() => {
-    return detectedSubscriptions.length;
-  }, [detectedSubscriptions]);
-
-  const monthlySubscriptionTotal = useMemo(() => {
-    return detectedSubscriptions
-      .filter(s => s.isActive)
-      .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-  }, [detectedSubscriptions]);
-
-  /**
-   * Predictive Cashflow Runway & Liquidity Engine
-   */
-  const cashflowForecast = useMemo((): CashflowForecastSummary | null => {
-    if (transactions.length === 0) return null;
-    try {
-      return calculateCashflowForecast(transactions, detectedSubscriptions, currentCurrency, fxRates);
-    } catch (e) {
-      console.error('[useAutonomousEngine] calculateCashflowForecast failed:', e);
-      return null;
-    }
-  }, [transactions, detectedSubscriptions, currentCurrency, fxRates]);
-
-  const dailyAverageBurn = useMemo(() => {
-    return cashflowForecast?.dailyAverageBurn || 0;
-  }, [cashflowForecast]);
-
-  const projectedMonthEndBalance = useMemo(() => {
-    return cashflowForecast?.projectedMonthEndBalance || 0;
-  }, [cashflowForecast]);
-
-  const hasLiquidityWarning = useMemo(() => {
-    if (!cashflowForecast) return false;
-    return cashflowForecast.status === 'DEFICIT_WARNING' || cashflowForecast.projectedMonthEndBalance < 0;
-  }, [cashflowForecast]);
+  // Forecast & subscription detection are computed lazily inside InsightsSection
+  // to avoid pulling autonomousFinance (40KB) into the initial VaultWorkspace bundle.
+  const detectedSubscriptions = useMemo((): SubscriptionItem[] => [], []);
+  const detectedSubsCount = 0;
+  const monthlySubscriptionTotal = 0;
+  const cashflowForecast: CashflowForecastSummary | null = null;
+  const dailyAverageBurn = 0;
+  const projectedMonthEndBalance = 0;
+  const hasLiquidityWarning = false;
 
   return {
     detectedSubscriptions,

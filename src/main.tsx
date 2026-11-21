@@ -50,9 +50,11 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     'load',
     () => {
       const register = () => {
-        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
-          // Ignore registration errors in restricted/private browsing contexts
-        });
+        navigator.serviceWorker
+          .register('/sw.js', { scope: '/', updateViaCache: 'none' })
+          .catch(() => {
+            // Ignore registration errors in restricted/private browsing contexts
+          });
       };
       const w = window as Window & {
         requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;

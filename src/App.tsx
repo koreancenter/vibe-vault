@@ -5,9 +5,10 @@ import { lazyWithRetry, LazyErrorBoundary } from './lazyWithRetry';
 import { hasVaultPin, isVaultLocked, subscribeVaultLock } from './vaultSecurity';
 import { applySeasonTheme, getStoredSeasonTheme } from './seasonTheme';
 
-const VaultWorkspace = lazyWithRetry(() =>
-  import('./VaultWorkspace').then((m) => ({ default: m.VaultWorkspace }))
-);
+const loadVaultWorkspace = () =>
+  import('./VaultWorkspace').then((m) => ({ default: m.VaultWorkspace }));
+
+const VaultWorkspace = lazyWithRetry(loadVaultWorkspace);
 
 function shouldShowWelcomeInitially(): boolean {
   if (typeof localStorage === 'undefined') return false;
@@ -19,10 +20,16 @@ function shouldShowWelcomeInitially(): boolean {
   return needsPinSetup || needsPinUnlock || !hasSeenWelcome;
 }
 
+const INITIAL_SHOW_WELCOME = shouldShowWelcomeInitially();
+if (!INITIAL_SHOW_WELCOME && typeof window !== 'undefined') {
+  // Collapse boot waterfall for returning/unlocked users by fetching the workspace chunk before React mounts
+  void loadVaultWorkspace();
+}
+
 function AppShell() {
   const [isVaultLockedState, setIsVaultLockedState] = useState<boolean>(() => isVaultLocked());
-  const [isWelcomeOpen, setIsWelcomeOpen] = useState<boolean>(() => shouldShowWelcomeInitially());
-  const [hasEnteredWorkspace, setHasEnteredWorkspace] = useState<boolean>(() => !shouldShowWelcomeInitially());
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState<boolean>(INITIAL_SHOW_WELCOME);
+  const [hasEnteredWorkspace, setHasEnteredWorkspace] = useState<boolean>(!INITIAL_SHOW_WELCOME);
 
   useEffect(() => {
     applySeasonTheme(getStoredSeasonTheme());

@@ -18,9 +18,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import { cleanMerchantTitle } from './merchantSanitizer';
 import { 
-  getCategoryKo, 
   getCategoryLabel,
-  getPaymentMethodKo,
   getPaymentMethodLabel,
   DEFAULT_FX_RATES,
   getCurrencySymbol,
@@ -64,8 +62,10 @@ import {
 import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault, subscribeVaultLock } from './vaultSecurity';
 import { useI18n, DEFAULT_CURRENCY_BY_LANGUAGE } from './i18n';
 
-// Dynamic Code-Split Components (Heavy Dashboards, Modals & Secondary Views)
-const VaultOverviewSection = lazyWithRetry(() => import('./components/VaultOverviewSection').then(m => ({ default: m.VaultOverviewSection })));
+// Default initial tab imported eagerly to avoid a 2-hop lazy waterfall on workspace LCP
+import { VaultOverviewSection } from './components/VaultOverviewSection';
+
+// Dynamic Code-Split Components (Secondary Tabs & Modals)
 const FinancialSummaryCard = lazyWithRetry(() => import('./components/FinancialSummaryCard').then(m => ({ default: m.FinancialSummaryCard })));
 const ChangelogModal = lazyWithRetry(() => import('./components/ChangelogModal').then(m => ({ default: m.ChangelogModal })));
 const QuickGuideModal = lazyWithRetry(() => import('./components/QuickGuideModal').then(m => ({ default: m.QuickGuideModal })));
@@ -604,27 +604,34 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
   const handleExportSpaceCSV = useCallback(() => {
     const list = spaceFilteredLedgerTransactions;
     if (list.length === 0) return;
+    const isKo = language === 'ko';
     const bom = '\uFEFF';
-    let csv = `날짜,구분,카테고리,상세카테고리,내역,금액,통화,결제수단,비고\r\n`;
-    list.forEach(t => {
-      const typeStr = sanitizeCsvCell(t.type === 'EXPENSE' ? '지출' : t.type === 'INCOME' ? '수입' : t.type === 'TRANSFER' ? '이체' : '정산');
-      const catStr = sanitizeCsvCell(getCategoryKo(t.category, t.subCategory));
-      const subCat = sanitizeCsvCell(t.subCategory || '');
-      const safeDesc = sanitizeCsvCell(t.description || '');
-      const safeNote = sanitizeCsvCell(t.note || '');
-      const pay = sanitizeCsvCell(t.paymentMethod || '');
-      csv += `"${t.date}","${typeStr}","${catStr}","${subCat}","${safeDesc}",${t.amount},"${t.currency || activeSpace.currency || currentCurrency}","${pay}","${safeNote}"\r\n`;
+    let csv = isKo
+      ? `날짜,구분,카테고리,상세카테고리,내역,금액,통화,결제수단,비고\r\n`
+      : `Date,Type,Category,Subcategory,Description,Amount,Currency,Payment Method,Note\r\n`;
+    list.forEach(tx => {
+      const typeStr = sanitizeCsvCell(
+        isKo
+          ? (tx.type === 'EXPENSE' ? '지출' : tx.type === 'INCOME' ? '수입' : tx.type === 'TRANSFER' ? '이체' : '정산')
+          : (tx.type === 'EXPENSE' ? 'Expense' : tx.type === 'INCOME' ? 'Income' : tx.type === 'TRANSFER' ? 'Transfer' : 'Settlement')
+      );
+      const catStr = sanitizeCsvCell(getCategoryLabel(tx.category, tx.subCategory, language));
+      const subCat = sanitizeCsvCell(tx.subCategory || '');
+      const safeDesc = sanitizeCsvCell(tx.description || '');
+      const safeNote = sanitizeCsvCell(tx.note || '');
+      const pay = sanitizeCsvCell(getPaymentMethodLabel(tx.paymentMethod, tx.type, language));
+      csv += `"${tx.date}","${typeStr}","${catStr}","${subCat}","${safeDesc}",${tx.amount},"${tx.currency || activeSpace.currency || currentCurrency}","${pay}","${safeNote}"\r\n`;
     });
     const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${activeSpace.name}_내역_${format(new Date(), 'yyyyMMdd')}.csv`;
+    a.download = `${activeSpace.name}_${isKo ? '내역' : 'ledger'}_${format(new Date(), 'yyyyMMdd')}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [spaceFilteredLedgerTransactions, activeSpace.name, activeSpace.currency, currentCurrency]);
+  }, [spaceFilteredLedgerTransactions, activeSpace.name, activeSpace.currency, currentCurrency, language]);
 
   const handleOpenChangelogModal = useCallback(() => {
     setIsChangelogOpen(true);
@@ -1034,22 +1041,20 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
           {mainMode === 'vault' && (
             <div className="w-full">
               <LazyErrorBoundary>
-                <Suspense fallback={<div className="py-12 text-center text-xs text-neutral-400">{language === 'ko' ? '자산 금고 불러오는 중...' : 'Loading vault...'}</div>}>
-                  <VaultOverviewSection
-                    currentCurrency={currentCurrency}
-                    fxRates={fxRates}
-                    stealthMode={isStealth}
-                    onToggleStealth={toggleStealthMode}
-                    theme={userPrefs.theme || 'dark'}
-                    onTransactionAdded={() => loadTransactions()}
-                    isMultiCurrencyMode={isMultiCurrencyMode}
-                    transactions={transactions}
-                    onNavigateToLedger={() => setMainMode('ledger')}
-                    onNavigateToInsights={() => setMainMode('insights')}
-                    openAddAccountSignal={openAddAccountSignal}
-                    onConsumeAddAccountSignal={() => setOpenAddAccountSignal(0)}
-                  />
-                </Suspense>
+                <VaultOverviewSection
+                  currentCurrency={currentCurrency}
+                  fxRates={fxRates}
+                  stealthMode={isStealth}
+                  onToggleStealth={toggleStealthMode}
+                  theme={userPrefs.theme || 'dark'}
+                  onTransactionAdded={() => loadTransactions()}
+                  isMultiCurrencyMode={isMultiCurrencyMode}
+                  transactions={transactions}
+                  onNavigateToLedger={() => setMainMode('ledger')}
+                  onNavigateToInsights={() => setMainMode('insights')}
+                  openAddAccountSignal={openAddAccountSignal}
+                  onConsumeAddAccountSignal={() => setOpenAddAccountSignal(0)}
+                />
               </LazyErrorBoundary>
             </div>
           )}
