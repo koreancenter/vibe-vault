@@ -642,39 +642,46 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                     </dd>
                   </div>
                 ))}
-                {/* Korean Four Seasons Color Set Quick Switcher */}
-                <div className="py-3.5 flex items-center justify-between gap-3">
-                  <dt className="text-xs text-neutral-400 shrink-0">사계 테마</dt>
-                  <dd className="flex items-center gap-1" role="radiogroup" aria-label="한국의 사계 테마 선택">
-                    {SEASON_THEMES.map((season) => {
-                      const isActive = seasonTheme === season.id;
-                      return (
-                        <button
-                          key={season.id}
-                          id={`welcome-season-${season.id}`}
-                          type="button"
-                          role="radio"
-                          aria-checked={isActive}
-                          onClick={() => handleSelectSeason(season.id)}
-                          title={`${season.seasonKo} · ${season.poeticKo} (${season.subtitleKo})`}
-                          className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
-                            isActive
-                              ? 'bg-[var(--color-accent-subtle)] text-white font-semibold'
-                              : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]'
-                          }`}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className="w-2 h-2 rounded-full shrink-0 border border-white/25"
-                            style={{ backgroundColor: season.accentHex }}
-                          />
-                          <span>{season.seasonKo}</span>
-                        </button>
-                      );
-                    })}
-                  </dd>
-                </div>
               </dl>
+
+              {/* Korean Four Seasons Color Set Quick Switcher */}
+              <div className="py-3.5 flex items-center justify-between gap-3">
+                <span id="welcome-season-label" className="text-xs text-neutral-400 shrink-0">
+                  사계 테마
+                </span>
+                <div
+                  className="flex items-center gap-1"
+                  role="radiogroup"
+                  aria-labelledby="welcome-season-label"
+                >
+                  {SEASON_THEMES.map((season) => {
+                    const isActive = seasonTheme === season.id;
+                    return (
+                      <button
+                        key={season.id}
+                        id={`welcome-season-${season.id}`}
+                        type="button"
+                        role="radio"
+                        aria-checked={isActive}
+                        onClick={() => handleSelectSeason(season.id)}
+                        title={`${season.seasonKo} · ${season.poeticKo} (${season.subtitleKo})`}
+                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
+                          isActive
+                            ? 'bg-[var(--color-accent-subtle)] text-white font-semibold'
+                            : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]'
+                        }`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="w-2 h-2 rounded-full shrink-0 border border-white/25"
+                          style={{ backgroundColor: season.accentHex }}
+                        />
+                        <span>{season.seasonKo}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </aside>
           </section>
 
