@@ -2,6 +2,7 @@ import { Asset, AssetType, AssetCategoryType, LaunchScreenMode, SupportedCurrenc
 import { getSecureGeminiApiKey, sanitizeApiKey, maskApiKey } from './geminiKeyManager';
 import { detectCreditCardSettlement } from './finance/lightweightDetectors';
 import { DEFAULT_FX_RATES } from './fxRates';
+import { SeasonThemeId, DEFAULT_SEASON_THEME, normalizeSeasonTheme, applySeasonTheme } from './seasonTheme';
 
 export function cn(...inputs: (string | boolean | undefined | null | { [key: string]: boolean })[]): string {
   const classes: string[] = [];
@@ -36,6 +37,7 @@ export interface UserPreferences {
   currencySymbol: string; // 'KRW', 'USD', 'EUR', 'JPY'
   stealthMode: boolean;   // blur financial amounts
   theme?: string;         // locked to 'dark'
+  seasonTheme?: SeasonThemeId; // Korean four-seasons dark editorial palette
   chartPalette?: string;  // deprecated
   autoCategorization: boolean; // toggle smart auto-categorization (default true)
   defaultLaunchScreen?: LaunchScreenMode; // 'vault' | 'insights' | 'ledger'
@@ -89,7 +91,7 @@ export function getEffectiveTheme(_theme?: string): 'dark' {
   return 'dark';
 }
 
-export function applyTheme(_theme?: string, _paletteId?: string | null) {
+export function applyTheme(_theme?: string, seasonTheme?: string | null) {
   if (typeof document !== 'undefined') {
     const root = document.documentElement;
     const body = document.body;
@@ -97,11 +99,18 @@ export function applyTheme(_theme?: string, _paletteId?: string | null) {
     root.classList.remove('light');
     root.setAttribute('data-theme', 'dark');
     root.removeAttribute('data-accent');
-    body.classList.remove('bg-[#F8FAFC]', 'text-slate-900');
-    body.classList.add('bg-gradient-to-b', 'from-[#0B0F17]', 'via-[#0E1524]', 'to-[#111827]', 'text-slate-100');
-    const themeMeta = document.querySelector('meta[name="theme-color"]');
-    if (themeMeta) themeMeta.setAttribute('content', '#0B0F17');
+    body.classList.remove(
+      'bg-[#F8FAFC]',
+      'text-slate-900',
+      'bg-gradient-to-b',
+      'from-[#0B0F17]',
+      'via-[#0E1524]',
+      'to-[#111827]'
+    );
+    body.classList.add('text-slate-100');
   }
+  const effectiveSeason = seasonTheme ? normalizeSeasonTheme(seasonTheme) : getUserPreferences().seasonTheme;
+  applySeasonTheme(effectiveSeason);
 }
 
 export function getUserPreferences(): UserPreferences {
@@ -114,6 +123,7 @@ export function getUserPreferences(): UserPreferences {
         currencySymbol: parsed.currencySymbol || 'KRW',
         stealthMode: !!parsed.stealthMode,
         theme: 'dark',
+        seasonTheme: normalizeSeasonTheme(parsed.seasonTheme),
         autoCategorization: parsed.autoCategorization !== undefined ? !!parsed.autoCategorization : true,
         defaultLaunchScreen: (['vault', 'insights', 'ledger'] as const).includes(parsed.defaultLaunchScreen) ? parsed.defaultLaunchScreen : 'vault',
       };
@@ -125,6 +135,7 @@ export function getUserPreferences(): UserPreferences {
     currencySymbol: 'KRW',
     stealthMode: false,
     theme: 'dark',
+    seasonTheme: DEFAULT_SEASON_THEME,
     autoCategorization: true,
     defaultLaunchScreen: 'vault',
   };

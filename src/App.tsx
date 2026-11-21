@@ -3,6 +3,7 @@ import { I18nProvider } from './i18n';
 import { WelcomeDashboardModal } from './components/WelcomeDashboardModal';
 import { lazyWithRetry, LazyErrorBoundary } from './lazyWithRetry';
 import { hasVaultPin, isVaultLocked, subscribeVaultLock } from './vaultSecurity';
+import { applySeasonTheme, getStoredSeasonTheme } from './seasonTheme';
 
 const VaultWorkspace = lazyWithRetry(() =>
   import('./VaultWorkspace').then((m) => ({ default: m.VaultWorkspace }))
@@ -22,6 +23,10 @@ function AppShell() {
   const [isVaultLockedState, setIsVaultLockedState] = useState<boolean>(() => isVaultLocked());
   const [isWelcomeOpen, setIsWelcomeOpen] = useState<boolean>(() => shouldShowWelcomeInitially());
   const [hasEnteredWorkspace, setHasEnteredWorkspace] = useState<boolean>(() => !shouldShowWelcomeInitially());
+
+  useEffect(() => {
+    applySeasonTheme(getStoredSeasonTheme());
+  }, []);
 
   useEffect(() => {
     return subscribeVaultLock((locked) => {
@@ -64,7 +69,7 @@ function AppShell() {
           <LazyErrorBoundary>
             <Suspense
               fallback={
-                <div className="min-h-[100dvh] w-full bg-[#07080A] text-neutral-300 flex items-center justify-center text-xs font-medium tracking-wide">
+                <div className="min-h-[100dvh] w-full bg-[var(--surface-backdrop)] text-neutral-300 flex items-center justify-center text-xs font-medium tracking-wide">
                   Vibe Vault 불러오는 중...
                 </div>
               }

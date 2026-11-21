@@ -726,8 +726,8 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
   });
 
   return (
-    <div className="w-full h-[100dvh] flex justify-center bg-[#07080A] text-neutral-100 overflow-hidden font-sans antialiased">
-      <div className="w-full max-w-[440px] lg:max-w-2xl h-full bg-[#090A0D] border-x border-white/[0.04] flex flex-col relative shadow-2xl">
+    <div className="w-full h-[100dvh] flex justify-center bg-[var(--surface-backdrop)] text-neutral-100 overflow-hidden font-sans antialiased transition-colors">
+      <div className="w-full max-w-[440px] lg:max-w-2xl h-full bg-[var(--surface-canvas)] border-x border-[var(--surface-subtle-border)] flex flex-col relative shadow-2xl transition-colors">
         {/* Toast Notification Banner */}
         {toastMessage && (
           <div 
@@ -753,7 +753,7 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
         )}
 
         {/* 1. TOP HEADER */}
-        <header className="flex-none min-h-16 pt-[env(safe-area-inset-top)] border-b border-white/[0.06] bg-[#090A0D]/90 backdrop-blur-xl z-20 text-white">
+        <header className="flex-none min-h-16 pt-[env(safe-area-inset-top)] border-b border-[var(--surface-subtle-border)] bg-[var(--surface-canvas)]/90 backdrop-blur-xl z-20 text-white transition-colors">
           <div className="relative w-full h-16 px-4 flex items-center justify-between transition-all duration-300">
             {/* Left: Brand with Version */}
             <div className="flex items-center min-w-0">
@@ -1173,7 +1173,7 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
         </main>
 
         {/* 3. FIXED BOTTOM DOCK (AI Omnibar & Navigation) */}
-      <footer className="flex-none backdrop-blur-2xl pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-20 transition-colors border-t bg-[#08090D]/80 border-white/[0.08]">
+      <footer className="flex-none backdrop-blur-2xl pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-20 transition-colors border-t bg-[var(--surface-nav)]/88 border-[var(--surface-subtle-border)]">
         <div className="w-full px-4">
           <OmnibarDock
             input={input}
@@ -1206,7 +1206,7 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
               aria-current={mainMode === 'vault' ? 'page' : undefined}
               className={`flex-1 min-h-[44px] py-1.5 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all cursor-pointer ${
                 mainMode === 'vault'
-                  ? 'text-blue-400 font-semibold'
+                  ? 'text-[var(--color-accent)] font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -1222,7 +1222,7 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
               aria-current={mainMode === 'insights' ? 'page' : undefined}
               className={`flex-1 min-h-[44px] py-1.5 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all cursor-pointer ${
                 mainMode === 'insights'
-                  ? 'text-indigo-400 font-semibold'
+                  ? 'text-[var(--color-accent)] font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -1238,7 +1238,7 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
               aria-current={mainMode === 'ledger' ? 'page' : undefined}
               className={`flex-1 min-h-[44px] py-1.5 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all cursor-pointer ${
                 mainMode === 'ledger'
-                  ? 'text-sky-400 font-semibold'
+                  ? 'text-[var(--color-accent)] font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >

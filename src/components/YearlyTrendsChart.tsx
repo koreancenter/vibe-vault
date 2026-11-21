@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   ResponsiveContainer, 
   BarChart, 
@@ -16,12 +16,12 @@ import {
   isSameMonth, 
   isSameYear 
 } from 'date-fns';
-
-// Permanent Quiet Luxury Dark Palette Constants
-const LUXURY_YEARLY_COLORS = {
-  income: '#38bdf8',  // Refined Muted Sage Emerald
-  expense: '#fbbf24', // Warm Amber
-};
+import {
+  SeasonThemeId,
+  SEASON_CHANGE_EVENT,
+  getStoredSeasonTheme,
+  getSeasonThemeMeta,
+} from '../seasonTheme';
 
 interface YearlyTrendsChartProps {
   transactions: Transaction[];
@@ -37,6 +37,21 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
   embedded = false,
 }) => {
   const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null);
+  const [seasonTheme, setSeasonTheme] = useState<SeasonThemeId>(() => getStoredSeasonTheme());
+
+  useEffect(() => {
+    const onSeasonChange = (e: Event) => {
+      const next = (e as CustomEvent<SeasonThemeId>).detail;
+      if (next) setSeasonTheme(next);
+    };
+    window.addEventListener(SEASON_CHANGE_EVENT, onSeasonChange);
+    return () => window.removeEventListener(SEASON_CHANGE_EVENT, onSeasonChange);
+  }, []);
+
+  const seasonColors = useMemo(() => {
+    const meta = getSeasonThemeMeta(seasonTheme);
+    return { income: meta.chartIncome, expense: meta.chartExpense };
+  }, [seasonTheme]);
 
   const currSymbol = currencySymbol === 'KRW' ? '₩' : currencySymbol === 'USD' ? '$' : `${currencySymbol} `;
 
@@ -261,11 +276,11 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
           {/* Chart Legend */}
           <div className="flex items-center gap-3 text-xs">
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: LUXURY_YEARLY_COLORS.income }} />
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: seasonColors.income }} />
               <span className="text-[11px] font-medium text-slate-300">수입</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: LUXURY_YEARLY_COLORS.expense }} />
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: seasonColors.expense }} />
               <span className="text-[11px] font-medium text-slate-300">지출</span>
             </div>
           </div>
@@ -317,7 +332,7 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
               <Bar 
                 dataKey="income" 
                 name="수입" 
-                fill={LUXURY_YEARLY_COLORS.income} 
+                fill={seasonColors.income} 
                 radius={[4, 4, 0, 0]} 
                 maxBarSize={12} 
               />
@@ -325,7 +340,7 @@ export const YearlyTrendsChart: React.FC<YearlyTrendsChartProps> = ({
               <Bar 
                 dataKey="expense" 
                 name="지출" 
-                fill={LUXURY_YEARLY_COLORS.expense} 
+                fill={seasonColors.expense} 
                 radius={[4, 4, 0, 0]} 
                 maxBarSize={12} 
               />

@@ -568,7 +568,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       {queryResult && (
         <div 
           ref={briefingCardRef}
-          className="w-full p-4 rounded-2xl bg-[#121318] border border-white/15 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 space-y-2.5"
+          className="w-full p-4 rounded-2xl bg-[var(--surface-card)] border border-white/15 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 space-y-2.5"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs text-sky-400 font-semibold">
@@ -606,7 +606,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       )}
 
       {/* 2. 4-Metric KPI Strip */}
-      <div className="w-full rounded-2xl border border-white/10 bg-[#0E1015]/95 backdrop-blur-2xl overflow-hidden flex flex-col divide-y divide-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      <div className="w-full rounded-2xl border border-white/10 bg-[var(--surface-panel)]/95 backdrop-blur-2xl overflow-hidden flex flex-col divide-y divide-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         {/* 1. 총 순자산 */}
         <div className="p-4 sm:p-5 flex flex-col justify-between gap-2.5">
           <div className="flex items-center justify-between gap-3">
@@ -713,7 +713,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       </div>
 
       {/* 3. AI Executive Diagnosis Card */}
-      <div className="w-full rounded-2xl border border-white/10 bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      <div className="w-full rounded-2xl border border-white/10 bg-[var(--surface-panel)]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="space-y-3">
           {/* Unboxed typographic status */}
           <div className="flex items-center gap-2 text-xs">
@@ -763,7 +763,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       </div>
 
       {/* 4. Spending Category Breakdown (Full-width clean horizontal bars) */}
-      <div className="w-full rounded-2xl border border-white/10 bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      <div className="w-full rounded-2xl border border-white/10 bg-[var(--surface-panel)]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-sm font-semibold tracking-tight text-white">
@@ -835,7 +835,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       </div>
 
       {/* 5. Daily Spending Trend Chart */}
-      <div className="w-full rounded-2xl border border-white/10 bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      <div className="w-full rounded-2xl border border-white/10 bg-[var(--surface-panel)]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
             <h2 className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
@@ -942,7 +942,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
       </div>
 
       {/* 6. Predictive Cashflow & Runway Chart */}
-      <div className="w-full rounded-2xl border border-white/10 bg-[#0E1015]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      <div className="w-full rounded-2xl border border-white/10 bg-[var(--surface-panel)]/95 backdrop-blur-2xl p-5 sm:p-6 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
             <h2 className="text-sm font-semibold tracking-tight text-white">

@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
-import { Plus, X, Smartphone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, X, Smartphone, Check } from 'lucide-react';
 import { CustomDarkSelect, CustomSelectOption } from './CustomDarkSelect';
 import { IOSInstallModal } from '../PWAInstallButton';
 import { usePWAInstall } from '../../usePWAInstall';
 import { SupportedCurrency } from '../../types';
 import { KNOWN_CURRENCY_NAMES, getCurrencySymbol, patchUserPreferences } from '../../utils';
 import { useI18n, LanguageCode, DEFAULT_CURRENCY_BY_LANGUAGE, LANGUAGE_STORAGE_KEY } from '../../i18n';
+import {
+  SEASON_THEMES,
+  SeasonThemeId,
+  applySeasonTheme,
+  getStoredSeasonTheme,
+  SEASON_CHANGE_EVENT,
+} from '../../seasonTheme';
 
 interface SettingsPreferencesTabProps {
   defaultLaunchScreen: 'vault' | 'insights' | 'ledger';
@@ -56,6 +63,23 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
   const [isPwaDismissed, setIsPwaDismissed] = useState(() => {
     return typeof sessionStorage !== 'undefined' && sessionStorage.getItem('vibe_pref_pwa_dismissed') === 'true';
   });
+  const [seasonTheme, setSeasonTheme] = useState<SeasonThemeId>(() => getStoredSeasonTheme());
+
+  useEffect(() => {
+    const onSeasonChange = (e: Event) => {
+      const next = (e as CustomEvent<SeasonThemeId>).detail;
+      if (next) setSeasonTheme(next);
+    };
+    window.addEventListener(SEASON_CHANGE_EVENT, onSeasonChange);
+    return () => window.removeEventListener(SEASON_CHANGE_EVENT, onSeasonChange);
+  }, []);
+
+  const handleSelectSeasonTheme = (next: SeasonThemeId) => {
+    setSeasonTheme(next);
+    patchUserPreferences({ seasonTheme: next });
+    applySeasonTheme(next);
+    if (onDataChanged) onDataChanged();
+  };
 
   const handleLanguageSelect = (lang: LanguageCode) => {
     setLanguage(lang);
@@ -192,6 +216,71 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Group 0.5: 한국의 사계 컬러 테마 */}
+      <div className="space-y-3 pb-4 border-b border-white/[0.06]">
+        <div>
+          <span className="text-xs font-semibold text-white block">
+            {language === 'ko' ? '한국의 사계 컬러 테마' : 'Korean Four Seasons Palette'}
+          </span>
+          <span className="text-xs text-neutral-400 font-normal">
+            {language === 'ko'
+              ? '다크 에디토리얼 톤을 유지하면서 계절의 색온도와 포인트를 전환합니다.'
+              : 'Switch dark editorial surface warmth and accents inspired by Korea’s four seasons.'}
+          </span>
+        </div>
+
+        <div
+          role="radiogroup"
+          aria-label={language === 'ko' ? '한국의 사계 컬러 테마 선택' : 'Select Korean Four Seasons theme'}
+          className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+        >
+          {SEASON_THEMES.map((season) => {
+            const isActive = seasonTheme === season.id;
+            return (
+              <button
+                key={season.id}
+                id={`season-theme-btn-${season.id}`}
+                type="button"
+                role="radio"
+                aria-checked={isActive}
+                onClick={() => handleSelectSeasonTheme(season.id)}
+                className={`group relative flex flex-col justify-between gap-2.5 p-3 min-h-[76px] rounded-xl border text-left transition-all active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
+                  isActive
+                    ? 'border-[var(--color-accent-border)] bg-[var(--color-accent-subtle)]'
+                    : 'border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.16]'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <span className="flex items-center gap-1.5" aria-hidden="true">
+                    <span
+                      className="w-4 h-4 rounded-full border border-white/20 shrink-0"
+                      style={{ backgroundColor: season.canvasHex }}
+                    />
+                    <span
+                      className="w-3.5 h-3.5 rounded-full -ml-2 border border-black/40 shrink-0"
+                      style={{ backgroundColor: season.accentHex }}
+                    />
+                  </span>
+                  {isActive && (
+                    <Check size={13} className="text-[var(--color-accent)] shrink-0" />
+                  )}
+                </div>
+                <div className="space-y-0.5 min-w-0">
+                  <div className="text-xs font-semibold text-white truncate">
+                    {language === 'ko'
+                      ? `${season.seasonKo} · ${season.poeticKo}`
+                      : season.labelEn}
+                  </div>
+                  <div className="text-[11px] text-neutral-400 truncate">
+                    {season.subtitleKo}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Group 1: 화면 설정 (기본 시작 화면) */}

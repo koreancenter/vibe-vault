@@ -292,7 +292,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
                 className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-2xl transition-colors cursor-pointer ${
                   chip.isQuery 
                     ? 'bg-[#090A0D]/95 hover:bg-sky-500/20 active:bg-sky-500/30 text-sky-300 border border-sky-500/30' 
-                    : 'bg-[#090A0D]/95 hover:bg-white/[0.12] active:bg-white/15 text-neutral-300 hover:text-white border border-white/[0.08]'
+                    : 'bg-[var(--surface-panel)]/95 hover:bg-white/[0.12] active:bg-white/15 text-neutral-300 hover:text-white border border-white/[0.08]'
                 }`}
               >
                 {chip.label}
@@ -312,7 +312,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
               : 'border-transparent bg-white/15'
           }`}
         >
-          <div className="flex items-center gap-1.5 rounded-[15px] px-2.5 py-1.5 transition-colors bg-[#090A0D]/95 backdrop-blur-2xl">
+          <div className="flex items-center gap-1.5 rounded-[15px] px-2.5 py-1.5 transition-colors bg-[var(--surface-panel)]/95 backdrop-blur-2xl">
             {/* Compact Left Controls: Consolidated + Action Menu (Camera & Mic) + Single-letter Engine Switcher */}
             <div className="flex items-center gap-1.5 shrink-0">
               <div ref={plusMenuRef} className="relative shrink-0">
@@ -346,7 +346,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
                   <div
                     role="menu"
                     aria-label="입력 도구"
-                    className="absolute bottom-full mb-2.5 left-0 min-w-[152px] rounded-xl bg-[#090A0D]/95 backdrop-blur-2xl border border-white/[0.06] text-neutral-200 shadow-2xl p-1 z-40 animate-in fade-in slide-in-from-bottom-1 duration-150"
+                    className="absolute bottom-full mb-2.5 left-0 min-w-[152px] rounded-xl bg-[var(--surface-panel)]/95 backdrop-blur-2xl border border-white/[0.06] text-neutral-200 shadow-2xl p-1 z-40 animate-in fade-in slide-in-from-bottom-1 duration-150"
                   >
                     <button
                       id="omnibar-receipt-scanner-btn"
@@ -413,7 +413,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
                   <div
                     role="menu"
                     aria-label="AI 엔진 선택"
-                    className="absolute bottom-full mb-2.5 left-0 min-w-[136px] rounded-xl bg-[#090A0D]/95 backdrop-blur-2xl border border-white/[0.06] text-neutral-300 shadow-2xl p-1 z-40 animate-in fade-in slide-in-from-bottom-1 duration-150"
+                    className="absolute bottom-full mb-2.5 left-0 min-w-[136px] rounded-xl bg-[var(--surface-panel)]/95 backdrop-blur-2xl border border-white/[0.06] text-neutral-300 shadow-2xl p-1 z-40 animate-in fade-in slide-in-from-bottom-1 duration-150"
                   >
                     {ENGINE_OPTIONS.map((option) => {
                       const isActive = option.id === activeEngineId;
@@ -480,9 +480,9 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
               aria-label={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
               className={`w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer ${
                 isProcessing
-                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30 pointer-events-none'
+                  ? 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border border-[var(--color-accent-border)] pointer-events-none'
                   : isTyping
-                  ? 'bg-white text-black hover:bg-neutral-200 active:scale-95 shadow-sm'
+                  ? 'bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:bg-[var(--color-accent-hover)] active:scale-95 shadow-sm'
                   : 'bg-white/[0.06] text-neutral-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none'
               }`}
             >

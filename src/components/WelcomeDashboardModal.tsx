@@ -28,6 +28,14 @@ import {
   isBiometricAvailable,
 } from '../vaultSecurity';
 import type { LegalNoticeTab } from './LegalNoticeModal';
+import {
+  SEASON_THEMES,
+  SeasonThemeId,
+  applySeasonTheme,
+  getStoredSeasonTheme,
+  SEASON_CHANGE_EVENT,
+} from '../seasonTheme';
+import { patchUserPreferences } from '../utils';
 
 const LegalNoticeModal = lazyWithRetry(() =>
   import('./LegalNoticeModal').then((m) => ({ default: m.LegalNoticeModal }))
@@ -217,6 +225,24 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
   const [isBiometricEnabled, setIsBiometricEnabled] = useState<boolean>(() =>
     isBiometricUnlockEnabled()
   );
+
+  // Korean Four Seasons color theme state
+  const [seasonTheme, setSeasonTheme] = useState<SeasonThemeId>(() => getStoredSeasonTheme());
+
+  useEffect(() => {
+    const onSeasonChange = (e: Event) => {
+      const next = (e as CustomEvent<SeasonThemeId>).detail;
+      if (next) setSeasonTheme(next);
+    };
+    window.addEventListener(SEASON_CHANGE_EVENT, onSeasonChange);
+    return () => window.removeEventListener(SEASON_CHANGE_EVENT, onSeasonChange);
+  }, []);
+
+  const handleSelectSeason = useCallback((next: SeasonThemeId) => {
+    setSeasonTheme(next);
+    patchUserPreferences({ seasonTheme: next });
+    applySeasonTheme(next);
+  }, []);
 
   // Policy modal & footer listbox state
   const [legalModalOpen, setLegalModalOpen] = useState<boolean>(false);
@@ -481,7 +507,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
   ];
 
   return (
-    <div className="h-[100dvh] w-full overflow-y-auto bg-[#07080A] text-neutral-100 antialiased font-sans flex flex-col selection:bg-white/20">
+    <div className="h-[100dvh] w-full overflow-y-auto bg-transparent text-neutral-100 antialiased font-sans flex flex-col selection:bg-white/20">
       {/* Main Minimal Editorial Canvas */}
       <main id="welcome-top" className="flex-1 w-full flex items-center">
         <div className="w-full max-w-5xl mx-auto px-6 sm:px-10 py-14 sm:py-20 lg:py-24">
@@ -510,7 +536,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       <button
                         type="button"
                         onClick={handleReturnToVault}
-                        className="h-12 px-6 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        className="h-12 px-6 rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:bg-[var(--color-accent-hover)] text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60"
                       >
                         <span>프라이빗 금고로 돌아가기</span>
                         <ArrowRight size={15} />
@@ -542,7 +568,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         id="welcome-login-btn"
                         type="button"
                         onClick={openUnlockAccountModal}
-                        className="h-12 px-6 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        className="h-12 px-6 rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:bg-[var(--color-accent-hover)] text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60"
                       >
                         <span>
                           {localProfile?.userName
@@ -570,7 +596,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         id="welcome-create-local-account-btn"
                         type="button"
                         onClick={openCreateAccountModal}
-                        className="h-12 px-6 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        className="h-12 px-6 rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:bg-[var(--color-accent-hover)] text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60"
                       >
                         <span>로컬 계정 만들기</span>
                         <ArrowRight size={15} />
@@ -616,6 +642,38 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                     </dd>
                   </div>
                 ))}
+                {/* Korean Four Seasons Color Set Quick Switcher */}
+                <div className="py-3.5 flex items-center justify-between gap-3">
+                  <dt className="text-xs text-neutral-400 shrink-0">사계 테마</dt>
+                  <dd className="flex items-center gap-1" role="radiogroup" aria-label="한국의 사계 테마 선택">
+                    {SEASON_THEMES.map((season) => {
+                      const isActive = seasonTheme === season.id;
+                      return (
+                        <button
+                          key={season.id}
+                          id={`welcome-season-${season.id}`}
+                          type="button"
+                          role="radio"
+                          aria-checked={isActive}
+                          onClick={() => handleSelectSeason(season.id)}
+                          title={`${season.seasonKo} · ${season.poeticKo} (${season.subtitleKo})`}
+                          className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
+                            isActive
+                              ? 'bg-[var(--color-accent-subtle)] text-white font-semibold'
+                              : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="w-2 h-2 rounded-full shrink-0 border border-white/25"
+                            style={{ backgroundColor: season.accentHex }}
+                          />
+                          <span>{season.seasonKo}</span>
+                        </button>
+                      );
+                    })}
+                  </dd>
+                </div>
               </dl>
             </aside>
           </section>
@@ -646,7 +704,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
       </main>
 
       {/* Minimalist Editorial Footer */}
-      <footer id="welcome-footer" className="w-full border-t border-white/[0.07] bg-[#060709]">
+      <footer id="welcome-footer" className="w-full border-t border-[var(--surface-subtle-border)] bg-[var(--surface-footer)] transition-colors">
         <div className="max-w-5xl mx-auto px-6 sm:px-10 py-10">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
             {/* Left: Policy Menu & Company Info */}
@@ -740,7 +798,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
             }
           }}
         >
-          <div className="w-full sm:max-w-md max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-[#0D0F14] border border-white/[0.11] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:p-7 shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
+          <div className="w-full sm:max-w-md max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-[var(--surface-panel)] border border-[var(--surface-subtle-border)] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:p-7 shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-4 pb-5 border-b border-white/[0.08]">
               <div className="space-y-1">
@@ -909,7 +967,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="h-11 px-5 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 disabled:bg-white/20 disabled:text-white/60 text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap"
+                    className="h-11 px-5 rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:bg-[var(--color-accent-hover)] disabled:bg-white/20 disabled:text-white/60 text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap"
                   >
                     {isSubmitting ? (
                       <Loader2 size={14} className="animate-spin" />
@@ -994,7 +1052,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting || pin.length < 4}
-                    className="h-11 px-5 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 disabled:bg-white/20 disabled:text-white/60 text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap"
+                    className="h-11 px-5 rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:bg-[var(--color-accent-hover)] disabled:bg-white/20 disabled:text-white/60 text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap"
                   >
                     {isSubmitting ? (
                       <Loader2 size={14} className="animate-spin" />

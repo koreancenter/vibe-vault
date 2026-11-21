@@ -165,7 +165,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
     return (
       <section 
         id="financial-summary-card"
-        className="relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl bg-[#121318]/90 border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white"
+        className="relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl bg-[var(--surface-card)]/90 border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white"
       >
         {/* Top Header: Title & Subtle Status Badge (Zero Icons) */}
         <div className="flex items-center justify-between pb-3.5">
@@ -323,7 +323,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   return (
     <section 
       id="financial-summary-card"
-      className="relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl bg-[#121318]/90 border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white"
+      className="relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl bg-[var(--surface-card)]/90 border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white"
     >
       {/* Top Header: Title & Subtle Status Badge */}
       <div className="flex items-center justify-between pb-3.5">

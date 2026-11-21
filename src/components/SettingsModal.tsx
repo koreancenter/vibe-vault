@@ -620,7 +620,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         defaultLaunchScreen,
       };
       saveUserPreferences(updatedPrefs);
-      applyTheme('dark');
+      applyTheme('dark', updatedPrefs.seasonTheme);
 
       setStatusMessage({ type: 'success', text: '모든 설정이 안전하게 저장되었습니다.' });
 
@@ -900,7 +900,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-lg sm:max-w-xl md:max-w-2xl h-[680px] max-h-[88vh] bg-[#0E1015] border border-white/[0.08] rounded-3xl shadow-2xl flex flex-col overflow-hidden text-white antialiased"
+        className="w-full max-w-lg sm:max-w-xl md:max-w-2xl h-[680px] max-h-[88vh] bg-[var(--surface-panel)] border border-[var(--surface-subtle-border)] rounded-3xl shadow-2xl flex flex-col overflow-hidden text-white antialiased transition-colors"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sticky Header: px-6 py-5 border-b border-white/[0.06] */}
@@ -926,7 +926,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={() => setActiveTab('assets')}
               className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'assets'
-                  ? 'border-b-2 border-white text-white font-semibold'
+                  ? 'border-b-2 border-[var(--color-accent)] text-white font-semibold'
                   : 'text-neutral-200 hover:text-white font-medium border-b-2 border-transparent'
               }`}
             >
@@ -939,7 +939,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={() => setActiveTab('spaces')}
               className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'spaces'
-                  ? 'border-b-2 border-white text-white font-semibold'
+                  ? 'border-b-2 border-[var(--color-accent)] text-white font-semibold'
                   : 'text-neutral-200 hover:text-white font-medium border-b-2 border-transparent'
               }`}
             >
@@ -952,7 +952,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={() => setActiveTab('engine')}
               className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'engine'
-                  ? 'border-b-2 border-white text-white font-semibold'
+                  ? 'border-b-2 border-[var(--color-accent)] text-white font-semibold'
                   : 'text-neutral-200 hover:text-white font-medium border-b-2 border-transparent'
               }`}
             >
@@ -965,7 +965,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={() => setActiveTab('preferences')}
               className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'preferences'
-                  ? 'border-b-2 border-white text-white font-semibold'
+                  ? 'border-b-2 border-[var(--color-accent)] text-white font-semibold'
                   : 'text-neutral-200 hover:text-white font-medium border-b-2 border-transparent'
               }`}
             >
@@ -978,7 +978,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={() => setActiveTab('privacy')}
               className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'privacy'
-                  ? 'border-b-2 border-white text-white font-semibold'
+                  ? 'border-b-2 border-[var(--color-accent)] text-white font-semibold'
                   : 'text-neutral-200 hover:text-white font-medium border-b-2 border-transparent'
               }`}
             >
@@ -1254,8 +1254,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
         </div>
 
-        {/* Sticky Footer Action Bar: px-6 py-3.5 border-t border-white/[0.06] bg-[#0B0D11] */}
-        <div className="px-6 py-3.5 border-t border-white/[0.06] bg-[#0B0D11] flex flex-col gap-2.5 shrink-0">
+        {/* Sticky Footer Action Bar */}
+        <div className="px-6 py-3.5 border-t border-white/[0.06] bg-[var(--surface-nav)] flex flex-col gap-2.5 shrink-0">
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
@@ -1274,7 +1274,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <button
               type="button"
               onClick={handleSaveAll}
-              className="bg-white text-black hover:bg-neutral-100 font-semibold rounded-xl px-4 py-2 text-xs transition-all active:scale-95 flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
+              className="bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:bg-[var(--color-accent-hover)] font-semibold rounded-xl px-4 py-2 text-xs transition-all active:scale-95 flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
             >
               <Check size={14} />
               <span>{t('save_settings')}</span>

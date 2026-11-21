@@ -828,7 +828,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
       <div className={`relative overflow-hidden rounded-2xl p-5 border backdrop-blur-xl transition-all ${
         isLight
           ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
-          : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
+          : 'bg-[var(--surface-card)]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
       }`}>
         <div className="space-y-1.5">
           <div className="flex items-start justify-between">
@@ -950,7 +950,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
             isLight
               ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
-              : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
+              : 'bg-[var(--surface-card)]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
           }`}>
             <div className="flex items-center justify-between mb-3.5">
               <h2 className={`text-sm font-medium tracking-wide ${isLight ? 'text-slate-900' : 'text-white'}`}>
@@ -1033,7 +1033,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           {/* 5. Account List Feed */}
           {filteredAccounts.length === 0 ? (
             <div className={`p-6 rounded-2xl border text-center space-y-2.5 ${
-              isLight ? 'bg-slate-50/70 border-slate-200 text-slate-600' : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 text-neutral-300'
+              isLight ? 'bg-slate-50/70 border-slate-200 text-slate-600' : 'bg-[var(--surface-card)]/90 backdrop-blur-xl border border-white/10 text-neutral-300'
             }`}>
               <p className="text-xs font-normal">선택한 분류에 해당하는 자산 계좌가 없습니다.</p>
               <button
@@ -1061,7 +1061,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     className={`group relative rounded-2xl p-4 border transition-all duration-150 backdrop-blur-xl ${
                       isLight
                         ? 'bg-white/85 border-slate-200/80 hover:border-slate-300 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]'
-                        : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 hover:border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
+                        : 'bg-[var(--surface-card)]/90 backdrop-blur-xl border border-white/10 hover:border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
                     }`}
                   >
                     {/* Header: Institution/Account info (Left) & Balance (Right) */}
@@ -1189,7 +1189,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
           isLight
             ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900'
-            : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
+            : 'bg-[var(--surface-card)]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
         }`}>
           {/* 1. Single Clean Header Row */}
           <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
@@ -1243,7 +1243,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all ${
           isLight 
             ? 'bg-white/85 border-slate-200/80 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] text-slate-900' 
-            : 'bg-[#111217]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
+            : 'bg-[var(--surface-card)]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
         }`}>
           <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
             <h2 className="text-sm font-medium tracking-wide text-white">
@@ -1324,7 +1324,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         >
           <div 
             className={`w-full max-w-sm rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors antialiased animate-in slide-in-from-bottom-6 duration-200 ${
-              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#111217] text-neutral-100'
+              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[var(--surface-card)] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1422,7 +1422,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         >
           <div 
             className={`w-full max-w-md max-h-[90dvh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors antialiased animate-in slide-in-from-bottom-6 duration-200 ${
-              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#111217] text-neutral-100'
+              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[var(--surface-card)] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1602,9 +1602,9 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       onChange={(e) => setScanTargetAccountId(e.target.value)}
                       className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white focus:border-white/25 focus:ring-0 outline-none transition-all cursor-pointer"
                     >
-                      <option value="new" className="bg-[#111217] text-white">+ 신규 계좌로 등록하기</option>
+                      <option value="new" className="bg-[var(--surface-card)] text-white">+ 신규 계좌로 등록하기</option>
                       {accounts.map((acc) => (
-                        <option key={acc.id} value={acc.id} className="bg-[#111217] text-white">
+                        <option key={acc.id} value={acc.id} className="bg-[var(--surface-card)] text-white">
                           {acc.institution} - {acc.accountName} (기존 ₩{acc.currentBalance.toLocaleString()})
                         </option>
                       ))}
@@ -1645,7 +1645,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88dvh] overflow-hidden transition-colors antialiased animate-in slide-in-from-bottom-6 duration-200 ${
               isLight 
                 ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' 
-                : 'bg-[#111217] text-neutral-100'
+                : 'bg-[var(--surface-card)] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1687,7 +1687,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     className="w-full h-11 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 text-sm text-white focus:border-white/25 focus:ring-0 outline-none transition-all cursor-pointer"
                   >
                     {assetCategories.map((c) => (
-                      <option key={c.type} value={c.type} className="bg-[#111217] text-white">
+                      <option key={c.type} value={c.type} className="bg-[var(--surface-card)] text-white">
                         {c.label}
                       </option>
                     ))}
@@ -1833,7 +1833,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         >
           <div 
             className={`w-full max-w-sm rounded-3xl border border-white/[0.08] p-6 shadow-2xl space-y-4 antialiased animate-in zoom-in-95 duration-150 ${
-              isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#111217] text-neutral-100'
+              isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[var(--surface-card)] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1873,7 +1873,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         >
           <div 
             className={`w-full max-w-sm rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden transition-colors antialiased animate-in slide-in-from-bottom-6 duration-200 ${
-              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[#111217] text-neutral-100'
+              isLight ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/40' : 'bg-[var(--surface-card)] text-neutral-100'
             }`}
             onClick={(e) => e.stopPropagation()}
           >

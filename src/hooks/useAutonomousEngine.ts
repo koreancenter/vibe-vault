@@ -108,14 +108,14 @@ export function useAutonomousEngine({
     const prefs = getUserPreferences();
     setUserPrefs(prefs);
     setIsStealth(prefs.stealthMode);
-    applyTheme(prefs.theme || 'dark');
+    applyTheme(prefs.theme || 'dark', prefs.seasonTheme);
   }, [refreshEngineStatus]);
 
   // Initial synchronization on mount
   useEffect(() => {
     refreshEngineStatus();
-    applyTheme(userPrefs.theme || 'dark');
-  }, [refreshEngineStatus, userPrefs.theme]);
+    applyTheme(userPrefs.theme || 'dark', userPrefs.seasonTheme);
+  }, [refreshEngineStatus, userPrefs.theme, userPrefs.seasonTheme]);
 
   /**
    * Toggles stealth mode (masking amounts on screen)
