@@ -24,9 +24,11 @@ const inlineEntryCss = (): Plugin => ({
   },
 });
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  define: command === 'build' ? { 'process.env.NODE_ENV': JSON.stringify('production') } : undefined,
   esbuild: {
     drop: ['console', 'debugger'],
+    legalComments: 'none',
   },
   base: '/',
   plugins: [
@@ -217,4 +219,4 @@ export default defineConfig({
         },
       },
     },
-});
+}));

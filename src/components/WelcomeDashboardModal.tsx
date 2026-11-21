@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -11,7 +11,8 @@ import {
   X,
 } from 'lucide-react';
 import { useI18n, LanguageCode } from '../i18n';
-import { AIEngineConfig } from '../utils';
+import type { AIEngineConfig } from '../utils';
+import { lazyWithRetry, LazyErrorBoundary } from '../lazyWithRetry';
 import {
   hasVaultPin,
   isVaultLocked,
@@ -26,7 +27,11 @@ import {
   isBiometricUnlockEnabled,
   isBiometricAvailable,
 } from '../vaultSecurity';
-import { LegalNoticeModal, LegalNoticeTab } from './LegalNoticeModal';
+import type { LegalNoticeTab } from './LegalNoticeModal';
+
+const LegalNoticeModal = lazyWithRetry(() =>
+  import('./LegalNoticeModal').then((m) => ({ default: m.LegalNoticeModal }))
+);
 
 export interface WelcomeDashboardModalProps {
   isOpen: boolean;
@@ -1007,12 +1012,18 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
         </div>
       )}
 
-      {/* Policy & License Viewer Modal */}
-      <LegalNoticeModal
-        isOpen={legalModalOpen}
-        onClose={() => setLegalModalOpen(false)}
-        initialTab={legalModalTab}
-      />
+      {/* Policy & License Viewer Modal (Lazy-loaded on demand) */}
+      {legalModalOpen && (
+        <LazyErrorBoundary>
+          <Suspense fallback={null}>
+            <LegalNoticeModal
+              isOpen={legalModalOpen}
+              onClose={() => setLegalModalOpen(false)}
+              initialTab={legalModalTab}
+            />
+          </Suspense>
+        </LazyErrorBoundary>
+      )}
     </div>
   );
 };
