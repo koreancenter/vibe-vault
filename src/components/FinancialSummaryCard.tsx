@@ -446,22 +446,30 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
           </div>
         </div>
 
-        {/* Safe-to-Spend Today Metric (오늘 권장 지출 한도 · Safe-to-Spend) */}
+        {/* Safe-to-Spend Today Metric */}
         <div className="col-span-2 pt-3.5 mt-1 border-t border-white/[0.06] flex items-center justify-between min-w-0">
           <div className="flex flex-col justify-start min-w-0 pr-2">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs font-normal text-neutral-200">
-                오늘 권장 지출 한도
+                {language === 'ko' ? '오늘 권장 지출 한도' : 'Daily Safe-to-Spend'}
               </span>
-              <span className="text-white/20 text-[10px]">·</span>
-              <span className="text-[11px] font-mono text-neutral-400">
-                Safe-to-Spend
-              </span>
+              {language === 'ko' && (
+                <>
+                  <span className="text-white/20 text-[10px]">·</span>
+                  <span className="text-[11px] font-mono text-neutral-400">
+                    Safe-to-Spend
+                  </span>
+                </>
+              )}
             </div>
             <span className="text-[11px] font-light text-neutral-400 mt-0.5 tabular-nums truncate">
               {safeToSpendData.targetPool > 0
-                ? `남은 ${safeToSpendData.remainingDays}일 기준 가용액 (월풀 ${currSymbol}${safeToSpendData.targetPool.toLocaleString()})`
-                : `남은 ${safeToSpendData.remainingDays}일 기준 일일 지출 페이스`}
+                ? language === 'ko'
+                  ? `남은 ${safeToSpendData.remainingDays}일 기준 가용액 (월풀 ${currSymbol}${safeToSpendData.targetPool.toLocaleString()})`
+                  : `${safeToSpendData.remainingDays}d remaining · pool ${currSymbol}${safeToSpendData.targetPool.toLocaleString()}`
+                : language === 'ko'
+                ? `남은 ${safeToSpendData.remainingDays}일 기준 일일 지출 페이스`
+                : `Daily spending pace · ${safeToSpendData.remainingDays}d left`}
             </span>
           </div>
 
@@ -470,7 +478,9 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             <span className="text-base sm:text-lg font-medium font-mono tracking-tight tabular-nums text-white">
               {safeToSpendData.safeToSpendToday.toLocaleString()}
             </span>
-            <span className="text-[11px] font-normal text-neutral-400 ml-1">/일</span>
+            <span className="text-[11px] font-normal text-neutral-400 ml-1">
+              {language === 'ko' ? '/일' : '/day'}
+            </span>
           </div>
         </div>
       </div>

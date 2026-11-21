@@ -77,11 +77,20 @@ const FOOTER_POLICY_LINKS: { tab: LegalNoticeTab; label: string }[] = [
   { tab: 'cookies', label: '쿠키 정책' },
 ];
 
-const GOGUMA_UNIVERSE_LINKS: { label: string; href: string }[] = [
-  { label: '디지털 명함', href: 'https://eerum.goguma.app' },
-  { label: 'AI 앱 기획', href: 'https://goguma.app' },
-  { label: 'AI 슬라이드', href: 'https://vibeslide.goguma.app' },
-  { label: 'AI 일정관리', href: 'https://vibecalendar.goguma.app' },
+const FOOTER_POLICY_LABELS_EN: Record<LegalNoticeTab, string> = {
+  legal: 'Legal Notice',
+  privacy: 'Privacy Policy',
+  terms: 'Terms of Service',
+  licenses: 'Open Source Licenses',
+  community: 'Community Guidelines',
+  cookies: 'Cookie Policy',
+};
+
+const GOGUMA_UNIVERSE_LINKS: { label: string; labelEn: string; href: string }[] = [
+  { label: '디지털 명함', labelEn: 'Digital Namecard', href: 'https://eerum.goguma.app' },
+  { label: 'AI 앱 기획', labelEn: 'AI App Studio', href: 'https://goguma.app' },
+  { label: 'AI 슬라이드', labelEn: 'AI Slides', href: 'https://vibeslide.goguma.app' },
+  { label: 'AI 일정관리', labelEn: 'AI Calendar', href: 'https://vibecalendar.goguma.app' },
 ];
 
 const RELATED_SITE_LINKS: { label: string; href: string }[] = [
@@ -201,7 +210,8 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
   onEnterVault,
   canReturnToVault = false,
 }) => {
-  const { t, language } = useI18n();
+  const { t, language, setLanguage } = useI18n();
+  const isKo = language === 'ko';
 
   // Local account & vault state
   const [isPinSet, setIsPinSet] = useState<boolean>(() => hasVaultPin());
@@ -360,18 +370,18 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
     if (isSubmitting) return;
 
     const trimmedUser = userName.trim();
-    const trimmedPinName = pinName.trim() || '마스터 PIN';
+    const trimmedPinName = pinName.trim() || (isKo ? '마스터 PIN' : 'Master PIN');
 
     if (!trimmedUser) {
-      setFormError('사용자 이름을 입력해 주세요.');
+      setFormError(isKo ? '사용자 이름을 입력해 주세요.' : 'Please enter a display name.');
       return;
     }
     if (pin.length < 4 || pin.length > 6) {
-      setFormError('마스터 PIN은 4~6자리 숫자로 입력해 주세요.');
+      setFormError(isKo ? '마스터 PIN은 4~6자리 숫자로 입력해 주세요.' : 'Master PIN must be 4 to 6 digits.');
       return;
     }
     if (pin !== confirmPin) {
-      setFormError('PIN 확인 번호가 일치하지 않습니다.');
+      setFormError(isKo ? 'PIN 확인 번호가 일치하지 않습니다.' : 'PIN confirmation does not match.');
       return;
     }
 
@@ -392,7 +402,9 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
       completeEntry();
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : '로컬 계정 생성 중 오류가 발생했습니다.';
+        err instanceof Error
+          ? err.message
+          : (isKo ? '로컬 계정 생성 중 오류가 발생했습니다.' : 'An error occurred while creating your local account.');
       setFormError(message);
     } finally {
       setIsSubmitting(false);
@@ -404,7 +416,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
     if (isSubmitting) return;
 
     if (pin.length < 4 || pin.length > 6) {
-      setFormError('설정한 4~6자리 PIN 번호를 입력해 주세요.');
+      setFormError(isKo ? '설정한 4~6자리 PIN 번호를 입력해 주세요.' : 'Please enter your 4 to 6 digit PIN.');
       return;
     }
 
@@ -418,12 +430,16 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
         setPin('');
         completeEntry();
       } else {
-        setFormError(res.error || '올바르지 않은 PIN 번호입니다.');
+        setFormError(res.error || (isKo ? '올바르지 않은 PIN 번호입니다.' : 'Incorrect PIN. Please try again.'));
         setPin('');
       }
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : '금고 잠금 해제 중 오류가 발생했습니다.';
+        err instanceof Error
+          ? err.message
+          : isKo
+            ? '금고 잠금 해제 중 오류가 발생했습니다.'
+            : 'Failed to unlock the vault.';
       setFormError(message);
       setPin('');
     } finally {
@@ -442,10 +458,20 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
         setAccountModalMode(null);
         completeEntry();
       } else {
-        setFormError(res.error || '생체 인증에 실패했습니다. PIN 번호를 입력해 주세요.');
+        setFormError(
+          res.error ||
+            (isKo
+              ? '생체 인증에 실패했습니다. PIN 번호를 입력해 주세요.'
+              : 'Biometric authentication failed. Please enter your PIN.')
+        );
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '생체 인증에 실패했습니다.';
+      const message =
+        err instanceof Error
+          ? err.message
+          : isKo
+            ? '생체 인증에 실패했습니다.'
+            : 'Biometric authentication failed.';
       setFormError(message);
     } finally {
       setIsSubmitting(false);
@@ -484,27 +510,54 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
     },
   ];
 
-  const colophonSpecs = [
-    isUnlockedRevisit
-      ? {
-          label: '현재 세션',
-          value: isPinSet
-            ? `${localProfile?.userName || '로컬 계정'} · 로그인됨`
-            : '게스트 모드 · 활성',
-        }
-      : isPinSet
-        ? {
-            label: '로컬 계정',
-            value: `${localProfile?.userName || '로컬 금고'} · 로그아웃됨`,
-          }
-        : {
-            label: '계정 상태',
-            value: '미등록 · 게스트 이용 가능',
-          },
-    { label: '저장 방식', value: '브라우저 로컬 IndexedDB' },
-    { label: '암호화 규격', value: 'AES-GCM-256 · PBKDF2' },
-    { label: '데이터 원칙', value: '서버 수집 · 쿠키 없음' },
-  ];
+  const colophonSpecs = isKo
+    ? [
+        isUnlockedRevisit
+          ? {
+              label: '현재 세션',
+              value: isPinSet
+                ? `${localProfile?.userName || '로컬 계정'} · 로그인됨`
+                : '게스트 모드 · 활성',
+            }
+          : isPinSet
+            ? {
+                label: '로컬 계정',
+                value: `${localProfile?.userName || '로컬 금고'} · 로그아웃됨`,
+              }
+            : {
+                label: '계정 상태',
+                value: '미등록 · 게스트 이용 가능',
+              },
+        { label: '저장 방식', value: '브라우저 로컬 IndexedDB' },
+        { label: '암호화 규격', value: 'AES-GCM-256 · PBKDF2' },
+        { label: '데이터 원칙', value: '서버 수집 · 쿠키 없음' },
+      ]
+    : [
+        isUnlockedRevisit
+          ? {
+              label: 'Session',
+              value: isPinSet
+                ? `${localProfile?.userName || 'Local Account'} · Signed in`
+                : 'Guest Mode · Active',
+            }
+          : isPinSet
+            ? {
+                label: 'Account',
+                value: `${localProfile?.userName || 'Local Vault'} · Locked`,
+              }
+            : {
+                label: 'Account',
+                value: 'Not set · Guest available',
+              },
+        { label: 'Storage', value: 'Local IndexedDB' },
+        { label: 'Encryption', value: 'AES-GCM-256 · PBKDF2' },
+        { label: 'Privacy', value: 'Zero server sync · No cookies' },
+      ];
+
+  const localizedUniverseLinks = GOGUMA_UNIVERSE_LINKS.map((item) => ({
+    label: isKo ? item.label : item.labelEn,
+    href: item.href,
+  }));
 
   return (
     <div className="h-[100dvh] w-full overflow-y-auto bg-transparent text-neutral-100 antialiased font-sans flex flex-col selection:bg-white/20">
@@ -524,7 +577,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                   {t('welcome_manifesto')}
                 </p>
                 <p className="text-sm font-normal text-neutral-400 leading-[1.7]">
-                  {NET_TO_DOT_MANIFESTO[language] || NET_TO_DOT_MANIFESTO.ko}
+                  {NET_TO_DOT_MANIFESTO[language] || NET_TO_DOT_MANIFESTO.en}
                 </p>
               </div>
 
@@ -538,7 +591,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         onClick={handleReturnToVault}
                         className="h-12 px-6 rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:bg-[var(--color-accent-hover)] text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60"
                       >
-                        <span>프라이빗 금고로 돌아가기</span>
+                        <span>{isKo ? '프라이빗 금고로 돌아가기' : 'Return to Private Vault'}</span>
                         <ArrowRight size={15} />
                       </button>
 
@@ -548,7 +601,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                           onClick={openCreateAccountModal}
                           className="h-12 px-6 rounded-xl border border-white/[0.18] bg-transparent hover:bg-white/[0.06] hover:border-white/30 text-neutral-100 text-sm font-medium transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                         >
-                          로컬 계정 만들기
+                          {isKo ? '로컬 계정 만들기' : 'Create Local Account'}
                         </button>
                       )}
 
@@ -559,7 +612,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         className="h-12 px-5 rounded-xl border border-white/[0.14] bg-transparent hover:bg-white/[0.06] hover:border-white/25 text-neutral-300 hover:text-white text-sm font-medium transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                       >
                         <LogOut size={14} />
-                        <span>로그아웃</span>
+                        <span>{isKo ? '로그아웃' : 'Sign Out'}</span>
                       </button>
                     </>
                   ) : isPinSet ? (
@@ -571,9 +624,13 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         className="h-12 px-6 rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:bg-[var(--color-accent-hover)] text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60"
                       >
                         <span>
-                          {localProfile?.userName
-                            ? `${localProfile.userName}님 로그인`
-                            : '로컬 계정 로그인'}
+                          {isKo
+                            ? localProfile?.userName
+                              ? `${localProfile.userName}님 로그인`
+                              : '로컬 계정 로그인'
+                            : localProfile?.userName
+                              ? `Sign in as ${localProfile.userName}`
+                              : 'Sign in to Local Vault'}
                         </span>
                         <ArrowRight size={15} />
                       </button>
@@ -598,7 +655,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         onClick={openCreateAccountModal}
                         className="h-12 px-6 rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:bg-[var(--color-accent-hover)] text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60"
                       >
-                        <span>로컬 계정 만들기</span>
+                        <span>{isKo ? '로컬 계정 만들기' : 'Create Local Account'}</span>
                         <ArrowRight size={15} />
                       </button>
 
@@ -609,7 +666,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         disabled={isSubmitting}
                         className="h-12 px-6 rounded-xl border border-white/[0.18] bg-transparent hover:bg-white/[0.06] hover:border-white/30 text-neutral-100 text-sm font-medium transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                       >
-                        게스트 모드
+                        {isKo ? '게스트 모드' : 'Guest Mode'}
                       </button>
                     </>
                   )}
@@ -617,17 +674,23 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
 
                 <p className="text-xs text-neutral-400 leading-relaxed">
                   {isUnlockedRevisit
-                    ? '현재 금고가 열려 있습니다. 로그아웃하면 메모리 내 암호화 키가 즉시 파기됩니다.'
+                    ? isKo
+                      ? '현재 금고가 열려 있습니다. 로그아웃하면 메모리 내 암호화 키가 즉시 파기됩니다.'
+                      : 'Your vault is currently unlocked. Signing out immediately clears encryption keys from memory.'
                     : isPinSet
-                      ? `${localProfile?.userName ? `${localProfile.userName}님의 로컬 계정이` : '이 기기에 로컬 계정이'} 안전하게 잠겨 있습니다. PIN 로그인 후 금고가 열립니다.`
-                      : '로컬 계정은 기기 내 영구 암호화되며, 게스트 모드는 바로 체험 후 로그아웃 시 초기화됩니다.'}
+                      ? isKo
+                        ? `${localProfile?.userName ? `${localProfile.userName}님의 로컬 계정이` : '이 기기에 로컬 계정이'} 안전하게 잠겨 있습니다. PIN 로그인 후 금고가 열립니다.`
+                        : `${localProfile?.userName ? `${localProfile.userName}'s local account` : 'Your local account'} is safely locked on this device. Enter your PIN to unlock.`
+                      : isKo
+                        ? '로컬 계정은 기기 내 영구 암호화되며, 게스트 모드는 바로 체험 후 로그아웃 시 초기화됩니다.'
+                        : 'Local accounts are permanently encrypted on-device. Guest Mode lets you explore immediately and resets on sign-out.'}
                 </p>
               </div>
             </div>
 
             {/* Quiet Editorial Colophon / Specifications */}
             <aside
-              aria-label="아키텍처 요약"
+              aria-label={isKo ? '아키텍처 요약' : 'Architecture summary'}
               className="lg:col-span-4 lg:pt-3 border-t border-white/[0.09] divide-y divide-white/[0.08]"
             >
               <dl className="divide-y divide-white/[0.08]">
@@ -645,38 +708,91 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
               </dl>
 
               {/* Korean Four Seasons Color Set Quick Switcher */}
+              {(() => {
+                const activeSeason =
+                  SEASON_THEMES.find((s) => s.id === seasonTheme) || SEASON_THEMES[3];
+                return (
+                  <div className="py-3.5 space-y-2.5">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span id="welcome-season-label" className="text-xs text-neutral-400 shrink-0">
+                        {isKo ? '사계 테마' : 'Seasons'}
+                      </span>
+                      <span className="text-[11px] text-neutral-400 truncate text-right">
+                        {isKo
+                          ? `${activeSeason.poeticKo} · ${activeSeason.subtitleKo}`
+                          : activeSeason.poeticEn}
+                      </span>
+                    </div>
+                    <div
+                      className="grid grid-cols-4 gap-1.5"
+                      role="radiogroup"
+                      aria-labelledby="welcome-season-label"
+                    >
+                      {SEASON_THEMES.map((season) => {
+                        const isActive = seasonTheme === season.id;
+                        return (
+                          <button
+                            key={season.id}
+                            id={`welcome-season-${season.id}`}
+                            type="button"
+                            role="radio"
+                            aria-checked={isActive}
+                            onClick={() => handleSelectSeason(season.id)}
+                            title={
+                              isKo
+                                ? `${season.seasonKo} · ${season.poeticKo} (${season.subtitleKo})`
+                                : `${season.labelEn} · ${season.poeticEn} (${season.subtitleEn})`
+                            }
+                            className={`inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
+                              isActive
+                                ? 'bg-[var(--color-accent-subtle)] text-white font-semibold'
+                                : 'bg-white/[0.02] text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.05]'
+                            }`}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="w-2 h-2 rounded-full shrink-0 border border-white/25"
+                              style={{ backgroundColor: season.accentHex }}
+                            />
+                            <span>{isKo ? season.seasonKo : season.labelEn}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Language Quick Switcher (KO / EN) */}
               <div className="py-3.5 flex items-center justify-between gap-3">
-                <span id="welcome-season-label" className="text-xs text-neutral-400 shrink-0">
-                  사계 테마
+                <span id="welcome-lang-label" className="text-xs text-neutral-400 shrink-0">
+                  {isKo ? '언어' : 'Language'}
                 </span>
                 <div
                   className="flex items-center gap-1"
                   role="radiogroup"
-                  aria-labelledby="welcome-season-label"
+                  aria-labelledby="welcome-lang-label"
                 >
-                  {SEASON_THEMES.map((season) => {
-                    const isActive = seasonTheme === season.id;
+                  {([
+                    { code: 'ko' as const, label: '한국어' },
+                    { code: 'en' as const, label: 'English' },
+                  ]).map((opt) => {
+                    const isActive = (isKo ? 'ko' : 'en') === opt.code;
                     return (
                       <button
-                        key={season.id}
-                        id={`welcome-season-${season.id}`}
+                        key={opt.code}
+                        id={`welcome-lang-${opt.code}`}
                         type="button"
                         role="radio"
                         aria-checked={isActive}
-                        onClick={() => handleSelectSeason(season.id)}
-                        title={`${season.seasonKo} · ${season.poeticKo} (${season.subtitleKo})`}
-                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
+                        onClick={() => setLanguage(opt.code)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
                           isActive
                             ? 'bg-[var(--color-accent-subtle)] text-white font-semibold'
                             : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]'
                         }`}
                       >
-                        <span
-                          aria-hidden="true"
-                          className="w-2 h-2 rounded-full shrink-0 border border-white/25"
-                          style={{ backgroundColor: season.accentHex }}
-                        />
-                        <span>{season.seasonKo}</span>
+                        {opt.label}
                       </button>
                     );
                   })}
@@ -688,7 +804,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
           {/* 3-Column Horizontal Editorial Principles Index */}
           <section
             id="welcome-pillars"
-            aria-label="핵심 설계 원칙"
+            aria-label={isKo ? '핵심 설계 원칙' : 'Core design principles'}
             className="mt-14 sm:mt-20 pt-10 sm:pt-12 border-t border-white/[0.09]"
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-9 md:gap-10">
@@ -717,7 +833,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
             {/* Left: Policy Menu & Company Info */}
             <div className="space-y-4">
               <nav
-                aria-label="정책 및 약관 메뉴"
+                aria-label={isKo ? '정책 및 약관 메뉴' : 'Policies and legal links'}
                 className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-neutral-300"
               >
                 {FOOTER_POLICY_LINKS.map((item) => (
@@ -727,19 +843,21 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                     onClick={() => openPolicyModal(item.tab)}
                     className="hover:text-white transition-colors whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:underline"
                   >
-                    {item.label}
+                    {isKo ? item.label : FOOTER_POLICY_LABELS_EN[item.tab]}
                   </button>
                 ))}
               </nav>
 
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-neutral-400">
                 <span className="text-neutral-200 font-medium">
-                  한국센터글로벌네트워크 지식관리실
+                  {isKo ? '한국센터글로벌네트워크 지식관리실' : 'Korean Center Global Network · Knowledge Lab'}
                 </span>
                 <span aria-hidden="true" className="text-neutral-600">
                   ·
                 </span>
-                <span className="tabular-nums">사업자등록번호 141-82-83410</span>
+                <span className="tabular-nums">
+                  {isKo ? '사업자등록번호 141-82-83410' : 'Reg. 141-82-83410'}
+                </span>
                 <span aria-hidden="true" className="text-neutral-600">
                   ·
                 </span>
@@ -756,8 +874,8 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
               <FooterLinkListbox
                 id="goguma-universe"
-                label="고구마 유니버스"
-                links={GOGUMA_UNIVERSE_LINKS}
+                label={isKo ? '고구마 유니버스' : 'Goguma Universe'}
+                links={localizedUniverseLinks}
                 isOpen={openFooterListbox === 'universe'}
                 onToggle={() =>
                   setOpenFooterListbox((prev) => (prev === 'universe' ? null : 'universe'))
@@ -767,7 +885,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
 
               <FooterLinkListbox
                 id="related-sites"
-                label="관련 사이트"
+                label={isKo ? '관련 사이트' : 'Related Sites'}
                 links={RELATED_SITE_LINKS}
                 isOpen={openFooterListbox === 'related'}
                 onToggle={() =>
@@ -782,7 +900,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
           <div className="mt-8 pt-5 pb-[env(safe-area-inset-bottom)] border-t border-white/[0.05] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11.5px] text-neutral-400">
             <p className="tabular-nums">© 2026 Vibe Vault · MIT License</p>
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span>개인정보수집 없음</span>
+              <span>{isKo ? '개인정보수집 없음' : 'No Data Collection'}</span>
               <span aria-hidden="true">·</span>
               <span>No Cookies</span>
               <span aria-hidden="true">·</span>
@@ -814,23 +932,35 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                   className="text-lg font-semibold tracking-tight text-white"
                 >
                   {accountModalMode === 'create'
-                    ? '로컬 계정 만들기'
-                    : localProfile?.userName
-                      ? `${localProfile.userName}님 로그인`
-                      : '로컬 계정 로그인'}
+                    ? isKo
+                      ? '로컬 계정 만들기'
+                      : 'Create Local Account'
+                    : isKo
+                      ? localProfile?.userName
+                        ? `${localProfile.userName}님 로그인`
+                        : '로컬 계정 로그인'
+                      : localProfile?.userName
+                        ? `Sign in as ${localProfile.userName}`
+                        : 'Sign in to Local Vault'}
                 </h2>
                 <p className="text-xs text-neutral-400 leading-relaxed">
                   {accountModalMode === 'create'
-                    ? '입력한 정보는 서버로 전송되지 않으며, 이 기기 내부에만 암호화 저장됩니다.'
+                    ? isKo
+                      ? '입력한 정보는 서버로 전송되지 않으며, 이 기기 내부에만 암호화 저장됩니다.'
+                      : 'Your details are never sent to any server and are encrypted strictly on this device.'
                     : localProfile?.pinName
-                      ? `PIN 이름 · ${localProfile.pinName}`
-                      : '설정한 4~6자리 마스터 PIN 번호를 입력해 로그인하세요.'}
+                      ? isKo
+                        ? `PIN 이름 · ${localProfile.pinName}`
+                        : `PIN label · ${localProfile.pinName}`
+                      : isKo
+                        ? '설정한 4~6자리 마스터 PIN 번호를 입력해 로그인하세요.'
+                        : 'Enter your 4–6 digit Master PIN to unlock your vault.'}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => !isSubmitting && setAccountModalMode(null)}
-                aria-label="닫기"
+                aria-label={isKo ? '닫기' : 'Close'}
                 className="p-1.5 -mr-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
               >
                 <X size={16} />
@@ -845,7 +975,10 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                     htmlFor="local-account-username"
                     className="block text-xs font-medium text-neutral-200"
                   >
-                    사용자 이름 <span className="text-neutral-500 font-normal">(필수)</span>
+                    {isKo ? '사용자 이름' : 'Display Name'}{' '}
+                    <span className="text-neutral-500 font-normal">
+                      {isKo ? '(필수)' : '(Required)'}
+                    </span>
                   </label>
                   <input
                     ref={userNameInputRef}
@@ -858,7 +991,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       setUserName(e.target.value);
                       setFormError(null);
                     }}
-                    placeholder="예: 김민수 또는 개인 별명"
+                    placeholder={isKo ? '예: 김민수 또는 개인 별명' : 'e.g. Alex Kim'}
                     className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-[16px] sm:text-sm text-white placeholder:text-neutral-400 transition-colors"
                   />
                 </div>
@@ -869,7 +1002,10 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                     htmlFor="local-account-pin-name"
                     className="block text-xs font-medium text-neutral-200"
                   >
-                    PIN 이름 <span className="text-neutral-500 font-normal">(선택 · 구분용 라벨)</span>
+                    {isKo ? 'PIN 이름' : 'PIN Label'}{' '}
+                    <span className="text-neutral-500 font-normal">
+                      {isKo ? '(선택 · 구분용 라벨)' : '(Optional)'}
+                    </span>
                   </label>
                   <input
                     id="local-account-pin-name"
@@ -881,7 +1017,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       setPinName(e.target.value);
                       setFormError(null);
                     }}
-                    placeholder="예: 메인 개인 금고 PIN"
+                    placeholder={isKo ? '예: 메인 개인 금고 PIN' : 'e.g. Personal Main Vault'}
                     className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-[16px] sm:text-sm text-white placeholder:text-neutral-400 transition-colors"
                   />
                 </div>
@@ -893,7 +1029,10 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       htmlFor="local-account-pin"
                       className="block text-xs font-medium text-neutral-200"
                     >
-                      마스터 PIN <span className="text-neutral-500 font-normal">(4~6자리 숫자)</span>
+                      {isKo ? '마스터 PIN' : 'Master PIN'}{' '}
+                      <span className="text-neutral-500 font-normal">
+                        {isKo ? '(4~6자리 숫자)' : '(4–6 digits)'}
+                      </span>
                     </label>
                     <span className="text-[11px] font-mono text-neutral-500 tabular-nums">
                       {pin.length}/6
@@ -912,13 +1051,13 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         setPin(e.target.value.replace(/\D/g, '').slice(0, 6));
                         setFormError(null);
                       }}
-                      placeholder="숫자 4~6자리 입력"
+                      placeholder={isKo ? '숫자 4~6자리 입력' : 'Enter 4–6 digits'}
                       className="w-full h-11 pl-3.5 pr-10 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-[16px] sm:text-sm text-white placeholder:text-neutral-400 tracking-[0.2em] font-mono tabular-nums transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPin((prev) => !prev)}
-                      aria-label={showPin ? 'PIN 숨기기' : 'PIN 표시'}
+                      aria-label={showPin ? (isKo ? 'PIN 숨기기' : 'Hide PIN') : (isKo ? 'PIN 표시' : 'Show PIN')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                     >
                       {showPin ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -933,7 +1072,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       htmlFor="local-account-pin-confirm"
                       className="block text-xs font-medium text-neutral-200"
                     >
-                      마스터 PIN 확인
+                      {isKo ? '마스터 PIN 확인' : 'Confirm Master PIN'}
                     </label>
                     <span className="text-[11px] font-mono text-neutral-500 tabular-nums">
                       {confirmPin.length}/6
@@ -951,7 +1090,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6));
                       setFormError(null);
                     }}
-                    placeholder="마스터 PIN 한 번 더 입력"
+                    placeholder={isKo ? '마스터 PIN 한 번 더 입력' : 'Re-enter Master PIN'}
                     className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-[16px] sm:text-sm text-white placeholder:text-neutral-400 tracking-[0.2em] font-mono tabular-nums transition-colors"
                   />
                 </div>
@@ -969,7 +1108,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                     disabled={isSubmitting}
                     className="h-11 px-4 rounded-xl border border-white/[0.14] text-xs font-medium text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors cursor-pointer whitespace-nowrap"
                   >
-                    취소
+                    {isKo ? '취소' : 'Cancel'}
                   </button>
                   <button
                     type="submit"
@@ -980,7 +1119,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       <Loader2 size={14} className="animate-spin" />
                     ) : (
                       <>
-                        <span>로컬 계정 시작하기</span>
+                        <span>{isKo ? '로컬 계정 시작하기' : 'Create & Open Vault'}</span>
                         <ArrowRight size={14} />
                       </>
                     )}
@@ -995,7 +1134,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       htmlFor="local-account-unlock-pin"
                       className="block text-xs font-medium text-neutral-200"
                     >
-                      마스터 PIN 입력
+                      {isKo ? '마스터 PIN 입력' : 'Enter Master PIN'}
                     </label>
                     <span className="text-[11px] font-mono text-neutral-400 tabular-nums">
                       {pin.length}/6
@@ -1015,13 +1154,13 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         setPin(e.target.value.replace(/\D/g, '').slice(0, 6));
                         setFormError(null);
                       }}
-                      placeholder="4~6자리 숫자 입력"
+                      placeholder={isKo ? '4~6자리 숫자 입력' : 'Enter 4–6 digits'}
                       className="w-full h-11 pl-3.5 pr-11 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-[16px] sm:text-sm text-white placeholder:text-neutral-400 tracking-[0.2em] font-mono tabular-nums transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPin((prev) => !prev)}
-                      aria-label={showPin ? 'PIN 숨기기' : 'PIN 표시'}
+                      aria-label={showPin ? (isKo ? 'PIN 숨기기' : 'Hide PIN') : (isKo ? 'PIN 표시' : 'Show PIN')}
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                     >
                       {showPin ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -1054,7 +1193,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                     disabled={isSubmitting}
                     className="h-11 px-4 rounded-xl border border-white/[0.14] text-xs font-medium text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors cursor-pointer whitespace-nowrap"
                   >
-                    취소
+                    {isKo ? '취소' : 'Cancel'}
                   </button>
                   <button
                     type="submit"
@@ -1065,7 +1204,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       <Loader2 size={14} className="animate-spin" />
                     ) : (
                       <>
-                        <span>로그인</span>
+                        <span>{isKo ? '로그인' : 'Sign In'}</span>
                         <ArrowRight size={14} />
                       </>
                     )}

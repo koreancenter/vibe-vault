@@ -80,7 +80,7 @@ export const translations = {
     ledger: 'Ledger',
 
     // Omnibar Placeholders
-    placeholder_vault: 'e.g. Chase Checking $4,200, Apple Stock $12k',
+    placeholder_vault: 'Quick log expense or income (e.g. Lunch $15, Salary $3,200)',
     placeholder_insights: 'e.g. FX gains this month, dining expense ratio',
     placeholder_ledger: 'e.g. Lunch $15, MacBook $1,800 10mo split',
 
@@ -395,7 +395,7 @@ export const translations = {
     ledger: '장부',
 
     // Omnibar Placeholders
-    placeholder_vault: '예: 신한 마통 -350만, 토스증권 1,250만',
+    placeholder_vault: '지출·수입 빠른 기록 (예: 점심 12,000원, 월급 300만원 입금)',
     placeholder_insights: '예: 9월 환차익 얼마야?, 이번 달 식비 비중',
     placeholder_ledger: '예: 점심 9천원, 갤럭시북 180만 10개월 할부',
 
@@ -710,7 +710,7 @@ export const translations = {
     ledger: '家計簿',
 
     // Omnibar Placeholders
-    placeholder_vault: '例: 三井住友 口座 35万円, SBI証券 125万円',
+    placeholder_vault: '支出・収入を素早く記録 (例: ランチ 1,200円, 給料 30万円入金)',
     placeholder_insights: '例: 今月の為替差益, 食費の支出割合',
     placeholder_ledger: '例: ランチ 1,200円, iPad 18万円 10回分割',
 
@@ -1025,7 +1025,7 @@ export const translations = {
     ledger: 'Ledger',
 
     // Omnibar Placeholders
-    placeholder_vault: 'e.g. BNP Checking €3,500, Trade Republic €12k',
+    placeholder_vault: 'Quick log expense or income (e.g. Lunch €15, Salary €3,200)',
     placeholder_insights: 'e.g. FX return this month, grocery spending ratio',
     placeholder_ledger: 'e.g. Lunch €15, Laptop €1,800 10mo installment',
 

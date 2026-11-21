@@ -274,6 +274,144 @@ export function getCategoryKo(category: string, subCategory?: string): string {
   return `${baseKo} · ${subKo}`;
 }
 
+export const CATEGORY_NAMES_EN: Record<string, string> = {
+  Food: 'Food & Dining',
+  Fixed: 'Fixed Bills',
+  Living: 'Living & Shopping',
+  Transport: 'Transport',
+  Health: 'Health',
+  Leisure: 'Leisure',
+  Income: 'Income',
+  Salary: 'Salary',
+  Uncategorized: 'Uncategorized',
+  식비: 'Food & Dining',
+  고정지출: 'Fixed Bills',
+  '생활/쇼핑': 'Living & Shopping',
+  교통: 'Transport',
+  '의료/건강': 'Health',
+  '문화/여가': 'Leisure',
+  급여: 'Salary',
+  '급여/수입': 'Income',
+  미분류: 'Uncategorized',
+};
+
+export const SUBCATEGORY_NAMES_EN: Record<string, string> = {
+  Dining: 'Dining',
+  Cafe: 'Cafe',
+  Delivery: 'Delivery',
+  Grocery: 'Groceries',
+  Shopping: 'Shopping',
+  'Daily Supplies': 'Supplies',
+  Fashion: 'Fashion',
+  Convenience: 'Convenience',
+  General: 'General',
+  Refund: 'Refund',
+  'Public Transport': 'Transit',
+  Taxi: 'Taxi',
+  Vehicle: 'Vehicle',
+  Salary: 'Salary',
+  정기수입: 'Salary',
+  급여: 'Salary',
+  식비: 'Dining',
+  외식: 'Dining',
+  카페: 'Cafe',
+  배달: 'Delivery',
+  마트: 'Groceries',
+  교통: 'Transport',
+  쇼핑: 'Shopping',
+  주거: 'Housing',
+  통신: 'Telecom',
+  의료: 'Medical',
+  운동: 'Fitness',
+  여행: 'Travel',
+  취미: 'Hobbies',
+  기타: 'Other',
+  Subscription: 'Subscriptions',
+  Subscriptions: 'Subscriptions',
+  구독: 'Subscriptions',
+  Utilities: 'Utilities',
+  Finance: 'Finance',
+  Savings: 'Savings',
+  Rent: 'Rent',
+  Medical: 'Medical',
+  Fitness: 'Fitness',
+  Entertainment: 'Entertainment',
+  Travel: 'Travel',
+  Hobbies: 'Hobbies',
+  카드대금: 'Card Payment',
+  '카드대금 납부': 'Card Payment',
+  '내부이체/원금상환': 'Internal Transfer',
+};
+
+export function getCategoryLabel(
+  category: string,
+  subCategory?: string,
+  language: string = 'ko'
+): string {
+  if (language === 'ko') {
+    return getCategoryKo(category, subCategory);
+  }
+  if (
+    category === 'Income' ||
+    category === 'Salary' ||
+    subCategory === 'Salary' ||
+    subCategory === '정기수입' ||
+    subCategory === '급여'
+  ) {
+    return 'Salary';
+  }
+  if (subCategory === 'Refund' || category === '환불') {
+    return 'Refund';
+  }
+  const baseEn = CATEGORY_NAMES_EN[category] || category;
+  if (!subCategory) return baseEn;
+  const subEn = SUBCATEGORY_NAMES_EN[subCategory] || subCategory;
+  if (subEn.toLowerCase() === baseEn.toLowerCase()) return baseEn;
+  if (category === 'Food' && (subCategory === 'Dining' || subCategory === '식비')) return 'Food & Dining';
+  if (category === 'Living' && (subCategory === 'Shopping' || subCategory === 'General')) return 'Living & Shopping';
+  if (category === 'Transport' && subCategory === 'Public Transport') return 'Transport';
+  if (category === 'Health' && subCategory === 'Medical') return 'Health';
+  if (category === 'Leisure' && subCategory === 'Entertainment') return 'Leisure';
+  return `${baseEn} · ${subEn}`;
+}
+
+export function getPaymentMethodLabel(
+  method?: string,
+  transactionType?: string,
+  language: string = 'ko'
+): string {
+  const koLabel = getPaymentMethodKo(method, transactionType);
+  if (language === 'ko') {
+    return koLabel;
+  }
+  if (!koLabel) return '';
+  const map: Record<string, string> = {
+    카드: 'Card',
+    신용카드: 'Credit Card',
+    체크카드: 'Debit Card',
+    통장: 'Bank Account',
+    계좌: 'Bank Account',
+    계좌이체: 'Bank Transfer',
+    현금: 'Cash',
+    간편결제: 'Digital Wallet',
+    토스: 'Toss',
+    토스페이: 'Toss Pay',
+    카카오페이: 'Kakao Pay',
+    네이버페이: 'Naver Pay',
+    애플페이: 'Apple Pay',
+    삼성페이: 'Samsung Pay',
+    '카드/현금': 'Card / Cash',
+  };
+  if (map[koLabel]) return map[koLabel];
+  if (/신용카드/.test(koLabel)) return 'Credit Card';
+  if (/체크카드/.test(koLabel)) return 'Debit Card';
+  if (/카드/.test(koLabel)) return 'Card';
+  if (/통장|계좌|은행/.test(koLabel)) return 'Bank Account';
+  if (/현금/.test(koLabel)) return 'Cash';
+  if (/페이/.test(koLabel)) return 'Digital Wallet';
+  return koLabel;
+}
+
 export const TRANSACTION_TYPE_KO: Record<string, string> = {
   ALL: '전체',
   EXPENSE: '지출',

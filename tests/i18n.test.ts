@@ -155,10 +155,10 @@ describe('i18n System Architecture', () => {
     });
 
     it('has distinctive omnibar placeholder texts for each tab across all 4 locales', () => {
-      expect(translations.ko.placeholder_vault).toContain('신한');
-      expect(translations.en.placeholder_vault).toContain('Chase');
-      expect(translations.ja.placeholder_vault).toContain('三井住友');
-      expect(translations.eu.placeholder_vault).toContain('BNP');
+      expect(translations.ko.placeholder_vault).toContain('지출·수입');
+      expect(translations.en.placeholder_vault).toContain('$3,200');
+      expect(translations.ja.placeholder_vault).toContain('支出・収入');
+      expect(translations.eu.placeholder_vault).toContain('€3,200');
 
       expect(translations.ko.placeholder_insights).toContain('환차익');
       expect(translations.en.placeholder_insights).toContain('FX');

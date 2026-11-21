@@ -6,6 +6,8 @@ export interface SeasonThemeMeta {
   poeticKo: string;
   subtitleKo: string;
   labelEn: string;
+  poeticEn: string;
+  subtitleEn: string;
   /** Preview swatch hexes for UI selector */
   canvasHex: string;
   cardHex: string;
@@ -25,6 +27,8 @@ export const SEASON_THEMES: readonly SeasonThemeMeta[] = [
     poeticKo: '춘야',
     subtitleKo: '밤벚꽃 · 청자',
     labelEn: 'Spring',
+    poeticEn: 'Night Blossom',
+    subtitleEn: 'Cherry Petal · Celadon',
     canvasHex: '#100C12',
     cardHex: '#18121B',
     accentHex: '#F4B8C5',
@@ -39,6 +43,8 @@ export const SEASON_THEMES: readonly SeasonThemeMeta[] = [
     poeticKo: '청하',
     subtitleKo: '동해밤 · 청죽',
     labelEn: 'Summer',
+    poeticEn: 'Azure Summer',
+    subtitleEn: 'Deep Sea · Bamboo',
     canvasHex: '#080E18',
     cardHex: '#0F1826',
     accentHex: '#7DD3FC',
@@ -53,6 +59,8 @@ export const SEASON_THEMES: readonly SeasonThemeMeta[] = [
     poeticKo: '추색',
     subtitleKo: '단풍 · 황토먹',
     labelEn: 'Autumn',
+    poeticEn: 'Maple Dusk',
+    subtitleEn: 'Amber Leaf · Ochre Ink',
     canvasHex: '#110D0A',
     cardHex: '#1B1510',
     accentHex: '#F6B667',
@@ -67,6 +75,8 @@ export const SEASON_THEMES: readonly SeasonThemeMeta[] = [
     poeticKo: '설야',
     subtitleKo: '수묵 · 설백',
     labelEn: 'Winter',
+    poeticEn: 'Snowy Night',
+    subtitleEn: 'Sumi Ink · Snow White',
     canvasHex: '#090A0D',
     cardHex: '#111217',
     accentHex: '#FFFFFF',

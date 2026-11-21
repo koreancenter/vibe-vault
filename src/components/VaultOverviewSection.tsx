@@ -54,7 +54,8 @@ import {
   getCurrencySymbol,
   getDualCurrencyComparison,
   getAssetCategoryKo, 
-  getCategoryKo,
+  getCategoryLabel,
+  getPaymentMethodLabel,
   ASSET_CATEGORY_NAMES_KO, 
   AIEngineConfig, 
   getAIEngineConfig,
@@ -82,6 +83,8 @@ interface VaultOverviewSectionProps {
   transactions?: Transaction[];
   onNavigateToLedger?: () => void;
   onNavigateToInsights?: () => void;
+  openAddAccountSignal?: number;
+  onConsumeAddAccountSignal?: () => void;
 }
 
 export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
@@ -95,8 +98,11 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
   transactions: propTransactions,
   onNavigateToLedger,
   onNavigateToInsights,
+  openAddAccountSignal = 0,
+  onConsumeAddAccountSignal,
 }) => {
   const { t, language } = useI18n();
+  const isKo = language === 'ko';
   const isLight = theme === 'light';
   const [accounts, setAccounts] = useState<AssetAccount[]>([]);
   const [debts, setDebts] = useState<DebtItem[]>([]);
@@ -105,6 +111,13 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
   // Modals & Active Drawer states
   const [showAddModal, setShowAddModal] = useState(false);
+
+  useEffect(() => {
+    if (openAddAccountSignal > 0) {
+      setShowAddModal(true);
+      onConsumeAddAccountSignal?.();
+    }
+  }, [openAddAccountSignal, onConsumeAddAccountSignal]);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
   const [editingBalanceAccount, setEditingBalanceAccount] = useState<AssetAccount | null>(null);
@@ -817,13 +830,19 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
   };
 
   const assetCategories: { type: AssetCategoryType; label: string; icon: React.ReactNode; color: string }[] = [
-    { type: 'BROKERAGE', label: '투자', icon: <TrendingUp size={14} />, color: 'from-blue-500 to-indigo-600' },
-    { type: 'BANK', label: '예적금', icon: <Landmark size={14} />, color: 'from-sky-500 to-blue-600' },
-    { type: 'CRYPTO', label: '가상자산', icon: <Bitcoin size={14} />, color: 'from-amber-500 to-yellow-600' },
-    { type: 'REAL_ESTATE', label: '부동산', icon: <Building size={14} />, color: 'from-purple-500 to-pink-600' },
-    { type: 'CASH', label: '현금', icon: <Banknote size={14} />, color: 'from-sky-500 to-cyan-600' },
-    { type: 'LIABILITY', label: '부채', icon: <CreditCard size={14} />, color: 'from-neutral-700 to-neutral-800' },
+    { type: 'BROKERAGE', label: isKo ? '투자' : 'Investments', icon: <TrendingUp size={14} />, color: 'from-blue-500 to-indigo-600' },
+    { type: 'BANK', label: isKo ? '예적금' : 'Banking', icon: <Landmark size={14} />, color: 'from-sky-500 to-blue-600' },
+    { type: 'CRYPTO', label: isKo ? '가상자산' : 'Crypto', icon: <Bitcoin size={14} />, color: 'from-amber-500 to-yellow-600' },
+    { type: 'REAL_ESTATE', label: isKo ? '부동산' : 'Real Estate', icon: <Building size={14} />, color: 'from-purple-500 to-pink-600' },
+    { type: 'CASH', label: isKo ? '현금' : 'Cash', icon: <Banknote size={14} />, color: 'from-sky-500 to-cyan-600' },
+    { type: 'LIABILITY', label: isKo ? '부채' : 'Liabilities', icon: <CreditCard size={14} />, color: 'from-neutral-700 to-neutral-800' },
   ];
+
+  const getAssetTypeLabel = (type: AssetCategoryType) => {
+    if (isKo) return getAssetCategoryKo(type);
+    const found = assetCategories.find((c) => c.type === type);
+    return found ? found.label : type;
+  };
 
   return (
     <div className="w-full flex flex-col gap-4 pb-8">
@@ -877,7 +896,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               ) : (
                 <>
                   <div className="mt-1.5 text-2xl sm:text-3xl font-medium tracking-tight text-neutral-300">
-                    계좌 미등록
+                    {isKo ? '계좌 미등록' : 'No accounts yet'}
                   </div>
                   <div className={`mt-1.5 text-xs font-normal text-neutral-300 tabular-nums flex flex-wrap items-center gap-x-2 gap-y-0.5 ${
                     stealthMode ? 'blur-xs select-none' : ''
@@ -885,7 +904,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     {localTransactions.length > 0 ? (
                       <>
                         <span>
-                          가계부 순현금흐름{' '}
+                          {isKo ? '가계부 순현금흐름' : 'Ledger net cashflow'}{' '}
                           <span className={ledgerNetCashflow >= 0 ? 'text-sky-400 font-medium' : 'text-amber-400 font-medium'}>
                             {ledgerNetCashflow > 0 ? '+' : ''}
                             {formatCurrency(ledgerNetCashflow, currentCurrency)}
@@ -894,12 +913,12 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                         {totalCardLiabilities > 0 && (
                           <>
                             <span className="opacity-40">·</span>
-                            <span>미결제 카드 {formattedTotalUnpaid}</span>
+                            <span>{isKo ? '미결제 카드' : 'Unpaid card'} {formattedTotalUnpaid}</span>
                           </>
                         )}
                       </>
                     ) : (
-                      <span>자산 계좌를 등록하면 순자산이 집계됩니다.</span>
+                      <span>{isKo ? '자산 계좌를 등록하면 순자산이 집계됩니다.' : 'Add an account to calculate your net worth.'}</span>
                     )}
                   </div>
                 </>
@@ -959,10 +978,14 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         }`}>
           <div className="space-y-1.5 max-w-md mx-auto">
             <h2 className="text-white font-semibold text-base sm:text-lg">
-              첫 자산 계좌를 등록하거나 샘플 데이터로 체험해보세요
+              {isKo
+                ? '첫 자산 계좌를 등록하거나 샘플 데이터로 체험해보세요'
+                : 'Add your first account or explore with sample data'}
             </h2>
             <p className="text-neutral-300 text-xs leading-relaxed">
-              은행·증권 앱 캡처 화면을 스캔하거나, 샘플 데이터를 불러와 모든 기능을 즉시 확인할 수 있습니다.
+              {isKo
+                ? '은행·증권 앱 캡처 화면을 스캔하거나, 샘플 데이터를 불러와 모든 기능을 즉시 확인할 수 있습니다.'
+                : 'Scan a banking or brokerage screenshot, or load sample data to explore every feature right away.'}
             </p>
           </div>
 
@@ -973,7 +996,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               onClick={handleLoadSampleFromVault}
               className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white text-black font-semibold text-xs hover:bg-neutral-200 transition-all active:scale-95 cursor-pointer shadow-sm flex items-center justify-center whitespace-nowrap"
             >
-              <span>샘플 데이터로 체험하기</span>
+              <span>{isKo ? '샘플 데이터로 체험하기' : 'Try Sample Data'}</span>
             </button>
 
             <button
@@ -982,7 +1005,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               onClick={() => setShowAddModal(true)}
               className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/15 text-xs font-medium transition-all active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
             >
-              <span>+ 계좌 직접 등록</span>
+              <span>{isKo ? '+ 계좌 직접 등록' : '+ Add Account'}</span>
             </button>
 
             <button
@@ -991,7 +1014,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               onClick={() => setShowScanModal(true)}
               className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/15 text-xs font-medium transition-all active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
             >
-              <span>앱 화면 캡처 스캔</span>
+              <span>{isKo ? '앱 화면 캡처 스캔' : 'Scan Screenshot'}</span>
             </button>
           </div>
         </div>
@@ -1056,7 +1079,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                   : 'bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white border-white/15'
               }`}
             >
-              전체 ({accounts.length})
+              {isKo ? '전체' : 'All'} ({accounts.length})
             </button>
 
             {assetCategories.map((cat) => {
@@ -1086,13 +1109,15 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
             <div className={`p-6 rounded-2xl border text-center space-y-2.5 ${
               isLight ? 'bg-slate-50/70 border-slate-200 text-slate-600' : 'bg-[var(--surface-card)]/90 backdrop-blur-xl border border-white/10 text-neutral-300'
             }`}>
-              <p className="text-xs font-normal">선택한 분류에 해당하는 자산 계좌가 없습니다.</p>
+              <p className="text-xs font-normal">
+                {isKo ? '선택한 분류에 해당하는 자산 계좌가 없습니다.' : 'No accounts found in this category.'}
+              </p>
               <button
                 type="button"
                 onClick={() => setSelectedFilter('ALL')}
                 className="text-xs text-white hover:underline font-medium cursor-pointer"
               >
-                전체 계좌 보기
+                {isKo ? '전체 계좌 보기' : 'View All Accounts'}
               </button>
             </div>
           ) : (
@@ -1127,13 +1152,19 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                           </span>
                           <span className="text-white/30 font-normal text-xs">·</span>
                           <span className="text-xs font-normal text-neutral-300 shrink-0">
-                            {acc.isOverdraft ? '마이너스통장' : getAssetCategoryKo(acc.assetType)}
+                            {acc.isOverdraft
+                              ? (isKo ? '마이너스통장' : 'Credit Line')
+                              : getAssetTypeLabel(acc.assetType)}
                           </span>
                           {(acc.isOverdraft || isNegativeOverdraft) && (
                             <span className="inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border border-white/15 bg-white/[0.06] text-amber-300 font-mono tracking-tight">
                               {acc.currentBalance < 0
-                                ? `마이너스 대출 이용 중${acc.overdraftLimit ? ` (한도 ${formatCurrency(acc.overdraftLimit, acc.currency || currentCurrency)})` : ''}`
-                                : `마이너스 통장${acc.overdraftLimit ? ` (한도 ${formatCurrency(acc.overdraftLimit, acc.currency || currentCurrency)})` : ''}`}
+                                ? (isKo
+                                    ? `마이너스 대출 이용 중${acc.overdraftLimit ? ` (한도 ${formatCurrency(acc.overdraftLimit, acc.currency || currentCurrency)})` : ''}`
+                                    : `Overdraft active${acc.overdraftLimit ? ` (Limit ${formatCurrency(acc.overdraftLimit, acc.currency || currentCurrency)})` : ''}`)
+                                : (isKo
+                                    ? `마이너스 통장${acc.overdraftLimit ? ` (한도 ${formatCurrency(acc.overdraftLimit, acc.currency || currentCurrency)})` : ''}`
+                                    : `Credit line${acc.overdraftLimit ? ` (Limit ${formatCurrency(acc.overdraftLimit, acc.currency || currentCurrency)})` : ''}`)}
                             </span>
                           )}
                         </div>
@@ -1182,8 +1213,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                             setEditingBalanceAccount(acc);
                             setNewBalanceInput(acc.currentBalance.toString());
                           }}
-                          title="잔고 수정"
-                          aria-label={`${acc.accountName} 잔고 수정`}
+                          title={isKo ? '잔고 수정' : 'Edit balance'}
+                          aria-label={isKo ? `${acc.accountName} 잔고 수정` : `Edit balance for ${acc.accountName}`}
                           className="p-1.5 rounded-lg text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                         >
                           <Pencil size={13} />
@@ -1191,8 +1222,8 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                         <button
                           type="button"
                           onClick={() => handleDeleteAccount(acc.id, acc.accountName)}
-                          title="계좌 삭제"
-                          aria-label={`${acc.accountName} 계좌 삭제`}
+                          title={isKo ? '계좌 삭제' : 'Delete account'}
+                          aria-label={isKo ? `${acc.accountName} 계좌 삭제` : `Delete ${acc.accountName}`}
                           className="p-1.5 rounded-lg text-neutral-300 hover:text-rose-400 hover:bg-white/[0.08] transition-colors cursor-pointer"
                         >
                           <Trash2 size={13} />
@@ -1204,7 +1235,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                     {acc.holdings && acc.holdings.length > 0 && (
                       <div className="mt-2.5 pt-2 border-t border-white/[0.06] space-y-1.5">
                         <span className="text-[11px] font-medium text-neutral-300 block">
-                          보유 종목 ({acc.holdings.length})
+                          {isKo ? '보유 종목' : 'Holdings'} ({acc.holdings.length})
                         </span>
                         <div className="space-y-1 max-h-24 overflow-y-auto scrollbar-none divide-y divide-white/[0.04]">
                           {acc.holdings.map((h, idx) => (
@@ -1245,17 +1276,17 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           {/* 1. Single Clean Header Row */}
           <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
             <h2 className="text-xs font-semibold tracking-tight text-white">
-              신용카드 미결제 잔액
+              {isKo ? '신용카드 미결제 잔액' : 'Unpaid Credit Card Balance'}
             </h2>
             <span className={`text-xs font-mono font-medium text-neutral-200 tabular-nums ${stealthMode ? 'blur-xs select-none' : ''}`}>
-              총 {formattedTotalUnpaid}
+              {isKo ? '총' : 'Total'} {formattedTotalUnpaid}
             </span>
           </div>
 
           {/* 2 & 4. High-Density, Single-Row Minimalist Table */}
           {trackedCreditCards.length === 0 ? (
             <div className="py-4 text-center text-xs font-normal text-neutral-300">
-              기록된 신용카드 사용 내역이 없습니다.
+              {isKo ? '기록된 신용카드 사용 내역이 없습니다.' : 'No credit card charges recorded.'}
             </div>
           ) : (
             <div className="divide-y divide-white/[0.04]">
@@ -1266,7 +1297,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 >
                   {/* Left: Card Name */}
                   <span className="font-medium truncate min-w-0 text-white">
-                    {card.name}
+                    {isKo ? card.name : (card.name === '카드' ? 'Card' : card.name)}
                   </span>
 
                   {/* Right: Amount & Compact Ghost Reconcile Action */}
@@ -1279,7 +1310,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       onClick={() => handleOpenReconcile(card)}
                       className="px-2.5 py-1 rounded-lg border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-[11px] text-neutral-200 hover:text-white font-medium transition-all active:scale-95 cursor-pointer"
                     >
-                      차액 조정
+                      {isKo ? '차액 조정' : 'Reconcile'}
                     </button>
                   </div>
                 </div>
@@ -1298,7 +1329,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
         }`}>
           <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
             <h2 className="text-sm font-medium tracking-wide text-white">
-              최근 거래
+              {isKo ? '최근 거래' : 'Recent Transactions'}
             </h2>
             {onNavigateToLedger && (
               <button
@@ -1306,7 +1337,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 onClick={onNavigateToLedger}
                 className="text-xs text-neutral-300 hover:text-white font-medium flex items-center gap-1 transition-colors group cursor-pointer"
               >
-                <span>전체보기</span>
+                <span>{isKo ? '전체보기' : 'View All'}</span>
                 <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
               </button>
             )}
@@ -1314,7 +1345,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
 
           {localTransactions.length === 0 ? (
             <div className="py-6 text-center text-xs font-normal text-neutral-300">
-              기록된 거래 내역이 없습니다.
+              {isKo ? '기록된 거래 내역이 없습니다.' : 'No transactions recorded yet.'}
             </div>
           ) : (
             <div className="divide-y divide-white/[0.04]">
@@ -1322,11 +1353,14 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                 const isExpense = tx.type === 'EXPENSE';
                 const isIncome = tx.type === 'INCOME';
                 const categoryLabel = tx.isInternalTransfer
-                  ? (tx.subCategory || '내부이체/원금상환')
+                  ? (tx.subCategory || (isKo ? '내부이체/원금상환' : 'Internal Transfer'))
                   : isIncome && tx.category === 'Fixed' && !tx.subCategory
-                  ? '급여'
+                  ? (isKo ? '급여' : 'Salary')
                   : tx.category
-                  ? getCategoryKo(tx.category, tx.subCategory)
+                  ? getCategoryLabel(tx.category, tx.subCategory, language)
+                  : '';
+                const paymentLabel = tx.paymentMethod
+                  ? getPaymentMethodLabel(tx.paymentMethod, tx.type, language)
                   : '';
                 return (
                   <div key={tx.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
@@ -1339,7 +1373,7 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                       </div>
                       <div className="text-[11px] text-neutral-300 font-normal mt-0.5">
                         <span>{format(parseISO(tx.date), 'M.d HH:mm')}</span>
-                        {tx.paymentMethod && <span className="ml-1.5 opacity-80">· {tx.paymentMethod}</span>}
+                        {paymentLabel && <span className="ml-1.5 opacity-80">· {paymentLabel}</span>}
                       </div>
                     </div>
                     <div className={`font-semibold tabular-nums whitespace-nowrap text-xs ${

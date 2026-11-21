@@ -19,7 +19,9 @@ import { format, parseISO } from 'date-fns';
 import { cleanMerchantTitle } from './merchantSanitizer';
 import { 
   getCategoryKo, 
+  getCategoryLabel,
   getPaymentMethodKo,
+  getPaymentMethodLabel,
   DEFAULT_FX_RATES,
   getCurrencySymbol,
   getUserActiveCurrencies,
@@ -36,7 +38,8 @@ import {
   DEFAULT_SPACE,
   getPendingScans,
   deletePendingScan,
-  notifyVaultDataChanged
+  notifyVaultDataChanged,
+  getAllAssetAccounts
 } from './db';
 
 // Architectural Domain Custom Hooks
@@ -48,6 +51,16 @@ import { useOmnibarController } from './hooks/useOmnibarController';
 // Extracted Modals and Visual Modules
 import { PWAInstallBanner } from './components/PWAInstallButton';
 import { OmnibarDock, type RealtimePreviewData } from './components/OmnibarDock';
+import { OnboardingGuideStrip } from './components/OnboardingGuideStrip';
+import {
+  ContextNudgeId,
+  getActiveContextNudge,
+  getOnboardingProgress,
+  loadOnboardingGuideFlags,
+  saveChecklistDismissed,
+  saveDismissedNudges,
+  saveHasRunQuery,
+} from './onboardingGuide';
 import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault, subscribeVaultLock } from './vaultSecurity';
 import { useI18n, DEFAULT_CURRENCY_BY_LANGUAGE } from './i18n';
 
@@ -55,6 +68,7 @@ import { useI18n, DEFAULT_CURRENCY_BY_LANGUAGE } from './i18n';
 const VaultOverviewSection = lazyWithRetry(() => import('./components/VaultOverviewSection').then(m => ({ default: m.VaultOverviewSection })));
 const FinancialSummaryCard = lazyWithRetry(() => import('./components/FinancialSummaryCard').then(m => ({ default: m.FinancialSummaryCard })));
 const ChangelogModal = lazyWithRetry(() => import('./components/ChangelogModal').then(m => ({ default: m.ChangelogModal })));
+const QuickGuideModal = lazyWithRetry(() => import('./components/QuickGuideModal').then(m => ({ default: m.QuickGuideModal })));
 const TransactionActionModal = lazyWithRetry(() => import('./components/TransactionActionModal').then(m => ({ default: m.TransactionActionModal })));
 const EditTransactionModal = lazyWithRetry(() => import('./components/EditTransactionModal').then(m => ({ default: m.EditTransactionModal })));
 const SettingsModal = lazyWithRetry(() => import('./components/SettingsModal').then(m => ({ default: m.SettingsModal })));
@@ -105,11 +119,18 @@ function formatTransactionTitle(desc?: string, merchant?: string): string {
   return cleanMerchantTitle(desc, merchant || '지출 내역');
 }
 
-const EXAMPLE_PROMPTS = [
+const EXAMPLE_PROMPTS_KO = [
   { text: '민수랑 파스타 4만원 더치페이하고 토스로 2만원 받음', category: '식사' },
   { text: '쿠팡에서 화장지 2만원, 영양제 3만원 결제함', category: '생활 / 쇼핑' },
   { text: '이번 달 월급 3,500,000원 기업은행 입금', category: '수입' },
   { text: '주택청약 통장으로 150만원 자동이체', category: '저축 / 이체' },
+];
+
+const EXAMPLE_PROMPTS_EN = [
+  { text: 'Lunch pasta $40 split with Alex, received $20 back', category: 'Dining' },
+  { text: 'Household supplies $20 and vitamins $30 card', category: 'Living' },
+  { text: 'Monthly salary $3,500 bank deposit', category: 'Income' },
+  { text: 'Auto-transfer $1,500 to savings account', category: 'Savings' },
 ];
 
 export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void }) {
@@ -725,6 +746,124 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
     scrollContainerRef
   });
 
+  // ---------------------------------------------------------------------------
+  // 6. State-Driven Onboarding Guide & Context-Aware Nudge State
+  // ---------------------------------------------------------------------------
+  const [accountCount, setAccountCount] = useState<number>(0);
+  const [isQuickGuideOpen, setIsQuickGuideOpen] = useState<boolean>(false);
+  const [openAddAccountSignal, setOpenAddAccountSignal] = useState<number>(0);
+  const [guideFlags, setGuideFlags] = useState(() => loadOnboardingGuideFlags());
+
+  const refreshAccountCount = useCallback(async () => {
+    try {
+      const accs = await getAllAssetAccounts();
+      setAccountCount(accs.length);
+    } catch {
+      // Non-critical count check
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshAccountCount();
+    const handleVaultSync = () => {
+      refreshAccountCount();
+    };
+    window.addEventListener('vibe-vault-data-changed', handleVaultSync);
+    window.addEventListener('vibe-vault-data-reset', handleVaultSync);
+    return () => {
+      window.removeEventListener('vibe-vault-data-changed', handleVaultSync);
+      window.removeEventListener('vibe-vault-data-reset', handleVaultSync);
+    };
+  }, [refreshAccountCount]);
+
+  // Mark AI query step complete automatically when user runs any financial query
+  useEffect(() => {
+    if (activeQueryResult && !guideFlags.hasRunQuery) {
+      saveHasRunQuery(true);
+      setGuideFlags((prev) => ({ ...prev, hasRunQuery: true }));
+    }
+  }, [activeQueryResult, guideFlags.hasRunQuery]);
+
+  const isGuestSession = !hasVaultPin();
+
+  const onboardingSnapshot = useMemo(
+    () => ({
+      accountCount,
+      transactionCount: transactions.length,
+      hasRunQuery: guideFlags.hasRunQuery,
+      isGuestMode: isGuestSession,
+      activeTab: mainMode,
+      checklistDismissed: guideFlags.checklistDismissed,
+      dismissedNudges: guideFlags.dismissedNudges,
+      language,
+    }),
+    [accountCount, transactions.length, guideFlags, isGuestSession, mainMode, language]
+  );
+
+  const onboardingProgress = useMemo(
+    () => getOnboardingProgress(onboardingSnapshot),
+    [onboardingSnapshot]
+  );
+
+  const activeContextNudge = useMemo(
+    () => getActiveContextNudge(onboardingSnapshot, onboardingProgress),
+    [onboardingSnapshot, onboardingProgress]
+  );
+
+  const handleDismissChecklist = useCallback(() => {
+    saveChecklistDismissed(true);
+    setGuideFlags((prev) => ({ ...prev, checklistDismissed: true }));
+  }, []);
+
+  const handleResetChecklist = useCallback(() => {
+    saveChecklistDismissed(false);
+    setGuideFlags((prev) => ({ ...prev, checklistDismissed: false }));
+  }, []);
+
+  const handleDismissNudge = useCallback((id: ContextNudgeId) => {
+    setGuideFlags((prev) => {
+      const next = Array.from(new Set([...prev.dismissedNudges, id]));
+      saveDismissedNudges(next);
+      return { ...prev, dismissedNudges: next };
+    });
+  }, []);
+
+  const handleGuideAddAccount = useCallback(() => {
+    setMainMode('vault');
+    setOpenAddAccountSignal((n) => n + 1);
+  }, []);
+
+  const handleGuideTryInsightQuery = useCallback(
+    (queryText: string) => {
+      saveHasRunQuery(true);
+      setGuideFlags((prev) => ({ ...prev, hasRunQuery: true }));
+      setMainMode('insights');
+      handleRunFinancialQuery(queryText);
+    },
+    [handleRunFinancialQuery]
+  );
+
+  const handleGuideTryPrompt = useCallback(
+    (promptText: string, isQuery: boolean) => {
+      if (isQuery) {
+        handleGuideTryInsightQuery(promptText);
+      } else {
+        handleProcessInput(promptText);
+      }
+    },
+    [handleGuideTryInsightQuery, handleProcessInput]
+  );
+
+  const handleGuideLoadSampleData = useCallback(async () => {
+    try {
+      await loadSampleData();
+      await Promise.all([loadTransactions(), refreshAccountCount()]);
+      showToast('샘플 자산 및 거래 데이터가 등록되었습니다.');
+    } catch {
+      showToast('샘플 데이터를 불러오는 중 오류가 발생했습니다.');
+    }
+  }, [loadTransactions, refreshAccountCount, showToast]);
+
   return (
     <div className="w-full h-[100dvh] flex justify-center bg-[var(--surface-backdrop)] text-neutral-100 overflow-hidden font-sans antialiased transition-colors">
       <div className="w-full max-w-[440px] lg:max-w-2xl h-full bg-[var(--surface-canvas)] border-x border-[var(--surface-subtle-border)] flex flex-col relative shadow-2xl transition-colors">
@@ -780,13 +919,13 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
 
             {/* Right action controls */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* Feature Guide Button */}
+              {/* Quick Usage Guide Button */}
               <button
                 id="quick-start-guide-btn"
                 type="button"
-                onClick={onOpenWelcome}
-                title="기능 안내"
-                aria-label="기능 안내"
+                onClick={() => setIsQuickGuideOpen(true)}
+                title={language === 'ko' ? '사용 가이드' : 'Usage Guide'}
+                aria-label={language === 'ko' ? '사용 가이드' : 'Usage Guide'}
                 className="w-9 h-9 sm:w-8 sm:h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
               >
                 <HelpCircle size={15} />
@@ -797,9 +936,9 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
                 id="settings-gear-btn"
                 type="button"
                 onClick={() => handleOpenSettingsModal('assets')}
-                title="설정"
+                title={language === 'ko' ? '설정' : 'Settings'}
                 className="w-9 h-9 sm:w-8 sm:h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
-                aria-label="설정"
+                aria-label={language === 'ko' ? '설정' : 'Settings'}
               >
                 <Settings size={15} />
               </button>
@@ -809,8 +948,16 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
                 id="header-logout-btn"
                 type="button"
                 onClick={() => lockVault()}
-                title={hasVaultPin() ? '로그아웃 (금고 잠금)' : '게스트 종료 (로그아웃)'}
-                aria-label="로그아웃"
+                title={
+                  language === 'ko'
+                    ? hasVaultPin()
+                      ? '로그아웃 (금고 잠금)'
+                      : '게스트 종료 (로그아웃)'
+                    : hasVaultPin()
+                      ? 'Sign Out (Lock Vault)'
+                      : 'Exit Guest Mode'
+                }
+                aria-label={language === 'ko' ? '로그아웃' : 'Sign Out'}
                 className="w-9 h-9 sm:w-8 sm:h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
               >
                 <LogOut size={15} />
@@ -842,25 +989,52 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
               className="mb-3 rounded-2xl bg-amber-500/10 p-3.5 text-amber-300 text-xs"
             >
               <strong className="font-semibold">
-                {fxRates.source === 'estimated' ? '환율 추정치 사용 중' : '환율 정보가 오래되었습니다'}
+                {fxRates.source === 'estimated'
+                  ? language === 'ko'
+                    ? '환율 추정치 사용 중'
+                    : 'Using estimated FX rates'
+                  : language === 'ko'
+                    ? '환율 정보가 오래되었습니다'
+                    : 'FX rates may be outdated'}
               </strong>
               <p className="mt-1 leading-relaxed text-amber-200/80">
                 {fxRates.source === 'estimated'
-                  ? '환율 제공처에 연결되지 않아 근사 환율로 자산을 환산합니다. 금액은 참고용입니다.'
-                  : `마지막 기준일 ${fxRates.updatedAt || '알 수 없음'} 이후 새 환율을 가져오지 못했습니다.`}
+                  ? language === 'ko'
+                    ? '환율 제공처에 연결되지 않아 근사 환율로 자산을 환산합니다. 금액은 참고용입니다.'
+                    : 'Unable to reach the FX provider; displaying approximate rates for reference.'
+                  : language === 'ko'
+                    ? `마지막 기준일 ${fxRates.updatedAt || '알 수 없음'} 이후 새 환율을 가져오지 못했습니다.`
+                    : `Could not refresh FX rates since ${fxRates.updatedAt || 'unknown'}.`}
               </p>
             </div>
           ) : (
             <div className="mb-3 text-[10px] text-neutral-400 text-right">
-              기준 환율 · Frankfurter · {fxRates.updatedAt}
+              {language === 'ko' ? '기준 환율' : 'Reference FX'} · Frankfurter · {fxRates.updatedAt}
             </div>
           )}
+
+          {/* State-Driven Progressive Onboarding Checklist & Context Nudge */}
+          <OnboardingGuideStrip
+            progress={onboardingProgress}
+            activeNudge={activeContextNudge}
+            transactionCount={transactions.length}
+            accountCount={accountCount}
+            isGuestMode={isGuestSession}
+            onTryTransaction={(promptText) => handleProcessInput(promptText)}
+            onAddAccount={handleGuideAddAccount}
+            onLoadSampleData={handleGuideLoadSampleData}
+            onTryInsightQuery={handleGuideTryInsightQuery}
+            onCreateLocalAccount={onOpenWelcome}
+            onOpenQuickGuide={() => setIsQuickGuideOpen(true)}
+            onDismissChecklist={handleDismissChecklist}
+            onDismissNudge={handleDismissNudge}
+          />
 
           {/* TAB 0: VAULT (자산) */}
           {mainMode === 'vault' && (
             <div className="w-full">
               <LazyErrorBoundary>
-                <Suspense fallback={<div className="py-12 text-center text-xs text-neutral-400">자산 금고 불러오는 중...</div>}>
+                <Suspense fallback={<div className="py-12 text-center text-xs text-neutral-400">{language === 'ko' ? '자산 금고 불러오는 중...' : 'Loading vault...'}</div>}>
                   <VaultOverviewSection
                     currentCurrency={currentCurrency}
                     fxRates={fxRates}
@@ -872,6 +1046,8 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
                     transactions={transactions}
                     onNavigateToLedger={() => setMainMode('ledger')}
                     onNavigateToInsights={() => setMainMode('insights')}
+                    openAddAccountSignal={openAddAccountSignal}
+                    onConsumeAddAccountSignal={() => setOpenAddAccountSignal(0)}
                   />
                 </Suspense>
               </LazyErrorBoundary>
@@ -923,14 +1099,18 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
                 <div className="p-5 rounded-2xl border backdrop-blur-2xl bg-white/[0.03] border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] space-y-3.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-white">
-                      프로젝트·행사 정산 관리
+                      {language === 'ko' ? '프로젝트·행사 정산 관리' : 'Event & Group Settlement'}
                     </span>
                     <span className="text-xs text-neutral-400 font-light tabular-nums">
-                      {activeSpace.memberCount ? `${activeSpace.memberCount}명 정산` : '참여자 미지정'}
+                      {activeSpace.memberCount
+                        ? (language === 'ko' ? `${activeSpace.memberCount}명 정산` : `${activeSpace.memberCount} members`)
+                        : (language === 'ko' ? '참여자 미지정' : 'No member count')}
                     </span>
                   </div>
                   <p className="text-xs text-neutral-300 font-light leading-relaxed">
-                    공동 회비 및 지출 영수증을 취합하여 대한민국 표준 정산 내역서(모임/행사/워크숍)를 생성합니다.
+                    {language === 'ko'
+                      ? '공동 회비 및 지출 영수증을 취합하여 대한민국 표준 정산 내역서(모임/행사/워크숍)를 생성합니다.'
+                      : 'Compile shared dues and expense receipts into a clean A4 settlement report for trips, clubs, or workshops.'}
                   </p>
                   <button
                     id="event-settlement-report-btn"
@@ -938,7 +1118,7 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
                     onClick={() => setIsReportModalOpen(true)}
                     className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-white text-neutral-950 hover:bg-neutral-200 active:scale-95 transition-all shadow-xs cursor-pointer"
                   >
-                    <span>결산서 출력</span>
+                    <span>{language === 'ko' ? '결산서 출력' : 'Print Settlement Report'}</span>
                   </button>
                 </div>
               )}
@@ -946,13 +1126,16 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
               {/* Category Filter Status Pill */}
               {selectedCategory && (
                 <div className="flex items-center justify-between px-2 text-xs text-[#94A3B8]">
-                  <span>카테고리 필터링: <strong className="text-[#38bdf8] font-semibold">{getCategoryKo(selectedCategory)}</strong></span>
+                  <span>
+                    {language === 'ko' ? '카테고리 필터링:' : 'Filtered by category:'}{' '}
+                    <strong className="text-[#38bdf8] font-semibold">{getCategoryLabel(selectedCategory, undefined, language)}</strong>
+                  </span>
                   <button
                     type="button"
                     onClick={() => setSelectedCategory(null)}
                     className="text-xs text-slate-400 hover:text-white font-medium cursor-pointer transition-colors"
                   >
-                    필터 해제
+                    {language === 'ko' ? '필터 해제' : 'Clear filter'}
                   </button>
                 </div>
               )}
@@ -1025,12 +1208,24 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
                       {t('recommended_prompts')}
                     </span>
                     <div className="space-y-1">
-                      {(activeSpace.id !== 'default' ? [
-                        { text: `회비 ${activeSpace.currency === 'KRW' ? '5만원' : '50EUR'} 전원 통장 입금 완료`, category: '회비 수입' },
-                        { text: '단체 저녁 식사 및 음료 비용 카드 결제', category: '단체 식비' },
-                        { text: '현지 관광지 단체 입장료 현금 결제', category: '관광/입장료' },
-                        { text: '이동 버스 대절 및 주유비 결제', category: '교통비' }
-                      ] : EXAMPLE_PROMPTS).map((prompt, idx) => (
+                      {(activeSpace.id !== 'default'
+                        ? language === 'ko'
+                          ? [
+                              { text: `회비 ${activeSpace.currency === 'KRW' ? '5만원' : '50EUR'} 전원 통장 입금 완료`, category: '회비 수입' },
+                              { text: '단체 저녁 식사 및 음료 비용 카드 결제', category: '단체 식비' },
+                              { text: '현지 관광지 단체 입장료 현금 결제', category: '관광/입장료' },
+                              { text: '이동 버스 대절 및 주유비 결제', category: '교통비' }
+                            ]
+                          : [
+                              { text: `Group dues ${activeSpace.currency === 'KRW' ? '50,000 KRW' : '$50'} bank deposit`, category: 'Dues' },
+                              { text: 'Group dinner and drinks $180 card', category: 'Dining' },
+                              { text: 'Museum group tickets $90 cash', category: 'Tickets' },
+                              { text: 'Shuttle van rental and fuel $140', category: 'Transport' }
+                            ]
+                        : language === 'ko'
+                          ? EXAMPLE_PROMPTS_KO
+                          : EXAMPLE_PROMPTS_EN
+                      ).map((prompt, idx) => (
                         <button
                           key={idx}
                           type="button"
@@ -1072,8 +1267,8 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
                     const isSettlement = tx.type === 'SETTLEMENT';
                     const displayTitle = formatTransactionTitle(tx.description);
                     const categoryLabel = tx.isInternalTransfer
-                      ? (tx.subCategory || '내부이체/원금상환')
-                      : getCategoryKo(tx.category, tx.subCategory);
+                      ? (tx.subCategory || (language === 'ko' ? '내부이체/원금상환' : 'Internal Transfer'))
+                      : getCategoryLabel(tx.category, tx.subCategory, language);
                     const currSymbol = getCurrencySymbol(tx.currency || currentCurrency);
 
                     return (
@@ -1093,7 +1288,7 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
                               {(tx.paymentMethod || tx.type === 'INCOME') && (
                                 <>
                                   <span className="opacity-30">·</span>
-                                  <span>{getPaymentMethodKo(tx.paymentMethod, tx.type)}</span>
+                                  <span>{getPaymentMethodLabel(tx.paymentMethod, tx.type, language)}</span>
                                 </>
                               )}
                               <span className="opacity-30">·</span>
@@ -1372,6 +1567,18 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
           )}
         </Suspense>
       </LazyErrorBoundary>
+
+      {/* On-Demand Quick Usage Guide Modal */}
+      <MountOnFirstOpen open={isQuickGuideOpen}>
+        <QuickGuideModal
+          isOpen={isQuickGuideOpen}
+          onClose={() => setIsQuickGuideOpen(false)}
+          onTryPrompt={handleGuideTryPrompt}
+          onResetChecklist={handleResetChecklist}
+          onOpenWelcome={onOpenWelcome}
+          showResetChecklistButton={guideFlags.checklistDismissed && !onboardingProgress.allCompleted}
+        />
+      </MountOnFirstOpen>
 
       {/* Offline Release Notes & Developer's Note Changelog Modal */}
       <MountOnFirstOpen open={isChangelogOpen}>

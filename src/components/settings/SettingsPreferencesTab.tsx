@@ -158,13 +158,11 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
           </div>
         </div>
 
-        {/* 4-column responsive button grid matching Quiet Luxury design system */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl bg-white/[0.02] border border-white/[0.08]">
+        {/* 2-column focused language selector (KO / EN) */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-white/[0.02] border border-white/[0.08]">
           {([
             { code: 'ko' as LanguageCode, label: t('lang_ko') },
             { code: 'en' as LanguageCode, label: t('lang_en') },
-            { code: 'ja' as LanguageCode, label: t('lang_ja') },
-            { code: 'eu' as LanguageCode, label: t('lang_eu') },
           ]).map((opt) => (
             <button
               key={opt.code}
@@ -172,7 +170,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               id={`lang-btn-${opt.code}`}
               onClick={() => handleLanguageSelect(opt.code)}
               className={`px-3 py-2 rounded-xl text-xs transition-all active:scale-95 text-center cursor-pointer ${
-                language === opt.code
+                (language === 'ko' ? 'ko' : 'en') === opt.code
                   ? 'bg-white text-black font-semibold shadow-xs'
                   : 'text-neutral-200 hover:text-white font-medium hover:bg-white/[0.05]'
               }`}
