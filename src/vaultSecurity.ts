@@ -80,6 +80,23 @@ let keystoreDbPromise: Promise<IDBPDatabase<any>> | null = null;
 let idleTimer: any = null;
 let lastActiveTimestamp: number = Date.now();
 let hiddenTimestamp: number | null = null;
+let failedPinAttempts = 0;
+let pinLockoutUntil = 0;
+
+function resetPinFailureCounter(): void {
+  failedPinAttempts = 0;
+  pinLockoutUntil = 0;
+}
+
+function recordFailedPinAttempt(): number {
+  failedPinAttempts += 1;
+  if (failedPinAttempts >= 5) {
+    const penaltySeconds = Math.min(60, 15 * Math.pow(2, failedPinAttempts - 5));
+    pinLockoutUntil = Date.now() + penaltySeconds * 1000;
+    return penaltySeconds;
+  }
+  return 0;
+}
 
 /**
  * ArrayBuffer <-> Hex / Base64 Utilities
@@ -424,6 +441,7 @@ export function resetVaultSecurity(): void {
   localStorage.removeItem(BIOMETRIC_STORAGE_KEY);
   sessionStorage.removeItem('vibe_vault_setup_skipped');
   inMemoryCryptoKey = null;
+  resetPinFailureCounter();
   clearSecureGeminiApiKey();
   isLocked = false;
   notifyLockState();
@@ -573,13 +591,29 @@ export function lockVault(): void {
 
 export async function unlockVault(pin?: string): Promise<{ success: boolean; error?: string }> {
   if (hasVaultPin()) {
+    const now = Date.now();
+    if (pinLockoutUntil > now) {
+      const remainingSeconds = Math.ceil((pinLockoutUntil - now) / 1000);
+      return {
+        success: false,
+        error: `PIN 입력 오류가 누적되었습니다. ${remainingSeconds}초 후 다시 시도해주세요.`,
+      };
+    }
     if (!pin) {
       return { success: false, error: 'PIN 번호를 입력해주세요.' };
     }
     const valid = await verifyVaultPin(pin);
     if (!valid) {
+      const penaltySeconds = recordFailedPinAttempt();
+      if (penaltySeconds > 0) {
+        return {
+          success: false,
+          error: `PIN 번호가 반복 일치하지 않아 ${penaltySeconds}초간 입력이 제한됩니다.`,
+        };
+      }
       return { success: false, error: '올바르지 않은 PIN 번호입니다.' };
     }
+    resetPinFailureCounter();
   } else {
     // No PIN configured: unlock directly using Device Master Key
     inMemoryCryptoKey = await getOrCreateDeviceMasterKey();

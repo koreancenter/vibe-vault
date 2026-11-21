@@ -200,4 +200,33 @@ describe('Vault field encryption and key rotation', () => {
     expect(await database.getAllDebts()).toEqual([]);
     expect(keyManager.getSecureGeminiApiKey()).toBe('');
   });
+
+  it('enforces progressive cooldown after 5 consecutive failed PIN attempts and resets on valid unlock', async () => {
+    await vault.setVaultPin('4321');
+    vault.lockVault();
+
+    for (let attempt = 1; attempt <= 4; attempt += 1) {
+      const res = await vault.unlockVault('9999');
+      expect(res.success).toBe(false);
+    }
+
+    const fifth = await vault.unlockVault('9999');
+    expect(fifth.success).toBe(false);
+    expect(fifth.error).toMatch(/15초간 입력이 제한됩니다/);
+
+    // Even the correct PIN is blocked during the active cooldown window
+    const blocked = await vault.unlockVault('4321');
+    expect(blocked.success).toBe(false);
+    expect(blocked.error).toMatch(/초 후 다시 시도/);
+
+    // Advance time past the 15s cooldown and confirm valid PIN succeeds and resets counter
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 20_000);
+    try {
+      const unlocked = await vault.unlockVault('4321');
+      expect(unlocked.success).toBe(true);
+    } finally {
+      nowSpy.mockRestore();
+      await vault.removeVaultPin('4321');
+    }
+  });
 });

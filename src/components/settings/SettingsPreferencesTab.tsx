@@ -4,7 +4,7 @@ import { CustomDarkSelect, CustomSelectOption } from './CustomDarkSelect';
 import { IOSInstallModal } from '../PWAInstallButton';
 import { usePWAInstall } from '../../usePWAInstall';
 import { SupportedCurrency } from '../../types';
-import { KNOWN_CURRENCY_NAMES, getCurrencySymbol } from '../../utils';
+import { KNOWN_CURRENCY_NAMES, getCurrencySymbol, patchUserPreferences } from '../../utils';
 import { useI18n, LanguageCode, DEFAULT_CURRENCY_BY_LANGUAGE, LANGUAGE_STORAGE_KEY } from '../../i18n';
 
 interface SettingsPreferencesTabProps {
@@ -174,11 +174,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   if (!activeCurrenciesList.includes(pendingCurrencyPrompt)) {
                     handleAddActiveCurrency(pendingCurrencyPrompt);
                   }
-                  if (typeof localStorage !== 'undefined') {
-                    const raw = localStorage.getItem('vibe_user_preferences');
-                    const prefs = raw ? JSON.parse(raw) : {};
-                    localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, currencySymbol: pendingCurrencyPrompt }));
-                  }
+                  patchUserPreferences({ currencySymbol: pendingCurrencyPrompt });
                   setPendingCurrencyPrompt(null);
                   if (onDataChanged) onDataChanged();
                 }}
@@ -215,11 +211,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 id="launch-screen-vault-btn"
                 onClick={() => {
                   setDefaultLaunchScreen('vault');
-                  if (typeof localStorage !== 'undefined') {
-                    const raw = localStorage.getItem('vibe_user_preferences');
-                    const prefs = raw ? JSON.parse(raw) : {};
-                    localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, defaultLaunchScreen: 'vault' }));
-                  }
+                  patchUserPreferences({ defaultLaunchScreen: 'vault' });
                   if (onDataChanged) onDataChanged();
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
@@ -235,11 +227,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 id="launch-screen-insights-btn"
                 onClick={() => {
                   setDefaultLaunchScreen('insights');
-                  if (typeof localStorage !== 'undefined') {
-                    const raw = localStorage.getItem('vibe_user_preferences');
-                    const prefs = raw ? JSON.parse(raw) : {};
-                    localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, defaultLaunchScreen: 'insights' }));
-                  }
+                  patchUserPreferences({ defaultLaunchScreen: 'insights' });
                   if (onDataChanged) onDataChanged();
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
@@ -255,11 +243,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 id="launch-screen-ledger-btn"
                 onClick={() => {
                   setDefaultLaunchScreen('ledger');
-                  if (typeof localStorage !== 'undefined') {
-                    const raw = localStorage.getItem('vibe_user_preferences');
-                    const prefs = raw ? JSON.parse(raw) : {};
-                    localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, defaultLaunchScreen: 'ledger' }));
-                  }
+                  patchUserPreferences({ defaultLaunchScreen: 'ledger' });
                   if (onDataChanged) onDataChanged();
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
@@ -300,11 +284,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   options={currencyOptions}
                   onChange={(val) => {
                     setCurrencySymbol(val);
-                    if (typeof localStorage !== 'undefined') {
-                      const raw = localStorage.getItem('vibe_user_preferences');
-                      const prefs = raw ? JSON.parse(raw) : {};
-                      localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, currencySymbol: val }));
-                    }
+                    patchUserPreferences({ currencySymbol: val });
                     if (!activeCurrenciesList.includes(val)) {
                       handleAddActiveCurrency(val);
                     }
@@ -355,11 +335,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                         type="button"
                         onClick={() => {
                           setCurrencySymbol(code);
-                          if (typeof localStorage !== 'undefined') {
-                            const raw = localStorage.getItem('vibe_user_preferences');
-                            const prefs = raw ? JSON.parse(raw) : {};
-                            localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, currencySymbol: code }));
-                          }
+                          patchUserPreferences({ currencySymbol: code });
                           if (onDataChanged) onDataChanged();
                         }}
                         className="flex items-center gap-1 hover:text-white cursor-pointer"
@@ -455,11 +431,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
             onClick={() => {
               const next = !stealthMode;
               setStealthMode(next);
-              if (typeof localStorage !== 'undefined') {
-                const raw = localStorage.getItem('vibe_user_preferences');
-                const prefs = raw ? JSON.parse(raw) : {};
-                localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, stealthMode: next }));
-              }
+              patchUserPreferences({ stealthMode: next });
               if (onDataChanged) onDataChanged();
             }}
             className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.06] cursor-pointer select-none group"
@@ -509,11 +481,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 onChange={(val) => {
                   const num = parseInt(val, 10) || 1;
                   setBudgetStartDay(num);
-                  if (typeof localStorage !== 'undefined') {
-                    const raw = localStorage.getItem('vibe_user_preferences');
-                    const prefs = raw ? JSON.parse(raw) : {};
-                    localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, budgetStartDay: num }));
-                  }
+                  patchUserPreferences({ budgetStartDay: num });
                   if (onDataChanged) onDataChanged();
                 }}
                 theme="dark"

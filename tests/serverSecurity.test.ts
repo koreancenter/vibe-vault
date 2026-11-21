@@ -91,4 +91,14 @@ describe('local server security guards', () => {
     });
     expect(consumeAiRequest(client, 61_000).allowed).toBe(true);
   });
+
+  it('prunes expired rate-limit buckets when tracking many distinct clients', () => {
+    const baseTime = 2_000_000;
+    for (let i = 0; i < 64; i += 1) {
+      expect(consumeAiRequest(`burst-client-${i}`, baseTime).allowed).toBe(true);
+    }
+    // After window expiry, fresh clients and returning clients are both allowed cleanly
+    expect(consumeAiRequest('burst-client-0', baseTime + 65_000).allowed).toBe(true);
+    expect(consumeAiRequest('burst-client-new', baseTime + 65_000).allowed).toBe(true);
+  });
 });

@@ -47,13 +47,13 @@ import { useOmnibarController } from './hooks/useOmnibarController';
 
 // Extracted Modals and Visual Modules
 import { PWAInstallBanner } from './components/PWAInstallButton';
-import { VaultOverviewSection } from './components/VaultOverviewSection';
 import { WelcomeDashboardModal } from './components/WelcomeDashboardModal';
 import { OmnibarDock, type RealtimePreviewData } from './components/OmnibarDock';
 import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault, subscribeVaultLock } from './vaultSecurity';
 import { I18nProvider, useI18n, DEFAULT_CURRENCY_BY_LANGUAGE } from './i18n';
 
-// Dynamic Code-Split Components (Heavy Modals & Secondary Views)
+// Dynamic Code-Split Components (Heavy Dashboards, Modals & Secondary Views)
+const VaultOverviewSection = lazyWithRetry(() => import('./components/VaultOverviewSection').then(m => ({ default: m.VaultOverviewSection })));
 const FinancialSummaryCard = lazyWithRetry(() => import('./components/FinancialSummaryCard').then(m => ({ default: m.FinancialSummaryCard })));
 const ChangelogModal = lazyWithRetry(() => import('./components/ChangelogModal').then(m => ({ default: m.ChangelogModal })));
 const TransactionActionModal = lazyWithRetry(() => import('./components/TransactionActionModal').then(m => ({ default: m.TransactionActionModal })));
@@ -781,8 +781,8 @@ function AppInner() {
         )}
 
         {/* 1. TOP HEADER */}
-        <header className="flex-none h-16 border-b border-white/[0.06] bg-[#090A0D]/90 backdrop-blur-xl z-20 text-white">
-          <div className="relative w-full h-full px-4 flex items-center justify-between transition-all duration-300">
+        <header className="flex-none min-h-16 pt-[env(safe-area-inset-top)] border-b border-white/[0.06] bg-[#090A0D]/90 backdrop-blur-xl z-20 text-white">
+          <div className="relative w-full h-16 px-4 flex items-center justify-between transition-all duration-300">
             {/* Left: Brand with Version */}
             <div className="flex items-center min-w-0">
               <h1 className="text-base font-bold tracking-tight text-white leading-tight flex items-center gap-1.5">
@@ -815,9 +815,9 @@ function AppInner() {
                 onClick={() => setIsWelcomeOpen(true)}
                 title="기능 안내"
                 aria-label="기능 안내"
-                className="w-8 h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
+                className="w-9 h-9 sm:w-8 sm:h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
               >
-                <HelpCircle size={14} />
+                <HelpCircle size={15} />
               </button>
 
               {/* Settings Gear */}
@@ -826,10 +826,10 @@ function AppInner() {
                 type="button"
                 onClick={() => handleOpenSettingsModal('assets')}
                 title="설정"
-                className="w-8 h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
+                className="w-9 h-9 sm:w-8 sm:h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
                 aria-label="설정"
               >
-                <Settings size={14} />
+                <Settings size={15} />
               </button>
 
               {/* Local Account Logout / Lock Vault */}
@@ -839,9 +839,9 @@ function AppInner() {
                 onClick={() => lockVault()}
                 title={hasVaultPin() ? '로그아웃 (금고 잠금)' : '게스트 종료 (로그아웃)'}
                 aria-label="로그아웃"
-                className="w-8 h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
+                className="w-9 h-9 sm:w-8 sm:h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
               >
-                <LogOut size={14} />
+                <LogOut size={15} />
               </button>
             </div>
           </div>
@@ -887,18 +887,22 @@ function AppInner() {
           {/* TAB 0: VAULT (자산) */}
           {mainMode === 'vault' && (
             <div className="w-full">
-              <VaultOverviewSection
-                currentCurrency={currentCurrency}
-                fxRates={fxRates}
-                stealthMode={isStealth}
-                onToggleStealth={toggleStealthMode}
-                theme={userPrefs.theme || 'dark'}
-                onTransactionAdded={() => loadTransactions()}
-                isMultiCurrencyMode={isMultiCurrencyMode}
-                transactions={transactions}
-                onNavigateToLedger={() => setMainMode('ledger')}
-                onNavigateToInsights={() => setMainMode('insights')}
-              />
+              <LazyErrorBoundary>
+                <Suspense fallback={<div className="py-12 text-center text-xs text-neutral-400">자산 금고 불러오는 중...</div>}>
+                  <VaultOverviewSection
+                    currentCurrency={currentCurrency}
+                    fxRates={fxRates}
+                    stealthMode={isStealth}
+                    onToggleStealth={toggleStealthMode}
+                    theme={userPrefs.theme || 'dark'}
+                    onTransactionAdded={() => loadTransactions()}
+                    isMultiCurrencyMode={isMultiCurrencyMode}
+                    transactions={transactions}
+                    onNavigateToLedger={() => setMainMode('ledger')}
+                    onNavigateToInsights={() => setMainMode('insights')}
+                  />
+                </Suspense>
+              </LazyErrorBoundary>
             </div>
           )}
 
@@ -1197,7 +1201,7 @@ function AppInner() {
         </main>
 
         {/* 3. FIXED BOTTOM DOCK (AI Omnibar & Navigation) */}
-      <footer className="flex-none backdrop-blur-2xl py-2 z-20 transition-colors border-t bg-[#08090D]/80 border-white/[0.08]">
+      <footer className="flex-none backdrop-blur-2xl pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-20 transition-colors border-t bg-[#08090D]/80 border-white/[0.08]">
         <div className="w-full px-4">
           <OmnibarDock
             input={input}
@@ -1221,13 +1225,14 @@ function AppInner() {
           />
 
           {/* Persistent Bottom Tab Navigation Switcher (Permanently visible on mobile & desktop for zero layout jitter) */}
-          <div className="pt-1.5 flex items-center justify-around mt-1 border-t border-white/[0.04]">
+          <nav aria-label="주요 메뉴" className="pt-1.5 flex items-center justify-around mt-1 border-t border-white/[0.04]">
             <button
               id="bottom-nav-vault-btn"
               type="button"
               onClick={() => setMainMode('vault')}
               aria-label={t('vault')}
-              className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
+              aria-current={mainMode === 'vault' ? 'page' : undefined}
+              className={`flex-1 min-h-[44px] py-1.5 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all cursor-pointer ${
                 mainMode === 'vault'
                   ? 'text-blue-400 font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -1242,7 +1247,8 @@ function AppInner() {
               type="button"
               onClick={() => setMainMode('insights')}
               aria-label={t('insights')}
-              className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
+              aria-current={mainMode === 'insights' ? 'page' : undefined}
+              className={`flex-1 min-h-[44px] py-1.5 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all cursor-pointer ${
                 mainMode === 'insights'
                   ? 'text-indigo-400 font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -1257,7 +1263,8 @@ function AppInner() {
               type="button"
               onClick={() => setMainMode('ledger')}
               aria-label={t('ledger')}
-              className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-xl transition-all ${
+              aria-current={mainMode === 'ledger' ? 'page' : undefined}
+              className={`flex-1 min-h-[44px] py-1.5 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all cursor-pointer ${
                 mainMode === 'ledger'
                   ? 'text-sky-400 font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -1266,7 +1273,7 @@ function AppInner() {
               <Wallet size={18} className={mainMode === 'ledger' ? 'stroke-[2.5]' : ''} />
               <span className="text-xs">{t('ledger')}</span>
             </button>
-          </div>
+          </nav>
         </div>
       </footer>
 

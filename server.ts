@@ -24,6 +24,7 @@ async function startServer() {
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
     res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
     res.setHeader('Content-Security-Policy', CONTENT_SECURITY_POLICY);
 
@@ -105,14 +106,25 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.use('/vibevault', express.static(distPath));
-    app.get(['/vibevault', '/vibevault/*'], (req, res) => {
+    const staticOptions = {
+      index: false,
+      setHeaders: (res: express.Response, filePath: string) => {
+        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+        }
+      },
+    };
+    const sendSpaIndex = (_req: express.Request, res: express.Response) => {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
       res.sendFile(path.join(distPath, 'index.html'));
-    });
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    };
+
+    app.use(express.static(distPath, staticOptions));
+    app.use('/vibevault', express.static(distPath, staticOptions));
+    app.get(['/vibevault', '/vibevault/*'], sendSpaIndex);
+    app.get('*', sendSpaIndex);
   }
 
   app.use(requestErrorHandler);

@@ -499,7 +499,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
 
               {/* Primary / Secondary Entry Actions */}
               <div className="pt-3 space-y-3.5">
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
                   {isUnlockedRevisit ? (
                     <>
                       <button
@@ -584,7 +584,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                   )}
                 </div>
 
-                <p className="text-xs text-neutral-500 leading-relaxed">
+                <p className="text-xs text-neutral-400 leading-relaxed">
                   {isUnlockedRevisit
                     ? '현재 금고가 열려 있습니다. 로그아웃하면 메모리 내 암호화 키가 즉시 파기됩니다.'
                     : isPinSet
@@ -605,7 +605,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                     key={spec.label}
                     className="py-3.5 first:pt-4 flex items-baseline justify-between gap-4"
                   >
-                    <dt className="text-xs text-neutral-500 shrink-0">{spec.label}</dt>
+                    <dt className="text-xs text-neutral-400 shrink-0">{spec.label}</dt>
                     <dd className="text-xs font-medium text-neutral-200 text-right truncate">
                       {spec.value}
                     </dd>
@@ -709,7 +709,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
           </div>
 
           {/* Quiet Copyright & Principles Row */}
-          <div className="mt-8 pt-5 border-t border-white/[0.05] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11.5px] text-neutral-500">
+          <div className="mt-8 pt-5 pb-[env(safe-area-inset-bottom)] border-t border-white/[0.05] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11.5px] text-neutral-400">
             <p className="tabular-nums">© 2026 Vibe Vault · MIT License</p>
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span>개인정보수집 없음</span>
@@ -735,7 +735,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
             }
           }}
         >
-          <div className="w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl bg-[#0D0F14] border border-white/[0.11] p-6 sm:p-7 shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
+          <div className="w-full sm:max-w-md max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-[#0D0F14] border border-white/[0.11] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:p-7 shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-4 pb-5 border-b border-white/[0.08]">
               <div className="space-y-1">
@@ -789,7 +789,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       setFormError(null);
                     }}
                     placeholder="예: 김민수 또는 개인 별명"
-                    className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-sm text-white placeholder:text-neutral-500 transition-colors"
+                    className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-[16px] sm:text-sm text-white placeholder:text-neutral-400 transition-colors"
                   />
                 </div>
 
@@ -812,7 +812,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       setFormError(null);
                     }}
                     placeholder="예: 메인 개인 금고 PIN"
-                    className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-sm text-white placeholder:text-neutral-500 transition-colors"
+                    className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-[16px] sm:text-sm text-white placeholder:text-neutral-400 transition-colors"
                   />
                 </div>
 
@@ -843,7 +843,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         setFormError(null);
                       }}
                       placeholder="숫자 4~6자리 입력"
-                      className="w-full h-11 pl-3.5 pr-10 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-sm text-white placeholder:text-neutral-500 tracking-[0.2em] font-mono tabular-nums transition-colors"
+                      className="w-full h-11 pl-3.5 pr-10 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-[16px] sm:text-sm text-white placeholder:text-neutral-400 tracking-[0.2em] font-mono tabular-nums transition-colors"
                     />
                     <button
                       type="button"
@@ -882,7 +882,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       setFormError(null);
                     }}
                     placeholder="마스터 PIN 한 번 더 입력"
-                    className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-sm text-white placeholder:text-neutral-500 tracking-[0.2em] font-mono tabular-nums transition-colors"
+                    className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-[16px] sm:text-sm text-white placeholder:text-neutral-400 tracking-[0.2em] font-mono tabular-nums transition-colors"
                   />
                 </div>
 
@@ -927,7 +927,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                     >
                       마스터 PIN 입력
                     </label>
-                    <span className="text-[11px] font-mono text-neutral-500 tabular-nums">
+                    <span className="text-[11px] font-mono text-neutral-400 tabular-nums">
                       {pin.length}/6
                     </span>
                   </div>
@@ -946,13 +946,13 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         setFormError(null);
                       }}
                       placeholder="4~6자리 숫자 입력"
-                      className="w-full h-11 pl-3.5 pr-10 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-sm text-white placeholder:text-neutral-500 tracking-[0.2em] font-mono tabular-nums transition-colors"
+                      className="w-full h-11 pl-3.5 pr-11 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-[16px] sm:text-sm text-white placeholder:text-neutral-400 tracking-[0.2em] font-mono tabular-nums transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPin((prev) => !prev)}
                       aria-label={showPin ? 'PIN 숨기기' : 'PIN 표시'}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                     >
                       {showPin ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>

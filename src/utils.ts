@@ -134,6 +134,18 @@ export function saveUserPreferences(prefs: UserPreferences) {
   localStorage.setItem('vibe_user_preferences', JSON.stringify(prefs));
 }
 
+export function patchUserPreferences(partial: Partial<UserPreferences>): UserPreferences {
+  const next: UserPreferences = { ...getUserPreferences(), ...partial };
+  try {
+    if (typeof localStorage !== 'undefined') {
+      saveUserPreferences(next);
+    }
+  } catch {
+    // Ignore storage quota or private browsing errors
+  }
+  return next;
+}
+
 export const ASSET_CATEGORY_NAMES_KO: Record<AssetCategoryType, string> = {
   BROKERAGE: '투자',
   BANK: '예적금',

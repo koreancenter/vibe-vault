@@ -76,8 +76,9 @@ export default defineConfig({
           ],
         },
         workbox: {
-          // Task 1: Restrict precaching strictly to static build assets
+          // Task 1: Restrict precaching strictly to static build assets (exclude unused workspace media)
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          globIgnores: ['**/assets/aistudio/**', '**/*.map'],
           // Automatically evict and purge legacy/deprecated cache buckets on version upgrade
           cleanupOutdatedCaches: true,
           // Clients claim immediately on activation so security rules take effect without manual reloads
@@ -173,7 +174,7 @@ export default defineConfig({
       target: 'esnext',
       minify: 'esbuild',
       cssCodeSplit: true,
-      sourcemap: true,
+      sourcemap: false,
       chunkSizeWarningLimit: 600,
       rollupOptions: {
         output: {

@@ -467,6 +467,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       return;
     }
 
+    let safeOrigin: string;
+    try {
+      const parsed = new URL(ep);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error('INVALID_PROTOCOL');
+      }
+      if (parsed.username || parsed.password) {
+        throw new Error('CREDENTIALS_NOT_ALLOWED');
+      }
+      safeOrigin = parsed.origin;
+    } catch {
+      setOllamaStatus({
+        status: 'error',
+        message: '올바른 http:// 또는 https:// Ollama 서버 주소를 입력해주세요.'
+      });
+      return;
+    }
+
     setIsTestingOllama(true);
     setOllamaStatus({ status: null, message: '' });
 
@@ -474,7 +492,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-      const res = await fetch(`${ep}/api/tags`, {
+      const res = await fetch(`${safeOrigin}/api/tags`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json'

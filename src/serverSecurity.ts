@@ -2,6 +2,7 @@ const MAX_TEXT_LENGTH = 20_000;
 const MAX_IMAGE_BASE64_LENGTH = 7 * 1024 * 1024;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;
+const MAX_RATE_LIMIT_ENTRIES = 5_000;
 
 export const CONTENT_SECURITY_POLICY =
   "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://generativelanguage.googleapis.com https://huggingface.co https://*.huggingface.co https://cloudflareinsights.com http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; img-src 'self' data: blob:; worker-src 'self' blob:;";
@@ -125,12 +126,29 @@ export function isValidImageInput(image: unknown, mimeType: unknown): boolean {
   return match[2].length % 4 === 0;
 }
 
+function pruneExpiredRateLimits(now: number): void {
+  for (const [key, entry] of rateLimitWindows.entries()) {
+    if (now - entry.startedAt >= RATE_LIMIT_WINDOW_MS) {
+      rateLimitWindows.delete(key);
+    }
+  }
+  if (rateLimitWindows.size >= MAX_RATE_LIMIT_ENTRIES) {
+    const oldestKey = rateLimitWindows.keys().next().value;
+    if (oldestKey !== undefined) {
+      rateLimitWindows.delete(oldestKey);
+    }
+  }
+}
+
 export function consumeAiRequest(
   clientAddress: string,
   now = Date.now(),
 ): { allowed: boolean; retryAfterSeconds: number } {
   const currentWindow = rateLimitWindows.get(clientAddress);
   if (!currentWindow || now - currentWindow.startedAt >= RATE_LIMIT_WINDOW_MS) {
+    if (rateLimitWindows.size >= MAX_RATE_LIMIT_ENTRIES) {
+      pruneExpiredRateLimits(now);
+    }
     rateLimitWindows.set(clientAddress, { startedAt: now, requestCount: 1 });
     return { allowed: true, retryAfterSeconds: 0 };
   }

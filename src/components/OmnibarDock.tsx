@@ -327,7 +327,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
                   aria-expanded={isPlusMenuOpen}
                   title={isListening ? '음성 입력 중 · 추가 기능' : '영수증 스캔 및 음성 입력'}
                   aria-label={isListening ? '음성 입력 중 · 추가 기능' : '영수증 스캔 및 음성 입력'}
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                     isListening
                       ? 'bg-sky-500/20 text-sky-300 border border-sky-400/40 shadow-[0_0_12px_rgba(56,189,248,0.25)] animate-pulse'
                       : isPlusMenuOpen
@@ -404,7 +404,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
                   aria-expanded={isEngineMenuOpen}
                   title={`AI 엔진 전환 (${activeEngineOption.menuLabel})`}
                   aria-label={`AI 엔진 전환 (${activeEngineOption.menuLabel})`}
-                  className="w-6 h-6 text-[10px] font-bold tracking-wider uppercase border border-white/10 rounded-md text-neutral-300 hover:text-white hover:border-white/25 cursor-pointer transition-colors flex items-center justify-center shrink-0"
+                  className="w-7 h-7 text-[11px] font-bold tracking-wider uppercase border border-white/10 rounded-md text-neutral-300 hover:text-white hover:border-white/25 cursor-pointer transition-colors flex items-center justify-center shrink-0"
                 >
                   {activeEngineOption.badgeLabel}
                 </button>
@@ -455,7 +455,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
               }}
               onChange={(e) => setInput(e.target.value)}
               placeholder={inputPlaceholder}
-              className="flex-1 w-full min-w-0 text-xs sm:text-sm text-white placeholder:text-neutral-400 font-normal bg-transparent focus:outline-none"
+              className="flex-1 w-full min-w-0 text-[16px] sm:text-sm text-white placeholder:text-neutral-400 font-normal bg-transparent focus:outline-none"
             />
 
             {/* Clear button if text exists */}
@@ -465,9 +465,9 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
                 onClick={() => setInput('')}
                 title="입력 내용 지우기"
                 aria-label="입력 내용 지우기"
-                className="p-1 rounded-full text-neutral-300 hover:text-white cursor-pointer shrink-0 transition-colors"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-300 hover:text-white cursor-pointer shrink-0 transition-colors"
               >
-                <X size={14} />
+                <X size={15} />
               </button>
             )}
 
@@ -478,7 +478,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
               disabled={isProcessing || !input.trim() || !isOnline}
               title={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
               aria-label={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+              className={`w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer ${
                 isProcessing
                   ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30 pointer-events-none'
                   : isTyping
