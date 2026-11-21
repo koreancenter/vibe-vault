@@ -28,10 +28,17 @@ const KEYSTORE_STORE_NAME = 'vault_keys';
 const MASTER_KEY_ID = 'device_master_key_v1';
 const CIPHER_PREFIX = '__VBE256__:';
 const PIN_STORAGE_KEY = 'vibe_vault_pin_meta';
+const LOCAL_PROFILE_STORAGE_KEY = 'vibe_vault_local_profile';
 const LOCK_CONFIG_KEY = 'vibe_vault_lock_config';
 const DEVICE_KEY_ID = 'device';
 const BIOMETRIC_STORAGE_KEY = 'vibe_vault_biometric_meta';
 const BIOMETRIC_WRAP_KEY_ID = 'biometric_wrap_key_v1';
+
+export interface LocalVaultProfile {
+  userName: string;
+  pinName: string;
+  createdAt: string;
+}
 
 export interface VaultLockConfig {
   enabled: boolean;
@@ -366,10 +373,53 @@ export async function removeVaultPin(currentPin: string): Promise<boolean> {
 }
 
 /**
+ * Local Account Profile (Stored strictly on-device in localStorage)
+ */
+export function getLocalVaultProfile(): LocalVaultProfile | null {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(LOCAL_PROFILE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LocalVaultProfile>;
+    if (!parsed || typeof parsed.userName !== 'string' || !parsed.userName.trim()) {
+      return null;
+    }
+    return {
+      userName: parsed.userName.trim(),
+      pinName: typeof parsed.pinName === 'string' && parsed.pinName.trim()
+        ? parsed.pinName.trim()
+        : '마스터 PIN',
+      createdAt: typeof parsed.createdAt === 'string' ? parsed.createdAt : new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveLocalVaultProfile(profile: { userName: string; pinName: string }): LocalVaultProfile {
+  const sanitized: LocalVaultProfile = {
+    userName: profile.userName.trim().slice(0, 40),
+    pinName: (profile.pinName.trim() || '마스터 PIN').slice(0, 40),
+    createdAt: new Date().toISOString(),
+  };
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(LOCAL_PROFILE_STORAGE_KEY, JSON.stringify(sanitized));
+  }
+  return sanitized;
+}
+
+export function clearLocalVaultProfile(): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(LOCAL_PROFILE_STORAGE_KEY);
+  }
+}
+
+/**
  * Resets all vault security parameters, PIN credentials, and in-memory keys
  */
 export function resetVaultSecurity(): void {
   localStorage.removeItem(PIN_STORAGE_KEY);
+  localStorage.removeItem(LOCAL_PROFILE_STORAGE_KEY);
   localStorage.removeItem(LOCK_CONFIG_KEY);
   localStorage.removeItem(BIOMETRIC_STORAGE_KEY);
   sessionStorage.removeItem('vibe_vault_setup_skipped');

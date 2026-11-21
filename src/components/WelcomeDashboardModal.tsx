@@ -1,11 +1,37 @@
-import React, { useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { X, ShieldCheck, Coins, Layers, ArrowRight, ArrowUpRight } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  ChevronDown,
+  Eye,
+  EyeOff,
+  Fingerprint,
+  Loader2,
+  X,
+} from 'lucide-react';
 import { useI18n, LanguageCode } from '../i18n';
+import { AIEngineConfig } from '../utils';
+import {
+  hasVaultPin,
+  isVaultLocked,
+  setVaultPin,
+  unlockVault,
+  getLocalVaultProfile,
+  saveLocalVaultProfile,
+  LocalVaultProfile,
+  authenticateBiometricUnlock,
+  isBiometricUnlockEnabled,
+  isBiometricAvailable,
+} from '../vaultSecurity';
+import { LegalNoticeModal, LegalNoticeTab } from './LegalNoticeModal';
 
 export interface WelcomeDashboardModalProps {
   isOpen: boolean;
   onClose: () => void;
+  engineConfig?: AIEngineConfig;
+  onUpdateEngineConfig?: (partial: Partial<AIEngineConfig>) => void;
+  onEnterVault?: () => void;
+  canReturnToVault?: boolean;
 }
 
 export const WELCOME_SEEN_STORAGE_KEY = 'vibe_welcome_seen';
@@ -27,152 +53,920 @@ const NET_TO_DOT_MANIFESTO: Record<LanguageCode, string> = {
   eu: 'Break free from passive cloud (Net) dependency and realize complete data sovereignty inside your own device (Dot).',
 };
 
-export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
+const FOOTER_POLICY_LINKS: { tab: LegalNoticeTab; label: string }[] = [
+  { tab: 'privacy', label: '개인정보처리방침' },
+  { tab: 'terms', label: '이용약관' },
+  { tab: 'licenses', label: '오픈소스 라이선스' },
+  { tab: 'community', label: '커뮤니티 이용 규약' },
+  { tab: 'cookies', label: '쿠키 정책' },
+];
+
+const GOGUMA_UNIVERSE_LINKS: { label: string; href: string }[] = [
+  { label: '디지털 명함', href: 'https://eerum.goguma.app' },
+  { label: 'AI 앱 기획', href: 'https://goguma.app' },
+  { label: 'AI 슬라이드', href: 'https://vibeslide.goguma.app' },
+  { label: 'AI 일정관리', href: 'https://vibecalendar.goguma.app' },
+];
+
+const RELATED_SITE_LINKS: { label: string; href: string }[] = [
+  { label: 'Net-to-Dot Movement Member', href: 'https://nettodot.org' },
+  { label: 'AI Podium', href: 'https://aipodium.net' },
+  { label: 'K-Design.md', href: 'https://kdesign.koreancenter.net' },
+  { label: '한국센터글로벌네트워크', href: 'https://koreancenter.net' },
+  { label: 'Global K-Edu Community', href: 'https://kedu.koreancenter.net' },
+  { label: '인도네시아센터', href: 'https://indonesiacenter.net' },
+  { label: '인도네시아 창업지원센터', href: 'https://visas.indonesiacenter.net' },
+];
+
+interface FooterLinkListboxProps {
+  id: string;
+  label: string;
+  links: { label: string; href: string }[];
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+}
+
+const FooterLinkListbox: React.FC<FooterLinkListboxProps> = ({
+  id,
+  label,
+  links,
   isOpen,
+  onToggle,
   onClose,
 }) => {
-  const { t, language } = useI18n();
-
-  const handleClose = useCallback(() => {
-    persistWelcomeSeen();
-    onClose();
-  }, [onClose]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
+    const handlePointerDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        handleClose();
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  return (
+    <div ref={containerRef} className="relative w-full sm:w-52">
+      <button
+        id={`${id}-trigger`}
+        type="button"
+        onClick={onToggle}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={`${id}-listbox`}
+        className={`w-full h-10 px-3.5 rounded-xl border text-xs font-medium flex items-center justify-between gap-3 transition-colors cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+          isOpen
+            ? 'bg-white/[0.06] border-white/25 text-white'
+            : 'bg-[#0C0E13] border-white/[0.1] text-neutral-200 hover:border-white/20 hover:text-white'
+        }`}
+      >
+        <span className="truncate">{label}</span>
+        <ChevronDown
+          size={14}
+          aria-hidden="true"
+          className={`shrink-0 text-neutral-400 transition-transform duration-150 ${
+            isOpen ? 'rotate-180 text-white' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <ul
+          id={`${id}-listbox`}
+          role="listbox"
+          aria-label={label}
+          className="absolute bottom-full left-0 right-0 mb-2 py-1.5 rounded-xl bg-[#0E1016] border border-white/[0.12] shadow-2xl z-30 max-h-64 overflow-y-auto animate-in fade-in slide-in-from-bottom-1 duration-150"
+        >
+          {links.map((link) => (
+            <li key={link.href} role="option" aria-selected={false}>
+              <a
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onClose}
+                className="w-full px-3.5 py-2 text-xs text-neutral-300 hover:text-white hover:bg-white/[0.06] transition-colors flex items-center justify-between gap-2 group"
+              >
+                <span className="truncate">{link.label}</span>
+                <ArrowUpRight
+                  size={11}
+                  aria-hidden="true"
+                  className="shrink-0 opacity-40 group-hover:opacity-100 transition-opacity"
+                />
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+type AccountModalMode = 'create' | 'unlock' | null;
+
+export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
+  isOpen,
+  onClose,
+  onEnterVault,
+  canReturnToVault = false,
+}) => {
+  const { t, language } = useI18n();
+
+  // Local account & vault state
+  const [isPinSet, setIsPinSet] = useState<boolean>(() => hasVaultPin());
+  const [vaultLocked, setVaultLocked] = useState<boolean>(() => isVaultLocked());
+  const [localProfile, setLocalProfile] = useState<LocalVaultProfile | null>(() =>
+    getLocalVaultProfile()
+  );
+
+  // Local account modal state
+  const [accountModalMode, setAccountModalMode] = useState<AccountModalMode>(null);
+  const [userName, setUserName] = useState<string>('');
+  const [pinName, setPinName] = useState<string>('');
+  const [pin, setPin] = useState<string>('');
+  const [confirmPin, setConfirmPin] = useState<string>('');
+  const [showPin, setShowPin] = useState<boolean>(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  // Biometric availability for returning PIN users
+  const [isBiometricSupported, setIsBiometricSupported] = useState<boolean>(false);
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState<boolean>(() =>
+    isBiometricUnlockEnabled()
+  );
+
+  // Policy modal & footer listbox state
+  const [legalModalOpen, setLegalModalOpen] = useState<boolean>(false);
+  const [legalModalTab, setLegalModalTab] = useState<LegalNoticeTab>('privacy');
+  const [openFooterListbox, setOpenFooterListbox] = useState<'universe' | 'related' | null>(null);
+
+  const userNameInputRef = useRef<HTMLInputElement>(null);
+  const unlockPinInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setIsPinSet(hasVaultPin());
+    setVaultLocked(isVaultLocked());
+    setLocalProfile(getLocalVaultProfile());
+    setIsBiometricEnabled(isBiometricUnlockEnabled());
+    setAccountModalMode(null);
+    setFormError(null);
+
+    isBiometricAvailable()
+      .then((available) => setIsBiometricSupported(available))
+      .catch(() => setIsBiometricSupported(false));
+  }, [isOpen]);
+
+  // Focus first field & handle Escape key when local account modal opens
+  useEffect(() => {
+    if (!accountModalMode) return;
+
+    const focusTimer = setTimeout(() => {
+      if (accountModalMode === 'create') {
+        userNameInputRef.current?.focus();
+      } else {
+        unlockPinInputRef.current?.focus();
+      }
+    }, 60);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSubmitting) {
+        e.preventDefault();
+        setAccountModalMode(null);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleClose]);
+    return () => {
+      clearTimeout(focusTimer);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [accountModalMode, isSubmitting]);
 
-  if (!isOpen || typeof document === 'undefined') {
+  const completeEntry = useCallback(() => {
+    persistWelcomeSeen();
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('vibe_vault_setup_skipped', 'true');
+    }
+    if (onEnterVault) {
+      onEnterVault();
+    } else {
+      onClose();
+    }
+  }, [onClose, onEnterVault]);
+
+  const openCreateAccountModal = useCallback(() => {
+    setUserName(localProfile?.userName || '');
+    setPinName(localProfile?.pinName || '');
+    setPin('');
+    setConfirmPin('');
+    setShowPin(false);
+    setFormError(null);
+    setAccountModalMode('create');
+  }, [localProfile]);
+
+  const openUnlockAccountModal = useCallback(() => {
+    setPin('');
+    setShowPin(false);
+    setFormError(null);
+    setAccountModalMode('unlock');
+  }, []);
+
+  const handleGuestModeEnter = useCallback(() => {
+    unlockVault().catch(() => {});
+    completeEntry();
+  }, [completeEntry]);
+
+  const handleReturnToVault = useCallback(() => {
+    persistWelcomeSeen();
+    onClose();
+  }, [onClose]);
+
+  const handleCreateAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    const trimmedUser = userName.trim();
+    const trimmedPinName = pinName.trim() || '마스터 PIN';
+
+    if (!trimmedUser) {
+      setFormError('사용자 이름을 입력해 주세요.');
+      return;
+    }
+    if (pin.length < 4 || pin.length > 6) {
+      setFormError('마스터 PIN은 4~6자리 숫자로 입력해 주세요.');
+      return;
+    }
+    if (pin !== confirmPin) {
+      setFormError('PIN 확인 번호가 일치하지 않습니다.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      await setVaultPin(pin);
+      const saved = saveLocalVaultProfile({
+        userName: trimmedUser,
+        pinName: trimmedPinName,
+      });
+      setLocalProfile(saved);
+      setIsPinSet(true);
+      setVaultLocked(false);
+      setAccountModalMode(null);
+      setPin('');
+      setConfirmPin('');
+      completeEntry();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : '로컬 계정 생성 중 오류가 발생했습니다.';
+      setFormError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUnlockAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    if (pin.length < 4 || pin.length > 6) {
+      setFormError('설정한 4~6자리 PIN 번호를 입력해 주세요.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      const res = await unlockVault(pin);
+      if (res.success) {
+        setVaultLocked(false);
+        setAccountModalMode(null);
+        setPin('');
+        completeEntry();
+      } else {
+        setFormError(res.error || '올바르지 않은 PIN 번호입니다.');
+        setPin('');
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : '금고 잠금 해제 중 오류가 발생했습니다.';
+      setFormError(message);
+      setPin('');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleBiometricUnlock = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      const res = await authenticateBiometricUnlock();
+      if (res.success) {
+        setVaultLocked(false);
+        setAccountModalMode(null);
+        completeEntry();
+      } else {
+        setFormError(res.error || '생체 인증에 실패했습니다. PIN 번호를 입력해 주세요.');
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '생체 인증에 실패했습니다.';
+      setFormError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openPolicyModal = (tab: LegalNoticeTab) => {
+    setLegalModalTab(tab);
+    setLegalModalOpen(true);
+  };
+
+  if (!isOpen) {
     return null;
   }
 
+  const isUnlockedRevisit = canReturnToVault && !vaultLocked;
+
   const pillars = [
     {
-      id: 'privacy',
-      icon: <ShieldCheck className="w-[18px] h-[18px] sm:w-5 sm:h-5 text-emerald-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
-      titleColor: 'text-emerald-300',
-      delayClass: '[animation-delay:60ms]',
+      index: '01',
       title: t('welcome_phil1_title'),
       desc: t('welcome_phil1_desc'),
+      accent: 'text-emerald-400',
     },
     {
-      id: 'currency',
-      icon: <Coins className="w-[18px] h-[18px] sm:w-5 sm:h-5 text-amber-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
-      titleColor: 'text-amber-300',
-      delayClass: '[animation-delay:140ms]',
+      index: '02',
       title: t('welcome_phil2_title'),
       desc: t('welcome_phil2_desc'),
+      accent: 'text-amber-300',
     },
     {
-      id: 'space',
-      icon: <Layers className="w-[18px] h-[18px] sm:w-5 sm:h-5 text-sky-400 shrink-0 mt-0.5" strokeWidth={1.75} />,
-      titleColor: 'text-sky-300',
-      delayClass: '[animation-delay:220ms]',
+      index: '03',
       title: t('welcome_phil3_title'),
       desc: t('welcome_phil3_desc'),
+      accent: 'text-sky-400',
     },
   ];
 
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="welcome-dashboard-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
-      onClick={handleClose}
-    >
-      <div
-        className="w-full max-w-3xl rounded-3xl bg-[#090A0D]/95 backdrop-blur-3xl border border-white/5 text-neutral-100 antialiased shadow-[0_32px_64px_-16px_rgba(0,0,0,0.95)] px-6 py-7 sm:p-10 relative max-h-[94dvh] sm:max-h-[92dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={handleClose}
-          aria-label={t('close')}
-          className="absolute top-5 right-5 sm:top-7 sm:right-7 w-9 h-9 rounded-full flex items-center justify-center text-neutral-300 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-        >
-          <X size={18} />
-        </button>
+  const colophonSpecs = [
+    ...(localProfile && isPinSet
+      ? [
+          {
+            label: '로컬 계정',
+            value: `${localProfile.userName} · ${localProfile.pinName}`,
+          },
+        ]
+      : []),
+    { label: '저장 방식', value: '브라우저 로컬 IndexedDB' },
+    { label: '암호화 규격', value: 'AES-GCM-256 · PBKDF2' },
+    { label: '데이터 원칙', value: '서버 수집 · 쿠키 없음' },
+  ];
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-10 md:gap-12 items-start sm:pt-2">
-          {/* Left Side: Hero Typography */}
-          <div className="md:col-span-5 flex flex-col justify-between pr-9 sm:pr-0">
-            <div>
-              <h2
-                id="welcome-dashboard-title"
-                className="text-[28px] leading-tight sm:text-4xl font-semibold tracking-tight text-white"
-              >
+  return (
+    <div className="h-[100dvh] w-full overflow-y-auto bg-[#07080A] text-neutral-100 antialiased font-sans flex flex-col selection:bg-white/20">
+      {/* Main Minimal Editorial Canvas */}
+      <main id="welcome-top" className="flex-1 w-full flex items-center">
+        <div className="w-full max-w-5xl mx-auto px-6 sm:px-10 py-14 sm:py-20 lg:py-24">
+          {/* Editorial Hero Spread */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-14 items-start">
+            {/* Primary Editorial Statement & Actions */}
+            <div className="lg:col-span-8 space-y-6">
+              <h1 className="text-[clamp(2.6rem,5.2vw,4rem)] leading-[1.08] font-semibold tracking-tight text-white [text-wrap:balance]">
                 Vibe Vault
-              </h2>
-              <p className="text-[13.5px] sm:text-sm font-normal text-neutral-300 leading-relaxed mt-2.5 sm:mt-5">
-                {t('welcome_manifesto')}
-              </p>
-              <p className="text-xs sm:text-[13px] font-normal text-neutral-400 leading-relaxed mt-3">
-                {NET_TO_DOT_MANIFESTO[language] || NET_TO_DOT_MANIFESTO.en}
-              </p>
-            </div>
+              </h1>
 
-            <div className="mt-5 sm:mt-8 pt-4 border-t border-white/[0.06]">
-              <a
-                href="https://nettodot.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-neutral-400 hover:text-sky-400 transition-colors"
-              >
-                <span>A Net to Dot Movement Initiative</span>
-                <span aria-hidden="true" className="text-neutral-500">·</span>
-                <span className="underline underline-offset-2 decoration-white/20">nettodot.org</span>
-                <ArrowUpRight size={11} className="shrink-0 opacity-80" />
-              </a>
-            </div>
-          </div>
-
-          {/* Right Side: 3 Core Pillars (Borderless Editorial List) */}
-          <div className="md:col-span-7 flex flex-col gap-5 sm:gap-8">
-            {pillars.map((pillar) => (
-              <div
-                key={pillar.id}
-                className={`flex items-start gap-3.5 sm:gap-4 animate-in fade-in slide-in-from-bottom-2 ${pillar.delayClass}`}
-              >
-                {pillar.icon}
-                <div className="min-w-0 flex-1">
-                  <h3 className={`text-[15px] sm:text-base font-semibold tracking-tight ${pillar.titleColor}`}>
-                    {pillar.title}
-                  </h3>
-                  <p className="text-[13px] sm:text-sm font-normal text-neutral-300 leading-relaxed mt-1.5">
-                    {pillar.desc}
-                  </p>
-                </div>
+              <div className="space-y-3.5 max-w-xl">
+                <p className="text-base sm:text-[17px] font-normal text-neutral-200 leading-[1.7]">
+                  {t('welcome_manifesto')}
+                </p>
+                <p className="text-sm font-normal text-neutral-400 leading-[1.7]">
+                  {NET_TO_DOT_MANIFESTO[language] || NET_TO_DOT_MANIFESTO.ko}
+                </p>
               </div>
-            ))}
+
+              {/* Primary / Secondary Entry Actions */}
+              <div className="pt-3 space-y-3.5">
+                <div className="flex flex-wrap items-center gap-3">
+                  {isUnlockedRevisit ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleReturnToVault}
+                        className="h-12 px-6 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                      >
+                        <span>프라이빗 금고로 돌아가기</span>
+                        <ArrowRight size={15} />
+                      </button>
+
+                      {!isPinSet && (
+                        <button
+                          type="button"
+                          onClick={openCreateAccountModal}
+                          className="h-12 px-6 rounded-xl border border-white/[0.18] bg-transparent hover:bg-white/[0.06] hover:border-white/30 text-neutral-100 text-sm font-medium transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                        >
+                          로컬 계정 만들기
+                        </button>
+                      )}
+                    </>
+                  ) : isPinSet && vaultLocked ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={openUnlockAccountModal}
+                        className="h-12 px-6 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                      >
+                        <span>
+                          {localProfile?.userName
+                            ? `${localProfile.userName}님의 금고 열기`
+                            : '로컬 계정 열기'}
+                        </span>
+                        <ArrowRight size={15} />
+                      </button>
+
+                      {isBiometricSupported && isBiometricEnabled && (
+                        <button
+                          type="button"
+                          onClick={handleBiometricUnlock}
+                          disabled={isSubmitting}
+                          className="h-12 px-6 rounded-xl border border-white/[0.18] bg-transparent hover:bg-white/[0.06] hover:border-white/30 text-neutral-100 text-sm font-medium transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                        >
+                          <Fingerprint size={15} className="text-emerald-300" />
+                          <span>{t('biometric_unlock')}</span>
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        id="welcome-create-local-account-btn"
+                        type="button"
+                        onClick={openCreateAccountModal}
+                        className="h-12 px-6 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                      >
+                        <span>로컬 계정 만들기</span>
+                        <ArrowRight size={15} />
+                      </button>
+
+                      <button
+                        id="welcome-guest-mode-btn"
+                        type="button"
+                        onClick={handleGuestModeEnter}
+                        className="h-12 px-6 rounded-xl border border-white/[0.18] bg-transparent hover:bg-white/[0.06] hover:border-white/30 text-neutral-100 text-sm font-medium transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                      >
+                        게스트 모드
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  {isPinSet
+                    ? '이 기기에 로컬 계정이 설정되어 있습니다. PIN 인증 후 암호화된 금고가 열립니다.'
+                    : '로컬 계정은 기기 내 영구 암호화되며, 게스트 모드는 바로 체험 후 세션 종료 시 초기화됩니다.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Quiet Editorial Colophon / Specifications */}
+            <aside
+              aria-label="아키텍처 요약"
+              className="lg:col-span-4 lg:pt-3 border-t border-white/[0.09] divide-y divide-white/[0.08]"
+            >
+              <dl className="divide-y divide-white/[0.08]">
+                {colophonSpecs.map((spec) => (
+                  <div
+                    key={spec.label}
+                    className="py-3.5 first:pt-4 flex items-baseline justify-between gap-4"
+                  >
+                    <dt className="text-xs text-neutral-500 shrink-0">{spec.label}</dt>
+                    <dd className="text-xs font-medium text-neutral-200 text-right truncate">
+                      {spec.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </aside>
+          </section>
+
+          {/* 3-Column Horizontal Editorial Principles Index */}
+          <section
+            id="welcome-pillars"
+            aria-label="핵심 설계 원칙"
+            className="mt-14 sm:mt-20 pt-10 sm:pt-12 border-t border-white/[0.09]"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-9 md:gap-10">
+              {pillars.map((pillar) => (
+                <article key={pillar.index} className="space-y-3">
+                  <div className="flex items-baseline gap-2.5">
+                    <span className={`font-mono text-xs tabular-nums ${pillar.accent}`}>
+                      {pillar.index}
+                    </span>
+                    <h2 className="text-[15px] font-semibold tracking-tight text-white">
+                      {pillar.title}
+                    </h2>
+                  </div>
+                  <p className="text-[13.5px] text-neutral-400 leading-[1.7]">{pillar.desc}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      </main>
+
+      {/* Minimalist Editorial Footer */}
+      <footer id="welcome-footer" className="w-full border-t border-white/[0.07] bg-[#060709]">
+        <div className="max-w-5xl mx-auto px-6 sm:px-10 py-10">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+            {/* Left: Policy Menu & Company Info */}
+            <div className="space-y-4">
+              <nav
+                aria-label="정책 및 약관 메뉴"
+                className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-neutral-300"
+              >
+                {FOOTER_POLICY_LINKS.map((item) => (
+                  <button
+                    key={item.tab}
+                    type="button"
+                    onClick={() => openPolicyModal(item.tab)}
+                    className="hover:text-white transition-colors whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:underline"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-neutral-400">
+                <span className="text-neutral-200 font-medium">
+                  한국센터글로벌네트워크 지식관리실
+                </span>
+                <span aria-hidden="true" className="text-neutral-600">
+                  ·
+                </span>
+                <span className="tabular-nums">사업자등록번호 141-82-83410</span>
+                <span aria-hidden="true" className="text-neutral-600">
+                  ·
+                </span>
+                <a
+                  href="mailto:master@goguma.app"
+                  className="font-mono text-neutral-300 hover:text-white transition-colors underline underline-offset-4 decoration-white/20 hover:decoration-white"
+                >
+                  master@goguma.app
+                </a>
+              </div>
+            </div>
+
+            {/* Right: Goguma Universe & Related Sites Listboxes */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+              <FooterLinkListbox
+                id="goguma-universe"
+                label="고구마 유니버스"
+                links={GOGUMA_UNIVERSE_LINKS}
+                isOpen={openFooterListbox === 'universe'}
+                onToggle={() =>
+                  setOpenFooterListbox((prev) => (prev === 'universe' ? null : 'universe'))
+                }
+                onClose={() => setOpenFooterListbox(null)}
+              />
+
+              <FooterLinkListbox
+                id="related-sites"
+                label="관련 사이트"
+                links={RELATED_SITE_LINKS}
+                isOpen={openFooterListbox === 'related'}
+                onToggle={() =>
+                  setOpenFooterListbox((prev) => (prev === 'related' ? null : 'related'))
+                }
+                onClose={() => setOpenFooterListbox(null)}
+              />
+            </div>
+          </div>
+
+          {/* Quiet Copyright & Principles Row */}
+          <div className="mt-8 pt-5 border-t border-white/[0.05] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11.5px] text-neutral-500">
+            <p className="tabular-nums">© 2026 Vibe Vault · MIT License</p>
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span>개인정보수집 없음</span>
+              <span aria-hidden="true">·</span>
+              <span>No Cookies</span>
+              <span aria-hidden="true">·</span>
+              <span>Zero-Knowledge Local Storage</span>
+            </p>
           </div>
         </div>
+      </footer>
 
-        {/* Single Primary Action */}
-        <div className="mt-7 sm:mt-12 flex justify-end">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 text-sm font-semibold transition-all active:scale-95 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-          >
-            <span>{t('welcome_start_btn')}</span>
-            <ArrowRight size={15} />
-          </button>
+      {/* Local Account Creation / Unlock Modal */}
+      {accountModalMode && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="local-account-modal-title"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSubmitting) {
+              setAccountModalMode(null);
+            }
+          }}
+        >
+          <div className="w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl bg-[#0D0F14] border border-white/[0.11] p-6 sm:p-7 shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-4 pb-5 border-b border-white/[0.08]">
+              <div className="space-y-1">
+                <h2
+                  id="local-account-modal-title"
+                  className="text-lg font-semibold tracking-tight text-white"
+                >
+                  {accountModalMode === 'create'
+                    ? '로컬 계정 만들기'
+                    : localProfile?.userName
+                      ? `${localProfile.userName}님의 로컬 금고`
+                      : '로컬 금고 열기'}
+                </h2>
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  {accountModalMode === 'create'
+                    ? '입력한 정보는 서버로 전송되지 않으며, 이 기기 내부에만 암호화 저장됩니다.'
+                    : localProfile?.pinName
+                      ? `PIN 이름 · ${localProfile.pinName}`
+                      : '설정한 4~6자리 마스터 PIN 번호를 입력해 주세요.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isSubmitting && setAccountModalMode(null)}
+                aria-label="닫기"
+                className="p-1.5 -mr-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {accountModalMode === 'create' ? (
+              <form onSubmit={handleCreateAccountSubmit} className="pt-5 space-y-4">
+                {/* 1. User Name */}
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="local-account-username"
+                    className="block text-xs font-medium text-neutral-200"
+                  >
+                    사용자 이름 <span className="text-neutral-500 font-normal">(필수)</span>
+                  </label>
+                  <input
+                    ref={userNameInputRef}
+                    id="local-account-username"
+                    type="text"
+                    maxLength={40}
+                    autoComplete="off"
+                    value={userName}
+                    onChange={(e) => {
+                      setUserName(e.target.value);
+                      setFormError(null);
+                    }}
+                    placeholder="예: 김민수 또는 개인 별명"
+                    className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-sm text-white placeholder:text-neutral-500 transition-colors"
+                  />
+                </div>
+
+                {/* 2. PIN Name */}
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="local-account-pin-name"
+                    className="block text-xs font-medium text-neutral-200"
+                  >
+                    PIN 이름 <span className="text-neutral-500 font-normal">(선택 · 구분용 라벨)</span>
+                  </label>
+                  <input
+                    id="local-account-pin-name"
+                    type="text"
+                    maxLength={40}
+                    autoComplete="off"
+                    value={pinName}
+                    onChange={(e) => {
+                      setPinName(e.target.value);
+                      setFormError(null);
+                    }}
+                    placeholder="예: 메인 개인 금고 PIN"
+                    className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-sm text-white placeholder:text-neutral-500 transition-colors"
+                  />
+                </div>
+
+                {/* 3. Master PIN */}
+                <div className="space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <label
+                      htmlFor="local-account-pin"
+                      className="block text-xs font-medium text-neutral-200"
+                    >
+                      마스터 PIN <span className="text-neutral-500 font-normal">(4~6자리 숫자)</span>
+                    </label>
+                    <span className="text-[11px] font-mono text-neutral-500 tabular-nums">
+                      {pin.length}/6
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      id="local-account-pin"
+                      type={showPin ? 'text' : 'password'}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      autoComplete="new-password"
+                      value={pin}
+                      onChange={(e) => {
+                        setPin(e.target.value.replace(/\D/g, '').slice(0, 6));
+                        setFormError(null);
+                      }}
+                      placeholder="숫자 4~6자리 입력"
+                      className="w-full h-11 pl-3.5 pr-10 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-sm text-white placeholder:text-neutral-500 tracking-[0.2em] font-mono tabular-nums transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPin((prev) => !prev)}
+                      aria-label={showPin ? 'PIN 숨기기' : 'PIN 표시'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      {showPin ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4. Confirm Master PIN */}
+                <div className="space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <label
+                      htmlFor="local-account-pin-confirm"
+                      className="block text-xs font-medium text-neutral-200"
+                    >
+                      마스터 PIN 확인
+                    </label>
+                    <span className="text-[11px] font-mono text-neutral-500 tabular-nums">
+                      {confirmPin.length}/6
+                    </span>
+                  </div>
+                  <input
+                    id="local-account-pin-confirm"
+                    type={showPin ? 'text' : 'password'}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    autoComplete="new-password"
+                    value={confirmPin}
+                    onChange={(e) => {
+                      setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6));
+                      setFormError(null);
+                    }}
+                    placeholder="마스터 PIN 한 번 더 입력"
+                    className="w-full h-11 px-3.5 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-sm text-white placeholder:text-neutral-500 tracking-[0.2em] font-mono tabular-nums transition-colors"
+                  />
+                </div>
+
+                {formError && (
+                  <p role="alert" className="text-xs text-amber-300 font-medium pt-0.5">
+                    {formError}
+                  </p>
+                )}
+
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setAccountModalMode(null)}
+                    disabled={isSubmitting}
+                    className="h-11 px-4 rounded-xl border border-white/[0.14] text-xs font-medium text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors cursor-pointer whitespace-nowrap"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="h-11 px-5 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 disabled:bg-white/20 disabled:text-white/60 text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <>
+                        <span>로컬 계정 시작하기</span>
+                        <ArrowRight size={14} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleUnlockAccountSubmit} className="pt-5 space-y-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <label
+                      htmlFor="local-account-unlock-pin"
+                      className="block text-xs font-medium text-neutral-200"
+                    >
+                      마스터 PIN 입력
+                    </label>
+                    <span className="text-[11px] font-mono text-neutral-500 tabular-nums">
+                      {pin.length}/6
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      ref={unlockPinInputRef}
+                      id="local-account-unlock-pin"
+                      type={showPin ? 'text' : 'password'}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      autoComplete="current-password"
+                      value={pin}
+                      onChange={(e) => {
+                        setPin(e.target.value.replace(/\D/g, '').slice(0, 6));
+                        setFormError(null);
+                      }}
+                      placeholder="4~6자리 숫자 입력"
+                      className="w-full h-11 pl-3.5 pr-10 rounded-xl bg-black/40 border border-white/[0.12] focus:border-white/40 focus:outline-none text-sm text-white placeholder:text-neutral-500 tracking-[0.2em] font-mono tabular-nums transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPin((prev) => !prev)}
+                      aria-label={showPin ? 'PIN 숨기기' : 'PIN 표시'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      {showPin ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                {formError && (
+                  <p role="alert" className="text-xs text-amber-300 font-medium">
+                    {formError}
+                  </p>
+                )}
+
+                {isBiometricSupported && isBiometricEnabled && (
+                  <button
+                    type="button"
+                    onClick={handleBiometricUnlock}
+                    disabled={isSubmitting}
+                    className="w-full h-10 px-4 rounded-xl border border-emerald-400/30 bg-emerald-500/[0.08] hover:bg-emerald-500/[0.15] text-emerald-200 text-xs font-medium transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
+                  >
+                    <Fingerprint size={14} className="text-emerald-300" />
+                    <span>{t('biometric_unlock')}</span>
+                  </button>
+                )}
+
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setAccountModalMode(null)}
+                    disabled={isSubmitting}
+                    className="h-11 px-4 rounded-xl border border-white/[0.14] text-xs font-medium text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors cursor-pointer whitespace-nowrap"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || pin.length < 4}
+                    className="h-11 px-5 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 disabled:bg-white/20 disabled:text-white/60 text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <>
+                        <span>잠금 해제</span>
+                        <ArrowRight size={14} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
-      </div>
-    </div>,
-    document.body
+      )}
+
+      {/* Policy & License Viewer Modal */}
+      <LegalNoticeModal
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        initialTab={legalModalTab}
+      />
+    </div>
   );
 };
 
+export const WelcomePage = WelcomeDashboardModal;
 export default WelcomeDashboardModal;

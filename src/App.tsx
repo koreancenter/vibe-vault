@@ -427,14 +427,15 @@ function AppInner() {
     return result;
   }, [currentSpaceTransactions, selectedCategory, ledgerFilter]);
 
-  // Modal Visibility States
+  // Full-Page Welcome & Entry State
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(() => {
     if (typeof localStorage === 'undefined') return false;
     const needsPinSetup =
       !hasVaultPin() &&
       (typeof sessionStorage === 'undefined' || !sessionStorage.getItem('vibe_vault_setup_skipped'));
+    const needsPinUnlock = hasVaultPin() && isVaultLocked();
     const hasSeenWelcome = Boolean(localStorage.getItem('vibe_welcome_seen'));
-    return needsPinSetup || !hasSeenWelcome;
+    return needsPinSetup || needsPinUnlock || !hasSeenWelcome;
   });
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [hasUnreadChangelog, setHasUnreadChangelog] = useState(() =>
@@ -725,6 +726,28 @@ function AppInner() {
     showToast,
     scrollContainerRef
   });
+
+  if (isWelcomeOpen) {
+    const canReturnToVault =
+      !isVaultLockedState &&
+      (hasVaultPin() ||
+        (typeof sessionStorage !== 'undefined' && Boolean(sessionStorage.getItem('vibe_vault_setup_skipped'))));
+
+    return (
+      <WelcomeDashboardModal
+        isOpen={true}
+        onClose={() => setIsWelcomeOpen(false)}
+        engineConfig={engineConfig}
+        onUpdateEngineConfig={updateEngineConfig}
+        canReturnToVault={canReturnToVault}
+        onEnterVault={() => {
+          setIsWelcomeOpen(false);
+          syncPreferences();
+          handleUnlocked();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="w-full h-[100dvh] flex justify-center bg-[#07080A] text-neutral-100 overflow-hidden font-sans antialiased">
@@ -1354,12 +1377,6 @@ function AppInner() {
           )}
         </Suspense>
       </LazyErrorBoundary>
-
-      {/* Unified Welcome Manifesto Modal */}
-      <WelcomeDashboardModal
-        isOpen={isWelcomeOpen}
-        onClose={() => setIsWelcomeOpen(false)}
-      />
 
       {/* Offline Release Notes & Developer's Note Changelog Modal */}
       <MountOnFirstOpen open={isChangelogOpen}>

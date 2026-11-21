@@ -5,6 +5,7 @@ import {
   hasVaultPin, 
   unlockVault, 
   setVaultPin,
+  getLocalVaultProfile,
   authenticateBiometricUnlock,
   isBiometricUnlockEnabled,
   isBiometricAvailable as checkBiometricAvailable
@@ -291,6 +292,17 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
         {/* 1. Streamlined Top Header */}
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold tracking-tight text-white">{t('vault_lock_title')}</h1>
+          {!isSetupMode && (() => {
+            const profile = getLocalVaultProfile();
+            if (!profile) return null;
+            return (
+              <p className="text-[11px] text-neutral-400 mt-1 truncate">
+                <span>{profile.userName}</span>
+                <span aria-hidden="true" className="mx-1.5 text-neutral-600">·</span>
+                <span>{profile.pinName}</span>
+              </p>
+            );
+          })()}
           <p className="text-xs text-neutral-100 font-medium mt-1">
             {isSetupMode 
               ? (setupStep === 'confirm' ? t('confirm_pin') : t('setup_pin'))
@@ -473,10 +485,12 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       </div>
 
       {isWelcomeOpen && (
-        <WelcomeDashboardModal
-          isOpen={isWelcomeOpen}
-          onClose={() => setIsWelcomeOpen(false)}
-        />
+        <div className="fixed inset-0 z-[100]">
+          <WelcomeDashboardModal
+            isOpen={isWelcomeOpen}
+            onClose={() => setIsWelcomeOpen(false)}
+          />
+        </div>
       )}
 
       {isLegalNoticeOpen && (
