@@ -974,72 +974,121 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        {/* Sticky Tab Bar: px-6 pt-2 border-b border-white/[0.06] */}
-        <div className="px-6 pt-2 border-b border-white/[0.06] shrink-0">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        {/* Sticky Tab Bar: responsive 5-tab layout so Data Management is always visible on mobile */}
+        <div className="px-2.5 sm:px-6 pt-2 border-b border-white/[0.06] shrink-0">
+          <div
+            role="tablist"
+            aria-label={t('settings')}
+            className="flex items-center justify-between sm:justify-start sm:gap-2 whitespace-nowrap"
+          >
             <button
               id="tab-assets"
+              role="tab"
+              aria-selected={activeTab === 'assets'}
               type="button"
               onClick={() => setActiveTab('assets')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
+              className={`text-[11px] sm:text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-1.5 sm:px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'assets'
                   ? 'border-b-2 border-[var(--color-accent)] text-white font-semibold'
                   : 'text-neutral-200 hover:text-white font-medium border-b-2 border-transparent'
               }`}
             >
-              {t('tab_smart_assets')}
+              {language === 'ko' ? (
+                t('tab_smart_assets')
+              ) : (
+                <>
+                  <span className="sm:hidden">Assets</span>
+                  <span className="hidden sm:inline">{t('tab_smart_assets')}</span>
+                </>
+              )}
             </button>
 
             <button
               id="tab-spaces"
+              role="tab"
+              aria-selected={activeTab === 'spaces'}
               type="button"
               onClick={() => setActiveTab('spaces')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
+              className={`text-[11px] sm:text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-1.5 sm:px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'spaces'
                   ? 'border-b-2 border-[var(--color-accent)] text-white font-semibold'
                   : 'text-neutral-200 hover:text-white font-medium border-b-2 border-transparent'
               }`}
             >
-              {t('tab_multi_ledger')}
+              {language === 'ko' ? (
+                t('tab_multi_ledger')
+              ) : (
+                <>
+                  <span className="sm:hidden">Ledgers</span>
+                  <span className="hidden sm:inline">{t('tab_multi_ledger')}</span>
+                </>
+              )}
             </button>
 
             <button
               id="tab-ai-engine"
+              role="tab"
+              aria-selected={activeTab === 'engine'}
               type="button"
               onClick={() => setActiveTab('engine')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
+              className={`text-[11px] sm:text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-1.5 sm:px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'engine'
                   ? 'border-b-2 border-[var(--color-accent)] text-white font-semibold'
                   : 'text-neutral-200 hover:text-white font-medium border-b-2 border-transparent'
               }`}
             >
-              {t('tab_ai_engine')}
+              {language === 'ko' ? (
+                t('tab_ai_engine')
+              ) : (
+                <>
+                  <span className="sm:hidden">AI</span>
+                  <span className="hidden sm:inline">{t('tab_ai_engine')}</span>
+                </>
+              )}
             </button>
 
             <button
               id="tab-prefs"
+              role="tab"
+              aria-selected={activeTab === 'preferences'}
               type="button"
               onClick={() => setActiveTab('preferences')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
+              className={`text-[11px] sm:text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-1.5 sm:px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'preferences'
                   ? 'border-b-2 border-[var(--color-accent)] text-white font-semibold'
                   : 'text-neutral-200 hover:text-white font-medium border-b-2 border-transparent'
               }`}
             >
-              {t('tab_preferences')}
+              {language === 'ko' ? (
+                t('tab_preferences')
+              ) : (
+                <>
+                  <span className="sm:hidden">General</span>
+                  <span className="hidden sm:inline">{t('tab_preferences')}</span>
+                </>
+              )}
             </button>
 
             <button
               id="tab-data"
+              role="tab"
+              aria-selected={activeTab === 'privacy'}
               type="button"
               onClick={() => setActiveTab('privacy')}
-              className={`text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-3 pb-2.5 cursor-pointer ${
+              className={`text-[11px] sm:text-xs text-center transition-colors relative whitespace-nowrap shrink-0 px-1.5 sm:px-3 pb-2.5 cursor-pointer ${
                 activeTab === 'privacy'
                   ? 'border-b-2 border-[var(--color-accent)] text-white font-semibold'
                   : 'text-neutral-200 hover:text-white font-medium border-b-2 border-transparent'
               }`}
             >
-              {t('tab_privacy_data')}
+              {language === 'ko' ? (
+                t('tab_privacy_data')
+              ) : (
+                <>
+                  <span className="sm:hidden">Data</span>
+                  <span className="hidden sm:inline">{t('tab_privacy_data')}</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -1306,6 +1355,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               handleResetAllData={handleResetAllData}
               isClearingData={isClearingData}
               setLegalOpen={setLegalOpen}
+              onDataChanged={onDataChanged}
               onStatusMessage={setStatusMessage}
             />
           )}

@@ -104,6 +104,12 @@ export default defineConfig(({ command }) => ({
               urlPattern: /^https:\/\/generativelanguage\.googleapis\.com\/.*/i,
               handler: 'NetworkOnly',
             },
+            // 2. SECURITY RULE: Google Drive Sync & Firebase Auth endpoints
+            // OAuth tokens and encrypted cloud vault snapshots must NEVER be stored in CacheStorage.
+            {
+              urlPattern: /^https:\/\/(?:www|identitytoolkit|securetoken)\.googleapis\.com\/.*/i,
+              handler: 'NetworkOnly',
+            },
             // 4. SECURITY RULE: Backend API routes (/api/* and /vibevault/api/*)
             // Financial balance changes, parsed transactions, receipts, or keys MUST NEVER be stored in CacheStorage.
             {
@@ -183,6 +189,9 @@ export default defineConfig(({ command }) => ({
               }
               if (id.includes('@google/genai')) {
                 return 'vendor-ai';
+              }
+              if (id.includes('/node_modules/firebase/') || id.includes('/node_modules/@firebase/')) {
+                return 'vendor-firebase';
               }
             }
           },

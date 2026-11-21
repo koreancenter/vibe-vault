@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { CustomDarkSelect } from './CustomDarkSelect';
 import { 
   VaultLockConfig, 
@@ -9,6 +9,8 @@ import {
   isBiometricAvailable as checkBiometricAvailable
 } from '../../vaultSecurity';
 import { useI18n } from '../../i18n';
+
+const GoogleDriveSyncCard = React.lazy(() => import('./GoogleDriveSyncCard'));
 
 interface SettingsDataTabProps {
   onClose: () => void;
@@ -30,6 +32,7 @@ interface SettingsDataTabProps {
   handleResetAllData: () => void;
   isClearingData: boolean;
   setLegalOpen: (open: boolean) => void;
+  onDataChanged?: () => void;
   onStatusMessage?: (msg: { type: 'success' | 'error'; text: string }) => void;
 }
 
@@ -53,6 +56,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
   handleResetAllData,
   isClearingData,
   setLegalOpen,
+  onDataChanged,
   onStatusMessage
 }) => {
   const { t, language } = useI18n();
@@ -267,6 +271,20 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Group 1.5: Google Drive Zero-Knowledge E2EE Cloud Sync (Lazy-loaded) */}
+      <Suspense
+        fallback={
+          <div className="border-b border-white/[0.06] pb-3.5 text-xs text-neutral-400">
+            {isKo ? 'Google Drive 동기화 모듈 준비 중...' : 'Loading Google Drive sync...'}
+          </div>
+        }
+      >
+        <GoogleDriveSyncCard
+          onDataChanged={onDataChanged}
+          onStatusMessage={onStatusMessage}
+        />
+      </Suspense>
 
       {/* Group 2: 전체 볼트 암호화 백업 및 기기 간 이전 */}
       <div className="space-y-2 border-b border-white/[0.06] pb-3.5">
