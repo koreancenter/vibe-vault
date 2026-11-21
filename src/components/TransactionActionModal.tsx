@@ -54,7 +54,7 @@ export const TransactionActionModal: React.FC<TransactionActionModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className={`w-full max-w-sm rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 duration-200 transition-colors ${
+        className={`w-full max-w-sm rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 duration-200 transition-colors antialiased ${
           isLight 
             ? 'bg-white border-slate-200 text-slate-900 shadow-slate-300/40' 
             : 'bg-[#121318]/95 backdrop-blur-2xl border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
@@ -65,17 +65,17 @@ export const TransactionActionModal: React.FC<TransactionActionModalProps> = ({
         <div className={`w-10 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden ${isLight ? 'bg-slate-300' : 'bg-white/20'}`} />
 
         {/* Modal Top Header */}
-        <div className={`flex items-center justify-between px-5 pt-3.5 pb-2.5 border-b ${
+        <div className={`flex items-center justify-between px-6 py-5 border-b ${
           isLight ? 'border-slate-100' : 'border-white/5'
         }`}>
-          <span className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-neutral-300'}`}>
+          <h2 className={`text-base font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
             거래 상세 정보
-          </span>
+          </h2>
 
           <button
             type="button"
             onClick={onClose}
-            className={`w-7 h-7 flex items-center justify-center rounded-xl transition-colors ${
+            className={`w-7 h-7 flex items-center justify-center rounded-xl transition-colors cursor-pointer ${
               isLight ? 'text-slate-400 hover:text-slate-900 hover:bg-slate-100' : 'text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
             aria-label="닫기"
@@ -85,7 +85,7 @@ export const TransactionActionModal: React.FC<TransactionActionModalProps> = ({
         </div>
 
         {/* Transaction Content Details */}
-        <div className="px-5 py-4 space-y-3.5">
+        <div className="p-6 space-y-3.5">
           {/* Main Title & Amount Display */}
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-3">
@@ -154,7 +154,7 @@ export const TransactionActionModal: React.FC<TransactionActionModalProps> = ({
         </div>
 
         {/* Modal Actions (Edit & Delete) */}
-        <div className={`px-5 py-3 border-t grid grid-cols-2 gap-2.5 ${
+        <div className={`px-6 py-4 border-t grid grid-cols-2 gap-2.5 ${
           isLight ? 'border-slate-100 bg-slate-50/60' : 'border-white/5 bg-white/[0.01]'
         }`}>
           <button

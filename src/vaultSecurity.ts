@@ -28,10 +28,17 @@ const KEYSTORE_STORE_NAME = 'vault_keys';
 const MASTER_KEY_ID = 'device_master_key_v1';
 const CIPHER_PREFIX = '__VBE256__:';
 const PIN_STORAGE_KEY = 'vibe_vault_pin_meta';
+const LOCAL_PROFILE_STORAGE_KEY = 'vibe_vault_local_profile';
 const LOCK_CONFIG_KEY = 'vibe_vault_lock_config';
 const DEVICE_KEY_ID = 'device';
 const BIOMETRIC_STORAGE_KEY = 'vibe_vault_biometric_meta';
 const BIOMETRIC_WRAP_KEY_ID = 'biometric_wrap_key_v1';
+
+export interface LocalVaultProfile {
+  userName: string;
+  pinName: string;
+  createdAt: string;
+}
 
 export interface VaultLockConfig {
   enabled: boolean;
@@ -73,6 +80,23 @@ let keystoreDbPromise: Promise<IDBPDatabase<any>> | null = null;
 let idleTimer: any = null;
 let lastActiveTimestamp: number = Date.now();
 let hiddenTimestamp: number | null = null;
+let failedPinAttempts = 0;
+let pinLockoutUntil = 0;
+
+function resetPinFailureCounter(): void {
+  failedPinAttempts = 0;
+  pinLockoutUntil = 0;
+}
+
+function recordFailedPinAttempt(): number {
+  failedPinAttempts += 1;
+  if (failedPinAttempts >= 5) {
+    const penaltySeconds = Math.min(60, 15 * Math.pow(2, failedPinAttempts - 5));
+    pinLockoutUntil = Date.now() + penaltySeconds * 1000;
+    return penaltySeconds;
+  }
+  return 0;
+}
 
 /**
  * ArrayBuffer <-> Hex / Base64 Utilities
@@ -366,14 +390,58 @@ export async function removeVaultPin(currentPin: string): Promise<boolean> {
 }
 
 /**
+ * Local Account Profile (Stored strictly on-device in localStorage)
+ */
+export function getLocalVaultProfile(): LocalVaultProfile | null {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(LOCAL_PROFILE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LocalVaultProfile>;
+    if (!parsed || typeof parsed.userName !== 'string' || !parsed.userName.trim()) {
+      return null;
+    }
+    return {
+      userName: parsed.userName.trim(),
+      pinName: typeof parsed.pinName === 'string' && parsed.pinName.trim()
+        ? parsed.pinName.trim()
+        : '마스터 PIN',
+      createdAt: typeof parsed.createdAt === 'string' ? parsed.createdAt : new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveLocalVaultProfile(profile: { userName: string; pinName: string }): LocalVaultProfile {
+  const sanitized: LocalVaultProfile = {
+    userName: profile.userName.trim().slice(0, 40),
+    pinName: (profile.pinName.trim() || '마스터 PIN').slice(0, 40),
+    createdAt: new Date().toISOString(),
+  };
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(LOCAL_PROFILE_STORAGE_KEY, JSON.stringify(sanitized));
+  }
+  return sanitized;
+}
+
+export function clearLocalVaultProfile(): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(LOCAL_PROFILE_STORAGE_KEY);
+  }
+}
+
+/**
  * Resets all vault security parameters, PIN credentials, and in-memory keys
  */
 export function resetVaultSecurity(): void {
   localStorage.removeItem(PIN_STORAGE_KEY);
+  localStorage.removeItem(LOCAL_PROFILE_STORAGE_KEY);
   localStorage.removeItem(LOCK_CONFIG_KEY);
   localStorage.removeItem(BIOMETRIC_STORAGE_KEY);
   sessionStorage.removeItem('vibe_vault_setup_skipped');
   inMemoryCryptoKey = null;
+  resetPinFailureCounter();
   clearSecureGeminiApiKey();
   isLocked = false;
   notifyLockState();
@@ -523,13 +591,29 @@ export function lockVault(): void {
 
 export async function unlockVault(pin?: string): Promise<{ success: boolean; error?: string }> {
   if (hasVaultPin()) {
+    const now = Date.now();
+    if (pinLockoutUntil > now) {
+      const remainingSeconds = Math.ceil((pinLockoutUntil - now) / 1000);
+      return {
+        success: false,
+        error: `PIN 입력 오류가 누적되었습니다. ${remainingSeconds}초 후 다시 시도해주세요.`,
+      };
+    }
     if (!pin) {
       return { success: false, error: 'PIN 번호를 입력해주세요.' };
     }
     const valid = await verifyVaultPin(pin);
     if (!valid) {
+      const penaltySeconds = recordFailedPinAttempt();
+      if (penaltySeconds > 0) {
+        return {
+          success: false,
+          error: `PIN 번호가 반복 일치하지 않아 ${penaltySeconds}초간 입력이 제한됩니다.`,
+        };
+      }
       return { success: false, error: '올바르지 않은 PIN 번호입니다.' };
     }
+    resetPinFailureCounter();
   } else {
     // No PIN configured: unlock directly using Device Master Key
     inMemoryCryptoKey = await getOrCreateDeviceMasterKey();

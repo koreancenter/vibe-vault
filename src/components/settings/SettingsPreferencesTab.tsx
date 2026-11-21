@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
-import { Plus, X, Smartphone, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, X, Smartphone, Check } from 'lucide-react';
 import { CustomDarkSelect, CustomSelectOption } from './CustomDarkSelect';
 import { IOSInstallModal } from '../PWAInstallButton';
 import { usePWAInstall } from '../../usePWAInstall';
-import { LedgerSpace, SupportedCurrency } from '../../types';
-import { KNOWN_CURRENCY_NAMES, getCurrencySymbol } from '../../utils';
+import { SupportedCurrency } from '../../types';
+import { KNOWN_CURRENCY_NAMES, getCurrencySymbol, patchUserPreferences } from '../../utils';
 import { useI18n, LanguageCode, DEFAULT_CURRENCY_BY_LANGUAGE, LANGUAGE_STORAGE_KEY } from '../../i18n';
+import {
+  SEASON_THEMES,
+  SeasonThemeId,
+  applySeasonTheme,
+  getStoredSeasonTheme,
+  SEASON_CHANGE_EVENT,
+} from '../../seasonTheme';
 
 interface SettingsPreferencesTabProps {
   defaultLaunchScreen: 'vault' | 'insights' | 'ledger';
@@ -26,14 +33,6 @@ interface SettingsPreferencesTabProps {
   budgetStartDay: number;
   setBudgetStartDay: (day: number) => void;
   budgetDayOptions: CustomSelectOption[];
-  newSpaceNameInput: string;
-  setNewSpaceNameInput: (name: string) => void;
-  handleCreateSpaceInline: () => void;
-  handleCreateNewSpace?: () => void;
-  internalSpaces: LedgerSpace[];
-  activeSpaceId?: string;
-  handleSelectSpaceItem: (space: LedgerSpace) => void;
-  handleDeleteSpaceItem: (spaceId: string) => void;
   onDataChanged?: () => void;
 }
 
@@ -55,14 +54,6 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
   budgetStartDay,
   setBudgetStartDay,
   budgetDayOptions,
-  newSpaceNameInput,
-  setNewSpaceNameInput,
-  handleCreateSpaceInline,
-  handleCreateNewSpace,
-  internalSpaces,
-  activeSpaceId,
-  handleSelectSpaceItem,
-  handleDeleteSpaceItem,
   onDataChanged,
 }) => {
   const { language, setLanguage, t } = useI18n();
@@ -72,7 +63,23 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
   const [isPwaDismissed, setIsPwaDismissed] = useState(() => {
     return typeof sessionStorage !== 'undefined' && sessionStorage.getItem('vibe_pref_pwa_dismissed') === 'true';
   });
-  const [isAddingSpace, setIsAddingSpace] = useState(false);
+  const [seasonTheme, setSeasonTheme] = useState<SeasonThemeId>(() => getStoredSeasonTheme());
+
+  useEffect(() => {
+    const onSeasonChange = (e: Event) => {
+      const next = (e as CustomEvent<SeasonThemeId>).detail;
+      if (next) setSeasonTheme(next);
+    };
+    window.addEventListener(SEASON_CHANGE_EVENT, onSeasonChange);
+    return () => window.removeEventListener(SEASON_CHANGE_EVENT, onSeasonChange);
+  }, []);
+
+  const handleSelectSeasonTheme = (next: SeasonThemeId) => {
+    setSeasonTheme(next);
+    patchUserPreferences({ seasonTheme: next });
+    applySeasonTheme(next);
+    if (onDataChanged) onDataChanged();
+  };
 
   const handleLanguageSelect = (lang: LanguageCode) => {
     setLanguage(lang);
@@ -97,8 +104,8 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
       {!isPwaDismissed && !isInstalled && (
         <div className="px-3 py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] flex items-center justify-between gap-2.5 text-xs">
           <div className="flex items-center gap-2 min-w-0">
-            <Smartphone size={13} className="shrink-0 text-slate-300" />
-            <span className="text-neutral-300 truncate text-[11px]">
+            <Smartphone size={13} className="shrink-0 text-neutral-100" />
+            <span className="text-neutral-100 truncate text-xs font-normal">
               {t('pwa_install_banner')}
             </span>
           </div>
@@ -112,7 +119,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   setShowIOSModal(true);
                 }
               }}
-              className="px-2.5 py-1 rounded-lg bg-white text-black hover:bg-neutral-200 text-[11px] font-medium transition-all active:scale-95 cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-white text-black hover:bg-neutral-100 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
             >
               {t('install')}
             </button>
@@ -124,7 +131,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   sessionStorage.setItem('vibe_pref_pwa_dismissed', 'true');
                 } catch {}
               }}
-              className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 text-neutral-200 hover:text-white transition-colors cursor-pointer"
               aria-label={t('close')}
             >
               <X size={12} />
@@ -142,22 +149,20 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
       <div className="space-y-3 pb-4 border-b border-white/[0.06]">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-200 block">
+            <span className="text-xs font-semibold text-white block">
               {t('language')}
             </span>
-            <span className="text-[10px] text-slate-400">
+            <span className="text-xs text-neutral-200 font-normal">
               {t('language_desc')}
             </span>
           </div>
         </div>
 
-        {/* 4-column responsive button grid matching Quiet Luxury design system */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl bg-white/[0.04] border border-white/10">
+        {/* 2-column focused language selector (KO / EN) */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-white/[0.02] border border-white/[0.08]">
           {([
             { code: 'ko' as LanguageCode, label: t('lang_ko') },
             { code: 'en' as LanguageCode, label: t('lang_en') },
-            { code: 'ja' as LanguageCode, label: t('lang_ja') },
-            { code: 'eu' as LanguageCode, label: t('lang_eu') },
           ]).map((opt) => (
             <button
               key={opt.code}
@@ -165,9 +170,9 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               id={`lang-btn-${opt.code}`}
               onClick={() => handleLanguageSelect(opt.code)}
               className={`px-3 py-2 rounded-xl text-xs transition-all active:scale-95 text-center cursor-pointer ${
-                language === opt.code
+                (language === 'ko' ? 'ko' : 'en') === opt.code
                   ? 'bg-white text-black font-semibold shadow-xs'
-                  : 'text-neutral-400 hover:text-white font-medium hover:bg-white/[0.04]'
+                  : 'text-neutral-200 hover:text-white font-medium hover:bg-white/[0.05]'
               }`}
             >
               {opt.label}
@@ -177,9 +182,9 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
 
         {/* Optional Base Currency Synchronization Prompt */}
         {pendingCurrencyPrompt && (
-          <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-2.5 animate-in fade-in duration-200">
+          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between gap-2.5 animate-in fade-in duration-200">
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-neutral-200 font-normal leading-snug">
+              <p className="text-xs text-white font-normal leading-snug">
                 {t('currency_switch_prompt', { currency: pendingCurrencyPrompt })}
               </p>
             </div>
@@ -191,22 +196,18 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   if (!activeCurrenciesList.includes(pendingCurrencyPrompt)) {
                     handleAddActiveCurrency(pendingCurrencyPrompt);
                   }
-                  if (typeof localStorage !== 'undefined') {
-                    const raw = localStorage.getItem('vibe_user_preferences');
-                    const prefs = raw ? JSON.parse(raw) : {};
-                    localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, currencySymbol: pendingCurrencyPrompt }));
-                  }
+                  patchUserPreferences({ currencySymbol: pendingCurrencyPrompt });
                   setPendingCurrencyPrompt(null);
                   if (onDataChanged) onDataChanged();
                 }}
-                className="px-2.5 py-1 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs font-semibold active:scale-95 transition-all cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-white text-black hover:bg-neutral-100 text-xs font-semibold active:scale-95 transition-all cursor-pointer"
               >
                 {t('switch_currency')}
               </button>
               <button
                 type="button"
                 onClick={() => setPendingCurrencyPrompt(null)}
-                className="px-2 py-1 rounded-lg text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                className="px-2 py-1 rounded-lg text-xs text-neutral-200 hover:text-white font-medium transition-colors cursor-pointer"
               >
                 {t('keep_currency')}
               </button>
@@ -215,34 +216,95 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
         )}
       </div>
 
+      {/* Group 0.5: 한국의 사계 컬러 테마 */}
+      <div className="space-y-3 pb-4 border-b border-white/[0.06]">
+        <div>
+          <span className="text-xs font-semibold text-white block">
+            {language === 'ko' ? '한국의 사계 컬러 테마' : 'Korean Four Seasons Palette'}
+          </span>
+          <span className="text-xs text-neutral-400 font-normal">
+            {language === 'ko'
+              ? '다크 에디토리얼 톤을 유지하면서 계절의 색온도와 포인트를 전환합니다.'
+              : 'Switch dark editorial surface warmth and accents inspired by Korea’s four seasons.'}
+          </span>
+        </div>
+
+        <div
+          role="radiogroup"
+          aria-label={language === 'ko' ? '한국의 사계 컬러 테마 선택' : 'Select Korean Four Seasons theme'}
+          className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+        >
+          {SEASON_THEMES.map((season) => {
+            const isActive = seasonTheme === season.id;
+            return (
+              <button
+                key={season.id}
+                id={`season-theme-btn-${season.id}`}
+                type="button"
+                role="radio"
+                aria-checked={isActive}
+                onClick={() => handleSelectSeasonTheme(season.id)}
+                className={`group relative flex flex-col justify-between gap-2.5 p-3 min-h-[76px] rounded-xl border text-left transition-all active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
+                  isActive
+                    ? 'border-[var(--color-accent-border)] bg-[var(--color-accent-subtle)]'
+                    : 'border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.16]'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <span className="flex items-center gap-1.5" aria-hidden="true">
+                    <span
+                      className="w-4 h-4 rounded-full border border-white/20 shrink-0"
+                      style={{ backgroundColor: season.canvasHex }}
+                    />
+                    <span
+                      className="w-3.5 h-3.5 rounded-full -ml-2 border border-black/40 shrink-0"
+                      style={{ backgroundColor: season.accentHex }}
+                    />
+                  </span>
+                  {isActive && (
+                    <Check size={13} className="text-[var(--color-accent)] shrink-0" />
+                  )}
+                </div>
+                <div className="space-y-0.5 min-w-0">
+                  <div className="text-xs font-semibold text-white truncate">
+                    {language === 'ko'
+                      ? `${season.seasonKo} · ${season.poeticKo}`
+                      : season.labelEn}
+                  </div>
+                  <div className="text-[11px] text-neutral-400 truncate">
+                    {season.subtitleKo}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Group 1: 화면 설정 (기본 시작 화면) */}
       <div className="space-y-3">
-        <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-400">
+        <span className="text-xs font-semibold uppercase tracking-wider block text-neutral-100">
           {t('screen_settings')}
         </span>
         
         <div className="space-y-3 pb-4 border-b border-white/[0.06]">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-semibold text-slate-200">
+            <span className="text-xs font-semibold text-white">
               {t('default_launch_screen')}
             </span>
-            <div className="flex p-0.5 rounded-xl border bg-black/40 border-white/5">
+            <div className="flex p-0.5 rounded-xl border bg-white/[0.02] border-white/[0.08]">
               <button
                 type="button"
                 id="launch-screen-vault-btn"
                 onClick={() => {
                   setDefaultLaunchScreen('vault');
-                  if (typeof localStorage !== 'undefined') {
-                    const raw = localStorage.getItem('vibe_user_preferences');
-                    const prefs = raw ? JSON.parse(raw) : {};
-                    localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, defaultLaunchScreen: 'vault' }));
-                  }
+                  patchUserPreferences({ defaultLaunchScreen: 'vault' });
                   if (onDataChanged) onDataChanged();
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                   defaultLaunchScreen === 'vault'
-                    ? 'bg-white/15 text-white shadow-xs font-bold'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-white/[0.08] text-white shadow-xs font-bold'
+                    : 'text-neutral-200 hover:text-white'
                 }`}
               >
                 {t('vault')}
@@ -252,17 +314,13 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 id="launch-screen-insights-btn"
                 onClick={() => {
                   setDefaultLaunchScreen('insights');
-                  if (typeof localStorage !== 'undefined') {
-                    const raw = localStorage.getItem('vibe_user_preferences');
-                    const prefs = raw ? JSON.parse(raw) : {};
-                    localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, defaultLaunchScreen: 'insights' }));
-                  }
+                  patchUserPreferences({ defaultLaunchScreen: 'insights' });
                   if (onDataChanged) onDataChanged();
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                   defaultLaunchScreen === 'insights'
-                    ? 'bg-white/15 text-white shadow-xs font-bold'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-white/[0.08] text-white shadow-xs font-bold'
+                    : 'text-neutral-200 hover:text-white'
                 }`}
               >
                 {t('insights')}
@@ -272,17 +330,13 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 id="launch-screen-ledger-btn"
                 onClick={() => {
                   setDefaultLaunchScreen('ledger');
-                  if (typeof localStorage !== 'undefined') {
-                    const raw = localStorage.getItem('vibe_user_preferences');
-                    const prefs = raw ? JSON.parse(raw) : {};
-                    localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, defaultLaunchScreen: 'ledger' }));
-                  }
+                  patchUserPreferences({ defaultLaunchScreen: 'ledger' });
                   if (onDataChanged) onDataChanged();
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                   defaultLaunchScreen === 'ledger'
-                    ? 'bg-white/15 text-white shadow-xs font-bold'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-white/[0.08] text-white shadow-xs font-bold'
+                    : 'text-neutral-200 hover:text-white'
                 }`}
               >
                 {t('ledger')}
@@ -294,7 +348,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
 
       {/* Group 2: 표시 및 통화 (Display & Currency) */}
       <div className="space-y-3">
-        <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-400">
+        <span className="text-xs font-semibold uppercase tracking-wider block text-neutral-100">
           {t('display_and_currency')}
         </span>
         
@@ -303,10 +357,10 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <span className="text-xs font-semibold text-slate-200 block">
+                <span className="text-xs font-semibold text-white block">
                   {t('base_currency')}
                 </span>
-                <span className="text-[10px] text-slate-400">
+                <span className="text-xs text-neutral-200 font-normal">
                   {t('base_currency_desc')}
                 </span>
               </div>
@@ -317,11 +371,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                   options={currencyOptions}
                   onChange={(val) => {
                     setCurrencySymbol(val);
-                    if (typeof localStorage !== 'undefined') {
-                      const raw = localStorage.getItem('vibe_user_preferences');
-                      const prefs = raw ? JSON.parse(raw) : {};
-                      localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, currencySymbol: val }));
-                    }
+                    patchUserPreferences({ currencySymbol: val });
                     if (!activeCurrenciesList.includes(val)) {
                       handleAddActiveCurrency(val);
                     }
@@ -334,20 +384,20 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
             </div>
 
             {/* Active Currencies */}
-            <div className="pt-3 border-t border-white/[0.04] space-y-3">
+            <div className="pt-3 border-t border-white/[0.06] space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-semibold text-slate-200">
+                  <span className="text-xs font-semibold text-white">
                     {t('active_currencies')}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-mono">
+                  <span className="text-xs text-neutral-200 font-mono">
                     ({activeCurrenciesList.length})
                   </span>
                 </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   activeCurrenciesList.length > 1
-                    ? 'bg-white/10 text-white border border-white/20'
-                    : 'bg-white/[0.04] text-neutral-400 border border-white/5'
+                    ? 'bg-white/[0.08] text-white border border-white/15'
+                    : 'bg-white/[0.04] text-neutral-100 border border-white/[0.08]'
                 }`}>
                   {activeCurrenciesList.length > 1 ? t('multi_currency_mode') : t('single_currency_mode')}
                 </span>
@@ -364,33 +414,29 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                       key={code}
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition-all ${
                         isBase
-                          ? 'bg-white/15 border-white/30 text-white font-medium'
-                          : 'bg-white/[0.04] border-white/5 text-neutral-300 hover:border-white/10'
+                          ? 'bg-white/[0.06] border-white/15 text-white font-medium'
+                          : 'bg-white/[0.03] border-white/[0.08] text-neutral-100 hover:border-white/15'
                       }`}
                     >
                       <button
                         type="button"
                         onClick={() => {
                           setCurrencySymbol(code);
-                          if (typeof localStorage !== 'undefined') {
-                            const raw = localStorage.getItem('vibe_user_preferences');
-                            const prefs = raw ? JSON.parse(raw) : {};
-                            localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, currencySymbol: code }));
-                          }
+                          patchUserPreferences({ currencySymbol: code });
                           if (onDataChanged) onDataChanged();
                         }}
                         className="flex items-center gap-1 hover:text-white cursor-pointer"
                         title={isBase ? t('default') : t('switch')}
                       >
-                        <span className="font-mono font-bold">{code}</span>
-                        <span className="text-[11px] opacity-80">({sym})</span>
+                        <span className="font-mono font-bold text-white">{code}</span>
+                        <span className="text-xs text-neutral-200">({sym})</span>
                         {info && (
-                          <span className="text-[10px] text-neutral-400 hidden sm:inline ml-0.5">
+                          <span className="text-xs text-neutral-200 hidden sm:inline ml-0.5 font-normal">
                             {info.nameKo}
                           </span>
                         )}
                         {isBase && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/20 text-white font-normal ml-0.5">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/[0.12] text-white font-semibold ml-0.5">
                             {t('default')}
                           </span>
                         )}
@@ -400,7 +446,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                         <button
                           type="button"
                           onClick={() => handleRemoveActiveCurrency(code)}
-                          className="text-neutral-400 hover:text-white transition-colors p-0.5 ml-0.5 rounded cursor-pointer"
+                          className="text-neutral-200 hover:text-white transition-colors p-0.5 ml-0.5 rounded cursor-pointer"
                           title={`${code} ${t('delete')}`}
                           aria-label={`${code} ${t('delete')}`}
                         >
@@ -413,7 +459,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               </div>
 
               {/* Quick Add Presets + Custom Inline Input */}
-              <div className="pt-2 border-t border-white/[0.04] space-y-2">
+              <div className="pt-2 border-t border-white/[0.06] space-y-2">
                 <div className="flex items-center gap-1.5">
                   <input
                     type="text"
@@ -430,13 +476,13 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                     }}
                     maxLength={3}
                     placeholder="USD, EUR, JPY..."
-                    className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-mono text-neutral-200 placeholder:text-neutral-400 focus:outline-none focus:border-white/30 transition-all"
+                    className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-mono text-white placeholder:text-neutral-300 focus:outline-none focus:border-white/25 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => handleAddActiveCurrency(newCurrencyInput)}
                     disabled={!newCurrencyInput.trim()}
-                    className="h-8 px-3 rounded-xl bg-white text-black hover:bg-neutral-200 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 shrink-0 shadow-xs cursor-pointer"
+                    className="h-8 px-3 rounded-xl bg-white text-black hover:bg-neutral-100 active:scale-95 text-xs font-semibold transition-all disabled:bg-white/35 disabled:text-black disabled:pointer-events-none flex items-center gap-1 shrink-0 shadow-xs cursor-pointer"
                   >
                     <Plus size={12} strokeWidth={2.5} />
                     <span>{t('add')}</span>
@@ -445,13 +491,13 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
 
                 {/* Clean Pill Tags */}
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] text-neutral-400">{t('recommended')}</span>
+                  <span className="text-xs text-neutral-200 font-normal">{t('recommended')}</span>
                   {['USD', 'EUR', 'JPY', 'IDR'].filter(c => !activeCurrenciesList.includes(c)).map(preset => (
                     <button
                       key={preset}
                       type="button"
                       onClick={() => handleAddActiveCurrency(preset)}
-                      className="h-6 px-2.5 rounded-full bg-white/[0.03] hover:bg-white/[0.08] text-[11px] font-mono text-neutral-300 border border-white/[0.06] hover:border-white/20 active:scale-95 transition-all flex items-center gap-0.5 cursor-pointer"
+                      className="h-6 px-2.5 rounded-full bg-white/[0.03] hover:bg-white/[0.08] text-xs font-mono text-white border border-white/[0.08] hover:border-white/20 active:scale-95 transition-all flex items-center gap-0.5 cursor-pointer"
                     >
                       <span>+{preset}</span>
                     </button>
@@ -459,7 +505,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 </div>
 
                 {currencyError && (
-                  <p className="text-[11px] text-neutral-300 flex items-center gap-1 pt-0.5">
+                  <p className="text-xs text-amber-200 flex items-center gap-1 pt-0.5 font-normal">
                     <span>⚠️ {currencyError}</span>
                   </p>
                 )}
@@ -472,20 +518,16 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
             onClick={() => {
               const next = !stealthMode;
               setStealthMode(next);
-              if (typeof localStorage !== 'undefined') {
-                const raw = localStorage.getItem('vibe_user_preferences');
-                const prefs = raw ? JSON.parse(raw) : {};
-                localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, stealthMode: next }));
-              }
+              patchUserPreferences({ stealthMode: next });
               if (onDataChanged) onDataChanged();
             }}
-            className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.04] cursor-pointer select-none group"
+            className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.06] cursor-pointer select-none group"
           >
             <div>
-              <span className="text-xs font-medium group-hover:text-white transition-colors text-white block">
+              <span className="text-xs font-semibold group-hover:text-white transition-colors text-white block">
                 {t('stealth_mode')}
               </span>
-              <span className="text-[11px] text-neutral-400 font-light block">
+              <span className="text-xs text-neutral-200 font-normal block">
                 {stealthMode ? t('stealth_mode_desc_on') : t('stealth_mode_desc_off')}
               </span>
             </div>
@@ -494,7 +536,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               type="button"
               aria-label={t('stealth_mode')}
               className={`w-9 h-5 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 pointer-events-none ${
-                stealthMode ? 'bg-white' : 'bg-neutral-800'
+                stealthMode ? 'bg-white' : 'bg-white/[0.14]'
               }`}
             >
               <span
@@ -508,14 +550,14 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
       </div>
 
       {/* Group 3: 장부 설정 (Ledger Settings) */}
-      <div className="space-y-3 pt-3 border-t border-white/[0.04]">
-        <span className="text-[11px] font-bold uppercase tracking-wider block text-neutral-400">
+      <div className="space-y-3 pt-1">
+        <span className="text-xs font-semibold uppercase tracking-wider block text-neutral-100">
           {t('ledger_settings')}
         </span>
         
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-semibold text-slate-200">
+            <span className="text-xs font-semibold text-white">
               {t('budget_start_day')}
             </span>
             <div className="w-24">
@@ -526,11 +568,7 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
                 onChange={(val) => {
                   const num = parseInt(val, 10) || 1;
                   setBudgetStartDay(num);
-                  if (typeof localStorage !== 'undefined') {
-                    const raw = localStorage.getItem('vibe_user_preferences');
-                    const prefs = raw ? JSON.parse(raw) : {};
-                    localStorage.setItem('vibe_user_preferences', JSON.stringify({ ...prefs, budgetStartDay: num }));
-                  }
+                  patchUserPreferences({ budgetStartDay: num });
                   if (onDataChanged) onDataChanged();
                 }}
                 theme="dark"
@@ -538,130 +576,6 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
               />
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Group 4: 장부 관리 (Sleek Collapsible / Inline Space Creator & List) */}
-      <div className="space-y-2.5 pt-3 border-t border-white/[0.04]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-white">
-              {t('multi_ledger_spaces')}
-            </span>
-            <span className="text-[10px] text-neutral-400 font-mono">
-              ({internalSpaces.length})
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsAddingSpace(!isAddingSpace)}
-            className="text-[11px] px-2.5 py-1 rounded-full font-normal border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-neutral-300 hover:text-white transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
-          >
-            <Plus size={11} />
-            <span>{t('new_space')}</span>
-          </button>
-        </div>
-
-        {/* Collapsible / Inline Space Creation Card */}
-        {isAddingSpace && (
-          <div className="p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] space-y-2 animate-in fade-in duration-150">
-            <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                value={newSpaceNameInput}
-                onChange={(e) => setNewSpaceNameInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleCreateSpaceInline();
-                    setIsAddingSpace(false);
-                  }
-                }}
-                autoFocus
-                placeholder={t('space_name_placeholder')}
-                className="flex-1 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-neutral-200 placeholder:text-neutral-400 focus:outline-none focus:border-white/30 transition-all"
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  await handleCreateSpaceInline();
-                  setIsAddingSpace(false);
-                }}
-                disabled={!newSpaceNameInput.trim()}
-                className="h-7 px-2.5 rounded-lg bg-white text-black hover:bg-neutral-200 active:scale-95 text-xs font-medium transition-all disabled:opacity-40 shrink-0 cursor-pointer"
-              >
-                {t('create')}
-              </button>
-            </div>
-            {handleCreateNewSpace && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleCreateNewSpace}
-                  className="text-[10px] text-neutral-400 hover:text-white transition-colors underline underline-offset-2 cursor-pointer"
-                >
-                  {t('create_with_details')}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Compact Spaces List */}
-        <div className="space-y-1">
-          {internalSpaces.map((sp) => {
-            const isCurrent = sp.id === (activeSpaceId || 'default');
-            const isDefault = sp.id === 'default';
-
-            return (
-              <div
-                key={sp.id}
-                className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-colors ${
-                  isCurrent
-                    ? 'bg-white/[0.06] border-white/20 text-white'
-                    : 'bg-white/[0.02] border-white/[0.06] text-neutral-300 hover:border-white/10'
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className="font-medium text-xs text-white truncate">{sp.name}</span>
-                  {isDefault && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-white/[0.06] text-neutral-400 border border-white/[0.08]">
-                      {t('default')}
-                    </span>
-                  )}
-                  {isCurrent && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                      {t('active')}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                  {!isCurrent && (
-                    <button
-                      type="button"
-                      onClick={() => handleSelectSpaceItem(sp)}
-                      className="px-2 py-0.5 rounded-full text-[10px] font-normal border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-neutral-300 hover:text-white transition-all active:scale-95 cursor-pointer"
-                    >
-                      {t('switch')}
-                    </button>
-                  )}
-                  {!isDefault && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSpaceItem(sp.id)}
-                      className="p-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-all cursor-pointer"
-                      title={t('delete_space')}
-                      aria-label={`${sp.name} ${t('delete_space')}`}
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>

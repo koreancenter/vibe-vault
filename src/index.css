@@ -5,18 +5,27 @@
   --color-slate-500: #8494ab;
 }
 
-:root {
+:root,
+:root[data-season="winter"] {
+  --surface-backdrop: #07080A;
   --surface-canvas: #090A0D;
+  --surface-footer: #060709;
+  --surface-panel: #0E1015;
+  --surface-card: #111217;
+  --surface-nav: #08090D;
+  --surface-glass: rgba(18, 19, 24, 0.9);
+  --surface-ambient: rgba(147, 197, 253, 0.055);
   --surface-raised: rgba(255, 255, 255, 0.03);
   --surface-inset: rgba(0, 0, 0, 0.35);
-  --surface-subtle-border: rgba(255, 255, 255, 0.06);
+  --surface-subtle-border: rgba(255, 255, 255, 0.07);
 
-  /* Quiet Luxury Signature Accent System (Platinum White & Subtle Emerald) */
-  --color-accent: #ffffff;
-  --color-accent-hover: #e5e5e5;
+  /* Winter · 설야 (수묵 · 설백) */
+  --color-accent: #FFFFFF;
+  --color-accent-hover: #E5E5E5;
+  --color-accent-2: #93C5FD;
   --color-accent-subtle: rgba(255, 255, 255, 0.08);
-  --color-accent-border: rgba(255, 255, 255, 0.15);
-  --color-accent-glow: rgba(255, 255, 255, 0.06);
+  --color-accent-border: rgba(255, 255, 255, 0.18);
+  --color-accent-glow: rgba(147, 197, 253, 0.10);
   --color-accent-contrast: #090A0D;
 
   --color-emerald: #34d399;
@@ -30,7 +39,7 @@
   /* Mobile Fluid Tokens (360px ~ 440px calibrated) */
   --fluid-card-p: clamp(1rem, 4.5vw, 1.5rem);      /* 16px ~ 24px */
   --fluid-gap: clamp(0.625rem, 2.5vw, 1rem);        /* 10px ~ 16px */
-  
+
   /* Fluid Font Sizes */
   --fluid-hero: clamp(1.75rem, 7.5vw, 2.25rem);     /* 28px ~ 36px */
   --fluid-title: clamp(1rem, 4.2vw, 1.25rem);       /* 16px ~ 20px */
@@ -41,6 +50,72 @@
   --fluid-hero-balance: var(--fluid-hero);
   --fluid-heading: var(--fluid-title);
   --fluid-label: var(--fluid-caption);
+}
+
+/* Spring · 춘야 (밤벚꽃 · 청자) */
+:root[data-season="spring"] {
+  --surface-backdrop: #0B080C;
+  --surface-canvas: #100C12;
+  --surface-footer: #09060A;
+  --surface-panel: #151018;
+  --surface-card: #18121B;
+  --surface-nav: #0E0A10;
+  --surface-glass: rgba(24, 18, 27, 0.9);
+  --surface-ambient: rgba(244, 184, 197, 0.09);
+  --surface-raised: rgba(244, 184, 197, 0.04);
+  --surface-subtle-border: rgba(244, 184, 197, 0.11);
+
+  --color-accent: #F4B8C5;
+  --color-accent-hover: #F9CDD7;
+  --color-accent-2: #6EE7B7;
+  --color-accent-subtle: rgba(244, 184, 197, 0.12);
+  --color-accent-border: rgba(244, 184, 197, 0.28);
+  --color-accent-glow: rgba(244, 184, 197, 0.12);
+  --color-accent-contrast: #160D12;
+}
+
+/* Summer · 청하 (동해밤 · 청죽) */
+:root[data-season="summer"] {
+  --surface-backdrop: #050910;
+  --surface-canvas: #080E18;
+  --surface-footer: #050911;
+  --surface-panel: #0C1420;
+  --surface-card: #0F1826;
+  --surface-nav: #070C15;
+  --surface-glass: rgba(15, 24, 38, 0.9);
+  --surface-ambient: rgba(56, 189, 248, 0.095);
+  --surface-raised: rgba(125, 211, 252, 0.04);
+  --surface-subtle-border: rgba(125, 211, 252, 0.11);
+
+  --color-accent: #7DD3FC;
+  --color-accent-hover: #BAE6FD;
+  --color-accent-2: #2DD4BF;
+  --color-accent-subtle: rgba(125, 211, 252, 0.12);
+  --color-accent-border: rgba(125, 211, 252, 0.28);
+  --color-accent-glow: rgba(56, 189, 248, 0.12);
+  --color-accent-contrast: #06131F;
+}
+
+/* Autumn · 추색 (단풍 · 황토먹) */
+:root[data-season="autumn"] {
+  --surface-backdrop: #0C0907;
+  --surface-canvas: #110D0A;
+  --surface-footer: #0A0705;
+  --surface-panel: #16110D;
+  --surface-card: #1B1510;
+  --surface-nav: #0F0B08;
+  --surface-glass: rgba(27, 21, 16, 0.9);
+  --surface-ambient: rgba(246, 182, 103, 0.09);
+  --surface-raised: rgba(246, 182, 103, 0.04);
+  --surface-subtle-border: rgba(246, 182, 103, 0.11);
+
+  --color-accent: #F6B667;
+  --color-accent-hover: #FACC8E;
+  --color-accent-2: #FB923C;
+  --color-accent-subtle: rgba(246, 182, 103, 0.12);
+  --color-accent-border: rgba(246, 182, 103, 0.28);
+  --color-accent-glow: rgba(245, 158, 11, 0.12);
+  --color-accent-contrast: #170F07;
 }
 
 .card-fluid-padding { padding: var(--fluid-card-p); }
@@ -55,13 +130,17 @@
 .text-fluid-label { font-size: var(--fluid-caption); line-height: 1.4; }
 
 body, #root {
-  background: #090A0D !important;
+  background-color: var(--surface-canvas);
+  background-image: radial-gradient(ellipse 80% 42% at 50% -8%, var(--surface-ambient), transparent 72%);
+  background-attachment: fixed;
   color: #EDEDED;
   min-height: 100vh;
   font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: -0.015em;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Tabular figures for currency amounts, metrics, and timestamps */
@@ -81,24 +160,24 @@ input[type="number"] {
   appearance: textfield !important;
 }
 
-/* Universal high-end obsidian smoky glass surface classes with hairline sheen */
+/* Universal high-end smoky glass surface classes synced with active Korean season */
 .glass-card,
 .glass-surface {
-  background-color: rgba(18, 19, 24, 0.9);
+  background-color: var(--surface-glass);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-subtle-border);
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
 }
 
 /* Hairline dividers & luxury borders */
 .border-hairline {
-  border-color: rgba(255, 255, 255, 0.04);
+  border-color: var(--surface-subtle-border);
 }
 
 .divide-hairline > * + * {
-  border-color: rgba(255, 255, 255, 0.04);
+  border-color: var(--surface-subtle-border);
 }
 
 /* Refined luxury pill buttons and chip controls */
@@ -111,16 +190,16 @@ input[type="number"] {
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 400;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--surface-subtle-border);
+  background-color: var(--surface-raised);
   color: #d4d4d4;
   transition: all 0.15s ease-in-out;
 }
 
 .luxury-chip:hover,
 .pill-action-btn:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.14);
+  background-color: var(--color-accent-subtle);
+  border-color: var(--color-accent-border);
   color: #ffffff;
 }
 
@@ -139,3 +218,53 @@ input[type="number"] {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.25);
 }
+
+/* Native keyframe support for animate-in entrance utilities */
+@keyframes vibe-enter {
+  from {
+    opacity: var(--vibe-enter-opacity, 1);
+    transform: translate3d(var(--vibe-enter-x, 0), var(--vibe-enter-y, 0), 0) scale(var(--vibe-enter-scale, 1));
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-in {
+  animation-name: vibe-enter;
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  --vibe-enter-opacity: 0;
+}
+
+.slide-in-from-bottom-1 {
+  --vibe-enter-y: 0.25rem;
+}
+
+.slide-in-from-bottom-2 {
+  --vibe-enter-y: 0.5rem;
+}
+
+.slide-in-from-bottom-6 {
+  --vibe-enter-y: 1.5rem;
+}
+
+.slide-in-from-top-4 {
+  --vibe-enter-y: -1rem;
+}
+
+.zoom-in-95 {
+  --vibe-enter-scale: 0.95;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in {
+    animation: none;
+  }
+}
+

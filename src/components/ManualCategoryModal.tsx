@@ -104,19 +104,19 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
       onClick={onCancel}
     >
       <div 
-        className="w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden animate-in slide-in-from-bottom-6 duration-200 transition-colors bg-[#0E1524]/95 border-white/10 text-slate-100 shadow-2xl"
+        className="w-full max-w-md rounded-3xl border shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden animate-in slide-in-from-bottom-6 duration-200 transition-colors bg-[#0E1524]/95 border-white/10 text-slate-100 antialiased"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile drag handle */}
         <div className="w-12 h-1 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0 bg-white/20" />
 
         {/* Top Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b shrink-0 transition-colors border-white/10 bg-white/[0.02]">
+        <div className="flex justify-between items-center px-6 py-5 border-b shrink-0 transition-colors border-white/10 bg-white/[0.02]">
           <div>
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-base font-semibold tracking-tight text-white">
               {t('manual_category_title')}
             </h2>
-            <p className="text-xs mt-0.5 text-[#94A3B8]">
+            <p className="text-xs mt-0.5 text-neutral-300">
               {t('manual_category_desc')}
             </p>
           </div>
@@ -156,7 +156,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
         )}
 
         {/* Transaction Summary Card */}
-        <div className="px-6 pt-4 pb-2">
+        <div className="px-6 pt-6 pb-2">
           <div className="p-4 rounded-2xl border transition-colors bg-white/[0.03] border-white/10">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -206,7 +206,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
         </div>
 
         {/* Category Picker Grid */}
-        <div className="flex-1 px-6 py-3 overflow-y-auto space-y-4 scrollbar-none">
+        <div className="flex-1 p-6 overflow-y-auto space-y-4 scrollbar-none">
           <div>
             <label className="text-xs font-bold block mb-2 text-slate-300">
               {t('standard_categories_select')}
@@ -263,7 +263,7 @@ export const ManualCategoryModal: React.FC<ManualCategoryModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t shrink-0 flex items-center justify-between gap-3 bg-black/30 border-white/10">
+        <div className="px-6 py-4 border-t shrink-0 flex items-center justify-between gap-3 bg-black/30 border-white/10">
           {totalCount > 1 && currentIndex > 0 ? (
             <button
               type="button"

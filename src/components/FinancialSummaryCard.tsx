@@ -103,15 +103,15 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
 
     const diff = currentSpending - prevSpending;
 
-    let status: 'better' | 'worse' | 'neutral' = 'neutral';
+    let status: 'better' | 'worse' | 'neutral' | 'first_month' = 'neutral';
     let percentChange = 0;
 
     if (prevSpending === 0 && currentSpending === 0) {
       status = 'neutral';
       percentChange = 0;
     } else if (prevSpending === 0) {
-      status = 'worse';
-      percentChange = 100;
+      status = 'first_month';
+      percentChange = 0;
     } else {
       percentChange = Math.round((Math.abs(diff) / prevSpending) * 100);
       if (diff < 0) {
@@ -165,7 +165,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
     return (
       <section 
         id="financial-summary-card"
-        className="relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl bg-[#121318]/90 border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white"
+        className="relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl bg-[var(--surface-card)]/90 border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white"
       >
         {/* Top Header: Title & Subtle Status Badge (Zero Icons) */}
         <div className="flex items-center justify-between pb-3.5">
@@ -202,7 +202,11 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
               )
             ) : (
               <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border bg-white/[0.06] border-white/15 text-neutral-300">
-                <span>{count > 0 ? `${count} items` : t('empty_ledger_title')}</span>
+                <span>
+                  {count > 0
+                    ? `${count}${language === 'ko' ? '건' : language === 'ja' ? '件' : ' items'}`
+                    : t('empty_ledger_title')}
+                </span>
               </div>
             )}
           </div>
@@ -323,7 +327,7 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   return (
     <section 
       id="financial-summary-card"
-      className="relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl bg-[#121318]/90 border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white"
+      className="relative transition-all p-5 sm:p-6 rounded-2xl backdrop-blur-xl bg-[var(--surface-card)]/90 border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] text-white"
     >
       {/* Top Header: Title & Subtle Status Badge */}
       <div className="flex items-center justify-between pb-3.5">
@@ -344,6 +348,12 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
 
         {/* Quiet Luxury Status Indicator */}
         <div id="financial-status-indicator">
+          {status === 'first_month' && (
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border bg-white/[0.06] border-white/15 text-neutral-300">
+              <span>{language === 'ko' ? '첫 기록' : language === 'ja' ? '初記録' : 'First month'}</span>
+            </div>
+          )}
+
           {diff !== 0 && status === 'better' && (
             <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border tabular-nums transition-all bg-white/[0.06] border-white/15 text-neutral-200">
               <span>{t('status_saving')}</span>
@@ -411,39 +421,55 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             {t('vs_previous_month')}
           </span>
           <div className={`flex flex-wrap items-baseline gap-1 mt-1.5 whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
-            <span className={`text-sm md:text-base tracking-tight tabular-nums whitespace-nowrap font-medium ${
-              diff === 0
-                ? 'text-neutral-200'
-                : status === 'better'
-                ? 'text-sky-400'
-                : 'text-amber-400 font-semibold'
-            }`}>
-              {diff > 0 ? '+' : diff < 0 ? '-' : ''}{currSymbol} {Math.abs(diff).toLocaleString()}
-            </span>
-            {diff !== 0 && percentChange > 0 && (
-              <span className="text-xs font-normal tabular-nums whitespace-nowrap text-neutral-300">
-                ({diff < 0 ? '▼' : '▲'}{percentChange}%)
+            {status === 'first_month' ? (
+              <span className="text-sm tracking-tight whitespace-nowrap font-normal text-neutral-300">
+                {language === 'ko' ? '전월 기록 없음' : language === 'ja' ? '前月記録なし' : 'No prior month'}
               </span>
+            ) : (
+              <>
+                <span className={`text-sm md:text-base tracking-tight tabular-nums whitespace-nowrap font-medium ${
+                  diff === 0
+                    ? 'text-neutral-200'
+                    : status === 'better'
+                    ? 'text-sky-400'
+                    : 'text-amber-400 font-semibold'
+                }`}>
+                  {diff > 0 ? '+' : diff < 0 ? '-' : ''}{currSymbol} {Math.abs(diff).toLocaleString()}
+                </span>
+                {diff !== 0 && percentChange > 0 && (
+                  <span className="text-xs font-normal tabular-nums whitespace-nowrap text-neutral-300">
+                    ({diff < 0 ? '▼' : '▲'}{percentChange}%)
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>
 
-        {/* Safe-to-Spend Today Metric (오늘 권장 지출 한도 · Safe-to-Spend) */}
+        {/* Safe-to-Spend Today Metric */}
         <div className="col-span-2 pt-3.5 mt-1 border-t border-white/[0.06] flex items-center justify-between min-w-0">
           <div className="flex flex-col justify-start min-w-0 pr-2">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs font-normal text-neutral-200">
-                오늘 권장 지출 한도
+                {language === 'ko' ? '오늘 권장 지출 한도' : 'Daily Safe-to-Spend'}
               </span>
-              <span className="text-white/20 text-[10px]">·</span>
-              <span className="text-[11px] font-mono text-neutral-400">
-                Safe-to-Spend
-              </span>
+              {language === 'ko' && (
+                <>
+                  <span className="text-white/20 text-[10px]">·</span>
+                  <span className="text-[11px] font-mono text-neutral-400">
+                    Safe-to-Spend
+                  </span>
+                </>
+              )}
             </div>
             <span className="text-[11px] font-light text-neutral-400 mt-0.5 tabular-nums truncate">
               {safeToSpendData.targetPool > 0
-                ? `남은 ${safeToSpendData.remainingDays}일 기준 가용액 (월풀 ${currSymbol}${safeToSpendData.targetPool.toLocaleString()})`
-                : `남은 ${safeToSpendData.remainingDays}일 기준 일일 지출 페이스`}
+                ? language === 'ko'
+                  ? `남은 ${safeToSpendData.remainingDays}일 기준 가용액 (월풀 ${currSymbol}${safeToSpendData.targetPool.toLocaleString()})`
+                  : `${safeToSpendData.remainingDays}d remaining · pool ${currSymbol}${safeToSpendData.targetPool.toLocaleString()}`
+                : language === 'ko'
+                ? `남은 ${safeToSpendData.remainingDays}일 기준 일일 지출 페이스`
+                : `Daily spending pace · ${safeToSpendData.remainingDays}d left`}
             </span>
           </div>
 
@@ -452,7 +478,9 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             <span className="text-base sm:text-lg font-medium font-mono tracking-tight tabular-nums text-white">
               {safeToSpendData.safeToSpendToday.toLocaleString()}
             </span>
-            <span className="text-[11px] font-normal text-neutral-400 ml-1">/일</span>
+            <span className="text-[11px] font-normal text-neutral-400 ml-1">
+              {language === 'ko' ? '/일' : '/day'}
+            </span>
           </div>
         </div>
       </div>

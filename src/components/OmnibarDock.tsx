@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Camera, 
   Mic, 
   MicOff, 
+  Plus,
   X, 
   Send, 
   Sparkles,
+  Check,
   Loader2 
 } from 'lucide-react';
 import { SupportedCurrency, LaunchScreenMode } from '../types';
-import { getCurrencySymbol, getCategoryKo } from '../utils';
+import { 
+  getCurrencySymbol, 
+  getCategoryKo, 
+  AIEngineConfig, 
+  getAIEngineConfig, 
+  saveAIEngineConfig 
+} from '../utils';
 import { useI18n } from '../i18n';
-import { isAnalyticalQueryInput } from '../financialParser';
+import { isAnalyticalQueryInput } from '../finance/lightweightDetectors';
 
 // Global Quick Suggestion Chips (Featured analytical query tags + quick ledger entries)
 const SUGGESTION_CHIPS = [
@@ -21,6 +29,34 @@ const SUGGESTION_CHIPS = [
   { label: '#커피 4,500원', value: '스타벅스 아메리카노 4500원 카드 결제', isQuery: false },
   { label: '#식사 12,000원', value: '점심 순두부찌개 12000원 계좌이체', isQuery: false },
   { label: '#장보기 35,000원', value: '이마트 장보기 35000원 현대카드', isQuery: false }
+];
+
+type QuickEngineId = 'cloud' | 'ollama' | 'webllm';
+
+const ENGINE_OPTIONS: {
+  id: QuickEngineId;
+  menuLabel: string;
+  badgeLabel: string;
+  patch: Partial<AIEngineConfig>;
+}[] = [
+  {
+    id: 'cloud',
+    menuLabel: 'Cloud AI',
+    badgeLabel: 'C',
+    patch: { engineType: 'byok' },
+  },
+  {
+    id: 'ollama',
+    menuLabel: 'Ollama Local',
+    badgeLabel: 'O',
+    patch: { engineType: 'local', localSubMode: 'ollama' },
+  },
+  {
+    id: 'webllm',
+    menuLabel: 'WebLLM',
+    badgeLabel: 'W',
+    patch: { engineType: 'local', localSubMode: 'webllm' },
+  },
 ];
 
 export interface RealtimePreviewData {
@@ -41,9 +77,10 @@ export interface OmnibarDockProps {
   isMultiCurrencyMode: boolean;
   realtimePreview: RealtimePreviewData | null;
   engineStatus: string;
+  engineConfig?: AIEngineConfig;
+  updateEngineConfig?: (partial: Partial<AIEngineConfig>) => void;
   onSubmit: () => void;
   onOpenReceiptScanner: () => void;
-  onCycleCurrency: () => void;
   isListening?: boolean;
   onToggleListen?: () => void;
   error?: string | null;
@@ -63,9 +100,10 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
   isMultiCurrencyMode: _isMultiCurrencyMode,
   realtimePreview,
   engineStatus: _engineStatus,
+  engineConfig,
+  updateEngineConfig,
   onSubmit,
   onOpenReceiptScanner,
-  onCycleCurrency,
   isListening = false,
   onToggleListen,
   error,
@@ -77,8 +115,63 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
 }) => {
   const { t } = useI18n();
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isEngineMenuOpen, setIsEngineMenuOpen] = useState(false);
+  const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
+  const [localFallbackConfig, setLocalFallbackConfig] = useState<AIEngineConfig>(() => getAIEngineConfig());
+  const engineMenuRef = useRef<HTMLDivElement | null>(null);
+  const plusMenuRef = useRef<HTMLDivElement | null>(null);
+
   const isInsightsMode = mode === 'insights';
   const isTyping = input.trim().length > 0;
+  const resolvedConfig = engineConfig || localFallbackConfig;
+
+  const activeEngineId: QuickEngineId =
+    resolvedConfig.engineType === 'local'
+      ? resolvedConfig.localSubMode === 'webllm'
+        ? 'webllm'
+        : 'ollama'
+      : 'cloud';
+
+  const activeEngineOption =
+    ENGINE_OPTIONS.find((opt) => opt.id === activeEngineId) || ENGINE_OPTIONS[0];
+
+  useEffect(() => {
+    if (!isEngineMenuOpen && !isPlusMenuOpen) return;
+
+    const handlePointerDown = (e: MouseEvent) => {
+      if (engineMenuRef.current && !engineMenuRef.current.contains(e.target as Node)) {
+        setIsEngineMenuOpen(false);
+      }
+      if (plusMenuRef.current && !plusMenuRef.current.contains(e.target as Node)) {
+        setIsPlusMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsEngineMenuOpen(false);
+        setIsPlusMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isEngineMenuOpen, isPlusMenuOpen]);
+
+  const handleSelectEngine = (option: (typeof ENGINE_OPTIONS)[number]) => {
+    if (updateEngineConfig) {
+      updateEngineConfig(option.patch);
+    } else {
+      const next = { ...getAIEngineConfig(), ...option.patch };
+      saveAIEngineConfig(next);
+      setLocalFallbackConfig(next);
+    }
+    setIsEngineMenuOpen(false);
+  };
 
   const getPlaceholderByMode = (currentMode?: LaunchScreenMode | string) => {
     switch (currentMode) {
@@ -118,7 +211,7 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full relative">
       {/* Error notification */}
       {error && (
         <div className="mb-2 text-xs text-neutral-300 bg-white/[0.05] border border-white/10 rounded-xl px-3 py-1.5 flex items-center justify-between">
@@ -184,140 +277,226 @@ export const OmnibarDock: React.FC<OmnibarDockProps> = ({
         </div>
       )}
 
-      {/* Quick Tag Chips Row: displayed when input field is focused (featuring #9월 환차익, #식비 분석, #주말 지출) */}
-      {isInputFocused && (
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1.5 animate-in fade-in slide-in-from-bottom-1 duration-150">
-          {SUGGESTION_CHIPS.map(chip => (
-            <button
-              key={chip.label}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleChipClick(chip);
-              }}
-              className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
-                chip.isQuery 
-                  ? 'bg-sky-500/15 hover:bg-sky-500/25 active:bg-sky-500/30 text-sky-300 border border-sky-500/30' 
-                  : 'bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/15 text-neutral-200 hover:text-white border border-white/15'
-              }`}
-            >
-              {chip.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Modern AI Search Bar */}
-      <form 
-        onSubmit={handleFormSubmit}
-        className={`relative rounded-2xl p-[1px] transition-all duration-200 ${
-          isInputFocused 
-            ? 'bg-white/30 shadow-[0_0_15px_rgba(255,255,255,0.08)]' 
-            : 'bg-white/15'
-        }`}
-      >
-        <div className="flex items-center gap-1 rounded-[15px] px-2.5 py-1.5 transition-colors bg-[#090A0D]/95 backdrop-blur-2xl">
-          {/* Left Icon Group (Camera & Mic): Auto-collapsed when typing to give 100% width to text input */}
-          {!isTyping && (
-            <div className="flex items-center gap-0.5 shrink-0 animate-in fade-in duration-150">
-              {/* Camera / Receipt Scanner Trigger */}
+      {/* Search Bar Wrapper with Floating Suggestion Chips (Zero DOM Reflow) */}
+      <div className="relative">
+        {isInputFocused && !isEngineMenuOpen && !isPlusMenuOpen && !realtimePreview && (
+          <div className="absolute bottom-full mb-2 left-0 w-full z-30 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 animate-in fade-in slide-in-from-bottom-1 duration-150">
+            {SUGGESTION_CHIPS.map(chip => (
               <button
-                id="omnibar-receipt-scanner-btn"
+                key={chip.label}
                 type="button"
-                onClick={onOpenReceiptScanner}
-                title="영수증 AI 스캔"
-                aria-label="영수증 AI 스캔"
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all text-neutral-300 hover:text-white hover:bg-white/[0.08] active:scale-95 cursor-pointer shrink-0"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleChipClick(chip);
+                }}
+                className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-2xl transition-colors cursor-pointer ${
+                  chip.isQuery 
+                    ? 'bg-[#090A0D]/95 hover:bg-sky-500/20 active:bg-sky-500/30 text-sky-300 border border-sky-500/30' 
+                    : 'bg-[var(--surface-panel)]/95 hover:bg-white/[0.12] active:bg-white/15 text-neutral-300 hover:text-white border border-white/[0.08]'
+                }`}
               >
-                <Camera size={16} />
+                {chip.label}
               </button>
+            ))}
+          </div>
+        )}
 
-              {/* Mic button */}
-              {onToggleListen && (
+        {/* Modern AI Search Bar */}
+        <form 
+          onSubmit={handleFormSubmit}
+          className={`relative rounded-2xl p-[1px] transition-all duration-500 border ${
+            isProcessing
+              ? 'border-sky-500/40 bg-sky-500/10 shadow-[0_0_24px_rgba(56,189,248,0.25)] animate-pulse'
+              : isInputFocused
+              ? 'border-transparent bg-white/30 shadow-[0_0_15px_rgba(255,255,255,0.08)]'
+              : 'border-transparent bg-white/15'
+          }`}
+        >
+          <div className="flex items-center gap-1.5 rounded-[15px] px-2.5 py-1.5 transition-colors bg-[var(--surface-panel)]/95 backdrop-blur-2xl">
+            {/* Compact Left Controls: Consolidated + Action Menu (Camera & Mic) + Single-letter Engine Switcher */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div ref={plusMenuRef} className="relative shrink-0">
                 <button
-                  id="voice-stt-btn"
+                  id="omnibar-plus-menu-btn"
                   type="button"
-                  onClick={onToggleListen}
-                  title={isListening ? '음성 입력 중지' : '음성으로 입력하기'}
-                  aria-label="음성으로 입력하기"
+                  onClick={() => {
+                    setIsEngineMenuOpen(false);
+                    setIsPlusMenuOpen((prev) => !prev);
+                  }}
+                  aria-haspopup="menu"
+                  aria-expanded={isPlusMenuOpen}
+                  title={isListening ? '음성 입력 중 · 추가 기능' : '영수증 스캔 및 음성 입력'}
+                  aria-label={isListening ? '음성 입력 중 · 추가 기능' : '영수증 스캔 및 음성 입력'}
                   className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                     isListening
-                      ? 'bg-white/20 text-white shadow-[0_0_12px_rgba(255,255,255,0.3)] animate-pulse'
+                      ? 'bg-sky-500/20 text-sky-300 border border-sky-400/40 shadow-[0_0_12px_rgba(56,189,248,0.25)] animate-pulse'
+                      : isPlusMenuOpen
+                      ? 'bg-white/[0.1] text-white'
                       : 'text-neutral-300 hover:text-white hover:bg-white/[0.08] active:scale-95'
                   }`}
                 >
-                  {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                  {isListening ? (
+                    <Mic size={14} />
+                  ) : (
+                    <Plus size={15} className={`transition-transform duration-150 ${isPlusMenuOpen ? 'rotate-45' : ''}`} />
+                  )}
                 </button>
-              )}
+
+                {isPlusMenuOpen && (
+                  <div
+                    role="menu"
+                    aria-label="입력 도구"
+                    className="absolute bottom-full mb-2.5 left-0 min-w-[152px] rounded-xl bg-[var(--surface-panel)]/95 backdrop-blur-2xl border border-white/[0.06] text-neutral-200 shadow-2xl p-1 z-40 animate-in fade-in slide-in-from-bottom-1 duration-150"
+                  >
+                    <button
+                      id="omnibar-receipt-scanner-btn"
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsPlusMenuOpen(false);
+                        onOpenReceiptScanner();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-neutral-200 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                    >
+                      <Camera size={14} className="text-neutral-300 shrink-0" />
+                      <span className="whitespace-nowrap">영수증 AI 스캔</span>
+                    </button>
+
+                    {onToggleListen && (
+                      <button
+                        id="voice-stt-btn"
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setIsPlusMenuOpen(false);
+                          onToggleListen();
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                          isListening
+                            ? 'bg-sky-500/15 text-sky-300 hover:bg-sky-500/20'
+                            : 'text-neutral-200 hover:text-white hover:bg-white/[0.06]'
+                        }`}
+                      >
+                        {isListening ? (
+                          <MicOff size={14} className="text-sky-400 shrink-0" />
+                        ) : (
+                          <Mic size={14} className="text-neutral-300 shrink-0" />
+                        )}
+                        <span className="whitespace-nowrap">
+                          {isListening ? '음성 입력 중지' : '음성으로 입력하기'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Single-letter Inline AI Engine Switcher Badge + Floating Quick Menu */}
+              <div ref={engineMenuRef} className="relative shrink-0">
+                <button
+                  id="omnibar-engine-switcher-btn"
+                  type="button"
+                  onClick={() => {
+                    setIsPlusMenuOpen(false);
+                    setIsEngineMenuOpen((prev) => !prev);
+                  }}
+                  aria-haspopup="menu"
+                  aria-expanded={isEngineMenuOpen}
+                  title={`AI 엔진 전환 (${activeEngineOption.menuLabel})`}
+                  aria-label={`AI 엔진 전환 (${activeEngineOption.menuLabel})`}
+                  className="w-7 h-7 text-[11px] font-bold tracking-wider uppercase border border-white/10 rounded-md text-neutral-300 hover:text-white hover:border-white/25 cursor-pointer transition-colors flex items-center justify-center shrink-0"
+                >
+                  {activeEngineOption.badgeLabel}
+                </button>
+
+                {isEngineMenuOpen && (
+                  <div
+                    role="menu"
+                    aria-label="AI 엔진 선택"
+                    className="absolute bottom-full mb-2.5 left-0 min-w-[136px] rounded-xl bg-[var(--surface-panel)]/95 backdrop-blur-2xl border border-white/[0.06] text-neutral-300 shadow-2xl p-1 z-40 animate-in fade-in slide-in-from-bottom-1 duration-150"
+                  >
+                    {ENGINE_OPTIONS.map((option) => {
+                      const isActive = option.id === activeEngineId;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={isActive}
+                          onClick={() => handleSelectEngine(option)}
+                          className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs font-mono transition-colors cursor-pointer ${
+                            isActive
+                              ? 'bg-white/[0.08] text-white'
+                              : 'text-neutral-300 hover:text-white hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          <span className="whitespace-nowrap">{option.menuLabel}</span>
+                          {isActive && <Check size={12} className="text-white shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
 
-          {/* Slim Currency Cycle Button */}
-          <button
-            id="omnibar-currency-badge"
-            type="button"
-            onClick={onCycleCurrency}
-            title={`현재 통화: ${currentCurrency} (클릭하여 변경)`}
-            aria-label={`현재 통화: ${currentCurrency} (클릭하여 변경)`}
-            className="px-1.5 py-0.5 text-[10px] font-mono font-semibold text-neutral-300 hover:text-white border-r border-white/15 pr-2 mr-1 shrink-0 transition-colors cursor-pointer flex items-center gap-0.5"
-          >
-            <span>{getCurrencySymbol(currentCurrency)}</span>
-          </button>
+            {/* Maximized Input field */}
+            <input
+              id="instant-ingest-input"
+              type="text"
+              value={input}
+              onFocus={() => {
+                setIsInputFocused(true);
+                onFocusChange?.(true);
+              }}
+              onBlur={() => {
+                setIsInputFocused(false);
+                onFocusChange?.(false);
+              }}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={inputPlaceholder}
+              className="flex-1 w-full min-w-0 text-[16px] sm:text-sm text-white placeholder:text-neutral-400 font-normal bg-transparent focus:outline-none"
+            />
 
-          {/* Input field */}
-          <input
-            id="instant-ingest-input"
-            type="text"
-            value={input}
-            onFocus={() => {
-              setIsInputFocused(true);
-              onFocusChange?.(true);
-            }}
-            onBlur={() => {
-              setIsInputFocused(false);
-              onFocusChange?.(false);
-            }}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={inputPlaceholder}
-            className="text-xs sm:text-sm text-white placeholder:text-neutral-400 font-normal bg-transparent focus:outline-none w-full min-w-0"
-          />
-
-          {/* Clear button if text exists */}
-          {input && (
-            <button
-              type="button"
-              onClick={() => setInput('')}
-              title="입력 내용 지우기"
-              aria-label="입력 내용 지우기"
-              className="p-1 rounded-full text-neutral-300 hover:text-white cursor-pointer shrink-0 transition-colors"
-            >
-              <X size={14} />
-            </button>
-          )}
-
-          {/* Submit Action Button */}
-          <button
-            id="parse-submit-btn"
-            type="submit"
-            disabled={isProcessing || !input.trim() || !isOnline}
-            title={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
-            aria-label={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer ${
-              isTyping
-                ? 'bg-white text-black hover:bg-neutral-200 active:scale-95 shadow-sm'
-                : 'bg-white/[0.06] text-neutral-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none'
-            }`}
-          >
-            {isProcessing ? (
-              <Loader2 size={14} className="animate-spin text-current" />
-            ) : isInsightsMode ? (
-              <Sparkles size={14} />
-            ) : (
-              <Send size={14} className="translate-x-[0.5px]" />
+            {/* Clear button if text exists */}
+            {input && (
+              <button
+                type="button"
+                onClick={() => setInput('')}
+                title="입력 내용 지우기"
+                aria-label="입력 내용 지우기"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-300 hover:text-white cursor-pointer shrink-0 transition-colors"
+              >
+                <X size={15} />
+              </button>
             )}
-          </button>
-        </div>
-      </form>
+
+            {/* Submit Action Button */}
+            <button
+              id="parse-submit-btn"
+              type="submit"
+              disabled={isProcessing || !input.trim() || !isOnline}
+              title={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
+              aria-label={isInsightsMode ? 'AI 재정 분석 실행' : '기록'}
+              className={`w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+                isProcessing
+                  ? 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border border-[var(--color-accent-border)] pointer-events-none'
+                  : isTyping
+                  ? 'bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:bg-[var(--color-accent-hover)] active:scale-95 shadow-sm'
+                  : 'bg-white/[0.06] text-neutral-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none'
+              }`}
+            >
+              {isProcessing ? (
+                <Loader2 size={14} className="animate-spin text-sky-400" />
+              ) : isInsightsMode ? (
+                <Sparkles size={14} />
+              ) : (
+                <Send size={14} className="translate-x-[0.5px]" />
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

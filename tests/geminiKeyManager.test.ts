@@ -168,5 +168,26 @@ describe('Gemini Key Manager Security Hardening (Masking & Encrypted Storage)', 
     expect(saved.localSubMode).toBe('ollama');
     expect(saved.ollamaModel).toBe('llama3.2:3b');
   });
+
+  it('9. Header-only API Key Transport: testGeminiApiKeyOnline sends key in x-goog-api-key header and never in URL', async () => {
+    const { vi } = await import('vitest');
+    const { testGeminiApiKeyOnline } = await import('../src/geminiKeyManager');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ models: [{ name: 'models/gemini-2.5-flash' }] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+    const res = await testGeminiApiKeyOnline(sampleKey);
+    expect(res.valid).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0];
+    expect(String(calledUrl)).not.toContain('key=');
+    expect(String(calledUrl)).not.toContain(sampleKey);
+    expect((calledInit?.headers as Record<string, string>)['x-goog-api-key']).toBe(sampleKey);
+    fetchSpy.mockRestore();
+  });
 });
+
 

@@ -2,9 +2,19 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <script>
-      // Early capture of PWA beforeinstallprompt to ensure it is never missed before React mounts
+      // Pre-paint season theme hydration (zero FOUC) + early PWA beforeinstallprompt capture
+      (function () {
+        try {
+          var raw = localStorage.getItem('vibe_user_preferences');
+          var s = raw ? JSON.parse(raw).seasonTheme : 'winter';
+          if (s !== 'spring' && s !== 'summer' && s !== 'autumn' && s !== 'winter') s = 'winter';
+          document.documentElement.setAttribute('data-season', s);
+        } catch (e) {
+          document.documentElement.setAttribute('data-season', 'winter');
+        }
+      })();
       window.deferredPWAInstallPrompt = null;
       window.addEventListener('beforeinstallprompt', function(e) {
         e.preventDefault();
@@ -36,23 +46,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="VibeVault" />
-    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="alternate icon" href="/pwa-192x192.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link 
-      rel="stylesheet" 
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" 
-      media="print" 
-      onload="this.media='all'"
-    />
-    <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" />
-    </noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-gradient-to-b from-[#0B0F17] via-[#0E1524] to-[#111827] text-slate-100 antialiased overflow-hidden select-none font-sans min-h-screen">
+  <body class="text-slate-100 antialiased overflow-hidden font-sans min-h-screen">
     <div id="root" class="h-[100dvh] w-full bg-transparent"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

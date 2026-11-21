@@ -80,7 +80,7 @@ export const translations = {
     ledger: 'Ledger',
 
     // Omnibar Placeholders
-    placeholder_vault: 'e.g. Chase Checking $4,200, Apple Stock $12k',
+    placeholder_vault: 'Quick log expense or income (e.g. Lunch $15, Salary $3,200)',
     placeholder_insights: 'e.g. FX gains this month, dining expense ratio',
     placeholder_ledger: 'e.g. Lunch $15, MacBook $1,800 10mo split',
 
@@ -157,6 +157,7 @@ export const translations = {
 
     // Settings Tabs
     tab_smart_assets: 'Smart Assets',
+    tab_multi_ledger: 'Multi-Ledger',
     tab_monthly_budget: 'Monthly Budget',
     tab_subscriptions: 'Subscriptions',
     tab_ai_engine: 'AI Engine',
@@ -191,6 +192,7 @@ export const translations = {
     ledger_settings: 'Ledger Settings',
     budget_start_day: 'Budget Start Day',
     multi_ledger_spaces: 'Multi-Ledger Spaces',
+    multi_ledger_desc: 'Separate trips, group events, and project budgets from your everyday personal ledger.',
     new_space: 'New Ledger',
     delete_space: 'Delete Ledger',
     create_with_details: 'Create with advanced options →',
@@ -352,19 +354,38 @@ export const translations = {
     record_to_ledger: 'Record to Ledger',
     reanalyze: 'Reanalyze',
 
-    // Quick Start Guide Modal
+    // Quick Start Guide & Welcome Dashboard Modal
     quick_start_title: 'Vibe Vault Quick Start Guide',
+    welcome_subtitle: 'Private Wealth & Episodic Ledger',
+    welcome_manifesto: 'Keep your assets safe in your own private vault. Cloud AI and Local AI analyze your spending flow and manage it smartly.',
+    welcome_col_philosophy: 'Core Architecture',
+    welcome_col_quickstart: 'Quick Start & Actions',
+    welcome_phil1_tag: 'Zero-Knowledge Privacy',
+    welcome_phil1_title: 'Local-First Encrypted Vault',
+    welcome_phil1_desc: 'Financial data is encrypted with AES-GCM-256 in IndexedDB. Inputs are sent to Google only when you choose Gemini cloud AI.',
+    welcome_phil1_meta: 'AES-GCM-256 · IndexedDB · On-Device First',
+    welcome_phil2_tag: 'Multi-Currency Treasury',
+    welcome_phil2_title: 'Unified Global Asset Valuation',
+    welcome_phil2_desc: 'Track KRW, USD, EUR, IDR holdings and credit lines together with daily FX rate synchronization.',
+    welcome_phil2_meta: 'KRW · USD · EUR · IDR · Daily FX',
+    welcome_phil3_tag: 'Episodic Space & Settlement',
+    welcome_phil3_title: 'Isolated Event Ledgers & Reports',
+    welcome_phil3_desc: 'Separate trips, clubs, and project budgets from daily spending with 1/N splitting and A4 settlement reports.',
+    welcome_phil3_meta: 'Space Isolation · 1/N Split · A4 Report',
+    welcome_locked_hint: 'Unlock the vault to run quick actions',
+    welcome_start_btn: 'Enter Private Vault',
+    welcome_loading_sample: 'Loading sample data...',
     guide_step1_title: 'Record in 3 seconds with the AI Omnibar',
     guide_step1_desc: 'Type naturally like a chat message. Split bills, installments, multi-currency, and balances are recognized automatically.',
-    guide_step1_btn: 'Try Sample Prompt',
+    guide_step1_btn: 'Try Omnibar',
     guide_step1_example: 'Starbucks Iced Americano $4.50 Credit Card',
     guide_step2_title: 'AI Screenshot & Receipt Scanner',
     guide_step2_desc: 'Upload banking screenshots or receipt photos to automatically extract balances, items, and transactions.',
-    guide_step2_btn: 'Open Receipt / Screen Scanner',
+    guide_step2_btn: 'Test Scanner',
     guide_step3_title: 'Separate Personal & Event Ledgers',
     guide_step3_desc: 'Create dedicated ledger spaces for group trips, reunions, or projects, and export official A4 reports.',
-    guide_step3_btn: 'Load Sample Data & Explore All Views',
-    local_safe_vault_badge: 'Stored safely on device (Zero-Knowledge Encrypted Vault)',
+    guide_step3_btn: 'Load Sample Data',
+    local_safe_vault_badge: 'Stored safely on device · Zero-Knowledge Encrypted Vault',
   },
 
   ko: {
@@ -374,7 +395,7 @@ export const translations = {
     ledger: '장부',
 
     // Omnibar Placeholders
-    placeholder_vault: '예: 신한 마통 -350만, 토스증권 1,250만',
+    placeholder_vault: '지출·수입 빠른 기록 (예: 점심 12,000원, 월급 300만원 입금)',
     placeholder_insights: '예: 9월 환차익 얼마야?, 이번 달 식비 비중',
     placeholder_ledger: '예: 점심 9천원, 갤럭시북 180만 10개월 할부',
 
@@ -451,6 +472,7 @@ export const translations = {
 
     // Settings Tabs
     tab_smart_assets: '스마트 자산',
+    tab_multi_ledger: '다중 장부',
     tab_monthly_budget: '월간 예산',
     tab_subscriptions: '구독 관리',
     tab_ai_engine: 'AI 엔진',
@@ -485,6 +507,7 @@ export const translations = {
     ledger_settings: '장부 설정',
     budget_start_day: '예산 시작일',
     multi_ledger_spaces: '다중 장부 관리',
+    multi_ledger_desc: '여행, 모임, 프로젝트 경비를 일상 가계부와 분리해 독립된 장부로 관리하세요.',
     new_space: '새 장부',
     delete_space: '장부 삭제',
     create_with_details: '상세 옵션으로 생성 →',
@@ -646,19 +669,38 @@ export const translations = {
     record_to_ledger: '가계부에 기록',
     reanalyze: '재분석',
 
-    // Quick Start Guide Modal
+    // Quick Start Guide & Welcome Dashboard Modal
     quick_start_title: 'Vibe Vault 시작 가이드',
+    welcome_subtitle: '프라이빗 자산 금고 & 스마트 가계부',
+    welcome_manifesto: '나만의 프라이빗 금고에 자산을 안전하게 보관하세요. Cloud AI와 Local AI가 당신의 지출 흐름을 분석하고 스마트하게 관리해 드립니다.',
+    welcome_col_philosophy: '아키텍처 철학',
+    welcome_col_quickstart: '빠른 시작 & 실행',
+    welcome_phil1_tag: 'Zero-Knowledge Privacy',
+    welcome_phil1_title: '로컬 우선 암호화 프라이버시',
+    welcome_phil1_desc: '금융 데이터는 브라우저 IndexedDB에 AES-GCM-256으로 암호화 보관됩니다. Gemini 클라우드 AI 선택 시에만 입력이 Google로 전송됩니다.',
+    welcome_phil1_meta: 'AES-GCM-256 · IndexedDB · On-Device First',
+    welcome_phil2_tag: 'Multi-Currency Treasury',
+    welcome_phil2_title: '다중 통화 글로벌 자산 금고',
+    welcome_phil2_desc: '원화(KRW), 달러(USD), 유로(EUR), 루피아(IDR) 등 지원 통화 자산과 마이너스 통장 부채를 일일 기준 환율로 통합 평가합니다.',
+    welcome_phil2_meta: 'KRW · USD · EUR · IDR · 일일 환율 연동',
+    welcome_phil3_tag: 'Episodic Space & Settlement',
+    welcome_phil3_title: '일상 장부 & 행사 결산 격리',
+    welcome_phil3_desc: '여행, 동호회, 스터디 지출을 일상 가계부와 분리하고, 스마트 N분의 1 정산과 한국식 표준 결산서를 즉시 출력합니다.',
+    welcome_phil3_meta: '스페이스 격리 · 1/N 정산 · A4 결산서',
+    welcome_locked_hint: '금고 잠금 해제 후 빠른 실행을 이용할 수 있습니다',
+    welcome_start_btn: '프라이빗 금고 시작하기',
+    welcome_loading_sample: '샘플 데이터 불러오는 중...',
     guide_step1_title: '하단 AI 입력창(Omnibar)으로 3초 기록',
-    guide_step1_desc: '복잡한 입력 폼 없이 하단 채팅창에 카톡처럼 입력해 보세요. 더치페이, 무이자 할부, 계좌 잔고까지 자동 인식합니다.',
-    guide_step1_btn: '예시 문구 자동 입력해보기',
+    guide_step1_desc: '복잡한 폼 없이 카톡처럼 자연어로 입력해 보세요. 더치페이, 무이자 할부, 계좌 잔고까지 자동 인식합니다.',
+    guide_step1_btn: '예시 문구 입력해보기',
     guide_step1_example: '스타벅스 아메리카노 4,500원 현대카드 결제',
     guide_step2_title: '스크린샷 & 영수증 AI 스캔',
-    guide_step2_desc: '은행·증권 앱 화면을 캡처하거나 종이 영수증을 찍어 올리면 계좌 잔고와 지출 내역이 자동 등록됩니다.',
-    guide_step2_btn: '영수증/화면 스캔 열기',
+    guide_step2_desc: '은행·증권 앱 화면을 캡처하거나 종이 영수증을 올리면 계좌 잔고와 지출 내역이 자동 등록됩니다.',
+    guide_step2_btn: '스캐너 테스트하기',
     guide_step3_title: '일상 가계부와 모임/행사 장부 분리',
-    guide_step3_desc: '동창회, 여행, 프로젝트 경비는 별도 장부 공간을 만들어 관리하고 A4 표준 결산서를 인쇄하세요.',
-    guide_step3_btn: '샘플 데이터 채워서 전체 화면 체험하기',
-    local_safe_vault_badge: '기기 로컬 안전 저장 (영지식 암호화 금고)',
+    guide_step3_desc: '동창회, 여행, 프로젝트 경비는 별도 공간으로 격리하고, 샘플 데이터를 불러와 전체 화면을 즉시 체험하세요.',
+    guide_step3_btn: '샘플 데이터 불러오기',
+    local_safe_vault_badge: '기기 로컬 안전 저장 · 영지식 암호화 금고',
   },
 
   ja: {
@@ -668,7 +710,7 @@ export const translations = {
     ledger: '家計簿',
 
     // Omnibar Placeholders
-    placeholder_vault: '例: 三井住友 口座 35万円, SBI証券 125万円',
+    placeholder_vault: '支出・収入を素早く記録 (例: ランチ 1,200円, 給料 30万円入金)',
     placeholder_insights: '例: 今月の為替差益, 食費の支出割合',
     placeholder_ledger: '例: ランチ 1,200円, iPad 18万円 10回分割',
 
@@ -745,6 +787,7 @@ export const translations = {
 
     // Settings Tabs
     tab_smart_assets: 'スマート資産',
+    tab_multi_ledger: '複数帳簿',
     tab_monthly_budget: '月間予算',
     tab_subscriptions: '定額サブスク',
     tab_ai_engine: 'AIエンジン',
@@ -779,6 +822,7 @@ export const translations = {
     ledger_settings: '家計簿設定',
     budget_start_day: '予算開始日',
     multi_ledger_spaces: '複数帳簿管理',
+    multi_ledger_desc: '旅行やイベント、プロジェクトの経費を日常の家計簿から独立した帳簿で管理します。',
     new_space: '新規帳簿',
     delete_space: '帳簿を削除',
     create_with_details: '詳細オプションで作成 →',
@@ -940,19 +984,38 @@ export const translations = {
     record_to_ledger: '家計簿に記録',
     reanalyze: '再解析',
 
-    // Quick Start Guide Modal
+    // Quick Start Guide & Welcome Dashboard Modal
     quick_start_title: 'Vibe Vault スタートガイド',
-    guide_step1_title: '下部AI入力バー（Omnibar）で3秒スピード記録',
-    guide_step1_desc: 'チャットのように自然に入力するだけ。割り勘、無利息分割払い、口座残高まで自動認識します。',
-    guide_step1_btn: '例文を自動入力してみる',
+    welcome_subtitle: 'プライベート資産保管庫・家計簿',
+    welcome_manifesto: 'あなただけのプライベート保管庫に資産を安全に保管しましょう。Cloud AIとLocal AIが支出の流れを分析し、スマートに管理します。',
+    welcome_col_philosophy: '設計思想',
+    welcome_col_quickstart: 'クイックスタート',
+    welcome_phil1_tag: 'Zero-Knowledge Privacy',
+    welcome_phil1_title: 'ローカル優先暗号化プライバシー',
+    welcome_phil1_desc: '金融データはブラウザのIndexedDBにAES-GCM-256で暗号化保存されます。Gemini AI選択時のみGoogleへ送信されます。',
+    welcome_phil1_meta: 'AES-GCM-256 · IndexedDB · 端末ローカル優先',
+    welcome_phil2_tag: 'Multi-Currency Treasury',
+    welcome_phil2_title: 'マルチ通貨資産ボールト',
+    welcome_phil2_desc: 'KRW・USD・EUR・IDRなどの複数通貨資産や負債残高を日次為替レートで統合評価します。',
+    welcome_phil2_meta: 'KRW · USD · EUR · IDR · 日次為替連動',
+    welcome_phil3_tag: 'Episodic Space & Settlement',
+    welcome_phil3_title: '日常家計簿とイベント精算の分離',
+    welcome_phil3_desc: '旅行やイベント経費を日常の家計簿から分離し、割り勘計算やA4公式決算書を出力できます。',
+    welcome_phil3_meta: '帳簿分離 · 割り勘精算 · A4決算書',
+    welcome_locked_hint: 'ロック解除後にクイックアクションを利用できます',
+    welcome_start_btn: 'プライベート保管庫を始める',
+    welcome_loading_sample: 'サンプル読込中...',
+    guide_step1_title: '下部AI入力バー（Omnibar）で3秒記録',
+    guide_step1_desc: 'チャットのように自然に入力するだけ。割り勘、分割払い、口座残高まで自動認識します。',
+    guide_step1_btn: '例文を入力してみる',
     guide_step1_example: 'スターバックス アイスアメリカーノ 450円 クレジットカード',
     guide_step2_title: 'スクリーンショット & レシートAIスキャン',
-    guide_step2_desc: '銀行や証券アプリの画面キャプチャや紙のレシートを撮って送るだけで、残高や支出明細が自動登録されます。',
-    guide_step2_btn: 'レシート / 画面スキャンを開く',
-    guide_step3_title: '日常の家計簿とイベント・旅行帳簿の分離',
-    guide_step3_desc: '同窓会、旅行、プロジェクト経費は専用の帳簿スペースを作成して管理し、公式A4決算書を出力できます。',
-    guide_step3_btn: 'サンプルデータを読み込んで全機能を体験',
-    local_safe_vault_badge: '端末ローカルに安全保存（ゼロ知識暗号化保管庫）',
+    guide_step2_desc: '銀行・証券アプリの画面やレシートを送信するだけで、残高や支出明細が自動登録されます。',
+    guide_step2_btn: 'スキャナーを試す',
+    guide_step3_title: '日常の家計簿とイベント帳簿の分離',
+    guide_step3_desc: '旅行やプロジェクト経費を専用スペースで管理し、サンプルデータで全画面をすぐ体験できます。',
+    guide_step3_btn: 'サンプルデータを読込',
+    local_safe_vault_badge: '端末ローカルに安全保存 · ゼロ知識暗号化保管庫',
   },
 
   eu: {
@@ -962,7 +1025,7 @@ export const translations = {
     ledger: 'Ledger',
 
     // Omnibar Placeholders
-    placeholder_vault: 'e.g. BNP Checking €3,500, Trade Republic €12k',
+    placeholder_vault: 'Quick log expense or income (e.g. Lunch €15, Salary €3,200)',
     placeholder_insights: 'e.g. FX return this month, grocery spending ratio',
     placeholder_ledger: 'e.g. Lunch €15, Laptop €1,800 10mo installment',
 
@@ -1039,6 +1102,7 @@ export const translations = {
 
     // Settings Tabs
     tab_smart_assets: 'Smart Assets',
+    tab_multi_ledger: 'Multi-Ledger',
     tab_monthly_budget: 'Monthly Budget',
     tab_subscriptions: 'Subscriptions',
     tab_ai_engine: 'AI Engine',
@@ -1073,6 +1137,7 @@ export const translations = {
     ledger_settings: 'Ledger Settings',
     budget_start_day: 'Budget Start Day',
     multi_ledger_spaces: 'Multi-Ledger Spaces',
+    multi_ledger_desc: 'Separate trips, group events, and project budgets from your everyday personal ledger.',
     new_space: 'New Ledger',
     delete_space: 'Delete Ledger',
     create_with_details: 'Create with advanced options →',
@@ -1234,19 +1299,38 @@ export const translations = {
     record_to_ledger: 'Record to Ledger',
     reanalyze: 'Reanalyze',
 
-    // Quick Start Guide Modal
+    // Quick Start Guide & Welcome Dashboard Modal
     quick_start_title: 'Vibe Vault Quick Start Guide',
+    welcome_subtitle: 'Private Wealth & Episodic Ledger',
+    welcome_manifesto: 'Keep your assets safe in your own private vault. Cloud AI and Local AI analyze your spending flow and manage it smartly.',
+    welcome_col_philosophy: 'Core Architecture',
+    welcome_col_quickstart: 'Quick Start & Actions',
+    welcome_phil1_tag: 'Zero-Knowledge Privacy',
+    welcome_phil1_title: 'Local-First Encrypted Vault',
+    welcome_phil1_desc: 'Financial data is encrypted with AES-GCM-256 in IndexedDB. Inputs are sent to Google only when you choose Gemini cloud AI.',
+    welcome_phil1_meta: 'AES-GCM-256 · IndexedDB · On-Device First',
+    welcome_phil2_tag: 'Multi-Currency Treasury',
+    welcome_phil2_title: 'Unified Global Asset Valuation',
+    welcome_phil2_desc: 'Track EUR, USD, KRW, IDR holdings and credit lines together with daily FX rate synchronization.',
+    welcome_phil2_meta: 'EUR · USD · KRW · IDR · Daily FX',
+    welcome_phil3_tag: 'Episodic Space & Settlement',
+    welcome_phil3_title: 'Isolated Event Ledgers & Reports',
+    welcome_phil3_desc: 'Separate trips, clubs, and project budgets from daily spending with 1/N splitting and A4 settlement reports.',
+    welcome_phil3_meta: 'Space Isolation · 1/N Split · A4 Report',
+    welcome_locked_hint: 'Unlock the vault to run quick actions',
+    welcome_start_btn: 'Enter Private Vault',
+    welcome_loading_sample: 'Loading sample data...',
     guide_step1_title: 'Record in 3 seconds with the AI Omnibar',
     guide_step1_desc: 'Type naturally like a chat message. Split bills, installments, multi-currency, and balances are recognized automatically.',
-    guide_step1_btn: 'Try Sample Prompt',
+    guide_step1_btn: 'Try Omnibar',
     guide_step1_example: 'Starbucks Americano 4.50€ Credit Card',
     guide_step2_title: 'AI Screenshot & Receipt Scanner',
     guide_step2_desc: 'Upload banking screenshots or receipt photos to automatically extract balances, items, and transactions.',
-    guide_step2_btn: 'Open Receipt / Screen Scanner',
+    guide_step2_btn: 'Test Scanner',
     guide_step3_title: 'Separate Personal & Event Ledgers',
     guide_step3_desc: 'Create dedicated ledger spaces for group trips, reunions, or projects, and export official A4 reports.',
-    guide_step3_btn: 'Load Sample Data & Explore All Views',
-    local_safe_vault_badge: 'Stored safely on device (Zero-Knowledge Encrypted Vault)',
+    guide_step3_btn: 'Load Sample Data',
+    local_safe_vault_badge: 'Stored safely on device · Zero-Knowledge Encrypted Vault',
   },
 } as const;
 

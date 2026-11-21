@@ -283,15 +283,16 @@ export async function testGeminiApiKeyOnline(keyToTest: string): Promise<{
     };
   }
 
-  // 2. Direct ping against official Google API endpoint
+  // 2. Direct ping against official Google API endpoint using header authentication (never query string)
   // Matches CSP: connect-src 'self' https://generativelanguage.googleapis.com
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models?key=${clean}&pageSize=1`;
+  const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1';
 
   try {
     const res = await fetch(endpoint, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-goog-api-key': clean,
       }
     });
 
@@ -363,7 +364,7 @@ export async function directGeminiReceiptOCR(
   const rawBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
   const today = new Date().toISOString().slice(0, 10);
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${cleanKey}`;
+  const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent';
 
   const payload = {
     contents: [
@@ -400,7 +401,8 @@ Requirements:
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-goog-api-key': cleanKey,
       },
       body: JSON.stringify(payload)
     });

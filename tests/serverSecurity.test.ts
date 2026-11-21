@@ -34,6 +34,8 @@ describe('local server security guards', () => {
     expect(isAllowedOrigin(undefined, '127.0.0.1:3000')).toBe(true);
     expect(isAllowedOrigin('https://app-123.scf.usercontent.goog', '127.0.0.1:3000')).toBe(true);
     expect(isAllowedOrigin('https://preview.usercontent.goog', 'localhost:3000')).toBe(true);
+    expect(isAllowedOrigin('https://vibevault.pages.dev', '127.0.0.1:3000')).toBe(true);
+    expect(isAllowedOrigin('https://evil-pages.dev', 'localhost:3000')).toBe(false);
     expect(isAllowedOrigin('https://custom.example.com', '127.0.0.1:3000', 'custom.example.com, proxy.internal')).toBe(true);
     expect(isAllowedOrigin('http://127.0.0.1:3000', '127.0.0.1:3000')).toBe(true);
     expect(isAllowedOrigin('https://evil-usercontent.goog', 'localhost:3000')).toBe(false);
@@ -88,5 +90,15 @@ describe('local server security guards', () => {
       retryAfterSeconds: 60,
     });
     expect(consumeAiRequest(client, 61_000).allowed).toBe(true);
+  });
+
+  it('prunes expired rate-limit buckets when tracking many distinct clients', () => {
+    const baseTime = 2_000_000;
+    for (let i = 0; i < 64; i += 1) {
+      expect(consumeAiRequest(`burst-client-${i}`, baseTime).allowed).toBe(true);
+    }
+    // After window expiry, fresh clients and returning clients are both allowed cleanly
+    expect(consumeAiRequest('burst-client-0', baseTime + 65_000).allowed).toBe(true);
+    expect(consumeAiRequest('burst-client-new', baseTime + 65_000).allowed).toBe(true);
   });
 });

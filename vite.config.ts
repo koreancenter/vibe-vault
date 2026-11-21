@@ -24,9 +24,11 @@ const inlineEntryCss = (): Plugin => ({
   },
 });
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  define: command === 'build' ? { 'process.env.NODE_ENV': JSON.stringify('production') } : undefined,
   esbuild: {
     drop: ['console', 'debugger'],
+    legalComments: 'none',
   },
   base: '/',
   plugins: [
@@ -76,8 +78,9 @@ export default defineConfig({
           ],
         },
         workbox: {
-          // Task 1: Restrict precaching strictly to static build assets
+          // Task 1: Restrict precaching strictly to static build assets (exclude unused workspace media)
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          globIgnores: ['**/assets/aistudio/**', '**/*.map'],
           // Automatically evict and purge legacy/deprecated cache buckets on version upgrade
           cleanupOutdatedCaches: true,
           // Clients claim immediately on activation so security rules take effect without manual reloads
@@ -173,31 +176,47 @@ export default defineConfig({
       target: 'esnext',
       minify: 'esbuild',
       cssCodeSplit: true,
-      sourcemap: true,
+      sourcemap: false,
       chunkSizeWarningLimit: 600,
       rollupOptions: {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
               if (
+                id.includes('/node_modules/react/') ||
+                id.includes('/node_modules/react-dom/') ||
+                id.includes('/node_modules/scheduler/')
+              ) {
+                return 'vendor-react';
+              }
+              if (
                 id.includes('recharts') ||
-                id.includes('d3') ||
-                id.includes('victory-vendor')
+                id.includes('d3-') ||
+                id.includes('victory-vendor') ||
+                id.includes('decimal.js-light') ||
+                id.includes('@reduxjs/toolkit') ||
+                id.includes('/node_modules/redux') ||
+                id.includes('/node_modules/react-redux') ||
+                id.includes('/node_modules/reselect') ||
+                id.includes('/node_modules/immer') ||
+                id.includes('/node_modules/es-toolkit') ||
+                id.includes('/node_modules/use-sync-external-store') ||
+                id.includes('/node_modules/eventemitter3')
               ) {
                 return 'vendor-charts';
               }
-              if (id.includes('@google/genai')) {
-                return 'vendor-genai';
-              }
               if (
-                id.includes('motion') ||
-                id.includes('framer-motion')
+                id.includes('/node_modules/date-fns/') ||
+                id.includes('/node_modules/lucide-react/')
               ) {
-                return 'vendor-ui';
+                return 'vendor-utils';
+              }
+              if (id.includes('@google/genai')) {
+                return 'vendor-ai';
               }
             }
           },
         },
       },
     },
-});
+}));

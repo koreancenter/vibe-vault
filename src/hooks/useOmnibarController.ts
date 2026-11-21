@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { 
   Transaction, 
   TransactionType, 
@@ -8,21 +8,8 @@ import {
   FinancialQueryResult,
   CurrencyCode
 } from '../types';
-import { 
-  parseFinancialInputDeterministically, 
-  parseFinancialText, 
-  detectPeerDebt, 
-  isAnalyticalQueryInput, 
-  normalizeTransactionCategory,
-  ParsedItem,
-  planPeerDebtUpdate,
-  PeerDebtEvent
-} from '../financialParser';
-import { 
-  executeFinancialQuery, 
-  commitAutonomousLoanSplit, 
-  commitAutonomousReceivableRecovery 
-} from '../autonomousFinance';
+import type { ParsedItem, PeerDebtEvent } from '../financialParser';
+import { isAnalyticalQueryInput } from '../finance/lightweightDetectors';
 import { 
   getAllAssetAccounts, 
   getAllDebts, 
@@ -33,11 +20,15 @@ import {
   UserPreferences 
 } from '../utils';
 import { generateSecureId } from '../identifiers';
-import { findRefundTarget, buildLinkedRefund } from '../financialParser';
 import { RealtimePreviewData } from '../components/OmnibarDock';
 import { DEFAULT_FX_RATES } from '../fxRates';
 
-async function applyPeerDebt(event: PeerDebtEvent, debts: any[], currency?: string): Promise<void> {
+async function applyPeerDebt(
+  event: PeerDebtEvent,
+  debts: any[],
+  planPeerDebtUpdate: (event: PeerDebtEvent, debts: any[], currency?: CurrencyCode) => any,
+  currency?: string
+): Promise<void> {
   const planned = planPeerDebtUpdate(event, debts, (currency as CurrencyCode) || 'KRW');
   if (planned) await saveDebt(planned);
 }
@@ -153,6 +144,10 @@ export function useOmnibarController({
     setError(null);
 
     try {
+      const [{ getAllAssetAccounts: _unused, ..._db }, { executeFinancialQuery }] = await Promise.all([
+        Promise.resolve({ getAllAssetAccounts }),
+        import('../autonomousFinance'),
+      ]);
       const accounts = await getAllAssetAccounts();
       const result = await executeFinancialQuery(
         trimmed,
@@ -178,11 +173,29 @@ export function useOmnibarController({
     }
   }, [isQuerying, transactions, fxRates, currentCurrency, setMainMode, showToast, scrollContainerRef]);
 
+  // Lazy-load heavy deterministic parser only when user starts typing in ledger mode
+  const parserModuleRef = useRef<typeof import('../financialParser') | null>(null);
+  const [parserReadyTick, setParserReadyTick] = useState(0);
+
+  useEffect(() => {
+    if (mainMode !== 'ledger' || input.trim().length === 0 || parserModuleRef.current) return;
+    let cancelled = false;
+    import('../financialParser').then((mod) => {
+      if (!cancelled) {
+        parserModuleRef.current = mod;
+        setParserReadyTick((n) => n + 1);
+      }
+    }).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [mainMode, input]);
+
   // Real-time zero-latency input preview for ledger Omnibar
   const realtimePreview = useMemo<RealtimePreviewData | null>(() => {
-    if (mainMode !== 'ledger' || input.trim().length <= 2) return null;
+    if (mainMode !== 'ledger' || input.trim().length <= 2 || !parserModuleRef.current) return null;
     try {
-      const results = parseFinancialInputDeterministically(input);
+      const results = parserModuleRef.current.parseFinancialInputDeterministically(input);
       if (results && results.length > 0) {
         const first = results[0];
         if (first.amount > 0 || first.merchant || first.category) {
@@ -206,7 +219,7 @@ export function useOmnibarController({
       // Safe fallback on partial syntax
     }
     return null;
-  }, [mainMode, input, currentCurrency]);
+  }, [mainMode, input, currentCurrency, parserReadyTick]);
 
   // AI Omnibar Ingestion Process
   const handleProcessInput = useCallback(async (customText?: string) => {
@@ -255,7 +268,25 @@ export function useOmnibarController({
         }
       }
 
-      const debts = await getAllDebts();
+      const [
+        debts,
+        parserMod,
+        { commitAutonomousLoanSplit, commitAutonomousReceivableRecovery }
+      ] = await Promise.all([
+        getAllDebts(),
+        import('../financialParser'),
+        import('../autonomousFinance'),
+      ]);
+      parserModuleRef.current = parserMod;
+      const {
+        parseFinancialInputDeterministically,
+        parseFinancialText,
+        detectPeerDebt,
+        normalizeTransactionCategory,
+        planPeerDebtUpdate,
+        findRefundTarget,
+        buildLinkedRefund,
+      } = parserMod;
 
       if (parsedTransactions.length === 0) {
         const debtOrCardResults = parseFinancialInputDeterministically(textToProcess, debts);
@@ -314,7 +345,7 @@ export function useOmnibarController({
         }
 
         if (t.peerDebt) {
-          await applyPeerDebt(t.peerDebt, debts, t.currency);
+          await applyPeerDebt(t.peerDebt, debts, planPeerDebtUpdate, t.currency);
           if (t.peerDebt.debtOnly) {
             debtOnlyCount += 1;
             continue;
