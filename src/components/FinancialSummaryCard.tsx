@@ -103,15 +103,15 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
 
     const diff = currentSpending - prevSpending;
 
-    let status: 'better' | 'worse' | 'neutral' = 'neutral';
+    let status: 'better' | 'worse' | 'neutral' | 'first_month' = 'neutral';
     let percentChange = 0;
 
     if (prevSpending === 0 && currentSpending === 0) {
       status = 'neutral';
       percentChange = 0;
     } else if (prevSpending === 0) {
-      status = 'worse';
-      percentChange = 100;
+      status = 'first_month';
+      percentChange = 0;
     } else {
       percentChange = Math.round((Math.abs(diff) / prevSpending) * 100);
       if (diff < 0) {
@@ -202,7 +202,11 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
               )
             ) : (
               <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border bg-white/[0.06] border-white/15 text-neutral-300">
-                <span>{count > 0 ? `${count} items` : t('empty_ledger_title')}</span>
+                <span>
+                  {count > 0
+                    ? `${count}${language === 'ko' ? '건' : language === 'ja' ? '件' : ' items'}`
+                    : t('empty_ledger_title')}
+                </span>
               </div>
             )}
           </div>
@@ -344,6 +348,12 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
 
         {/* Quiet Luxury Status Indicator */}
         <div id="financial-status-indicator">
+          {status === 'first_month' && (
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border bg-white/[0.06] border-white/15 text-neutral-300">
+              <span>{language === 'ko' ? '첫 기록' : language === 'ja' ? '初記録' : 'First month'}</span>
+            </div>
+          )}
+
           {diff !== 0 && status === 'better' && (
             <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border tabular-nums transition-all bg-white/[0.06] border-white/15 text-neutral-200">
               <span>{t('status_saving')}</span>
@@ -411,19 +421,27 @@ export const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             {t('vs_previous_month')}
           </span>
           <div className={`flex flex-wrap items-baseline gap-1 mt-1.5 whitespace-nowrap tabular-nums ${isStealth ? 'blur-xs select-none' : ''}`}>
-            <span className={`text-sm md:text-base tracking-tight tabular-nums whitespace-nowrap font-medium ${
-              diff === 0
-                ? 'text-neutral-200'
-                : status === 'better'
-                ? 'text-sky-400'
-                : 'text-amber-400 font-semibold'
-            }`}>
-              {diff > 0 ? '+' : diff < 0 ? '-' : ''}{currSymbol} {Math.abs(diff).toLocaleString()}
-            </span>
-            {diff !== 0 && percentChange > 0 && (
-              <span className="text-xs font-normal tabular-nums whitespace-nowrap text-neutral-300">
-                ({diff < 0 ? '▼' : '▲'}{percentChange}%)
+            {status === 'first_month' ? (
+              <span className="text-sm tracking-tight whitespace-nowrap font-normal text-neutral-300">
+                {language === 'ko' ? '전월 기록 없음' : language === 'ja' ? '前月記録なし' : 'No prior month'}
               </span>
+            ) : (
+              <>
+                <span className={`text-sm md:text-base tracking-tight tabular-nums whitespace-nowrap font-medium ${
+                  diff === 0
+                    ? 'text-neutral-200'
+                    : status === 'better'
+                    ? 'text-sky-400'
+                    : 'text-amber-400 font-semibold'
+                }`}>
+                  {diff > 0 ? '+' : diff < 0 ? '-' : ''}{currSymbol} {Math.abs(diff).toLocaleString()}
+                </span>
+                {diff !== 0 && percentChange > 0 && (
+                  <span className="text-xs font-normal tabular-nums whitespace-nowrap text-neutral-300">
+                    ({diff < 0 ? '▼' : '▲'}{percentChange}%)
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>

@@ -311,6 +311,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
     };
   }, [accounts, currentCurrency, fxRates]);
 
+  const hasRegisteredAccounts = accounts.length > 0;
+
   // Integrated Financial Indicators
   const savingsRate = useMemo(() => {
     if (monthIncome <= 0) return 0;
@@ -318,14 +320,15 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
   }, [monthIncome, monthNet]);
 
   const burnRateToNetWorth = useMemo(() => {
-    if (netWorth <= 0) return '0.0';
+    if (!hasRegisteredAccounts || netWorth <= 0) return null;
     return ((monthExpense / netWorth) * 100).toFixed(1);
-  }, [monthExpense, netWorth]);
+  }, [hasRegisteredAccounts, monthExpense, netWorth]);
 
   const runwayMonths = useMemo(() => {
+    if (!hasRegisteredAccounts) return null;
     if (monthExpense <= 0) return '99.0';
     return (liquidAssets / monthExpense).toFixed(1);
-  }, [liquidAssets, monthExpense]);
+  }, [hasRegisteredAccounts, liquidAssets, monthExpense]);
 
   const debtRatio = useMemo(() => {
     if (totalAssets <= 0) return 0;
@@ -349,8 +352,43 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
     let summary: React.ReactNode = '';
     let recommendation = '';
 
-    const numRunway = parseFloat(runwayMonths);
-    const numBurn = parseFloat(String(burnRateToNetWorth));
+    if (!hasRegisteredAccounts) {
+      if (monthIncome === 0 && monthExpense === 0) {
+        status = 'MODERATE';
+        statusLabel = '대기';
+        title = '자산 계좌 및 거래 기록 대기 중';
+        summary = '아직 등록된 자산 계좌와 이번 달 거래 내역이 없습니다.';
+        recommendation = '자산 탭에서 보유 계좌를 등록하거나 하단 입력창에 첫 거래를 기록해 진단을 시작하세요.';
+      } else if (monthNet >= 0) {
+        status = 'HEALTHY';
+        statusLabel = '현금흐름 양호';
+        title = '건전한 월간 현금흐름 (계좌 미등록)';
+        summary = (
+          <span>
+            이번 달 수입 <span className="text-neutral-200 font-medium">{currSymbol}{Math.round(monthIncome).toLocaleString()}</span> 대비 지출{' '}
+            <span className="text-neutral-200 font-medium">{currSymbol}{Math.round(monthExpense).toLocaleString()}</span>으로{' '}
+            <span className="text-neutral-200 font-medium">순흑자 {currSymbol}{Math.round(monthNet).toLocaleString()}</span>(저축률 {savingsRate}%)을 기록 중입니다. 자산 계좌가 아직 등록되지 않아 순자산·유동성 지표는 집계 대기 상태입니다.
+          </span>
+        );
+        recommendation = '자산 탭에서 주거래 통장이나 투자 계좌를 등록하면 순자산 대비 소비율과 비상 유동성 완충 기간까지 통합 진단해 드립니다.';
+      } else {
+        status = 'ATTENTION';
+        statusLabel = '지출 주의';
+        title = '월간 현금흐름 적자 (계좌 미등록)';
+        summary = (
+          <span>
+            이번 달 지출(<span className="text-neutral-200 font-medium">{currSymbol}{Math.round(monthExpense).toLocaleString()}</span>)이 수입(
+            <span className="text-neutral-200 font-medium">{currSymbol}{Math.round(monthIncome).toLocaleString()}</span>)보다{' '}
+            <span className="text-neutral-200 font-medium">{currSymbol}{Math.round(Math.abs(monthNet)).toLocaleString()}</span> 많습니다. 자산 계좌가 아직 등록되지 않아 총 자산 대비 비중은 산출되지 않았습니다.
+          </span>
+        );
+        recommendation = '변동 지출 항목을 점검하고, 자산 탭에서 보유 계좌를 등록해 전체 유동성 여력을 함께 확인하세요.';
+      }
+      return { status, statusLabel, title, summary, recommendation };
+    }
+
+    const numRunway = runwayMonths !== null ? parseFloat(runwayMonths) : 0;
+    const numBurn = burnRateToNetWorth !== null ? parseFloat(String(burnRateToNetWorth)) : 0;
 
     if (netWorth > 0 && savingsRate >= 40 && numRunway >= 6) {
       status = 'EXCELLENT';
@@ -372,7 +410,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         </span>
       );
       recommendation = `현재의 저축률(${savingsRate}%)을 유지하면서 정기 고정비(${subscriptions.length}건)를 점검하고 불필요한 지출을 최적화하세요.`;
-    } else if (monthNet < 0 || debtRatio >= 50) {
+    } else if (monthNet < 0 || debtRatio >= 50 || netWorth <= 0) {
       status = 'ATTENTION';
       statusLabel = '주의 필요';
       title = '지출 관리 및 유동성 완충 필요';
@@ -399,7 +437,7 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
     }
 
     return { status, statusLabel, title, summary, recommendation };
-  }, [netWorth, savingsRate, runwayMonths, burnRateToNetWorth, monthNet, debtRatio, subscriptions.length, liquidAssets, currSymbol]);
+  }, [hasRegisteredAccounts, monthIncome, monthExpense, netWorth, savingsRate, runwayMonths, burnRateToNetWorth, monthNet, debtRatio, subscriptions.length, liquidAssets, currSymbol]);
 
   const formatMoney = (val: number) => {
     const isNeg = val < 0;
@@ -615,17 +653,36 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
                 <span className="text-xs font-normal text-neutral-200">{t('net_worth')}</span>
               </div>
               <span className="mt-1 text-[11px] font-normal text-neutral-300">
-                {t('total_assets')} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(totalAssets)}</span>
+                {hasRegisteredAccounts ? (
+                  <>
+                    {t('total_assets')} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(totalAssets)}</span>
+                  </>
+                ) : totalLiabilities > 0 ? (
+                  <>
+                    {language === 'ko' ? '미결제 카드' : language === 'ja' ? '未決済カード' : 'Unpaid card'}{' '}
+                    <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(totalLiabilities)}</span>
+                    {' · '}
+                    {language === 'ko' ? '계좌 등록 후 산출' : language === 'ja' ? '口座登録後に算出' : 'Add account to track'}
+                  </>
+                ) : (
+                  language === 'ko' ? '자산 계좌 등록 후 산출' : language === 'ja' ? '口座登録後に算出' : 'Add account to track'
+                )}
               </span>
             </div>
             <div className="text-right shrink-0">
-              <span className={`text-xl sm:text-2xl font-medium tracking-tight tabular-nums block text-white ${isStealth ? 'blur-sm select-none' : ''}`}>
-                {formatMoney(netWorth)}
-              </span>
+              {hasRegisteredAccounts ? (
+                <span className={`text-xl sm:text-2xl font-medium tracking-tight tabular-nums block text-white ${isStealth ? 'blur-sm select-none' : ''}`}>
+                  {formatMoney(netWorth)}
+                </span>
+              ) : (
+                <span className="text-base sm:text-lg font-medium tracking-tight block text-neutral-400">
+                  {language === 'ko' ? '계좌 미등록' : language === 'ja' ? '口座未登録' : 'No accounts'}
+                </span>
+              )}
             </div>
           </div>
           {/* Net Worth Attribution: Organic Savings vs FX Fluctuation */}
-          {netWorthAttribution.hasForeignAssets && (
+          {hasRegisteredAccounts && netWorthAttribution.hasForeignAssets && (
             <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-neutral-400 font-light flex-wrap gap-1">
               <span className="truncate">
                 저축 기여 <span className="font-mono text-neutral-300 font-medium tabular-nums">{formatMoney(netWorthAttribution.organicBaseAssets)}</span>
@@ -666,18 +723,27 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
             </div>
             <span className="mt-1 text-[11px] font-normal text-neutral-300">
               {language === 'ko' ? '월 지출' : language === 'ja' ? '月支出' : 'Monthly expense'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(monthExpense)}</span>
+              {!hasRegisteredAccounts && (
+                <span className="text-neutral-400"> · {language === 'ko' ? '계좌 미등록' : language === 'ja' ? '口座未登録' : 'No accounts'}</span>
+              )}
             </span>
           </div>
           <div className="text-right shrink-0">
-            <span className={`text-xl sm:text-2xl font-medium tracking-tight tabular-nums block ${
-              parseFloat(String(burnRateToNetWorth)) < 3 
-                ? 'text-sky-400' 
-                : parseFloat(String(burnRateToNetWorth)) < 7 
-                ? 'text-white' 
-                : 'text-amber-400'
-            }`}>
-              {burnRateToNetWorth}%
-            </span>
+            {burnRateToNetWorth === null ? (
+              <span className="text-xl sm:text-2xl font-medium tracking-tight block text-neutral-400">
+                —
+              </span>
+            ) : (
+              <span className={`text-xl sm:text-2xl font-medium tracking-tight tabular-nums block ${
+                parseFloat(burnRateToNetWorth) < 3 
+                  ? 'text-sky-400' 
+                  : parseFloat(burnRateToNetWorth) < 7 
+                  ? 'text-white' 
+                  : 'text-amber-400'
+              }`}>
+                {burnRateToNetWorth}%
+              </span>
+            )}
           </div>
         </div>
 
@@ -688,11 +754,21 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
               <span className="text-xs font-normal text-neutral-200">{t('runway_months')}</span>
             </div>
             <span className="mt-1 text-[11px] font-normal text-neutral-300">
-              {language === 'ko' ? '현금·예금' : language === 'ja' ? '現預金' : 'Liquid cash'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(liquidAssets)}</span>
+              {hasRegisteredAccounts ? (
+                <>
+                  {language === 'ko' ? '현금·예금' : language === 'ja' ? '現預金' : 'Liquid cash'} <span className={isStealth ? 'blur-xs select-none' : ''}>{formatMoney(liquidAssets)}</span>
+                </>
+              ) : (
+                language === 'ko' ? '현금·예금 계좌 미등록' : language === 'ja' ? '現預金口座未登録' : 'No cash accounts'
+              )}
             </span>
           </div>
           <div className="text-right shrink-0">
-            {monthExpense === 0 ? (
+            {runwayMonths === null ? (
+              <span className="text-xl sm:text-2xl font-medium tracking-tight block text-neutral-400">
+                —
+              </span>
+            ) : monthExpense === 0 ? (
               <span className="text-xl sm:text-2xl font-medium tracking-tight text-white">
                 {liquidAssets > 0 ? (language === 'ko' ? '충분' : language === 'ja' ? '十分' : 'Safe') : '-'}
               </span>
@@ -771,7 +847,11 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
             </h2>
             <p className="text-xs font-normal text-neutral-300 mt-0.5">
               {format(selectedMonth, language === 'ko' ? 'yyyy년 M월' : language === 'ja' ? 'yyyy年M月' : 'MMM yyyy')} {language === 'ko' ? '총 지출' : language === 'ja' ? '総支出' : 'Total spending'}: <span className="font-medium text-white tabular-nums">{formatMoney(monthExpense)}</span>
-              {monthExpenseCount > 0 && <span className="text-neutral-400 ml-1">({monthExpenseCount} items)</span>}
+              {monthExpenseCount > 0 && (
+                <span className="text-neutral-400 ml-1">
+                  ({monthExpenseCount}{language === 'ko' ? '건' : language === 'ja' ? '件' : ' items'})
+                </span>
+              )}
             </p>
           </div>
           {selectedCategory && (

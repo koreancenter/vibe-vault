@@ -454,6 +454,23 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
     };
   }, [accounts, debts, currentCurrency, fxRates, trackedCreditCards]);
 
+  const hasRegisteredAccounts = accounts.length > 0;
+
+  const ledgerNetCashflow = useMemo(() => {
+    let incomeSum = 0;
+    let expenseSum = 0;
+    for (const tx of localTransactions) {
+      if (tx.isInternalTransfer || tx.type === 'TRANSFER') continue;
+      const converted = convertCurrency(tx.amount, tx.currency || 'KRW', currentCurrency, fxRates);
+      if (tx.type === 'INCOME' || (tx.type === 'SETTLEMENT' && tx.amount > 0)) {
+        incomeSum += converted;
+      } else if (tx.type === 'EXPENSE') {
+        expenseSum += converted;
+      }
+    }
+    return Math.round(incomeSum - expenseSum);
+  }, [localTransactions, currentCurrency, fxRates]);
+
   const formattedNetWorth = useMemo(() => {
     return formatCurrency(Math.round(netWorth), currentCurrency);
   }, [netWorth, currentCurrency]);
@@ -831,10 +848,10 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
           : 'bg-[var(--surface-card)]/90 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] text-white'
       }`}>
         <div className="space-y-1.5">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-3">
             <div 
               onClick={onToggleStealth} 
-              className="cursor-pointer group select-none transition-all"
+              className="cursor-pointer group select-none transition-all min-w-0"
               title="Toggle stealth"
             >
               <div className="flex items-center gap-1.5 text-xs text-neutral-300 font-normal">
@@ -843,23 +860,57 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
                   {stealthMode ? '· masked' : ''}
                 </span>
               </div>
-              <div className={`mt-1 text-fluid-hero font-medium tracking-tight tabular-nums transition-all ${
-                stealthMode ? 'blur-md select-none opacity-60' : 'text-white'
-              }`}>
-                {formattedNetWorth}
-              </div>
-              <div className={`mt-1 text-xs font-normal text-neutral-300 tabular-nums ${
-                stealthMode ? 'blur-xs select-none' : ''
-              }`}>
-                {t('total_assets')} {formatCurrency(Math.round(totalAssets), currentCurrency)}
-              </div>
+
+              {hasRegisteredAccounts ? (
+                <>
+                  <div className={`mt-1 text-fluid-hero font-medium tracking-tight tabular-nums transition-all ${
+                    stealthMode ? 'blur-md select-none opacity-60' : 'text-white'
+                  }`}>
+                    {formattedNetWorth}
+                  </div>
+                  <div className={`mt-1 text-xs font-normal text-neutral-300 tabular-nums ${
+                    stealthMode ? 'blur-xs select-none' : ''
+                  }`}>
+                    {t('total_assets')} {formatCurrency(Math.round(totalAssets), currentCurrency)}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mt-1.5 text-2xl sm:text-3xl font-medium tracking-tight text-neutral-300">
+                    계좌 미등록
+                  </div>
+                  <div className={`mt-1.5 text-xs font-normal text-neutral-300 tabular-nums flex flex-wrap items-center gap-x-2 gap-y-0.5 ${
+                    stealthMode ? 'blur-xs select-none' : ''
+                  }`}>
+                    {localTransactions.length > 0 ? (
+                      <>
+                        <span>
+                          가계부 순현금흐름{' '}
+                          <span className={ledgerNetCashflow >= 0 ? 'text-sky-400 font-medium' : 'text-amber-400 font-medium'}>
+                            {ledgerNetCashflow > 0 ? '+' : ''}
+                            {formatCurrency(ledgerNetCashflow, currentCurrency)}
+                          </span>
+                        </span>
+                        {totalCardLiabilities > 0 && (
+                          <>
+                            <span className="opacity-40">·</span>
+                            <span>미결제 카드 {formattedTotalUnpaid}</span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <span>자산 계좌를 등록하면 순자산이 집계됩니다.</span>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
-            <span className="text-xs font-normal text-neutral-300 tabular-nums pt-0.5">
+            <span className="text-xs font-normal text-neutral-300 tabular-nums pt-0.5 shrink-0">
               {t('accounts_count', { count: accounts.length })}
             </span>
           </div>
 
-          {isMultiCurrencyMode && dualCurrency && (
+          {hasRegisteredAccounts && isMultiCurrencyMode && dualCurrency && (
             <div className={`mt-1 ${stealthMode ? 'blur-xs select-none opacity-60' : ''}`}>
               <span className="text-xs font-normal text-neutral-300 tracking-wide whitespace-nowrap tabular-nums">
                 ≈ {dualCurrency.secondaryFormatted} · FX {dualCurrency.rateText}
@@ -1270,13 +1321,20 @@ export const VaultOverviewSection: React.FC<VaultOverviewSectionProps> = ({
               {localTransactions.slice(0, 5).map((tx) => {
                 const isExpense = tx.type === 'EXPENSE';
                 const isIncome = tx.type === 'INCOME';
+                const categoryLabel = tx.isInternalTransfer
+                  ? (tx.subCategory || '내부이체/원금상환')
+                  : isIncome && tx.category === 'Fixed' && !tx.subCategory
+                  ? '급여'
+                  : tx.category
+                  ? getCategoryKo(tx.category, tx.subCategory)
+                  : '';
                 return (
                   <div key={tx.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="font-normal text-white truncate">{tx.description}</span>
                         <span className="text-[11px] text-neutral-300 font-normal shrink-0">
-                          {tx.category ? getCategoryKo(tx.category) : ''}
+                          {categoryLabel}
                         </span>
                       </div>
                       <div className="text-[11px] text-neutral-300 font-normal mt-0.5">
