@@ -43,9 +43,26 @@ createRoot(document.getElementById('root')!).render(
 );
 
 
-// Register the service worker after load so it never competes with first render.
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }));
-  });
+// Register the service worker during idle time after load using the native API
+// to avoid chaining virtual:pwa-register -> workbox-window JS chunks on initial load.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener(
+    'load',
+    () => {
+      const register = () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
+          // Ignore registration errors in restricted/private browsing contexts
+        });
+      };
+      const w = window as Window & {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      };
+      if (typeof w.requestIdleCallback === 'function') {
+        w.requestIdleCallback(register, { timeout: 3000 });
+      } else {
+        setTimeout(register, 2000);
+      }
+    },
+    { once: true }
+  );
 }

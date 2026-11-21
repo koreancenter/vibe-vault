@@ -153,14 +153,19 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
   useEffect(() => {
     const loadFxRates = async () => {
       try {
-        const res = await fetch('/api/fx-rates');
-        if (res.ok) {
+        const res = await fetch('/api/fx-rates', {
+          headers: { Accept: 'application/json' },
+        });
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
           const data = await res.json();
           if (isFxRatesPayload(data)) {
             setFxRates(data);
           } else {
             console.warn('FX rates response did not match the expected format.');
           }
+        } else if (res.ok) {
+          // Static hosting SPA fallback (HTML) — stay quietly on default estimated rates
         } else {
           console.warn(`FX rates request failed with HTTP ${res.status}.`);
         }
