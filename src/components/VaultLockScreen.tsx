@@ -11,9 +11,9 @@ import {
 } from '../vaultSecurity';
 import { useI18n } from '../i18n';
 import { lazyWithRetry, LazyErrorBoundary } from '../lazyWithRetry';
+import { WelcomeDashboardModal } from './WelcomeDashboardModal';
 
 const LegalNoticeModal = lazyWithRetry(() => import('./LegalNoticeModal').then(m => ({ default: m.LegalNoticeModal })));
-const WelcomeDashboardModal = lazyWithRetry(() => import('./WelcomeDashboardModal').then(m => ({ default: m.WelcomeDashboardModal })));
 
 interface VaultLockScreenProps {
   onUnlocked?: () => void;
@@ -473,14 +473,10 @@ export const VaultLockScreen: React.FC<VaultLockScreenProps> = ({
       </div>
 
       {isWelcomeOpen && (
-        <LazyErrorBoundary>
-          <Suspense fallback={null}>
-            <WelcomeDashboardModal
-              isOpen={isWelcomeOpen}
-              onClose={() => setIsWelcomeOpen(false)}
-            />
-          </Suspense>
-        </LazyErrorBoundary>
+        <WelcomeDashboardModal
+          isOpen={isWelcomeOpen}
+          onClose={() => setIsWelcomeOpen(false)}
+        />
       )}
 
       {isLegalNoticeOpen && (

@@ -48,13 +48,13 @@ import { useOmnibarController } from './hooks/useOmnibarController';
 import { PWAInstallBanner } from './components/PWAInstallButton';
 import { VaultOverviewSection } from './components/VaultOverviewSection';
 import { VaultLockScreen } from './components/VaultLockScreen';
+import { WelcomeDashboardModal } from './components/WelcomeDashboardModal';
 import { OmnibarDock, type RealtimePreviewData } from './components/OmnibarDock';
 import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault, subscribeVaultLock } from './vaultSecurity';
 import { I18nProvider, useI18n, DEFAULT_CURRENCY_BY_LANGUAGE } from './i18n';
 
 // Dynamic Code-Split Components (Heavy Modals & Secondary Views)
 const FinancialSummaryCard = lazyWithRetry(() => import('./components/FinancialSummaryCard').then(m => ({ default: m.FinancialSummaryCard })));
-const WelcomeDashboardModal = lazyWithRetry(() => import('./components/WelcomeDashboardModal').then(m => ({ default: m.WelcomeDashboardModal })));
 const ChangelogModal = lazyWithRetry(() => import('./components/ChangelogModal').then(m => ({ default: m.ChangelogModal })));
 const TransactionActionModal = lazyWithRetry(() => import('./components/TransactionActionModal').then(m => ({ default: m.TransactionActionModal })));
 const EditTransactionModal = lazyWithRetry(() => import('./components/EditTransactionModal').then(m => ({ default: m.EditTransactionModal })));
@@ -428,7 +428,14 @@ function AppInner() {
   }, [currentSpaceTransactions, selectedCategory, ledgerFilter]);
 
   // Modal Visibility States
-  const [isWelcomeOpen, setIsWelcomeOpen] = useState(() => typeof localStorage !== 'undefined' && !localStorage.getItem('vibe_welcome_seen'));
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(() => {
+    if (typeof localStorage === 'undefined') return false;
+    const needsPinSetup =
+      !hasVaultPin() &&
+      (typeof sessionStorage === 'undefined' || !sessionStorage.getItem('vibe_vault_setup_skipped'));
+    const hasSeenWelcome = Boolean(localStorage.getItem('vibe_welcome_seen'));
+    return needsPinSetup || !hasSeenWelcome;
+  });
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [hasUnreadChangelog, setHasUnreadChangelog] = useState(() =>
     typeof localStorage === 'undefined' || localStorage.getItem('vibe_changelog_seen_version') !== '0.1.2'
@@ -1349,12 +1356,10 @@ function AppInner() {
       </LazyErrorBoundary>
 
       {/* Unified Welcome Manifesto Modal */}
-      <MountOnFirstOpen open={isWelcomeOpen}>
-        <WelcomeDashboardModal
-          isOpen={isWelcomeOpen}
-          onClose={() => setIsWelcomeOpen(false)}
-        />
-      </MountOnFirstOpen>
+      <WelcomeDashboardModal
+        isOpen={isWelcomeOpen}
+        onClose={() => setIsWelcomeOpen(false)}
+      />
 
       {/* Offline Release Notes & Developer's Note Changelog Modal */}
       <MountOnFirstOpen open={isChangelogOpen}>
