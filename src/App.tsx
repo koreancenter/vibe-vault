@@ -12,7 +12,8 @@ import {
   Check,
   ShieldCheck,
   Wallet,
-  HelpCircle
+  HelpCircle,
+  LogOut
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cleanMerchantTitle } from './merchantSanitizer';
@@ -47,7 +48,6 @@ import { useOmnibarController } from './hooks/useOmnibarController';
 // Extracted Modals and Visual Modules
 import { PWAInstallBanner } from './components/PWAInstallButton';
 import { VaultOverviewSection } from './components/VaultOverviewSection';
-import { VaultLockScreen } from './components/VaultLockScreen';
 import { WelcomeDashboardModal } from './components/WelcomeDashboardModal';
 import { OmnibarDock, type RealtimePreviewData } from './components/OmnibarDock';
 import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault, subscribeVaultLock } from './vaultSecurity';
@@ -259,6 +259,10 @@ function AppInner() {
     const cleanupWatcher = initAutoLockWatcher();
     const unsub = subscribeVaultLock((locked) => {
       setIsVaultLockedState(locked);
+      if (locked) {
+        setIsSettingsOpen(false);
+        setIsWelcomeOpen(true);
+      }
     });
     return () => {
       cleanupWatcher();
@@ -827,6 +831,18 @@ function AppInner() {
               >
                 <Settings size={14} />
               </button>
+
+              {/* Local Account Logout / Lock Vault */}
+              <button
+                id="header-logout-btn"
+                type="button"
+                onClick={() => lockVault()}
+                title={hasVaultPin() ? '로그아웃 (금고 잠금)' : '게스트 종료 (로그아웃)'}
+                aria-label="로그아웃"
+                className="w-8 h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
+              >
+                <LogOut size={14} />
+              </button>
             </div>
           </div>
         </header>
@@ -1385,13 +1401,6 @@ function AppInner() {
           onClose={() => setIsChangelogOpen(false)}
         />
       </MountOnFirstOpen>
-
-      {/* Zero-Knowledge Privacy Vault PIN Lock Screen */}
-      <VaultLockScreen
-        onUnlocked={handleUnlocked}
-        onOpenWelcome={() => setIsWelcomeOpen(true)}
-        suspended={isWelcomeOpen}
-      />
 
       {/* Automatic In-App PWA Install Banner */}
       <PWAInstallBanner 

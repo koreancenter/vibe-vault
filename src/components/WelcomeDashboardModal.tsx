@@ -7,6 +7,7 @@ import {
   EyeOff,
   Fingerprint,
   Loader2,
+  LogOut,
   X,
 } from 'lucide-react';
 import { useI18n, LanguageCode } from '../i18n';
@@ -14,8 +15,10 @@ import { AIEngineConfig } from '../utils';
 import {
   hasVaultPin,
   isVaultLocked,
+  lockVault,
   setVaultPin,
   unlockVault,
+  subscribeVaultLock,
   getLocalVaultProfile,
   saveLocalVaultProfile,
   LocalVaultProfile,
@@ -230,6 +233,13 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
     isBiometricAvailable()
       .then((available) => setIsBiometricSupported(available))
       .catch(() => setIsBiometricSupported(false));
+
+    const unsub = subscribeVaultLock((locked) => {
+      setVaultLocked(locked);
+      setIsPinSet(hasVaultPin());
+      setLocalProfile(getLocalVaultProfile());
+    });
+    return () => unsub();
   }, [isOpen]);
 
   // Focus first field & handle Escape key when local account modal opens
@@ -287,10 +297,27 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
     setAccountModalMode('unlock');
   }, []);
 
-  const handleGuestModeEnter = useCallback(() => {
-    unlockVault().catch(() => {});
-    completeEntry();
-  }, [completeEntry]);
+  const handleGuestModeEnter = useCallback(async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await unlockVault();
+      setVaultLocked(false);
+      completeEntry();
+    } catch {
+      completeEntry();
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [completeEntry, isSubmitting]);
+
+  const handleLogout = useCallback(() => {
+    lockVault();
+    setVaultLocked(true);
+    setIsPinSet(hasVaultPin());
+    setLocalProfile(getLocalVaultProfile());
+    setAccountModalMode(null);
+  }, []);
 
   const handleReturnToVault = useCallback(() => {
     persistWelcomeSeen();
@@ -427,14 +454,22 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
   ];
 
   const colophonSpecs = [
-    ...(localProfile && isPinSet
-      ? [
-          {
+    isUnlockedRevisit
+      ? {
+          label: '현재 세션',
+          value: isPinSet
+            ? `${localProfile?.userName || '로컬 계정'} · 로그인됨`
+            : '게스트 모드 · 활성',
+        }
+      : isPinSet
+        ? {
             label: '로컬 계정',
-            value: `${localProfile.userName} · ${localProfile.pinName}`,
+            value: `${localProfile?.userName || '로컬 금고'} · 로그아웃됨`,
+          }
+        : {
+            label: '계정 상태',
+            value: '미등록 · 게스트 이용 가능',
           },
-        ]
-      : []),
     { label: '저장 방식', value: '브라우저 로컬 IndexedDB' },
     { label: '암호화 규격', value: 'AES-GCM-256 · PBKDF2' },
     { label: '데이터 원칙', value: '서버 수집 · 쿠키 없음' },
@@ -485,18 +520,29 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                           로컬 계정 만들기
                         </button>
                       )}
+
+                      <button
+                        id="welcome-logout-btn"
+                        type="button"
+                        onClick={handleLogout}
+                        className="h-12 px-5 rounded-xl border border-white/[0.14] bg-transparent hover:bg-white/[0.06] hover:border-white/25 text-neutral-300 hover:text-white text-sm font-medium transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                      >
+                        <LogOut size={14} />
+                        <span>로그아웃</span>
+                      </button>
                     </>
-                  ) : isPinSet && vaultLocked ? (
+                  ) : isPinSet ? (
                     <>
                       <button
+                        id="welcome-login-btn"
                         type="button"
                         onClick={openUnlockAccountModal}
                         className="h-12 px-6 rounded-xl bg-white text-[#090A0D] hover:bg-neutral-200 text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                       >
                         <span>
                           {localProfile?.userName
-                            ? `${localProfile.userName}님의 금고 열기`
-                            : '로컬 계정 열기'}
+                            ? `${localProfile.userName}님 로그인`
+                            : '로컬 계정 로그인'}
                         </span>
                         <ArrowRight size={15} />
                       </button>
@@ -529,6 +575,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                         id="welcome-guest-mode-btn"
                         type="button"
                         onClick={handleGuestModeEnter}
+                        disabled={isSubmitting}
                         className="h-12 px-6 rounded-xl border border-white/[0.18] bg-transparent hover:bg-white/[0.06] hover:border-white/30 text-neutral-100 text-sm font-medium transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                       >
                         게스트 모드
@@ -538,9 +585,11 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                 </div>
 
                 <p className="text-xs text-neutral-500 leading-relaxed">
-                  {isPinSet
-                    ? '이 기기에 로컬 계정이 설정되어 있습니다. PIN 인증 후 암호화된 금고가 열립니다.'
-                    : '로컬 계정은 기기 내 영구 암호화되며, 게스트 모드는 바로 체험 후 세션 종료 시 초기화됩니다.'}
+                  {isUnlockedRevisit
+                    ? '현재 금고가 열려 있습니다. 로그아웃하면 메모리 내 암호화 키가 즉시 파기됩니다.'
+                    : isPinSet
+                      ? `${localProfile?.userName ? `${localProfile.userName}님의 로컬 계정이` : '이 기기에 로컬 계정이'} 안전하게 잠겨 있습니다. PIN 로그인 후 금고가 열립니다.`
+                      : '로컬 계정은 기기 내 영구 암호화되며, 게스트 모드는 바로 체험 후 로그아웃 시 초기화됩니다.'}
                 </p>
               </div>
             </div>
@@ -697,15 +746,15 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                   {accountModalMode === 'create'
                     ? '로컬 계정 만들기'
                     : localProfile?.userName
-                      ? `${localProfile.userName}님의 로컬 금고`
-                      : '로컬 금고 열기'}
+                      ? `${localProfile.userName}님 로그인`
+                      : '로컬 계정 로그인'}
                 </h2>
                 <p className="text-xs text-neutral-400 leading-relaxed">
                   {accountModalMode === 'create'
                     ? '입력한 정보는 서버로 전송되지 않으며, 이 기기 내부에만 암호화 저장됩니다.'
                     : localProfile?.pinName
                       ? `PIN 이름 · ${localProfile.pinName}`
-                      : '설정한 4~6자리 마스터 PIN 번호를 입력해 주세요.'}
+                      : '설정한 4~6자리 마스터 PIN 번호를 입력해 로그인하세요.'}
                 </p>
               </div>
               <button
@@ -946,7 +995,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       <Loader2 size={14} className="animate-spin" />
                     ) : (
                       <>
-                        <span>잠금 해제</span>
+                        <span>로그인</span>
                         <ArrowRight size={14} />
                       </>
                     )}
