@@ -755,6 +755,21 @@ export async function bulkSaveAssetAccounts(accounts: AssetAccount[]): Promise<v
   notifyVaultDataChanged('bulkSaveAssetAccounts');
 }
 
+export async function replaceAllAssetAccounts(accounts: AssetAccount[]): Promise<void> {
+  const db = await getDB();
+  if (!hasStore(db, 'assetAccounts')) return;
+  const encryptedList = await Promise.all(
+    accounts.map(acc => encryptAssetAccount(sanitizeAssetAccountInput(acc) as AssetAccount))
+  );
+  const tx = db.transaction('assetAccounts', 'readwrite');
+  await tx.store.clear();
+  for (const acc of encryptedList) {
+    tx.store.put(acc);
+  }
+  await tx.done;
+  notifyVaultDataChanged('replaceAllAssetAccounts');
+}
+
 /**
  * Account-to-Account Transfer Execution:
  * Decreases source account balance, increases target account balance,
@@ -853,6 +868,35 @@ export async function saveDebt(debt: DebtItem): Promise<void> {
   const encrypted = await encryptDebtItem(sanitized);
   await db.put('debts', encrypted);
   notifyVaultDataChanged('saveDebt');
+}
+
+export async function bulkSaveDebts(debts: DebtItem[]): Promise<void> {
+  const db = await getDB();
+  if (!hasStore(db, 'debts')) return;
+  const encryptedList = await Promise.all(
+    debts.map(debt => encryptDebtItem(sanitizeDebtItemInput(debt) as DebtItem))
+  );
+  const tx = db.transaction('debts', 'readwrite');
+  for (const debt of encryptedList) {
+    tx.store.put(debt);
+  }
+  await tx.done;
+  notifyVaultDataChanged('bulkSaveDebts');
+}
+
+export async function replaceAllDebts(debts: DebtItem[]): Promise<void> {
+  const db = await getDB();
+  if (!hasStore(db, 'debts')) return;
+  const encryptedList = await Promise.all(
+    debts.map(debt => encryptDebtItem(sanitizeDebtItemInput(debt) as DebtItem))
+  );
+  const tx = db.transaction('debts', 'readwrite');
+  await tx.store.clear();
+  for (const debt of encryptedList) {
+    tx.store.put(debt);
+  }
+  await tx.done;
+  notifyVaultDataChanged('replaceAllDebts');
 }
 
 export async function deleteDebt(id: string): Promise<void> {
@@ -1051,6 +1095,22 @@ export async function createSpace(space: LedgerSpace): Promise<void> {
   const db = await getDB();
   if (!hasStore(db, 'spaces')) return;
   await db.put('spaces', space);
+}
+
+export async function replaceAllSpaces(spaces: LedgerSpace[]): Promise<void> {
+  const db = await getDB();
+  if (!hasStore(db, 'spaces')) return;
+  const hasDefault = spaces.some(s => s.id === 'default');
+  const normalizedSpaces: LedgerSpace[] = hasDefault
+    ? spaces
+    : [{ ...DEFAULT_SPACE, createdAt: new Date().toISOString() }, ...spaces];
+  const tx = db.transaction('spaces', 'readwrite');
+  await tx.store.clear();
+  for (const space of normalizedSpaces) {
+    tx.store.put(space);
+  }
+  await tx.done;
+  notifyVaultDataChanged('replaceAllSpaces');
 }
 
 export async function deleteSpace(id: string): Promise<void> {

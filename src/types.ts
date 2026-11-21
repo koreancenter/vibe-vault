@@ -203,6 +203,11 @@ export interface EncryptedBackupPayload {
   keyVerifier?: string; // Hex key commitment
   meta: {
     transactionCount: number;
+    accountCount?: number;
+    debtCount?: number;
+    spaceCount?: number;
+    subscriptionCount?: number;
+    snapshotFormat?: string;
     appName: string;
     envelope?: 'armored-json' | 'binary-enc';
     checksum?: string;
@@ -269,15 +274,33 @@ export interface AssetScreenshotMutation {
 }
 
 export interface UnencryptedBackupPayloadV2 {
-  version: '2.0';
-  format: 'vibe-backup-v2';
+  version: '2.0' | '3.0';
+  format: 'vibe-backup-v2' | 'vibe-backup-v3';
   createdAt: string;
+  deviceId?: string;
   transactions: Transaction[];
   preferences?: Record<string, any>;
   subscriptions?: SubscriptionItem[];
   assets?: Asset[];
   assetAccounts?: AssetAccount[];
   debts?: DebtItem[];
+  spaces?: LedgerSpace[];
+  activeCurrencies?: string[];
+  categoryBudgets?: Record<string, number>;
+  cardReconcileOffsets?: Record<string, number>;
+}
+
+export interface VaultSnapshotV3 extends UnencryptedBackupPayloadV2 {
+  version: '3.0';
+  format: 'vibe-backup-v3';
+  assetAccounts: AssetAccount[];
+  debts: DebtItem[];
+  spaces: LedgerSpace[];
+  subscriptions: SubscriptionItem[];
+  assets: Asset[];
+  activeCurrencies: string[];
+  categoryBudgets: Record<string, number>;
+  cardReconcileOffsets: Record<string, number>;
 }
 
 // Conversational Financial Query ("Ask AI Vault") Models

@@ -7,7 +7,9 @@ import {
   CheckCircle2, 
   AlertTriangle,
   Plus,
-  Trash2
+  Trash2,
+  Download,
+  Share2
 } from 'lucide-react';
 import { 
   getAIEngineConfig, 
@@ -29,10 +31,7 @@ import {
   testGeminiApiKeyOnline
 } from '../geminiKeyManager';
 import { 
-  getAllTransactions, 
-  addTransactions, 
   clearAllTransactions, 
-  replaceAllTransactions,
   loadSampleData,
   resetAllDataToZero,
   getSpaces,
@@ -40,16 +39,24 @@ import {
   deleteSpace,
   DEFAULT_SPACE
 } from '../db';
-import { Transaction, UnencryptedBackupPayloadV2, SupportedCurrency, LedgerSpace } from '../types';
+import { SupportedCurrency, LedgerSpace, UnencryptedBackupPayloadV2 } from '../types';
 import { SmartAssetSetup } from './SmartAssetSetup';
 import {
   exportEncryptedBackup,
   decryptBackupData,
-  mergeTransactionsDeduplicated,
   isBinaryEnvelope,
   CryptoBackupError
 } from '../cryptoBackup';
-import { loadSavedSubscriptions, saveSubscriptions } from '../autonomousFinance';
+import {
+  buildVaultSnapshot,
+  applyVaultSnapshot,
+  normalizeBackupPayload,
+  summarizeBackupPayload,
+  canShareBackupFile,
+  triggerEncryptedBackupDownload,
+  shareEncryptedBackupFile,
+  VaultSnapshotSummary
+} from '../vaultSnapshot';
 import {
   hasVaultPin,
   setVaultPin,
@@ -260,14 +267,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [currentPinInput, setCurrentPinInput] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
 
-  // Phase 4: AES-GCM-256 Encrypted Backup & Smart Deduplicated Merge
+  // Phase 4 / Step 1: AES-GCM-256 Encrypted Full Vault Backup (v3) & Smart Deduplicated Merge
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportPassphrase, setExportPassphrase] = useState('');
+  const [exportPreview, setExportPreview] = useState<VaultSnapshotSummary | null>(null);
+  const [isExportingBackup, setIsExportingBackup] = useState(false);
   const [isDecryptModalOpen, setIsDecryptModalOpen] = useState(false);
   const [decryptPassphrase, setDecryptPassphrase] = useState('');
+  const [isDecryptingBackup, setIsDecryptingBackup] = useState(false);
   const [pendingEncryptedData, setPendingEncryptedData] = useState<any>(null);
-  const [pendingRestorePayload, setPendingRestorePayload] = useState<any>(null);
+  const [pendingRestorePayload, setPendingRestorePayload] = useState<UnencryptedBackupPayloadV2 | null>(null);
+  const [pendingRestoreSummary, setPendingRestoreSummary] = useState<VaultSnapshotSummary | null>(null);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+  const [isRestoringBackup, setIsRestoringBackup] = useState(false);
+  const supportsFileShare = useMemo(() => canShareBackupFile(), []);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -636,64 +649,94 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  // Open Export Modal
+  // Open Export Modal & load live v3 vault snapshot summary
   const handleOpenExportModal = () => {
     setExportPassphrase('');
+    setExportPreview(null);
     setIsExportModalOpen(true);
+    buildVaultSnapshot()
+      .then((snap) => setExportPreview(summarizeBackupPayload(snap)))
+      .catch(() => {});
   };
 
-  // Perform Encrypted Export
-  const handlePerformExport = async () => {
+  // Perform Encrypted Full Vault Export (v3) — Download or OS Share Sheet
+  const handlePerformExport = async (delivery: 'download' | 'share' = 'download') => {
+    const isKo = language === 'ko';
+    if (!exportPassphrase.trim()) {
+      setStatusMessage({
+        type: 'error',
+        text: isKo
+          ? '금융 데이터 평문 유출 방지를 위해 AES-GCM 암호화 비밀번호를 입력해주세요.'
+          : 'Please enter an AES-GCM encryption passphrase to protect your financial backup.',
+      });
+      return;
+    }
+
+    setIsExportingBackup(true);
     try {
-      const txs = await getAllTransactions();
-      const subs = loadSavedSubscriptions();
-      const assetsRaw = localStorage.getItem('vibe_user_assets');
-      const assets = assetsRaw ? JSON.parse(assetsRaw) : [];
+      const snapshot = await buildVaultSnapshot();
+      const summary = summarizeBackupPayload(snapshot);
 
-      const backupPayload: UnencryptedBackupPayloadV2 = {
-        version: '2.0',
-        format: 'vibe-backup-v2',
-        createdAt: new Date().toISOString(),
-        transactions: txs,
-        preferences: getUserPreferences(),
-        subscriptions: subs,
-        assets
-      };
+      const { filename, encryptedPayload } = await exportEncryptedBackup(
+        snapshot,
+        exportPassphrase.trim(),
+        { appName: 'Vibe Vault Pro' }
+      );
 
-      if (!exportPassphrase.trim()) {
-        setStatusMessage({ type: 'error', text: '금융 데이터 평문 유출 방지를 위해 AES-GCM 암호화 비밀번호를 입력해주세요.' });
+      let deliveryStatus: 'downloaded' | 'shared' | 'cancelled' = 'downloaded';
+      if (delivery === 'share') {
+        const shareResult = await shareEncryptedBackupFile(filename, encryptedPayload, {
+          title: 'Vibe Vault Encrypted Backup (.vibe.enc)',
+          text: isKo
+            ? 'AES-GCM-256 암호화된 전체 볼트 백업 파일입니다.'
+            : 'AES-GCM-256 encrypted full vault backup file.',
+        });
+        if (shareResult === 'shared') {
+          deliveryStatus = 'shared';
+        } else if (shareResult === 'cancelled') {
+          deliveryStatus = 'cancelled';
+        } else {
+          triggerEncryptedBackupDownload(filename, encryptedPayload);
+          deliveryStatus = 'downloaded';
+        }
+      } else {
+        triggerEncryptedBackupDownload(filename, encryptedPayload);
+      }
+
+      if (deliveryStatus === 'cancelled') {
         return;
       }
 
-      const { filename, dataUrl } = await exportEncryptedBackup(backupPayload, exportPassphrase.trim(), {
-        appName: 'Vibe Vault Pro'
+      const nowFormatted = new Date().toLocaleDateString(isKo ? 'ko-KR' : 'en-US', {
+        month: 'short',
+        day: 'numeric',
       });
-
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataUrl);
-      downloadAnchor.setAttribute("download", filename);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-
-      const nowFormatted = new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
       setLastExportedDate(nowFormatted);
       localStorage.setItem('vibe_last_export_date', nowFormatted);
 
       setIsExportModalOpen(false);
-      setStatusMessage({ 
-        type: 'success', 
-        text: `AES-GCM-256 (PBKDF2 60만 회) 강화 암호화 백업(${txs.length}건)을 안전하게 내보냈습니다.` 
+      setExportPassphrase('');
+      setStatusMessage({
+        type: 'success',
+        text: isKo
+          ? `전체 볼트 v3 암호화 백업 ${deliveryStatus === 'shared' ? '공유' : '저장'} 완료 (계좌 ${summary.accountCount} · 대출 ${summary.debtCount} · 거래 ${summary.transactionCount} · 장부 ${summary.spaceCount})`
+          : `Full Vault v3 encrypted backup ${deliveryStatus === 'shared' ? 'shared' : 'saved'} (${summary.accountCount} accounts · ${summary.debtCount} debts · ${summary.transactionCount} transactions · ${summary.spaceCount} ledgers)`,
       });
     } catch (err: any) {
-      setStatusMessage({ type: 'error', text: '내보내기 실패: ' + (err.message || String(err)) });
+      setStatusMessage({
+        type: 'error',
+        text: (isKo ? '내보내기 실패: ' : 'Export failed: ') + (err?.message || String(err)),
+      });
+    } finally {
+      setIsExportingBackup(false);
     }
   };
 
-  // Phase 4 / Hardening: Restore File
+  // Phase 4 / Step 1: Restore File (.vibe.enc / .enc / .json)
   const handleRestoreFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const isKo = language === 'ko';
 
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -711,7 +754,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       try {
         json = JSON.parse(text);
       } catch {
-        setStatusMessage({ type: 'error', text: '백업 파일을 읽을 수 없습니다. 올바른 .json 또는 .enc 암호화 파일인지 확인해주세요.' });
+        setStatusMessage({
+          type: 'error',
+          text: isKo
+            ? '백업 파일을 읽을 수 없습니다. 올바른 .vibe.enc, .enc 또는 .json 백업 파일인지 확인해주세요.'
+            : 'Unable to read backup file. Please verify it is a valid .vibe.enc, .enc, or .json backup.',
+        });
         return;
       }
 
@@ -730,7 +778,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
       prepareRestore(json);
     } catch (err: any) {
-      setStatusMessage({ type: 'error', text: '백업 파일을 읽는 데 실패했습니다: ' + (err.message || String(err)) });
+      setStatusMessage({
+        type: 'error',
+        text: (isKo ? '백업 파일을 읽는 데 실패했습니다: ' : 'Failed to read backup file: ') + (err?.message || String(err)),
+      });
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -738,23 +789,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Decryption execution
   const handlePerformDecryption = async () => {
-    if (!decryptPassphrase.trim() || !pendingEncryptedData) return;
+    if (!decryptPassphrase.trim() || !pendingEncryptedData || isDecryptingBackup) return;
+    const isKo = language === 'ko';
+    setIsDecryptingBackup(true);
     try {
       const decrypted = await decryptBackupData(pendingEncryptedData, decryptPassphrase.trim());
       setIsDecryptModalOpen(false);
       setPendingEncryptedData(null);
+      setDecryptPassphrase('');
       prepareRestore(decrypted);
     } catch (err: any) {
-      let errorText = '복호화에 실패했습니다.';
+      let errorText = isKo ? '복호화에 실패했습니다.' : 'Decryption failed.';
       if (err instanceof CryptoBackupError) {
         if (err.code === 'INVALID_PASSPHRASE') {
-          errorText = '비밀번호가 올바르지 않거나 인증 태그 검증에 실패했습니다.';
+          errorText = isKo
+            ? '비밀번호가 올바르지 않거나 인증 태그 검증에 실패했습니다.'
+            : 'Incorrect passphrase or authentication tag verification failed.';
         } else if (err.code === 'TAMPERED_PAYLOAD') {
-          errorText = '백업 데이터가 변조되었거나 무결성 검증에 실패했습니다 (TAMPERED_PAYLOAD).';
+          errorText = isKo
+            ? '백업 데이터가 변조되었거나 무결성 검증에 실패했습니다 (TAMPERED_PAYLOAD).'
+            : 'Backup integrity check failed — payload may have been tampered with.';
         } else if (err.code === 'CORRUPTED_PAYLOAD') {
-          errorText = '백업 파일이 손상되었거나 형식이 유효하지 않습니다.';
+          errorText = isKo
+            ? '백업 파일이 손상되었거나 형식이 유효하지 않습니다.'
+            : 'Backup file is corrupted or has an invalid format.';
         } else if (err.code === 'UNSUPPORTED_VERSION') {
-          errorText = '지원되지 않는 백업 파일 버전입니다.';
+          errorText = isKo
+            ? '지원되지 않는 백업 파일 버전입니다.'
+            : 'Unsupported backup file version.';
         } else {
           errorText = err.message;
         }
@@ -762,79 +824,74 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         errorText = err.message;
       }
       setStatusMessage({ type: 'error', text: errorText });
+    } finally {
+      setIsDecryptingBackup(false);
     }
   };
 
   const prepareRestore = (payload: any) => {
-    let importedTxs: Transaction[] = [];
-    if (Array.isArray(payload.transactions)) {
-      importedTxs = payload.transactions;
-    } else if (Array.isArray(payload)) {
-      importedTxs = payload;
-    }
+    const isKo = language === 'ko';
+    const normalized = normalizeBackupPayload(payload);
+    const summary = summarizeBackupPayload(normalized);
 
-    if (importedTxs.length === 0) {
-      setStatusMessage({ type: 'error', text: '파일에서 유효한 거래 내역을 찾을 수 없습니다.' });
+    if (!normalized || !summary.hasAnyData) {
+      setStatusMessage({
+        type: 'error',
+        text: isKo
+          ? '파일에서 복원할 유효한 볼트 데이터(계좌, 대출, 거래, 장부, 설정)를 찾을 수 없습니다.'
+          : 'No valid vault data (accounts, debts, transactions, ledgers, or settings) found in this file.',
+      });
       return;
     }
 
-    setPendingRestorePayload(payload);
+    setPendingRestorePayload(normalized);
+    setPendingRestoreSummary(summary);
     setIsMergeModalOpen(true);
   };
 
   const handleExecuteRestore = async (mode: 'merge' | 'overwrite') => {
-    if (!pendingRestorePayload) return;
+    if (!pendingRestorePayload || isRestoringBackup) return;
+    const isKo = language === 'ko';
+    setIsRestoringBackup(true);
     try {
-      let importedTxs: Transaction[] = [];
-      if (Array.isArray(pendingRestorePayload.transactions)) {
-        importedTxs = pendingRestorePayload.transactions;
-      } else if (Array.isArray(pendingRestorePayload)) {
-        importedTxs = pendingRestorePayload;
-      }
-
-      const currentTxs = await getAllTransactions();
-      const { finalTransactions, addedCount, updatedCount, skippedCount } = mergeTransactionsDeduplicated(
-        currentTxs,
-        importedTxs,
+      const { snapshot, stats, appliedPreferences } = await applyVaultSnapshot(
+        pendingRestorePayload,
         mode
       );
 
-      if (mode === 'overwrite') {
-        await replaceAllTransactions(finalTransactions);
-      } else {
-        await addTransactions(finalTransactions);
-      }
-
-      if (pendingRestorePayload.preferences) {
-        saveUserPreferences(pendingRestorePayload.preferences);
-        setBudgetStartDay(pendingRestorePayload.preferences.budgetStartDay ?? 1);
-        setCurrencySymbol(pendingRestorePayload.preferences.currencySymbol || 'KRW');
-        setStealthMode(!!pendingRestorePayload.preferences.stealthMode);
-        if (pendingRestorePayload.preferences.theme) {
-          setTheme(pendingRestorePayload.preferences.theme);
-          applyTheme(pendingRestorePayload.preferences.theme);
+      if (appliedPreferences) {
+        setBudgetStartDay(appliedPreferences.budgetStartDay ?? 1);
+        setCurrencySymbol(appliedPreferences.currencySymbol || 'KRW');
+        setStealthMode(!!appliedPreferences.stealthMode);
+        if (appliedPreferences.theme) {
+          setTheme(appliedPreferences.theme);
         }
       }
-
-      if (Array.isArray(pendingRestorePayload.subscriptions)) {
-        saveSubscriptions(pendingRestorePayload.subscriptions);
-      }
-
-      if (Array.isArray(pendingRestorePayload.assets)) {
-        localStorage.setItem('vibe_user_assets', JSON.stringify(pendingRestorePayload.assets));
-      }
+      setInternalSpaces(snapshot.spaces);
+      setActiveCurrenciesList(snapshot.activeCurrencies);
 
       setIsMergeModalOpen(false);
       setPendingRestorePayload(null);
+      setPendingRestoreSummary(null);
 
-      const msg = mode === 'merge'
-        ? `스마트 병합 완료: 신규 ${addedCount}건 추가, ${updatedCount}건 갱신 (중복 ${skippedCount}건 제외)`
-        : `전체 덮어쓰기 완료: ${finalTransactions.length}건 반영`;
+      const msg =
+        mode === 'merge'
+          ? isKo
+            ? `스마트 병합 완료 · 계좌 ${stats.assetAccounts.total}개(+${stats.assetAccounts.added}/갱신 ${stats.assetAccounts.updated}) · 대출 ${stats.debts.total}건 · 거래 +${stats.transactions.added}건(중복 ${stats.transactions.skipped}건 제외) · 장부 ${stats.spaces.total}개`
+            : `Smart merge complete · ${stats.assetAccounts.total} accounts (+${stats.assetAccounts.added}/${stats.assetAccounts.updated} updated) · ${stats.debts.total} debts · +${stats.transactions.added} transactions (${stats.transactions.skipped} skipped) · ${stats.spaces.total} ledgers`
+          : isKo
+            ? `전체 덮어쓰기 완료 · 계좌 ${stats.assetAccounts.total}개 · 대출 ${stats.debts.total}건 · 거래 ${stats.transactions.total}건 · 장부 ${stats.spaces.total}개 반영`
+            : `Full overwrite complete · ${stats.assetAccounts.total} accounts · ${stats.debts.total} debts · ${stats.transactions.total} transactions · ${stats.spaces.total} ledgers restored`;
 
       setStatusMessage({ type: 'success', text: msg });
       if (onDataChanged) onDataChanged();
     } catch (err: any) {
-      setStatusMessage({ type: 'error', text: '복원 처리 중 오류가 발생했습니다: ' + err.message });
+      setStatusMessage({
+        type: 'error',
+        text: (isKo ? '복원 처리 중 오류가 발생했습니다: ' : 'Restore failed: ') + (err?.message || String(err)),
+      });
+    } finally {
+      setIsRestoringBackup(false);
     }
   };
 
@@ -1297,101 +1354,170 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
       </div>
 
-      {/* Phase 4: Export Modal with AES-256 Password Protection */}
+      {/* Step 1 / Full Vault v3 Export Modal with AES-256 Password Protection */}
       {isExportModalOpen && (
         <div 
           className="fixed inset-0 z-60 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-150"
-          onClick={() => setIsExportModalOpen(false)}
+          onClick={() => !isExportingBackup && setIsExportModalOpen(false)}
         >
           <div 
             className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0E1015] backdrop-blur-2xl text-white antialiased"
             onClick={(e) => e.stopPropagation()}
           >
             <div>
-              <h3 className="text-base font-bold tracking-tight text-white">데이터 백업 내보내기 (v2.0)</h3>
-              <p className="text-xs text-neutral-200 font-normal mt-0.5">거래, 구독, 자산 설정 통합 저장</p>
+              <h3 className="text-base font-bold tracking-tight text-white">
+                {language === 'ko' ? '전체 볼트 암호화 백업 (v3.0)' : 'Full Vault Encrypted Backup (v3.0)'}
+              </h3>
+              <p className="text-xs text-neutral-200 font-normal mt-0.5">
+                {language === 'ko'
+                  ? '자산 계좌 · 대출/정산 · 거래 · 다중 장부 · 구독 · 테마 설정 통합 저장'
+                  : 'Includes accounts, debts, transactions, ledgers, subscriptions & theme settings'}
+              </p>
             </div>
+
+            {exportPreview && (
+              <div className="grid grid-cols-4 gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.02] p-2.5 text-center">
+                <div>
+                  <div className="text-xs font-semibold text-white tabular-nums">{exportPreview.accountCount}</div>
+                  <div className="text-[11px] text-neutral-300">{language === 'ko' ? '계좌' : 'Accounts'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-white tabular-nums">{exportPreview.debtCount}</div>
+                  <div className="text-[11px] text-neutral-300">{language === 'ko' ? '대출/정산' : 'Debts'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-white tabular-nums">{exportPreview.transactionCount}</div>
+                  <div className="text-[11px] text-neutral-300">{language === 'ko' ? '거래' : 'Txns'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-white tabular-nums">{exportPreview.spaceCount}</div>
+                  <div className="text-[11px] text-neutral-300">{language === 'ko' ? '장부' : 'Ledgers'}</div>
+                </div>
+              </div>
+            )}
 
             <div className="p-3 rounded-xl border border-sky-500/20 bg-sky-500/[0.04] flex items-center justify-between gap-2">
               <div>
                 <span className="text-xs font-medium text-sky-200 flex items-center gap-1.5">
-                  <Lock size={12} className="text-sky-300" />
-                  AES-GCM-256 암호화 강제 (평문 유출 차단)
+                  <Lock size={12} className="text-sky-300 shrink-0" />
+                  {language === 'ko' ? 'AES-GCM-256 암호화 강제' : 'Mandatory AES-GCM-256 Encryption'}
                 </span>
                 <span className="text-xs text-neutral-200 font-normal block mt-0.5">
-                  PBKDF2 60만 회 + 128-bit MAC 인증 태그로 금융 내역을 보호합니다
+                  {language === 'ko'
+                    ? 'PBKDF2 60만 회 + 128-bit MAC 태그로 다른 기기 전송 시에도 안전합니다'
+                    : 'PBKDF2 600k rounds + 128-bit MAC tag for safe cross-device transfer'}
                 </span>
               </div>
               <span className="text-xs px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-200 border border-sky-500/25 font-medium shrink-0">
-                보안 강제
+                {language === 'ko' ? 'E2EE' : 'E2EE'}
               </span>
             </div>
 
             <div className="space-y-1.5 animate-in fade-in duration-150">
               <label className="text-xs font-medium text-neutral-100 block">
-                암호화 비밀번호 설정 (필수)
+                {language === 'ko' ? '암호화 비밀번호 설정 (필수)' : 'Encryption Passphrase (Required)'}
               </label>
               <input
                 type="password"
                 value={exportPassphrase}
                 onChange={(e) => setExportPassphrase(e.target.value)}
-                placeholder="안전한 복호화 비밀번호 입력 (필수)"
+                disabled={isExportingBackup}
+                placeholder={language === 'ko' ? '복호화 시 사용할 비밀번호 입력' : 'Enter passphrase for decryption'}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && exportPassphrase.trim() && !isExportingBackup) {
+                    handlePerformExport('download');
+                  }
+                }}
                 className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/[0.08] text-white placeholder:text-neutral-300 focus:border-white/25"
               />
             </div>
 
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setIsExportModalOpen(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] text-neutral-100 hover:text-white hover:bg-white/[0.07] text-xs font-medium transition-colors"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={handlePerformExport}
-                className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-100 font-semibold text-xs transition-all active:scale-95 shadow-sm"
-              >
-                내보내기 실행
-              </button>
+            <div className="space-y-2 pt-1">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={isExportingBackup}
+                  onClick={() => setIsExportModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] text-neutral-100 hover:text-white hover:bg-white/[0.07] text-xs font-medium transition-colors disabled:opacity-50"
+                >
+                  {language === 'ko' ? '취소' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  disabled={isExportingBackup || !exportPassphrase.trim()}
+                  onClick={() => handlePerformExport('download')}
+                  className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-100 disabled:bg-white/35 disabled:text-black font-semibold text-xs transition-all active:scale-95 shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  <Download size={13} />
+                  <span>
+                    {isExportingBackup
+                      ? (language === 'ko' ? '암호화 중...' : 'Encrypting...')
+                      : (language === 'ko' ? '파일로 저장' : 'Save File')}
+                  </span>
+                </button>
+              </div>
+
+              {supportsFileShare && (
+                <button
+                  type="button"
+                  disabled={isExportingBackup || !exportPassphrase.trim()}
+                  onClick={() => handlePerformExport('share')}
+                  className="w-full py-2.5 rounded-xl border border-sky-400/25 bg-sky-500/10 hover:bg-sky-500/20 disabled:opacity-40 text-sky-100 font-medium text-xs transition-all active:scale-98 flex items-center justify-center gap-1.5"
+                >
+                  <Share2 size={13} />
+                  <span>
+                    {language === 'ko'
+                      ? '다른 기기로 바로 공유 (AirDrop · Drive · 메신저)'
+                      : 'Share to Another Device (AirDrop · Drive)'}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Phase 4: Decrypt Password Prompt Modal */}
+      {/* Decrypt Password Prompt Modal */}
       {isDecryptModalOpen && (
         <div 
           className="fixed inset-0 z-60 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-150"
-          onClick={() => setIsDecryptModalOpen(false)}
+          onClick={() => !isDecryptingBackup && setIsDecryptModalOpen(false)}
         >
           <div 
             className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0E1015] backdrop-blur-2xl text-white antialiased"
             onClick={(e) => e.stopPropagation()}
           >
             <div>
-              <h3 className="text-base font-bold tracking-tight text-white">암호화된 백업 복호화</h3>
-              <p className="text-xs text-neutral-200 font-normal mt-0.5">AES-GCM 256 암호화 보호됨</p>
+              <h3 className="text-base font-bold tracking-tight text-white">
+                {language === 'ko' ? '암호화된 백업 복호화' : 'Decrypt Encrypted Backup'}
+              </h3>
+              <p className="text-xs text-neutral-200 font-normal mt-0.5">
+                {language === 'ko' ? 'AES-GCM-256 암호화 보호됨' : 'Protected with AES-GCM-256'}
+              </p>
             </div>
 
             <p className="text-xs text-neutral-200 leading-relaxed font-normal">
-              이 백업 파일은 비밀번호로 안전하게 암호화되어 있습니다. 백업 생성 시 설정한 복호화 비밀번호를 입력해주세요.
+              {language === 'ko'
+                ? '이 백업 파일은 비밀번호로 안전하게 암호화되어 있습니다. 백업 생성 시 설정한 복호화 비밀번호를 입력해주세요.'
+                : 'This backup is encrypted with a passphrase. Enter the passphrase you used when creating the backup.'}
             </p>
 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-neutral-100 block">
-                복호화 비밀번호
+                {language === 'ko' ? '복호화 비밀번호' : 'Decryption Passphrase'}
               </label>
               <input
                 type="password"
                 value={decryptPassphrase}
                 onChange={(e) => setDecryptPassphrase(e.target.value)}
-                placeholder="비밀번호 입력"
+                disabled={isDecryptingBackup}
+                placeholder={language === 'ko' ? '비밀번호 입력' : 'Enter passphrase'}
                 autoFocus
                 className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/[0.08] text-white placeholder:text-neutral-300 focus:border-white/25"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handlePerformDecryption();
+                  if (e.key === 'Enter' && decryptPassphrase.trim() && !isDecryptingBackup) {
+                    handlePerformDecryption();
+                  }
                 }}
               />
             </div>
@@ -1399,87 +1525,127 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="flex gap-2 pt-1">
               <button
                 type="button"
+                disabled={isDecryptingBackup}
                 onClick={() => {
                   setIsDecryptModalOpen(false);
                   setPendingEncryptedData(null);
                 }}
-                className="flex-1 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] text-neutral-100 hover:text-white hover:bg-white/[0.07] text-xs font-medium transition-colors"
+                className="flex-1 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] text-neutral-100 hover:text-white hover:bg-white/[0.07] text-xs font-medium transition-colors disabled:opacity-50"
               >
-                취소
+                {language === 'ko' ? '취소' : 'Cancel'}
               </button>
               <button
                 type="button"
-                disabled={!decryptPassphrase.trim()}
+                disabled={!decryptPassphrase.trim() || isDecryptingBackup}
                 onClick={handlePerformDecryption}
                 className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-100 disabled:bg-white/35 disabled:text-black font-semibold text-xs transition-all active:scale-95 shadow-sm"
               >
-                복호화 및 계속
+                {isDecryptingBackup
+                  ? (language === 'ko' ? '복호화 중...' : 'Decrypting...')
+                  : (language === 'ko' ? '복호화 및 계속' : 'Decrypt & Continue')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Phase 4: Smart Deduplicated Merge Choice Modal */}
-      {isMergeModalOpen && pendingRestorePayload && (
+      {/* Full Vault Smart Deduplicated Merge Choice Modal */}
+      {isMergeModalOpen && pendingRestorePayload && pendingRestoreSummary && (
         <div 
           className="fixed inset-0 z-60 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-150"
-          onClick={() => setIsMergeModalOpen(false)}
+          onClick={() => !isRestoringBackup && setIsMergeModalOpen(false)}
         >
           <div 
             className="w-full max-w-sm border border-white/[0.08] rounded-2xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#0E1015] backdrop-blur-2xl text-white antialiased"
             onClick={(e) => e.stopPropagation()}
           >
             <div>
-              <h3 className="text-base font-bold tracking-tight text-white">백업 데이터 복원 방식</h3>
+              <h3 className="text-base font-bold tracking-tight text-white">
+                {language === 'ko' ? '백업 데이터 복원 방식' : 'Choose Restore Mode'}
+              </h3>
               <p className="text-xs text-neutral-200 font-normal mt-0.5">
-                가져올 거래: {pendingRestorePayload.transactions?.length || 0}건
+                {language === 'ko'
+                  ? `스냅샷 v${pendingRestoreSummary.version} · 복원 대상 항목`
+                  : `Snapshot v${pendingRestoreSummary.version} · Contents to restore`}
               </p>
             </div>
 
+            <div className="grid grid-cols-4 gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.02] p-2.5 text-center">
+              <div>
+                <div className="text-xs font-semibold text-white tabular-nums">{pendingRestoreSummary.accountCount}</div>
+                <div className="text-[11px] text-neutral-300">{language === 'ko' ? '계좌' : 'Accounts'}</div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-white tabular-nums">{pendingRestoreSummary.debtCount}</div>
+                <div className="text-[11px] text-neutral-300">{language === 'ko' ? '대출/정산' : 'Debts'}</div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-white tabular-nums">{pendingRestoreSummary.transactionCount}</div>
+                <div className="text-[11px] text-neutral-300">{language === 'ko' ? '거래' : 'Txns'}</div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-white tabular-nums">{pendingRestoreSummary.spaceCount}</div>
+                <div className="text-[11px] text-neutral-300">{language === 'ko' ? '장부' : 'Ledgers'}</div>
+              </div>
+            </div>
+
             <p className="text-xs text-neutral-200 leading-relaxed font-normal">
-              기존에 기록된 거래 내역과 백업 파일을 어떻게 합칠지 선택해주세요.
+              {language === 'ko'
+                ? '이 기기의 기존 볼트 데이터와 가져온 백업 스냅샷을 어떻게 반영할지 선택해주세요.'
+                : 'Choose how to combine this backup snapshot with the vault data currently on this device.'}
             </p>
 
             <div className="space-y-2.5">
               <button
                 type="button"
+                disabled={isRestoringBackup}
                 onClick={() => handleExecuteRestore('merge')}
-                className="w-full p-3 rounded-xl border border-white/15 bg-white/[0.05] hover:bg-white/[0.09] text-white text-left transition-all flex flex-col gap-1"
+                className="w-full p-3 rounded-xl border border-white/15 bg-white/[0.05] hover:bg-white/[0.09] disabled:opacity-50 text-white text-left transition-all flex flex-col gap-1"
               >
                 <div className="flex items-center gap-1.5 font-semibold text-xs text-white">
                   <CheckCircle2 size={14} />
-                  <span>스마트 중복 제외 병합 (권장)</span>
+                  <span>
+                    {language === 'ko' ? '스마트 중복 제외 병합 (권장)' : 'Smart Deduplicated Merge (Recommended)'}
+                  </span>
                 </div>
                 <span className="text-xs text-neutral-200 font-normal">
-                  기존 데이터를 안전하게 유지하며, 중복 없는 신규 거래만 덧붙입니다.
+                  {language === 'ko'
+                    ? '계좌·대출·장부·거래를 ID와 최신 수정 시각 기준으로 중복 없이 병합합니다.'
+                    : 'Merges accounts, debts, ledgers & transactions cleanly by ID and latest timestamp.'}
                 </span>
               </button>
 
               <button
                 type="button"
+                disabled={isRestoringBackup}
                 onClick={() => handleExecuteRestore('overwrite')}
-                className="w-full p-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] text-white text-left transition-all flex flex-col gap-1"
+                className="w-full p-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] disabled:opacity-50 text-white text-left transition-all flex flex-col gap-1"
               >
                 <div className="flex items-center gap-1.5 font-semibold text-xs text-amber-300">
                   <AlertTriangle size={14} />
-                  <span>전체 덮어쓰기</span>
+                  <span>{language === 'ko' ? '전체 덮어쓰기' : 'Full Overwrite'}</span>
                 </div>
                 <span className="text-xs text-neutral-200 font-normal">
-                  기존 가계부 내역을 모두 지우고 백업 데이터로 완전히 교체합니다.
+                  {language === 'ko'
+                    ? '이 기기의 기존 볼트 데이터를 지우고 백업 스냅샷으로 완전히 교체합니다.'
+                    : 'Replaces all vault data on this device with the imported backup snapshot.'}
                 </span>
               </button>
             </div>
 
             <button
               type="button"
+              disabled={isRestoringBackup}
               onClick={() => {
                 setIsMergeModalOpen(false);
                 setPendingRestorePayload(null);
+                setPendingRestoreSummary(null);
               }}
-              className="w-full py-2 rounded-xl text-xs font-medium text-neutral-200 hover:text-white transition-colors"
+              className="w-full py-2 rounded-xl text-xs font-medium text-neutral-200 hover:text-white transition-colors disabled:opacity-50"
             >
-              복원 취소
+              {isRestoringBackup
+                ? (language === 'ko' ? '복원 반영 중...' : 'Restoring...')
+                : (language === 'ko' ? '복원 취소' : 'Cancel Restore')}
             </button>
           </div>
         </div>

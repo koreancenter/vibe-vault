@@ -364,6 +364,11 @@ export async function encryptBackupData(
     keyVerifier,
     meta: {
       transactionCount: payload.transactions?.length || 0,
+      accountCount: payload.assetAccounts?.length || 0,
+      debtCount: payload.debts?.length || 0,
+      spaceCount: payload.spaces?.length || 0,
+      subscriptionCount: payload.subscriptions?.length || 0,
+      snapshotFormat: payload.format || 'vibe-backup-v2',
       appName: options?.appName || 'Vibe Vault Pro',
       envelope: 'armored-json',
       keyVerifier

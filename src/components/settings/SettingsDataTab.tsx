@@ -55,7 +55,8 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
   setLegalOpen,
   onStatusMessage
 }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const isKo = language === 'ko';
   const [isBiometricSupported, setIsBiometricSupported] = useState<boolean>(false);
   const [isBiometricEnabled, setIsBiometricEnabled] = useState<boolean>(() => isBiometricUnlockEnabled());
   const [showBiometricEnrollModal, setShowBiometricEnrollModal] = useState<boolean>(false);
@@ -267,16 +268,25 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
         </div>
       </div>
 
-      {/* Group 2: 데이터 백업 및 복원 */}
+      {/* Group 2: 전체 볼트 암호화 백업 및 기기 간 이전 */}
       <div className="space-y-2 border-b border-white/[0.06] pb-3.5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div className="text-xs font-semibold text-white">
-            <span>데이터 백업 및 복원</span>
+            <span>{isKo ? '전체 볼트 백업 및 기기 간 이전 (v3)' : 'Full Vault Backup & Transfer (v3)'}</span>
           </div>
-          <span className="text-xs text-neutral-200 font-normal">
-            마지막 백업: <span className="font-medium text-white">{lastExportedDate}</span>
+          <span className="text-xs text-neutral-200 font-normal shrink-0">
+            {isKo ? '마지막 백업:' : 'Last backup:'}{' '}
+            <span className="font-medium text-white">
+              {lastExportedDate === '없음' && !isKo ? 'None' : lastExportedDate}
+            </span>
           </span>
         </div>
+
+        <p className="text-xs text-neutral-300 leading-relaxed font-normal">
+          {isKo
+            ? '자산 계좌·대출·거래·장부·설정을 암호화(.vibe.enc)해 모바일·데스크탑 간 중복 없이 스마트 병합합니다.'
+            : 'Exports accounts, debts, transactions, ledgers & settings as an encrypted .vibe.enc snapshot for deduplicated cross-device merge.'}
+        </p>
 
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -284,7 +294,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
             onClick={handleOpenExportModal}
             className="py-2.5 px-3 rounded-xl text-xs font-medium bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] text-white flex items-center justify-center transition-all active:scale-98 cursor-pointer"
           >
-            <span>백업 내보내기</span>
+            <span>{isKo ? '암호화 백업 내보내기' : 'Export Encrypted Backup'}</span>
           </button>
 
           <button
@@ -292,7 +302,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
             onClick={() => fileInputRef.current?.click()}
             className="py-2.5 px-3 rounded-xl text-xs font-medium bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] text-white flex items-center justify-center transition-all active:scale-98 cursor-pointer"
           >
-            <span>백업 복원/가져오기</span>
+            <span>{isKo ? '백업 복원 / 병합' : 'Restore / Smart Merge'}</span>
           </button>
           <input
             ref={fileInputRef as any}
