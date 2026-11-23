@@ -24,6 +24,46 @@ const inlineEntryCss = (): Plugin => ({
   },
 });
 
+// Fails the production client build if any browser module accidentally imports local-only server code.
+const blockServerImportsInClientBuild = (): Plugin => {
+  const serverDir = path.resolve(__dirname, 'src/server') + path.sep;
+  const serverEntry = path.resolve(__dirname, 'server.ts').replace(/\.ts$/, '');
+  const serverSecurityFile = path.resolve(__dirname, 'src/serverSecurity.ts').replace(/\.ts$/, '');
+  const blockedPackages = new Set(['express', 'dotenv', 'dotenv/config']);
+
+  return {
+    name: 'block-server-imports-in-client-build',
+    apply: 'build',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (blockedPackages.has(source)) {
+        this.error(
+          `Server-only package "${source}" cannot be bundled into the production client build (imported by ${importer ?? 'unknown'}).`,
+        );
+      }
+      if (!importer) return null;
+      const resolved = source.startsWith('.')
+        ? path.resolve(path.dirname(importer), source)
+        : source.startsWith('@/')
+          ? path.resolve(__dirname, source.slice(2))
+          : null;
+      if (!resolved) return null;
+      const normalized = resolved.replace(/\.[cm]?[jt]sx?$/, '');
+      if (
+        normalized.startsWith(serverDir)
+        || normalized === serverDir.slice(0, -1)
+        || normalized === serverEntry
+        || normalized === serverSecurityFile
+      ) {
+        this.error(
+          `Local-only server module "${source}" cannot be bundled into the production client build (imported by ${importer}).`,
+        );
+      }
+      return null;
+    },
+  };
+};
+
 export default defineConfig(({ command }) => ({
   define: command === 'build' ? { 'process.env.NODE_ENV': JSON.stringify('production') } : undefined,
   esbuild: {
@@ -32,6 +72,7 @@ export default defineConfig(({ command }) => ({
   },
   base: '/',
   plugins: [
+    blockServerImportsInClientBuild(),
     react(), 
     tailwindcss(),
     inlineEntryCss(),
@@ -180,9 +221,6 @@ export default defineConfig(({ command }) => ({
                 id.includes('/node_modules/lucide-react/')
               ) {
                 return 'vendor-utils';
-              }
-              if (id.includes('@google/genai')) {
-                return 'vendor-ai';
               }
             }
           },

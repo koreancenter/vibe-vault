@@ -1,3 +1,11 @@
+/**
+ * Local-only Express server (used by `npm run dev` / `npm start`).
+ *
+ * Production deployments on Cloudflare Pages serve only the static `dist/`
+ * bundle built by `vite build`, with HTTP security headers enforced solely by
+ * `public/_headers`. Neither `server.ts` nor `src/server/*` is bundled into
+ * the client build or executed on Cloudflare Pages.
+ */
 import 'dotenv/config';
 import express from 'express';
 import type { ErrorRequestHandler } from 'express';

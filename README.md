@@ -189,14 +189,16 @@ cp .env.example .env
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-### 4. Running the Development Server
-Express 백엔드 프록시와 Vite 프론트엔드가 통합 구동됩니다:
+### 4. Running the Development Server (Local-Only Express + Vite)
+로컬 개발 및 셀프 호스팅 환경에서는 Express 백엔드 프록시(`server.ts`, `src/server/*`)와 Vite 프론트엔드가 통합 구동됩니다:
 
 ```bash
 npm run dev
 ```
 
 브라우저에서 `http://localhost:3000`으로 접속합니다. Express API는 루프백(`127.0.0.1`)에만 바인딩되며, 원격 호스팅 API로 사용할 수 없습니다. 포트 3000이 사용 중이면 `PORT=3301 npm run dev`처럼 다른 포트를 지정할 수 있습니다. 바인딩 주소는 계속 루프백으로 제한됩니다.
+
+> **Cloudflare Pages 정적 배포 참고**: 프로덕션(`npm run build`)은 `dist/` 정적 SPA 번들만 생성하며 `server.ts` 및 `src/server/*`는 클라이언트 번들에 포함되거나 Cloudflare Pages에서 실행되지 않습니다. 프로덕션 HTTP 보안 헤더(CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`)는 `public/_headers`에서 단독 적용됩니다.
 
 ### 5. Running Tests & Quality Verification
 암호화 무결성, 오프라인 정규식 파서, 텍스트 PII 처리, 캐시 격리 테스트를 실행합니다:

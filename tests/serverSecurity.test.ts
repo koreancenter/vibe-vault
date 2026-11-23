@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import path from 'path';
 import { describe, expect, it } from 'vitest';
 import {
   CONTENT_SECURITY_POLICY,
@@ -18,6 +20,29 @@ describe('local server security guards', () => {
     expect(CONTENT_SECURITY_POLICY).toContain('ws://localhost:*');
     expect(CONTENT_SECURITY_POLICY).toContain('ws://127.0.0.1:*');
     expect(CONTENT_SECURITY_POLICY).toContain('https://generativelanguage.googleapis.com');
+  });
+
+  it('enforces strict Cloudflare Pages production security headers and CSP in public/_headers', () => {
+    const headersFile = readFileSync(path.resolve(process.cwd(), 'public/_headers'), 'utf8');
+    expect(headersFile).toContain('X-Content-Type-Options: nosniff');
+    expect(headersFile).toContain('X-Frame-Options: DENY');
+    expect(headersFile).toContain('Referrer-Policy: strict-origin-when-cross-origin');
+
+    const cspLine = headersFile
+      .split('\n')
+      .find((line) => line.trim().startsWith('Content-Security-Policy:'));
+    expect(cspLine).toBeDefined();
+    expect(cspLine).toContain("frame-ancestors 'none'");
+    expect(cspLine).toContain('https://generativelanguage.googleapis.com');
+    expect(cspLine).toContain('https://huggingface.co');
+    expect(cspLine).toContain('https://*.huggingface.co');
+    expect(cspLine).toContain('http://localhost:*');
+    expect(cspLine).toContain('http://127.0.0.1:*');
+
+    // No leftover Firebase, Google Drive OAuth, or dev-only WebSocket origins
+    expect(cspLine).not.toMatch(/firebase|firebaseio|accounts\.google\.com|apis\.google\.com|drive\.googleapis\.com|oauth2/i);
+    expect(cspLine).not.toContain('ws://localhost:*');
+    expect(cspLine).not.toContain('ws://127.0.0.1:*');
   });
   it('accepts only loopback hostnames and matching local origins', () => {
     expect(isLocalHostname('localhost')).toBe(true);
