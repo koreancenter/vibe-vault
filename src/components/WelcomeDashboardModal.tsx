@@ -96,7 +96,7 @@ const GOGUMA_UNIVERSE_LINKS: { label: string; labelEn: string; href: string }[] 
 ];
 
 const RELATED_SITE_LINKS: { label: string; href: string }[] = [
-  { label: 'Net-to-Dot Movement Member', href: 'https://nettodot.org' },
+  { label: 'Net-to-Dot', href: 'https://nettodot.org' },
   { label: 'AI Podium', href: 'https://aipodium.net' },
   { label: 'K-Design.md', href: 'https://kdesign.koreancenter.net' },
   { label: '한국센터글로벌네트워크', href: 'https://koreancenter.net' },
