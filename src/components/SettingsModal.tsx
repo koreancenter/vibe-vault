@@ -46,7 +46,10 @@ import {
   exportEncryptedBackup,
   decryptBackupData,
   isBinaryEnvelope,
-  CryptoBackupError
+  CryptoBackupError,
+  recordLastBackupTimestamp,
+  getLastBackupTimestamp,
+  formatLastBackupDate,
 } from '../cryptoBackup';
 import {
   buildVaultSnapshot,
@@ -252,6 +255,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Tab 3: Data & Privacy state
   const [lastExportedDate, setLastExportedDate] = useState<string>('없음');
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(() => getLastBackupTimestamp());
   const [isClearingData, setIsClearingData] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -272,6 +276,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Phase 4 / Step 1: AES-GCM-256 Encrypted Full Vault Backup (v3) & Smart Deduplicated Merge
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [preferredExportDelivery, setPreferredExportDelivery] = useState<'download' | 'share'>('download');
   const [exportPassphrase, setExportPassphrase] = useState('');
   const [exportPreview, setExportPreview] = useState<VaultSnapshotSummary | null>(null);
   const [isExportingBackup, setIsExportingBackup] = useState(false);
@@ -325,8 +330,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setAutoCategorization(prefs.autoCategorization !== undefined ? !!prefs.autoCategorization : true);
       setDefaultLaunchScreen(prefs.defaultLaunchScreen || 'vault');
 
-      // Load last export date from localStorage
-      const lastExp = localStorage.getItem('vibe_last_export_date');
+      // Load last backup timestamp from localStorage
+      const storedBackupAt = getLastBackupTimestamp();
+      setLastBackupAt(storedBackupAt);
+      const lastExp = formatLastBackupDate(storedBackupAt) || localStorage.getItem('vibe_last_export_date');
       setLastExportedDate(lastExp || '없음');
 
       // Load Vault Security & PIN state
@@ -654,7 +661,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   // Open Export Modal & load live v3 vault snapshot summary
-  const handleOpenExportModal = () => {
+  const handleOpenExportModal = (delivery: 'download' | 'share' = 'download') => {
+    setPreferredExportDelivery(delivery);
     setExportPassphrase('');
     setExportPreview(null);
     setIsExportModalOpen(true);
@@ -663,8 +671,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       .catch(() => {});
   };
 
-  // Perform Encrypted Full Vault Export (v3) — Download or OS Share Sheet
-  const handlePerformExport = async (delivery: 'download' | 'share' = 'download') => {
+  // Perform Encrypted Full Vault Export (v3) — Download (.vvlt) or OS Share Sheet
+  const handlePerformExport = async (delivery: 'download' | 'share' = preferredExportDelivery) => {
     const isKo = language === 'ko';
     if (!exportPassphrase.trim()) {
       setStatusMessage({
@@ -681,50 +689,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const snapshot = await buildVaultSnapshot();
       const summary = summarizeBackupPayload(snapshot);
 
-      const { filename, encryptedPayload } = await exportEncryptedBackup(
+      const { filename: baseFilename, encryptedPayload } = await exportEncryptedBackup(
         snapshot,
         exportPassphrase.trim(),
         { appName: 'Vibe Vault Pro' }
       );
+      const vvltFilename = baseFilename.replace(/\.vibe\.enc$/i, '.vvlt');
 
       let deliveryStatus: 'downloaded' | 'shared' | 'cancelled' = 'downloaded';
       if (delivery === 'share') {
-        const shareResult = await shareEncryptedBackupFile(filename, encryptedPayload, {
-          title: 'Vibe Vault Encrypted Backup (.vibe.enc)',
+        const shareResult = await shareEncryptedBackupFile(vvltFilename, encryptedPayload, {
+          title: 'Vibe Vault Encrypted Backup',
           text: isKo
-            ? 'AES-GCM-256 암호화된 전체 볼트 백업 파일입니다.'
-            : 'AES-GCM-256 encrypted full vault backup file.',
+            ? 'AES-GCM-256 암호화된 전체 볼트 백업 파일 (.vvlt)입니다.'
+            : 'AES-GCM-256 encrypted full vault backup file (.vvlt).',
         });
         if (shareResult === 'shared') {
           deliveryStatus = 'shared';
         } else if (shareResult === 'cancelled') {
           deliveryStatus = 'cancelled';
         } else {
-          triggerEncryptedBackupDownload(filename, encryptedPayload);
+          triggerEncryptedBackupDownload(vvltFilename, encryptedPayload);
           deliveryStatus = 'downloaded';
         }
       } else {
-        triggerEncryptedBackupDownload(filename, encryptedPayload);
+        triggerEncryptedBackupDownload(vvltFilename, encryptedPayload);
       }
 
       if (deliveryStatus === 'cancelled') {
         return;
       }
 
-      const nowFormatted = new Date().toLocaleDateString(isKo ? 'ko-KR' : 'en-US', {
-        month: 'short',
-        day: 'numeric',
-      });
-      setLastExportedDate(nowFormatted);
-      localStorage.setItem('vibe_last_export_date', nowFormatted);
+      const savedIso = recordLastBackupTimestamp();
+      setLastBackupAt(savedIso);
+      setLastExportedDate(formatLastBackupDate(savedIso) || '없음');
 
       setIsExportModalOpen(false);
       setExportPassphrase('');
       setStatusMessage({
         type: 'success',
         text: isKo
-          ? `전체 볼트 v3 암호화 백업 ${deliveryStatus === 'shared' ? '공유' : '저장'} 완료 (계좌 ${summary.accountCount} · 대출 ${summary.debtCount} · 거래 ${summary.transactionCount} · 장부 ${summary.spaceCount})`
-          : `Full Vault v3 encrypted backup ${deliveryStatus === 'shared' ? 'shared' : 'saved'} (${summary.accountCount} accounts · ${summary.debtCount} debts · ${summary.transactionCount} transactions · ${summary.spaceCount} ledgers)`,
+          ? `전체 볼트 암호화 백업(.vvlt) ${deliveryStatus === 'shared' ? '공유' : '저장'} 완료 (계좌 ${summary.accountCount} · 대출 ${summary.debtCount} · 거래 ${summary.transactionCount} · 장부 ${summary.spaceCount})`
+          : `Encrypted backup (.vvlt) ${deliveryStatus === 'shared' ? 'shared' : 'saved'} (${summary.accountCount} accounts · ${summary.debtCount} debts · ${summary.transactionCount} transactions · ${summary.spaceCount} ledgers)`,
       });
     } catch (err: any) {
       setStatusMessage({
@@ -761,8 +767,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         setStatusMessage({
           type: 'error',
           text: isKo
-            ? '백업 파일을 읽을 수 없습니다. 올바른 .vibe.enc, .enc 또는 .json 백업 파일인지 확인해주세요.'
-            : 'Unable to read backup file. Please verify it is a valid .vibe.enc, .enc, or .json backup.',
+            ? '백업 파일을 읽을 수 없습니다. 올바른 .vvlt, .vibe.enc, .enc 또는 .json 백업 파일인지 확인해주세요.'
+            : 'Unable to read backup file. Please verify it is a valid .vvlt, .vibe.enc, .enc, or .json backup.',
         });
         return;
       }
@@ -1352,6 +1358,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               setPinError={setPinError}
               setShowPinModal={setShowPinModal}
               lastExportedDate={lastExportedDate}
+              lastBackupAt={lastBackupAt}
               handleOpenExportModal={handleOpenExportModal}
               fileInputRef={fileInputRef}
               handleRestoreFile={handleRestoreFile}
@@ -1492,7 +1499,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 placeholder={language === 'ko' ? '복호화 시 사용할 비밀번호 입력' : 'Enter passphrase for decryption'}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && exportPassphrase.trim() && !isExportingBackup) {
-                    handlePerformExport('download');
+                    handlePerformExport(preferredExportDelivery);
                   }
                 }}
                 className="w-full px-3 py-2 rounded-xl text-xs border outline-none bg-white/[0.03] border-white/[0.08] text-white placeholder:text-neutral-300 focus:border-white/25"
@@ -1509,22 +1516,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   {language === 'ko' ? '취소' : 'Cancel'}
                 </button>
-                <button
-                  type="button"
-                  disabled={isExportingBackup || !exportPassphrase.trim()}
-                  onClick={() => handlePerformExport('download')}
-                  className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-100 disabled:bg-white/35 disabled:text-black font-semibold text-xs transition-all active:scale-95 shadow-sm flex items-center justify-center gap-1.5"
-                >
-                  <Download size={13} />
-                  <span>
-                    {isExportingBackup
-                      ? (language === 'ko' ? '암호화 중...' : 'Encrypting...')
-                      : (language === 'ko' ? '파일로 저장' : 'Save File')}
-                  </span>
-                </button>
+                {preferredExportDelivery === 'share' && supportsFileShare ? (
+                  <button
+                    type="button"
+                    disabled={isExportingBackup || !exportPassphrase.trim()}
+                    onClick={() => handlePerformExport('share')}
+                    className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-100 disabled:bg-white/35 disabled:text-black font-semibold text-xs transition-all active:scale-95 shadow-sm flex items-center justify-center gap-1.5"
+                  >
+                    <Share2 size={13} />
+                    <span>
+                      {isExportingBackup
+                        ? (language === 'ko' ? '암호화 중...' : 'Encrypting...')
+                        : (language === 'ko' ? '공유 시트 열기' : 'Share Backup')}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isExportingBackup || !exportPassphrase.trim()}
+                    onClick={() => handlePerformExport('download')}
+                    className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-100 disabled:bg-white/35 disabled:text-black font-semibold text-xs transition-all active:scale-95 shadow-sm flex items-center justify-center gap-1.5"
+                  >
+                    <Download size={13} />
+                    <span>
+                      {isExportingBackup
+                        ? (language === 'ko' ? '암호화 중...' : 'Encrypting...')
+                        : (language === 'ko' ? '파일로 저장 (.vvlt)' : 'Save File (.vvlt)')}
+                    </span>
+                  </button>
+                )}
               </div>
 
-              {supportsFileShare && (
+              {supportsFileShare && preferredExportDelivery === 'download' && (
                 <button
                   type="button"
                   disabled={isExportingBackup || !exportPassphrase.trim()}
@@ -1534,9 +1557,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <Share2 size={13} />
                   <span>
                     {language === 'ko'
-                      ? '다른 기기로 바로 공유 (AirDrop · Drive · 메신저)'
-                      : 'Share to Another Device (AirDrop · Drive)'}
+                      ? '모바일/클라우드로 바로 공유 (Drive · iCloud · 메신저)'
+                      : 'Share Backup to Mobile / Cloud (Drive · iCloud)'}
                   </span>
+                </button>
+              )}
+
+              {preferredExportDelivery === 'share' && (
+                <button
+                  type="button"
+                  disabled={isExportingBackup || !exportPassphrase.trim()}
+                  onClick={() => handlePerformExport('download')}
+                  className="w-full py-2 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] disabled:opacity-40 text-neutral-200 hover:text-white font-medium text-xs transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Download size={13} />
+                  <span>{language === 'ko' ? '대신 이 기기에 파일로 저장 (.vvlt)' : 'Download .vvlt File Instead'}</span>
                 </button>
               )}
             </div>

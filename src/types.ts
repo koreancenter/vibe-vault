@@ -23,6 +23,7 @@ export interface AssetAccount {
   investedAssets?: number; // 주식/코인/펀드 평가금액
   currency: string; // 'KRW', 'USD', etc.
   lastUpdated: string; // ISO date
+  updatedAt?: string; // ISO date for multi-device Smart Merge
   note?: string;
   accountNumberMasked?: string;
   holdings?: HoldingItem[];
@@ -67,6 +68,7 @@ export interface LedgerSpace {
   endDate?: string;
   isArchived?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface InstallmentMetadata {
@@ -102,6 +104,7 @@ export interface Transaction {
   isOverdraft?: boolean; // 마이너스 통장 관련 여부
   overdraftLimit?: number;
   fxRateAtEntry?: number; // Historical FX rate against KRW when transaction recorded
+  updatedAt?: string; // ISO date for multi-device Smart Merge
 }
 
 export interface CategoryBudget {
@@ -152,6 +155,7 @@ export interface SubscriptionItem {
   isManual?: boolean;
   isActive: boolean;
   notes?: string;
+  updatedAt?: string;
 }
 
 // Phase 4: Predictive Cashflow Forecast Models
@@ -234,6 +238,7 @@ export interface DebtItem {
   dueDate?: string;
   notes?: string;
   lastUpdated: string;
+  updatedAt?: string;
   isActive: boolean;
 }
 

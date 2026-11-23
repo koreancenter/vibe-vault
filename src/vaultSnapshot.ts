@@ -141,6 +141,19 @@ function parseTimestampMs(iso?: string): number {
   return Number.isFinite(ms) ? ms : 0;
 }
 
+function getEntityTimestampMs(item: unknown, fallbackField?: string): number {
+  if (!item || typeof item !== 'object') return 0;
+  const rec = item as Record<string, unknown>;
+  const candidates = [rec.updatedAt, fallbackField ? rec[fallbackField] : undefined, rec.lastUpdated, rec.createdAt];
+  for (const c of candidates) {
+    if (typeof c === 'string') {
+      const ms = parseTimestampMs(c);
+      if (ms > 0) return ms;
+    }
+  }
+  return 0;
+}
+
 function normalizeKeyPart(value?: string): string {
   return (value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
@@ -360,8 +373,8 @@ export function mergeAssetAccounts(
 
     if (matchIndex >= 0) {
       const current = result[matchIndex];
-      const currentTs = parseTimestampMs(current.lastUpdated);
-      const incomingTs = parseTimestampMs(incoming.lastUpdated);
+      const currentTs = getEntityTimestampMs(current, 'lastUpdated');
+      const incomingTs = getEntityTimestampMs(incoming, 'lastUpdated');
 
       if (incomingTs >= currentTs) {
         result[matchIndex] = {
@@ -439,8 +452,8 @@ export function mergeDebts(
 
     if (matchIndex >= 0) {
       const current = result[matchIndex];
-      const currentTs = parseTimestampMs(current.lastUpdated);
-      const incomingTs = parseTimestampMs(incoming.lastUpdated);
+      const currentTs = getEntityTimestampMs(current, 'lastUpdated');
+      const incomingTs = getEntityTimestampMs(incoming, 'lastUpdated');
 
       if (incomingTs >= currentTs) {
         result[matchIndex] = {
@@ -530,8 +543,15 @@ export function mergeSpaces(
         : -1;
 
     if (matchIndex >= 0) {
-      result[matchIndex] = { ...result[matchIndex], ...incoming, id: result[matchIndex].id };
-      updated++;
+      const current = result[matchIndex];
+      const currentTs = getEntityTimestampMs(current, 'createdAt');
+      const incomingTs = getEntityTimestampMs(incoming, 'createdAt');
+      if (incomingTs >= currentTs) {
+        result[matchIndex] = { ...current, ...incoming, id: current.id };
+        updated++;
+      } else {
+        skipped++;
+      }
     } else {
       const nextIndex = result.length;
       result.push(incoming);
@@ -597,8 +617,8 @@ export function mergeSubscriptions(
 
     if (matchIndex >= 0) {
       const current = result[matchIndex];
-      const currentTs = parseTimestampMs(current.lastBillingDate);
-      const incomingTs = parseTimestampMs(incoming.lastBillingDate);
+      const currentTs = getEntityTimestampMs(current, 'lastBillingDate');
+      const incomingTs = getEntityTimestampMs(incoming, 'lastBillingDate');
       if (incomingTs >= currentTs) {
         result[matchIndex] = { ...current, ...incoming, id: current.id };
         updated++;
@@ -687,7 +707,7 @@ export function mergeLegacyAssets(
 
 /**
  * Pure, deterministic multi-device snapshot merger.
- * Reusable for both manual `.vibe.enc` transfers and automated cloud E2EE sync.
+ * Supports Smart Merge (timestamp-aware deduplication) and Full Overwrite restore modes.
  */
 export function mergeVaultSnapshots(
   current: VaultSnapshotV3,
@@ -850,11 +870,12 @@ export async function applyVaultSnapshot(
  */
 export function canShareBackupFile(): boolean {
   if (typeof navigator === 'undefined' || typeof File === 'undefined') return false;
+  if (!('share' in navigator) || !('canShare' in navigator)) return false;
   if (typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') {
     return false;
   }
   try {
-    const probe = new File(['{}'], 'probe.vibe.enc', { type: 'application/json' });
+    const probe = new File(['{}'], 'probe.vvlt', { type: 'application/json' });
     return navigator.canShare({ files: [probe] });
   } catch {
     return false;
@@ -862,7 +883,7 @@ export function canShareBackupFile(): boolean {
 }
 
 /**
- * Downloads an encrypted `.vibe.enc` payload via Blob URL (safe for large multi-account snapshots).
+ * Downloads an encrypted `.vvlt` / `.vibe.enc` payload via Blob URL (safe for large multi-account snapshots).
  */
 export function triggerEncryptedBackupDownload(
   filename: string,
@@ -885,7 +906,7 @@ export function triggerEncryptedBackupDownload(
 }
 
 /**
- * Shares an encrypted `.vibe.enc` file via the OS Share Sheet (AirDrop, iCloud Drive, Google Drive, KakaoTalk).
+ * Shares an encrypted `.vvlt` file via the OS Share Sheet (Google Drive, iCloud Drive, Dropbox, AirDrop, messaging apps).
  */
 export async function shareEncryptedBackupFile(
   filename: string,
@@ -895,13 +916,19 @@ export async function shareEncryptedBackupFile(
   if (!canShareBackupFile()) return 'unsupported';
 
   const jsonStr = JSON.stringify(encryptedPayload, null, 2);
-  const file = new File([jsonStr], filename, { type: 'application/json' });
+  const shareFilename = filename.endsWith('.vvlt')
+    ? filename
+    : filename.replace(/\.vibe\.enc$/i, '.vvlt');
+  const file = new File([jsonStr], shareFilename, { type: 'application/json' });
 
   try {
+    if (!navigator.canShare({ files: [file] })) {
+      return 'unsupported';
+    }
     await navigator.share({
       files: [file],
       title: options?.title || 'Vibe Vault Encrypted Backup',
-      text: options?.text || 'AES-GCM-256 encrypted vault snapshot (.vibe.enc)',
+      text: options?.text || 'AES-GCM-256 encrypted vault snapshot (.vvlt)',
     });
     return 'shared';
   } catch (err: any) {

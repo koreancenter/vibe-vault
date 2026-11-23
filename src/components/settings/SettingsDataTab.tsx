@@ -1,4 +1,5 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Download, Share2, Upload } from 'lucide-react';
 import { CustomDarkSelect } from './CustomDarkSelect';
 import { 
   VaultLockConfig, 
@@ -8,9 +9,13 @@ import {
   isBiometricUnlockEnabled,
   isBiometricAvailable as checkBiometricAvailable
 } from '../../vaultSecurity';
+import { getAllTransactions } from '../../db';
+import {
+  formatLastBackupDate,
+  shouldShowBackupReminder,
+} from '../../cryptoBackup';
+import { canShareBackupFile } from '../../vaultSnapshot';
 import { useI18n } from '../../i18n';
-
-const GoogleDriveSyncCard = React.lazy(() => import('./GoogleDriveSyncCard'));
 
 interface SettingsDataTabProps {
   onClose: () => void;
@@ -25,7 +30,8 @@ interface SettingsDataTabProps {
   setPinError: (err: string | null) => void;
   setShowPinModal: (show: boolean) => void;
   lastExportedDate: string;
-  handleOpenExportModal: () => void;
+  lastBackupAt: string | null;
+  handleOpenExportModal: (delivery?: 'download' | 'share') => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleRestoreFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleLoadSampleData: () => void;
@@ -49,6 +55,7 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
   setPinError,
   setShowPinModal,
   lastExportedDate,
+  lastBackupAt,
   handleOpenExportModal,
   fileInputRef,
   handleRestoreFile,
@@ -56,7 +63,6 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
   handleResetAllData,
   isClearingData,
   setLegalOpen,
-  onDataChanged,
   onStatusMessage
 }) => {
   const { t, language } = useI18n();
@@ -67,6 +73,12 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
   const [biometricPin, setBiometricPin] = useState<string>('');
   const [biometricError, setBiometricError] = useState<string | null>(null);
   const [isEnrollingBiometric, setIsEnrollingBiometric] = useState<boolean>(false);
+  const [transactionCount, setTransactionCount] = useState<number>(0);
+
+  const supportsWebShare = useMemo(() => {
+    if (typeof navigator === 'undefined') return false;
+    return 'share' in navigator && 'canShare' in navigator && canShareBackupFile();
+  }, []);
 
   useEffect(() => {
     checkBiometricAvailable()
@@ -74,6 +86,30 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
       .catch(() => setIsBiometricSupported(false));
     setIsBiometricEnabled(isBiometricUnlockEnabled());
   }, [isPinSet]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAllTransactions()
+      .then((list) => {
+        if (!cancelled) setTransactionCount(list.length);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [lastBackupAt]);
+
+  const formattedLastBackupDate = useMemo(() => {
+    const isoDate = formatLastBackupDate(lastBackupAt);
+    if (isoDate) return isoDate;
+    if (lastExportedDate && lastExportedDate !== '없음') return lastExportedDate;
+    return null;
+  }, [lastBackupAt, lastExportedDate]);
+
+  const showQuietBackupReminder = useMemo(
+    () => shouldShowBackupReminder(lastBackupAt, transactionCount),
+    [lastBackupAt, transactionCount]
+  );
 
   const handleEnrollBiometric = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,7 +141,6 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
       onStatusMessage({ type: 'success', text: '생체인증 잠금 해제가 비활성화되었습니다.' });
     }
   };
-
 
   return (
     <div className="space-y-3.5 animate-in fade-in duration-150">
@@ -272,63 +307,76 @@ export const SettingsDataTab: React.FC<SettingsDataTabProps> = ({
         </div>
       </div>
 
-      {/* Group 1.5: Google Drive Zero-Knowledge E2EE Cloud Sync (Lazy-loaded) */}
-      <Suspense
-        fallback={
-          <div className="border-b border-white/[0.06] pb-3.5 text-xs text-neutral-400">
-            {isKo ? 'Google Drive 동기화 모듈 준비 중...' : 'Loading Google Drive sync...'}
-          </div>
-        }
-      >
-        <GoogleDriveSyncCard
-          onDataChanged={onDataChanged}
-          onStatusMessage={onStatusMessage}
-        />
-      </Suspense>
-
-      {/* Group 2: 전체 볼트 암호화 백업 및 기기 간 이전 */}
-      <div className="space-y-2 border-b border-white/[0.06] pb-3.5">
-        <div className="flex items-center justify-between gap-2">
+      {/* Group 2: 100% 로컬 암호화 백업 및 기기 간 스마트 병합 */}
+      <div className="space-y-2.5 border-b border-white/[0.06] pb-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-xs font-semibold text-white">
-            <span>{isKo ? '전체 볼트 백업 및 기기 간 이전 (v3)' : 'Full Vault Backup & Transfer (v3)'}</span>
+            <span>{isKo ? '암호화 백업 및 기기 간 이전' : 'Encrypted Backup & Transfer'}</span>
           </div>
-          <span className="text-xs text-neutral-200 font-normal shrink-0">
-            {isKo ? '마지막 백업:' : 'Last backup:'}{' '}
-            <span className="font-medium text-white">
-              {lastExportedDate === '없음' && !isKo ? 'None' : lastExportedDate}
+          <div className="flex items-center gap-2 shrink-0">
+            {showQuietBackupReminder && (
+              <span
+                id="quiet-backup-reminder"
+                className="inline-flex items-center gap-1.5 text-[11px] text-amber-300/85 font-normal"
+              >
+                <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-amber-400/80" />
+                <span>{isKo ? '백업 권장' : 'Backup suggested'}</span>
+              </span>
+            )}
+            <span className="text-xs text-neutral-300 font-normal">
+              {isKo ? '마지막 백업:' : 'Last backup:'}{' '}
+              <span className="font-mono text-white tabular-nums">
+                {formattedLastBackupDate || (isKo ? '백업 기록 없음' : 'None')}
+              </span>
             </span>
-          </span>
+          </div>
         </div>
 
         <p className="text-xs text-neutral-300 leading-relaxed font-normal">
           {isKo
-            ? '자산 계좌·대출·거래·장부·설정을 암호화(.vibe.enc)해 모바일·데스크탑 간 중복 없이 스마트 병합합니다.'
-            : 'Exports accounts, debts, transactions, ledgers & settings as an encrypted .vibe.enc snapshot for deduplicated cross-device merge.'}
+            ? '외부 서버나 계정 연동 없이 AES-GCM 암호화 파일(.vvlt)로 저장·공유하고, 다른 기기에서 중복 없이 스마트 병합합니다.'
+            : '100% local-first AES-GCM encrypted snapshots (.vvlt). Export or share directly to your drive/devices and smart-merge without duplicates.'}
         </p>
 
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={handleOpenExportModal}
-            className="py-2.5 px-3 rounded-xl text-xs font-medium bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] text-white flex items-center justify-center transition-all active:scale-98 cursor-pointer"
-          >
-            <span>{isKo ? '암호화 백업 내보내기' : 'Export Encrypted Backup'}</span>
-          </button>
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleOpenExportModal('download')}
+              className="py-2.5 px-3 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white flex items-center justify-center gap-1.5 transition-all active:scale-98 cursor-pointer"
+            >
+              <Download size={13} className="shrink-0 text-neutral-200" />
+              <span className="truncate">{isKo ? '암호화 백업 저장' : 'Download Backup'}</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="py-2.5 px-3 rounded-xl text-xs font-medium bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] text-white flex items-center justify-center transition-all active:scale-98 cursor-pointer"
-          >
-            <span>{isKo ? '백업 복원 / 병합' : 'Restore / Smart Merge'}</span>
-          </button>
-          <input
-            ref={fileInputRef as any}
-            type="file"
-            accept=".json,.enc,.vibe.enc"
-            className="hidden"
-            onChange={handleRestoreFile}
-          />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="py-2.5 px-3 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white flex items-center justify-center gap-1.5 transition-all active:scale-98 cursor-pointer"
+            >
+              <Upload size={13} className="shrink-0 text-neutral-200" />
+              <span className="truncate">{isKo ? '백업 복원 / 병합' : 'Restore / Merge'}</span>
+            </button>
+            <input
+              ref={fileInputRef as any}
+              type="file"
+              accept=".vvlt,.vibe.enc,.enc,.json"
+              className="hidden"
+              onChange={handleRestoreFile}
+            />
+          </div>
+
+          {supportsWebShare && (
+            <button
+              type="button"
+              id="share-backup-btn"
+              onClick={() => handleOpenExportModal('share')}
+              className="w-full py-2.5 px-3 rounded-xl text-xs font-medium bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.1] text-neutral-100 hover:text-white flex items-center justify-center gap-1.5 transition-all active:scale-98 cursor-pointer"
+            >
+              <Share2 size={13} className="shrink-0 text-sky-300" />
+              <span>{isKo ? '모바일/클라우드로 공유 (Share Backup)' : 'Share Backup to Mobile / Cloud'}</span>
+            </button>
+          )}
         </div>
       </div>
 

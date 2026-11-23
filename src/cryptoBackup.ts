@@ -658,9 +658,95 @@ export async function decryptBackupData(
   }
 }
 
+export const LAST_BACKUP_AT_KEY = 'vibe_last_backup_at';
+export const BACKUP_REMINDER_INTERVAL_DAYS = 7;
+export const BACKUP_REMINDER_MIN_TRANSACTIONS = 5;
+
+/**
+ * Records the ISO timestamp of the latest successful encrypted backup export/share.
+ */
+export function recordLastBackupTimestamp(date: Date = new Date()): string {
+  const iso = date.toISOString();
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(LAST_BACKUP_AT_KEY, iso);
+      localStorage.setItem('vibe_last_export_date', iso.slice(0, 10));
+    } catch {
+      // Ignore storage quota errors
+    }
+  }
+  return iso;
+}
+
+/**
+ * Reads the ISO timestamp of the latest successful backup export/share from localStorage.
+ */
+export function getLastBackupTimestamp(): string | null {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(LAST_BACKUP_AT_KEY);
+    if (!raw) return null;
+    return Number.isFinite(Date.parse(raw)) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Formats an ISO backup timestamp as YYYY-MM-DD (local date), or null if absent/invalid.
+ */
+export function formatLastBackupDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, '0');
+  const d = String(parsed.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Determines whether to show the quiet Obsidian backup reminder indicator:
+ * - More than 7 days have passed since `vibe_last_backup_at`, OR
+ * - Never backed up while having >= 5 transactions.
+ */
+export function shouldShowBackupReminder(
+  lastBackupAtIso: string | null,
+  transactionCount: number,
+  nowMs: number = Date.now()
+): boolean {
+  if (!lastBackupAtIso) {
+    return transactionCount >= BACKUP_REMINDER_MIN_TRANSACTIONS;
+  }
+  const lastMs = Date.parse(lastBackupAtIso);
+  if (!Number.isFinite(lastMs)) {
+    return transactionCount >= BACKUP_REMINDER_MIN_TRANSACTIONS;
+  }
+  const sevenDaysMs = BACKUP_REMINDER_INTERVAL_DAYS * 24 * 60 * 60 * 1000;
+  return nowMs - lastMs > sevenDaysMs;
+}
+
+function resolveRecordTimestampMs(record: unknown): number {
+  if (!record || typeof record !== 'object') return 0;
+  const r = record as Record<string, unknown>;
+  const candidates = [r.updatedAt, r.lastUpdated, r.timestamp, r.date];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+      return candidate;
+    }
+    if (typeof candidate === 'string' && candidate.trim()) {
+      const ms = Date.parse(candidate);
+      if (Number.isFinite(ms)) return ms;
+    }
+  }
+  return 0;
+}
+
 /**
  * Smart Differential Merge Utility
  * Merges imported transactions with existing records, deduplicating by ID or timestamp+amount+description.
+ * When the same ID exists in both local DB and incoming backup, keeps the newer record
+ * by `updatedAt` (falling back to `timestamp` / `date`).
  */
 export function mergeTransactionsDeduplicated(
   existingList: Transaction[],
@@ -674,7 +760,7 @@ export function mergeTransactionsDeduplicated(
 } {
   if (mode === 'overwrite') {
     return {
-      finalTransactions: incomingList,
+      finalTransactions: [...incomingList],
       addedCount: incomingList.length,
       updatedCount: 0,
       skippedCount: 0
@@ -700,11 +786,20 @@ export function mergeTransactionsDeduplicated(
 
   for (const incoming of incomingList) {
     if (existingMap.has(incoming.id)) {
-      // Update existing item
       const idx = resultList.findIndex(t => t.id === incoming.id);
       if (idx >= 0) {
-        resultList[idx] = incoming;
-        updatedCount++;
+        const current = resultList[idx];
+        const currentTs = resolveRecordTimestampMs(current);
+        const incomingTs = resolveRecordTimestampMs(incoming);
+
+        if (incomingTs > 0 && currentTs > 0 && incomingTs < currentTs) {
+          // Keep newer local record intact
+          skippedCount++;
+        } else {
+          resultList[idx] = incoming;
+          existingMap.set(incoming.id, incoming);
+          updatedCount++;
+        }
       }
     } else {
       const incomingMinute = incoming.date ? incoming.date.substring(0, 16) : '';
@@ -714,6 +809,7 @@ export function mergeTransactionsDeduplicated(
         skippedCount++;
       } else {
         resultList.push(incoming);
+        existingMap.set(incoming.id, incoming);
         contentFingerprints.add(fp);
         addedCount++;
       }

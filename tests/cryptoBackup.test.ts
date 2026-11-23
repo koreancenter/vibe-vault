@@ -19,7 +19,9 @@ import {
   mergeTransactionsDeduplicated,
   exportEncryptedBackup,
   enforceEncryptedExport,
-  preventUnencryptedExport
+  preventUnencryptedExport,
+  shouldShowBackupReminder,
+  formatLastBackupDate
 } from '../src/cryptoBackup';
 import { UnencryptedBackupPayloadV2, Transaction } from '../src/types';
 
@@ -572,6 +574,167 @@ describe('Cryptographic Backup Hardening (VVLT_V1 / AES-GCM-256 / PBKDF2-SHA-256
         expect(err).toBeInstanceOf(CryptoBackupError);
         expect(err.code).toBe('EMPTY_PASSPHRASE');
       }
+    });
+  });
+
+  describe('Phase 18: Multi-Device Smart Merge & Quiet Backup Reminder', () => {
+    it('Smart Merge preserves unique local transactions, imports new cross-device transactions without duplicates, and keeps newer updatedAt records', () => {
+      const localTransactions: Transaction[] = [
+        {
+          id: 'tx-local-only',
+          date: '2026-10-05T09:00:00.000Z',
+          amount: 12000,
+          type: 'EXPENSE',
+          category: 'Food',
+          description: '로컬 단독 커피 결제',
+          currency: 'KRW',
+          updatedAt: '2026-10-05T09:05:00.000Z',
+        },
+        {
+          id: 'tx-shared-local-newer',
+          date: '2026-10-04T12:00:00.000Z',
+          amount: 45000,
+          type: 'EXPENSE',
+          category: 'Food',
+          description: '최신 로컬 수정 내역',
+          currency: 'KRW',
+          updatedAt: '2026-10-06T10:00:00.000Z',
+        },
+        {
+          id: 'tx-shared-backup-newer',
+          date: '2026-10-03T18:00:00.000Z',
+          amount: 80000,
+          type: 'EXPENSE',
+          category: 'Shopping',
+          description: '이전 로컬 내역',
+          currency: 'KRW',
+          updatedAt: '2026-10-03T18:10:00.000Z',
+        },
+      ];
+
+      const incomingFromOtherDevice: Transaction[] = [
+        {
+          id: 'tx-remote-only',
+          date: '2026-10-06T08:00:00.000Z',
+          amount: 29000,
+          type: 'EXPENSE',
+          category: 'Transport',
+          description: '모바일 기기 KTX 예매',
+          currency: 'KRW',
+          updatedAt: '2026-10-06T08:05:00.000Z',
+        },
+        // Stale copy of tx-shared-local-newer -> should NOT overwrite newer local edit
+        {
+          id: 'tx-shared-local-newer',
+          date: '2026-10-04T12:00:00.000Z',
+          amount: 42000,
+          type: 'EXPENSE',
+          category: 'Food',
+          description: '구버전 백업 내역',
+          currency: 'KRW',
+          updatedAt: '2026-10-04T12:30:00.000Z',
+        },
+        // Newer copy of tx-shared-backup-newer -> SHOULD update local record
+        {
+          id: 'tx-shared-backup-newer',
+          date: '2026-10-03T18:00:00.000Z',
+          amount: 85000,
+          type: 'EXPENSE',
+          category: 'Shopping',
+          description: '모바일에서 수정된 최신 내역',
+          currency: 'KRW',
+          updatedAt: '2026-10-06T11:00:00.000Z',
+        },
+        // Different ID but identical content fingerprint -> should be skipped as duplicate
+        {
+          id: 'tx-duplicate-fingerprint',
+          date: '2026-10-05T09:00:00.000Z',
+          amount: 12000,
+          type: 'EXPENSE',
+          category: 'Food',
+          description: '로컬 단독 커피 결제',
+          currency: 'KRW',
+        },
+      ];
+
+      const result = mergeTransactionsDeduplicated(
+        localTransactions,
+        incomingFromOtherDevice,
+        'merge'
+      );
+
+      expect(result.finalTransactions).toHaveLength(4);
+      expect(result.addedCount).toBe(1);
+      expect(result.updatedCount).toBe(1);
+      expect(result.skippedCount).toBe(2);
+
+      // Unique local transaction preserved
+      expect(result.finalTransactions.find((t) => t.id === 'tx-local-only')?.description).toBe(
+        '로컬 단독 커피 결제'
+      );
+      // New cross-device transaction imported
+      expect(result.finalTransactions.find((t) => t.id === 'tx-remote-only')?.description).toBe(
+        '모바일 기기 KTX 예매'
+      );
+      // Newer local edit preserved against stale backup
+      const localNewer = result.finalTransactions.find((t) => t.id === 'tx-shared-local-newer');
+      expect(localNewer?.amount).toBe(45000);
+      expect(localNewer?.description).toBe('최신 로컬 수정 내역');
+      // Newer backup edit applied
+      const backupNewer = result.finalTransactions.find((t) => t.id === 'tx-shared-backup-newer');
+      expect(backupNewer?.amount).toBe(85000);
+      expect(backupNewer?.description).toBe('모바일에서 수정된 최신 내역');
+    });
+
+    it('Full Overwrite mode completely replaces local transactions with the backup snapshot', () => {
+      const localTransactions: Transaction[] = [
+        {
+          id: 'tx-old-local',
+          date: '2026-10-01T09:00:00.000Z',
+          amount: 10000,
+          type: 'EXPENSE',
+          category: 'Food',
+          description: '삭제될 기존 로컬 내역',
+          currency: 'KRW',
+        },
+      ];
+      const incoming: Transaction[] = [
+        {
+          id: 'tx-fresh-backup',
+          date: '2026-10-07T09:00:00.000Z',
+          amount: 50000,
+          type: 'INCOME',
+          category: 'Etc',
+          description: '덮어쓰기 백업 내역',
+          currency: 'KRW',
+        },
+      ];
+
+      const result = mergeTransactionsDeduplicated(localTransactions, incoming, 'overwrite');
+      expect(result.finalTransactions).toHaveLength(1);
+      expect(result.finalTransactions[0].id).toBe('tx-fresh-backup');
+      expect(result.addedCount).toBe(1);
+    });
+
+    it('Quiet backup reminder activates after 7 days or when never backed up with >= 5 transactions', () => {
+      const nowMs = Date.parse('2026-10-20T12:00:00.000Z');
+
+      // Never backed up: < 5 transactions -> quiet (no reminder)
+      expect(shouldShowBackupReminder(null, 4, nowMs)).toBe(false);
+      // Never backed up: >= 5 transactions -> show quiet reminder
+      expect(shouldShowBackupReminder(null, 5, nowMs)).toBe(true);
+
+      // Backed up 3 days ago -> no reminder
+      expect(shouldShowBackupReminder('2026-10-17T12:00:00.000Z', 50, nowMs)).toBe(false);
+      // Backed up exactly 7 days ago -> no reminder (must be > 7 days)
+      expect(shouldShowBackupReminder('2026-10-13T12:00:00.000Z', 50, nowMs)).toBe(false);
+      // Backed up 8 days ago -> show quiet reminder
+      expect(shouldShowBackupReminder('2026-10-12T11:59:59.000Z', 2, nowMs)).toBe(true);
+
+      // Format YYYY-MM-DD helper
+      expect(formatLastBackupDate('2026-10-12T00:00:00.000Z')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(formatLastBackupDate(null)).toBeNull();
+      expect(formatLastBackupDate('not-a-date')).toBeNull();
     });
   });
 });
