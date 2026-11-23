@@ -15,6 +15,7 @@ import {
   applyTheme,
   UserPreferences
 } from '../utils';
+import { detectBuiltInAI, isBuiltInAIReadySync } from '../builtInAI';
 
 export interface UseAutonomousEngineOptions {
   transactions: Transaction[];
@@ -69,7 +70,15 @@ export function useAutonomousEngine({
   const refreshEngineStatus = useCallback((): void => {
     const config = getAIEngineConfig();
     setEngineConfig(config);
-    if (config.engineType === 'local') {
+    const hasPersonalCloudKey = config.engineType === 'byok' && Boolean(config.apiKey?.trim());
+    const builtInReady = isBuiltInAIReadySync();
+
+    if (hasPersonalCloudKey) {
+      const provider = config.provider === 'gemini' ? 'Gemini' : config.provider === 'openai' ? 'OpenAI' : 'Claude';
+      setEngineStatus(`✨ 클라우드 AI 연결됨 (${provider})`);
+    } else if (builtInReady) {
+      setEngineStatus('⚡ 기기 내장 AI 자동 연결됨 (Gemini Nano)');
+    } else if (config.engineType === 'local') {
       if (config.localSubMode === 'ollama') {
         setEngineStatus(`🔒 온디바이스 AI 작동 중 (Ollama · ${config.ollamaModel || 'local'})`);
       } else {
@@ -77,8 +86,7 @@ export function useAutonomousEngine({
         setEngineStatus(`🔒 온디바이스 AI 작동 중 (${model})`);
       }
     } else {
-      const provider = config.provider === 'gemini' ? 'Gemini' : config.provider === 'openai' ? 'OpenAI' : 'Claude';
-      setEngineStatus(`✨ 클라우드 AI 연결됨 (${provider})`);
+      setEngineStatus('🔒 자동 로컬 재무 엔진 작동 중');
     }
   }, []);
 
@@ -107,10 +115,23 @@ export function useAutonomousEngine({
     applyTheme(prefs.theme || 'dark', prefs.seasonTheme);
   }, [refreshEngineStatus]);
 
-  // Initial synchronization on mount
+  // Initial synchronization & non-blocking Chrome Built-in AI auto-detection on mount
   useEffect(() => {
     refreshEngineStatus();
     applyTheme(userPrefs.theme || 'dark', userPrefs.seasonTheme);
+
+    let cancelled = false;
+    detectBuiltInAI()
+      .then((status) => {
+        if (!cancelled && status.state === 'available') {
+          refreshEngineStatus();
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, [refreshEngineStatus, userPrefs.theme, userPrefs.seasonTheme]);
 
   /**

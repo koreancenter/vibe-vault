@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Wallet,
   HelpCircle,
+  Lock,
   LogOut
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -50,6 +51,7 @@ import { useOmnibarController } from './hooks/useOmnibarController';
 import { PWAInstallBanner } from './components/PWAInstallButton';
 import { OmnibarDock, type RealtimePreviewData } from './components/OmnibarDock';
 import { OnboardingGuideStrip } from './components/OnboardingGuideStrip';
+import { GuestExitConfirmModal } from './components/GuestExitConfirmModal';
 import {
   ContextNudgeId,
   getActiveContextNudge,
@@ -60,6 +62,7 @@ import {
   saveHasRunQuery,
 } from './onboardingGuide';
 import { initAutoLockWatcher, lockVault, isVaultLocked, hasVaultPin, unlockVault, subscribeVaultLock } from './vaultSecurity';
+import { destroyBuiltInAISession } from './builtInAI';
 import { useI18n, DEFAULT_CURRENCY_BY_LANGUAGE } from './i18n';
 
 // Default initial tab imported eagerly to avoid a 2-hop lazy waterfall on workspace LCP
@@ -279,13 +282,16 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
 
   // Zero-Knowledge Vault Lock & Auto-Lock Watcher
   const [isVaultLockedState, setIsVaultLockedState] = useState<boolean>(() => isVaultLocked());
+  const [isGuestExitModalOpen, setIsGuestExitModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const cleanupWatcher = initAutoLockWatcher();
     const unsub = subscribeVaultLock((locked) => {
       setIsVaultLockedState(locked);
       if (locked) {
+        destroyBuiltInAISession();
         setIsSettingsOpen(false);
+        setIsGuestExitModalOpen(false);
         onOpenWelcome();
       }
     });
@@ -950,24 +956,38 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
                 <Settings size={15} />
               </button>
 
-              {/* Local Account Logout / Lock Vault */}
+              {/* Local Account Lock Vault / Guest Mode Exit */}
               <button
                 id="header-logout-btn"
                 type="button"
-                onClick={() => lockVault()}
+                onClick={() => {
+                  if (hasVaultPin()) {
+                    lockVault();
+                  } else {
+                    setIsGuestExitModalOpen(true);
+                  }
+                }}
                 title={
                   language === 'ko'
                     ? hasVaultPin()
-                      ? '로그아웃 (금고 잠금)'
-                      : '게스트 종료 (로그아웃)'
+                      ? '금고 잠그기'
+                      : '게스트 종료'
                     : hasVaultPin()
-                      ? 'Sign Out (Lock Vault)'
+                      ? 'Lock Vault'
                       : 'Exit Guest Mode'
                 }
-                aria-label={language === 'ko' ? '로그아웃' : 'Sign Out'}
+                aria-label={
+                  language === 'ko'
+                    ? hasVaultPin()
+                      ? '금고 잠그기'
+                      : '게스트 종료'
+                    : hasVaultPin()
+                      ? 'Lock Vault'
+                      : 'Exit Guest Mode'
+                }
                 className="w-9 h-9 sm:w-8 sm:h-8 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] text-neutral-200 hover:text-white transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
               >
-                <LogOut size={15} />
+                {hasVaultPin() ? <Lock size={15} /> : <LogOut size={15} />}
               </button>
             </div>
           </div>
@@ -1592,6 +1612,20 @@ export function VaultWorkspace({ onOpenWelcome }: { onOpenWelcome: () => void })
           onClose={() => setIsChangelogOpen(false)}
         />
       </MountOnFirstOpen>
+
+      {/* Guest Mode Exit Confirmation Modal */}
+      <GuestExitConfirmModal
+        isOpen={isGuestExitModalOpen}
+        onClose={() => setIsGuestExitModalOpen(false)}
+        onSetupPin={() => {
+          setIsGuestExitModalOpen(false);
+          handleOpenSettingsModal('privacy');
+        }}
+        onConfirmExit={() => {
+          setIsGuestExitModalOpen(false);
+          lockVault();
+        }}
+      />
 
       {/* Automatic In-App PWA Install Banner */}
       <PWAInstallBanner 

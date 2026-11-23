@@ -7,6 +7,7 @@ import {
   EyeOff,
   Fingerprint,
   Loader2,
+  Lock,
   LogOut,
   X,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ import {
   isBiometricAvailable,
 } from '../vaultSecurity';
 import type { LegalNoticeTab } from './LegalNoticeModal';
+import { GuestExitConfirmModal } from './GuestExitConfirmModal';
 import {
   SEASON_THEMES,
   SeasonThemeId,
@@ -222,6 +224,7 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
 
   // Local account modal state
   const [accountModalMode, setAccountModalMode] = useState<AccountModalMode>(null);
+  const [showGuestExitConfirm, setShowGuestExitConfirm] = useState<boolean>(false);
   const [userName, setUserName] = useState<string>('');
   const [pinName, setPinName] = useState<string>('');
   const [pin, setPin] = useState<string>('');
@@ -608,11 +611,21 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
                       <button
                         id="welcome-logout-btn"
                         type="button"
-                        onClick={handleLogout}
+                        onClick={() => {
+                          if (isPinSet) {
+                            handleLogout();
+                          } else {
+                            setShowGuestExitConfirm(true);
+                          }
+                        }}
                         className="h-12 px-5 rounded-xl border border-white/[0.14] bg-transparent hover:bg-white/[0.06] hover:border-white/25 text-neutral-300 hover:text-white text-sm font-medium transition-all active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                       >
-                        <LogOut size={14} />
-                        <span>{isKo ? '로그아웃' : 'Sign Out'}</span>
+                        {isPinSet ? <Lock size={14} /> : <LogOut size={14} />}
+                        <span>
+                          {isPinSet
+                            ? (isKo ? '금고 잠그기' : 'Lock Vault')
+                            : (isKo ? '게스트 종료' : 'Exit Guest')}
+                        </span>
                       </button>
                     </>
                   ) : isPinSet ? (
@@ -1215,6 +1228,21 @@ export const WelcomeDashboardModal: React.FC<WelcomeDashboardModalProps> = ({
           </div>
         </div>
       )}
+
+      {/* Guest Mode Exit Confirmation Modal */}
+      <GuestExitConfirmModal
+        isOpen={showGuestExitConfirm}
+        onClose={() => setShowGuestExitConfirm(false)}
+        setupPinLabel={isKo ? '로컬 계정 만들기' : 'Create Local Account'}
+        onSetupPin={() => {
+          setShowGuestExitConfirm(false);
+          openCreateAccountModal();
+        }}
+        onConfirmExit={() => {
+          setShowGuestExitConfirm(false);
+          handleLogout();
+        }}
+      />
 
       {/* Policy & License Viewer Modal (Lazy-loaded on demand) */}
       {legalModalOpen && (

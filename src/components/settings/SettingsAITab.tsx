@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Eye, 
   EyeOff, 
@@ -14,11 +14,18 @@ import {
   Cpu,
   RefreshCw,
   Edit3,
-  Check
+  Sparkles
 } from 'lucide-react';
 import { CustomDarkSelect, CustomSelectOption } from './CustomDarkSelect';
 import { ModelDownloadProgress } from '../../webllmManager';
 import { sanitizeApiKey } from '../../geminiKeyManager';
+import {
+  BuiltInAIStatus,
+  detectBuiltInAI,
+  getCachedBuiltInAIStatus,
+  prepareBuiltInAI,
+} from '../../builtInAI';
+import { useI18n } from '../../i18n';
 
 export interface SettingsAITabProps {
   engineType: 'local' | 'byok';
@@ -114,7 +121,40 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
   handleStartWebLLMDownload,
   handlePurgeWebLLMCache,
 }) => {
+  const { language } = useI18n();
+  const isKo = language === 'ko';
   const [isManualOllamaInput, setIsManualOllamaInput] = useState(false);
+  const [builtInStatus, setBuiltInStatus] = useState<BuiltInAIStatus | null>(() => getCachedBuiltInAIStatus());
+  const [isCheckingBuiltIn, setIsCheckingBuiltIn] = useState<boolean>(false);
+  const [isPreparingBuiltIn, setIsPreparingBuiltIn] = useState<boolean>(false);
+  const [builtInProgress, setBuiltInProgress] = useState<number>(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsCheckingBuiltIn(true);
+    detectBuiltInAI(true)
+      .then((res) => {
+        if (!cancelled) setBuiltInStatus(res);
+      })
+      .finally(() => {
+        if (!cancelled) setIsCheckingBuiltIn(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleActivateBuiltInAI = async () => {
+    if (isPreparingBuiltIn) return;
+    setIsPreparingBuiltIn(true);
+    setBuiltInProgress(0);
+    try {
+      const updated = await prepareBuiltInAI((pct) => setBuiltInProgress(pct));
+      setBuiltInStatus(updated);
+    } finally {
+      setIsPreparingBuiltIn(false);
+    }
+  };
 
   // Map fetched Ollama models to CustomSelectOption with minimalist LOCAL badge
   const ollamaSelectOptions: CustomSelectOption[] = ollamaModelsList.map(name => ({
@@ -125,6 +165,107 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-150">
+      {/* 0. Chrome Built-in AI (LanguageModel) Auto-Detection Status Card */}
+      <div
+        id="builtin-ai-status-card"
+        className={`rounded-2xl border p-3.5 space-y-2.5 transition-colors ${
+          builtInStatus?.state === 'available'
+            ? 'border-emerald-400/25 bg-emerald-500/[0.07]'
+            : builtInStatus?.state === 'downloadable' || builtInStatus?.state === 'downloading'
+              ? 'border-sky-400/25 bg-sky-500/[0.07]'
+              : 'border-white/[0.08] bg-white/[0.025]'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="flex items-start gap-2 min-w-0">
+            <Sparkles
+              size={14}
+              className={`shrink-0 mt-0.5 ${
+                builtInStatus?.state === 'available'
+                  ? 'text-emerald-300'
+                  : builtInStatus?.state === 'downloadable' || builtInStatus?.state === 'downloading'
+                    ? 'text-sky-300'
+                    : 'text-neutral-300'
+              }`}
+            />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-semibold text-white">
+                  {isKo ? 'Chrome 내장 AI (LanguageModel)' : 'Chrome Built-in AI (LanguageModel)'}
+                </span>
+                {isCheckingBuiltIn && !builtInStatus ? (
+                  <span className="text-[11px] text-neutral-300 inline-flex items-center gap-1">
+                    <Loader2 size={10} className="animate-spin" />
+                    {isKo ? '자동 감지 중' : 'Detecting'}
+                  </span>
+                ) : builtInStatus ? (
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold border ${
+                      builtInStatus.state === 'available'
+                        ? 'bg-emerald-500/15 border-emerald-400/30 text-emerald-200'
+                        : builtInStatus.state === 'downloadable' || builtInStatus.state === 'downloading'
+                          ? 'bg-sky-500/15 border-sky-400/30 text-sky-200'
+                          : 'bg-white/[0.05] border-white/[0.1] text-neutral-300'
+                    }`}
+                  >
+                    {isKo ? builtInStatus.labelKo : builtInStatus.labelEn}
+                  </span>
+                ) : null}
+              </div>
+              {builtInStatus && (
+                <p className="text-[11px] text-neutral-200 leading-relaxed mt-1">
+                  {isKo ? builtInStatus.detailKo : builtInStatus.detailEn}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsCheckingBuiltIn(true);
+              detectBuiltInAI(true)
+                .then(setBuiltInStatus)
+                .finally(() => setIsCheckingBuiltIn(false));
+            }}
+            disabled={isCheckingBuiltIn || isPreparingBuiltIn}
+            title={isKo ? '브라우저 내장 AI 상태 다시 확인' : 'Re-check Built-in AI status'}
+            aria-label={isKo ? '브라우저 내장 AI 상태 다시 확인' : 'Re-check Built-in AI status'}
+            className="p-1.5 rounded-lg text-neutral-300 hover:text-white hover:bg-white/[0.08] transition-colors shrink-0 cursor-pointer disabled:opacity-40"
+          >
+            <RefreshCw size={12} className={isCheckingBuiltIn ? 'animate-spin' : ''} />
+          </button>
+        </div>
+
+        {builtInStatus?.state === 'downloadable' && (
+          <div className="pt-1 space-y-2">
+            {isPreparingBuiltIn ? (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] text-sky-200">
+                  <span>{isKo ? '브라우저 내장 AI 준비 중...' : 'Preparing Built-in AI...'}</span>
+                  <span className="font-mono tabular-nums">{builtInProgress}%</span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
+                  <div
+                    className="h-full bg-sky-300 transition-all duration-200"
+                    style={{ width: `${Math.max(4, builtInProgress)}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleActivateBuiltInAI}
+                className="w-full h-8 rounded-xl bg-sky-400/20 hover:bg-sky-400/30 border border-sky-300/30 text-sky-100 text-xs font-semibold transition-all active:scale-[0.99] flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Download size={12} />
+                <span>{isKo ? '브라우저 내장 AI 원탭 활성화' : 'Enable Built-in AI'}</span>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* 1. Master Engine Segmented Toggle */}
       <div className="p-1 rounded-xl bg-white/[0.02] border border-white/[0.08] grid grid-cols-2 gap-1 mb-4">
         <button

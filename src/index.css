@@ -18,6 +18,10 @@
   --surface-raised: rgba(255, 255, 255, 0.03);
   --surface-inset: rgba(0, 0, 0, 0.35);
   --surface-subtle-border: rgba(255, 255, 255, 0.07);
+  --surface-guide-bg: linear-gradient(155deg, rgba(28, 41, 61, 0.94) 0%, rgba(18, 26, 42, 0.96) 100%);
+  --surface-guide-header: rgba(147, 197, 253, 0.09);
+  --surface-guide-border: rgba(147, 197, 253, 0.32);
+  --surface-guide-accent: #93C5FD;
 
   /* Winter · 설야 (수묵 · 설백) */
   --color-accent: #FFFFFF;
@@ -64,6 +68,10 @@
   --surface-ambient: rgba(244, 184, 197, 0.09);
   --surface-raised: rgba(244, 184, 197, 0.04);
   --surface-subtle-border: rgba(244, 184, 197, 0.11);
+  --surface-guide-bg: linear-gradient(155deg, rgba(50, 30, 48, 0.94) 0%, rgba(32, 20, 36, 0.96) 100%);
+  --surface-guide-header: rgba(244, 184, 197, 0.11);
+  --surface-guide-border: rgba(244, 184, 197, 0.36);
+  --surface-guide-accent: #F4B8C5;
 
   --color-accent: #F4B8C5;
   --color-accent-hover: #F9CDD7;
@@ -86,6 +94,10 @@
   --surface-ambient: rgba(56, 189, 248, 0.095);
   --surface-raised: rgba(125, 211, 252, 0.04);
   --surface-subtle-border: rgba(125, 211, 252, 0.11);
+  --surface-guide-bg: linear-gradient(155deg, rgba(17, 43, 70, 0.94) 0%, rgba(12, 30, 50, 0.96) 100%);
+  --surface-guide-header: rgba(125, 211, 252, 0.11);
+  --surface-guide-border: rgba(125, 211, 252, 0.36);
+  --surface-guide-accent: #7DD3FC;
 
   --color-accent: #7DD3FC;
   --color-accent-hover: #BAE6FD;
@@ -108,6 +120,10 @@
   --surface-ambient: rgba(246, 182, 103, 0.09);
   --surface-raised: rgba(246, 182, 103, 0.04);
   --surface-subtle-border: rgba(246, 182, 103, 0.11);
+  --surface-guide-bg: linear-gradient(155deg, rgba(54, 37, 22, 0.94) 0%, rgba(35, 24, 16, 0.96) 100%);
+  --surface-guide-header: rgba(246, 182, 103, 0.11);
+  --surface-guide-border: rgba(246, 182, 103, 0.36);
+  --surface-guide-accent: #F6B667;
 
   --color-accent: #F6B667;
   --color-accent-hover: #FACC8E;

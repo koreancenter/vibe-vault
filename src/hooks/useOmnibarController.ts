@@ -22,6 +22,7 @@ import {
 import { generateSecureId } from '../identifiers';
 import { RealtimePreviewData } from '../components/OmnibarDock';
 import { DEFAULT_FX_RATES } from '../fxRates';
+import { parseTransactionWithBuiltInAI } from '../builtInAI';
 
 async function applyPeerDebt(
   event: PeerDebtEvent,
@@ -238,9 +239,50 @@ export function useOmnibarController({
 
     try {
       const config = getAIEngineConfig();
+      const defaultCurrency = (activeSpaceCurrency as SupportedCurrency) || (userPrefs.currencySymbol as SupportedCurrency) || 'KRW';
+      const hasExplicitCloudKey = config.engineType === 'byok' && Boolean(config.apiKey?.trim());
       let parsedTransactions: any[] = [];
 
-      if (isOnline) {
+      const [
+        debts,
+        parserMod,
+        { commitAutonomousLoanSplit, commitAutonomousReceivableRecovery }
+      ] = await Promise.all([
+        getAllDebts(),
+        import('../financialParser'),
+        import('../autonomousFinance'),
+      ]);
+      parserModuleRef.current = parserMod;
+      const {
+        parseFinancialInputDeterministically,
+        parseFinancialText,
+        detectPeerDebt,
+        normalizeTransactionCategory,
+        planPeerDebtUpdate,
+        findRefundTarget,
+        buildLinkedRefund,
+      } = parserMod;
+
+      // Always check domain-critical deterministic accounting flows first (loan splits, Dutch-pay, installments, refunds)
+      const debtOrCardResults = parseFinancialInputDeterministically(textToProcess, debts);
+      const hasSpecialFlow = debtOrCardResults.some(
+        r => r.loanSplitSuggestion || r.receivableRecoverySuggestion || r.isInternalTransfer || r.peerDebt || r.splitInfo || r.clarification || r.subCategory === 'Refund' || r.type === 'SETTLEMENT' || Boolean(r.installment)
+      );
+
+      if (hasSpecialFlow) {
+        parsedTransactions = debtOrCardResults;
+      }
+
+      // Tier 0: Auto-connect Chrome Built-in AI (LanguageModel) when local mode, offline, or no personal BYOK key is configured
+      if (parsedTransactions.length === 0 && (config.engineType === 'local' || !isOnline || !hasExplicitCloudKey)) {
+        const builtInItems = await parseTransactionWithBuiltInAI(textToProcess, defaultCurrency);
+        if (builtInItems && builtInItems.length > 0) {
+          parsedTransactions = builtInItems;
+        }
+      }
+
+      // Cloud AI / Server parse (when online and not strictly local)
+      if (parsedTransactions.length === 0 && isOnline && config.engineType !== 'local') {
         try {
           const response = await fetch('/api/parse', {
             method: 'POST',
@@ -264,52 +306,31 @@ export function useOmnibarController({
             }
           }
         } catch (fetchErr) {
-          console.warn('Network parse failed, using client deterministic engine:', fetchErr);
+          console.warn('Network parse failed, using on-device engine:', fetchErr);
         }
       }
 
-      const [
-        debts,
-        parserMod,
-        { commitAutonomousLoanSplit, commitAutonomousReceivableRecovery }
-      ] = await Promise.all([
-        getAllDebts(),
-        import('../financialParser'),
-        import('../autonomousFinance'),
-      ]);
-      parserModuleRef.current = parserMod;
-      const {
-        parseFinancialInputDeterministically,
-        parseFinancialText,
-        detectPeerDebt,
-        normalizeTransactionCategory,
-        planPeerDebtUpdate,
-        findRefundTarget,
-        buildLinkedRefund,
-      } = parserMod;
-
-      if (parsedTransactions.length === 0) {
-        const debtOrCardResults = parseFinancialInputDeterministically(textToProcess, debts);
-        const hasSpecialFlow = debtOrCardResults.some(r => r.loanSplitSuggestion || r.receivableRecoverySuggestion || r.isInternalTransfer || r.peerDebt || r.splitInfo || r.clarification || r.subCategory === 'Refund' || r.type === 'SETTLEMENT' || Boolean(r.installment));
-        
-        if (hasSpecialFlow) {
-          parsedTransactions = debtOrCardResults;
-        } else {
-          const items: ParsedItem[] = parseFinancialText(
-            textToProcess, 
-            (activeSpaceCurrency as SupportedCurrency) || userPrefs.currencySymbol || 'KRW'
-          );
-          parsedTransactions = items.map(it => ({
-            type: it.type.toUpperCase() as TransactionType,
-            amount: it.amount,
-            currency: it.currency,
-            category: it.category,
-            description: it.merchant,
-            merchant: it.merchant,
-            date: it.date,
-            note: it.note
-          }));
+      // Secondary fallback to Built-in AI if BYOK cloud request failed
+      if (parsedTransactions.length === 0 && hasExplicitCloudKey) {
+        const builtInItems = await parseTransactionWithBuiltInAI(textToProcess, defaultCurrency);
+        if (builtInItems && builtInItems.length > 0) {
+          parsedTransactions = builtInItems;
         }
+      }
+
+      // Final guaranteed Tier 2 deterministic local parser fallback
+      if (parsedTransactions.length === 0) {
+        const items: ParsedItem[] = parseFinancialText(textToProcess, defaultCurrency);
+        parsedTransactions = items.map(it => ({
+          type: it.type.toUpperCase() as TransactionType,
+          amount: it.amount,
+          currency: it.currency,
+          category: it.category,
+          description: it.merchant,
+          merchant: it.merchant,
+          date: it.date,
+          note: it.note
+        }));
       }
 
       const needsClarification = parsedTransactions.find((t: any) => t.clarification);

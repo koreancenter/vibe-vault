@@ -8,6 +8,7 @@ import {
   FinancialQueryResult 
 } from '../types';
 import { parseQueryIntentLocally } from '../financialParser';
+import { extractQueryIntentWithBuiltInAI } from '../builtInAI';
 import { getAllTransactions, getAllAssetAccounts } from '../db';
 import { convertCurrency, DEFAULT_FX_RATES, AIEngineConfig, getCurrencySymbol, getCategoryKo } from '../utils';
 import { parseISO, getDay } from 'date-fns';
@@ -21,16 +22,29 @@ import { parseISO, getDay } from 'date-fns';
 
 /**
  * Step 1: Intent & Filter Extraction
- * Extracts dateRange, metric, targetCurrency, and filter criteria via /api/query-intent (Gemini)
- * with robust local heuristic fallback for offline / low-latency environments.
+ * Automatically uses Chrome Built-in AI (`LanguageModel`) on-device when available,
+ * /api/query-intent (Gemini) when BYOK cloud AI is configured and online,
+ * and falls back seamlessly to local heuristic parsing.
  */
 export async function extractFinancialQueryIntent(
   query: string,
   engineConfig?: AIEngineConfig
-): Promise<{ parameters: FinancialQueryParameters; source: 'gemini' | 'local' | 'fallback' }> {
-  // If local engine requested or offline, return local immediately
-  if (engineConfig?.engineType === 'local' || (typeof navigator !== 'undefined' && !navigator.onLine)) {
-    return { parameters: parseQueryIntentLocally(query), source: 'local' };
+): Promise<{ parameters: FinancialQueryParameters; source: 'gemini' | 'builtin_ai' | 'local' | 'fallback' }> {
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const hasExplicitCloudKey =
+    engineConfig?.engineType === 'byok'
+    && typeof engineConfig.apiKey === 'string'
+    && engineConfig.apiKey.trim().length > 0;
+
+  // Tier 0: Auto-use Browser Built-in On-Device AI first when local mode, offline, or no personal cloud key is set
+  if (engineConfig?.engineType === 'local' || isOffline || !hasExplicitCloudKey) {
+    const builtInParams = await extractQueryIntentWithBuiltInAI(query);
+    if (builtInParams) {
+      return { parameters: builtInParams, source: 'builtin_ai' };
+    }
+    if (engineConfig?.engineType === 'local' || isOffline) {
+      return { parameters: parseQueryIntentLocally(query), source: 'local' };
+    }
   }
 
   // Try backend endpoint /api/query-intent
@@ -48,7 +62,15 @@ export async function extractFinancialQueryIntent(
       }
     }
   } catch {
-    // Backend unreachable or network error, fallback to local parser
+    // Backend unreachable or network error, fallback below
+  }
+
+  // Secondary fallback to Built-in AI if cloud failed
+  if (hasExplicitCloudKey) {
+    const builtInParams = await extractQueryIntentWithBuiltInAI(query);
+    if (builtInParams) {
+      return { parameters: builtInParams, source: 'builtin_ai' };
+    }
   }
 
   return { parameters: parseQueryIntentLocally(query), source: 'fallback' };

@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { generateSecureId } from '../identifiers';
 import { 
   X, 
-  Lock, 
-  Check, 
-  CheckCircle2, 
+  Lock,
+  LogOut,
+  Check,
+  CheckCircle2,
   AlertTriangle,
   Plus,
   Trash2,
@@ -77,6 +78,7 @@ import {
   ModelDownloadProgress
 } from '../webllmManager';
 import { LegalNoticeModal } from './LegalNoticeModal';
+import { GuestExitConfirmModal } from './GuestExitConfirmModal';
 import { CustomSelectOption } from './settings/CustomDarkSelect';
 import { SettingsAITab } from './settings/SettingsAITab';
 import { SettingsPreferencesTab } from './settings/SettingsPreferencesTab';
@@ -261,6 +263,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     lockOnVisibilityHidden: true,
   });
   const [showPinModal, setShowPinModal] = useState<boolean>(false);
+  const [showGuestExitConfirm, setShowGuestExitConfirm] = useState<boolean>(false);
   const [pinModalMode, setPinModalMode] = useState<'set' | 'remove'>('set');
   const [pinInput, setPinInput] = useState('');
   const [pinConfirmInput, setPinConfirmInput] = useState('');
@@ -328,6 +331,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
       // Load Vault Security & PIN state
       setIsPinSet(hasVaultPin());
+      setShowGuestExitConfirm(false);
       setAutoLockConfigState(getAutoLockConfig());
       setStatusMessage(null);
     }
@@ -1367,15 +1371,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <button
               type="button"
               onClick={() => {
-                onClose();
-                lockVault();
+                if (isPinSet) {
+                  onClose();
+                  lockVault();
+                } else {
+                  setShowGuestExitConfirm(true);
+                }
               }}
-              title={t('lock_vault')}
-              aria-label={t('lock_vault')}
+              title={isPinSet ? t('lock_vault') : (language === 'ko' ? '게스트 종료' : 'Exit Guest')}
+              aria-label={isPinSet ? t('lock_vault') : (language === 'ko' ? '게스트 종료' : 'Exit Guest')}
               className="h-9 px-3 rounded-xl font-medium text-xs transition-all flex items-center gap-1.5 active:scale-95 border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-white shrink-0 cursor-pointer"
             >
-              <Lock size={13} className="shrink-0 text-neutral-100" />
-              <span>{t('lock_vault')}</span>
+              {isPinSet ? (
+                <>
+                  <Lock size={13} className="shrink-0 text-neutral-100" />
+                  <span>{t('lock_vault')}</span>
+                </>
+              ) : (
+                <>
+                  <LogOut size={13} className="shrink-0 text-amber-200" />
+                  <span>{language === 'ko' ? '게스트 종료' : 'Exit Guest'}</span>
+                </>
+              )}
             </button>
 
             <button
@@ -1794,6 +1811,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
       )}
+
+      {/* Guest Mode Exit Confirmation Modal */}
+      <GuestExitConfirmModal
+        isOpen={showGuestExitConfirm}
+        onClose={() => setShowGuestExitConfirm(false)}
+        onSetupPin={() => {
+          setShowGuestExitConfirm(false);
+          setActiveTab('privacy');
+          setPinModalMode('set');
+          setPinInput('');
+          setPinConfirmInput('');
+          setPinError(null);
+          setShowPinModal(true);
+        }}
+        onConfirmExit={() => {
+          setShowGuestExitConfirm(false);
+          onClose();
+          lockVault();
+        }}
+      />
 
       {/* Legal Notice & Terms Modal */}
       <LegalNoticeModal isOpen={legalOpen} onClose={() => setLegalOpen(false)} />

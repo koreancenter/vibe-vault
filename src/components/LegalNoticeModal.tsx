@@ -120,36 +120,31 @@ const CORE_DEPENDENCIES: OpenSourceDependency[] = [
   },
 ];
 
-const TAB_ITEMS: { id: ResolvedTab; label: string; title: string; subtitle: string }[] = [
+const TAB_ITEMS: { id: ResolvedTab; label: string; title: string }[] = [
   {
     id: 'privacy',
     label: '개인정보처리방침',
     title: '개인정보처리방침',
-    subtitle: '개인정보수집 없음 · 로컬 우선 암호화 보관 원칙',
   },
   {
     id: 'terms',
     label: '이용약관',
     title: '이용약관 및 법적 고지',
-    subtitle: '개인정보수집 없음 · 비영리 개인 금융 도구 이용 기준',
   },
   {
     id: 'licenses',
     label: '오픈소스 라이선스',
     title: '오픈소스 라이선스',
-    subtitle: 'Vibe Vault 자체 MIT 라이선스 및 사용 기술 스택 고지',
   },
   {
     id: 'community',
     label: '커뮤니티 이용 규약',
     title: '커뮤니티 이용 규약',
-    subtitle: 'Net-to-Dot 및 고구마 유니버스 참여자 행동 강령',
   },
   {
     id: 'cookies',
     label: '쿠키 정책',
     title: '쿠키 정책 (No Cookies)',
-    subtitle: 'HTTP 쿠키 및 제3자 추적 픽셀 미사용 안내',
   },
 ];
 
@@ -202,15 +197,10 @@ export const LegalNoticeModal: React.FC<LegalNoticeModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-white/[0.07] shrink-0">
-          <div>
-            <h2 id="legal-notice-title" className="text-base font-semibold text-white tracking-tight">
-              {currentMeta.title}
-            </h2>
-            <p className="text-xs text-neutral-400 font-normal mt-1">
-              {currentMeta.subtitle}
-            </p>
-          </div>
+        <div className="flex items-center justify-between gap-4 px-6 py-5 border-b border-white/[0.07] shrink-0">
+          <h2 id="legal-notice-title" className="text-base font-semibold text-white tracking-tight">
+            {currentMeta.title}
+          </h2>
 
           <button
             type="button"
