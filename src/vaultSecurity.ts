@@ -235,6 +235,16 @@ export async function getDeviceMasterKey(): Promise<CryptoKey> {
 
 async function rotateVaultDataKey(targetKey: CryptoKey, targetKeyId: string, sourceKeys: CryptoKey[]): Promise<void> {
   if (!vaultKeyMigrationHandler) {
+    try {
+      const dbModule = await import('./db');
+      if (!vaultKeyMigrationHandler && typeof dbModule.migrateVaultDataKey === 'function') {
+        vaultKeyMigrationHandler = dbModule.migrateVaultDataKey;
+      }
+    } catch {
+      // Fall through to fail-closed error below
+    }
+  }
+  if (!vaultKeyMigrationHandler) {
     throw new Error('VAULT_MIGRATION_UNAVAILABLE: 금융 데이터 키를 안전하게 변경할 수 없습니다.');
   }
   if (keyMigrationInProgress) {

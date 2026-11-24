@@ -1,10 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, X, Smartphone, Check } from 'lucide-react';
 import { CustomDarkSelect, CustomSelectOption } from './CustomDarkSelect';
 import { IOSInstallModal } from '../PWAInstallButton';
 import { usePWAInstall } from '../../usePWAInstall';
 import { SupportedCurrency } from '../../types';
-import { KNOWN_CURRENCY_NAMES, getCurrencySymbol, patchUserPreferences } from '../../utils';
+import {
+  KNOWN_CURRENCY_NAMES,
+  getCurrencySymbol,
+  getUserPreferences,
+  getUserActiveCurrencies,
+  saveUserActiveCurrencies,
+  patchUserPreferences,
+} from '../../utils';
 import { useI18n, LanguageCode, DEFAULT_CURRENCY_BY_LANGUAGE, LANGUAGE_STORAGE_KEY } from '../../i18n';
 import {
   SEASON_THEMES,
@@ -14,49 +21,34 @@ import {
   SEASON_CHANGE_EVENT,
 } from '../../seasonTheme';
 
-interface SettingsPreferencesTabProps {
-  defaultLaunchScreen: 'vault' | 'insights' | 'ledger';
-  setDefaultLaunchScreen: (screen: 'vault' | 'insights' | 'ledger') => void;
-  currencySymbol: string;
-  setCurrencySymbol: (sym: string) => void;
-  currencyOptions: CustomSelectOption[];
-  activeCurrenciesList: string[];
-  setActiveCurrenciesList: (list: string[]) => void;
-  newCurrencyInput: string;
-  setNewCurrencyInput: (input: string) => void;
-  currencyError: string | null;
-  setCurrencyError: (err: string | null) => void;
-  handleAddActiveCurrency: (code: string) => void;
-  handleRemoveActiveCurrency: (code: string) => void;
-  stealthMode: boolean;
-  setStealthMode: (stealth: boolean) => void;
-  budgetStartDay: number;
-  setBudgetStartDay: (day: number) => void;
-  budgetDayOptions: CustomSelectOption[];
+export interface SettingsPreferencesTabProps {
+  onCurrencyChanged?: (currency: SupportedCurrency) => void;
   onDataChanged?: () => void;
 }
 
+const BUDGET_DAY_OPTIONS: CustomSelectOption[] = Array.from({ length: 31 }, (_, i) => ({
+  value: String(i + 1),
+  label: `${i + 1}일`,
+}));
+
 export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
-  defaultLaunchScreen,
-  setDefaultLaunchScreen,
-  currencySymbol,
-  setCurrencySymbol,
-  currencyOptions,
-  activeCurrenciesList,
-  newCurrencyInput,
-  setNewCurrencyInput,
-  currencyError,
-  setCurrencyError,
-  handleAddActiveCurrency,
-  handleRemoveActiveCurrency,
-  stealthMode,
-  setStealthMode,
-  budgetStartDay,
-  setBudgetStartDay,
-  budgetDayOptions,
+  onCurrencyChanged,
   onDataChanged,
 }) => {
   const { language, setLanguage, t } = useI18n();
+  const initialPrefs = getUserPreferences();
+  const [defaultLaunchScreen, setDefaultLaunchScreen] = useState<'vault' | 'insights' | 'ledger'>(
+    initialPrefs.defaultLaunchScreen || 'vault'
+  );
+  const [currencySymbol, setCurrencySymbolState] = useState<string>(initialPrefs.currencySymbol || 'KRW');
+  const [stealthMode, setStealthMode] = useState<boolean>(initialPrefs.stealthMode ?? false);
+  const [budgetStartDay, setBudgetStartDay] = useState<number>(initialPrefs.budgetStartDay ?? 1);
+  const [activeCurrenciesList, setActiveCurrenciesList] = useState<string[]>(() => {
+    const list = getUserActiveCurrencies();
+    return list.length > 0 ? list : ['KRW'];
+  });
+  const [newCurrencyInput, setNewCurrencyInput] = useState('');
+  const [currencyError, setCurrencyError] = useState<string | null>(null);
   const [pendingCurrencyPrompt, setPendingCurrencyPrompt] = useState<SupportedCurrency | null>(null);
   const { isInstallable, isInstalled, install } = usePWAInstall();
   const [showIOSModal, setShowIOSModal] = useState(false);
@@ -64,6 +56,20 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
     return typeof sessionStorage !== 'undefined' && sessionStorage.getItem('vibe_pref_pwa_dismissed') === 'true';
   });
   const [seasonTheme, setSeasonTheme] = useState<SeasonThemeId>(() => getStoredSeasonTheme());
+
+  const setCurrencySymbol = (sym: string) => {
+    setCurrencySymbolState(sym);
+    onCurrencyChanged?.(sym as SupportedCurrency);
+  };
+
+  useEffect(() => {
+    const syncCurrencies = () => {
+      const stored = getUserActiveCurrencies();
+      setActiveCurrenciesList(stored.length > 0 ? stored : ['KRW']);
+    };
+    window.addEventListener('storage', syncCurrencies);
+    return () => window.removeEventListener('storage', syncCurrencies);
+  }, []);
 
   useEffect(() => {
     const onSeasonChange = (e: Event) => {
@@ -74,11 +80,62 @@ export const SettingsPreferencesTab: React.FC<SettingsPreferencesTabProps> = ({
     return () => window.removeEventListener(SEASON_CHANGE_EVENT, onSeasonChange);
   }, []);
 
+  const currencyOptions: CustomSelectOption[] = useMemo(() => {
+    const all = Array.from(new Set([...activeCurrenciesList, currencySymbol])).filter(Boolean);
+    return all.map((c) => {
+      const info = KNOWN_CURRENCY_NAMES[c];
+      const sym = getCurrencySymbol(c);
+      const label = info ? `${info.nameKo} (${sym})` : `${c} (${sym})`;
+      return { value: c, label };
+    });
+  }, [activeCurrenciesList, currencySymbol]);
+
+  const budgetDayOptions = BUDGET_DAY_OPTIONS;
+
+  const handleAddActiveCurrency = (rawCode: string) => {
+    setCurrencyError(null);
+    const code = rawCode.trim().toUpperCase();
+    if (!code) {
+      setCurrencyError('통화 코드를 입력해주세요 (예: IDR, USD).');
+      return;
+    }
+    if (!/^[A-Z]{3}$/.test(code)) {
+      setCurrencyError('유효한 3자리 ISO 통화 코드를 입력해주세요.');
+      return;
+    }
+    if (activeCurrenciesList.includes(code)) {
+      setCurrencyError(`이미 등록된 통화입니다: ${code}`);
+      return;
+    }
+    const updated = [...activeCurrenciesList, code];
+    setActiveCurrenciesList(updated);
+    saveUserActiveCurrencies(updated);
+    setNewCurrencyInput('');
+    onDataChanged?.();
+  };
+
+  const handleRemoveActiveCurrency = (codeToRemove: string) => {
+    const upper = codeToRemove.toUpperCase();
+    if (upper === currencySymbol.toUpperCase()) {
+      setCurrencyError('현재 기본 기준 통화는 목록에서 삭제할 수 없습니다.');
+      return;
+    }
+    if (activeCurrenciesList.length <= 1) {
+      setCurrencyError('최소 1개 이상의 통화가 유지되어야 합니다.');
+      return;
+    }
+    setCurrencyError(null);
+    const updated = activeCurrenciesList.filter((c) => c !== upper);
+    setActiveCurrenciesList(updated);
+    saveUserActiveCurrencies(updated);
+    onDataChanged?.();
+  };
+
   const handleSelectSeasonTheme = (next: SeasonThemeId) => {
     setSeasonTheme(next);
     patchUserPreferences({ seasonTheme: next });
     applySeasonTheme(next);
-    if (onDataChanged) onDataChanged();
+    onDataChanged?.();
   };
 
   const handleLanguageSelect = (lang: LanguageCode) => {

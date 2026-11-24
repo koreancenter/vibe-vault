@@ -229,4 +229,12 @@ describe('Vault field encryption and key rotation', () => {
       await vault.removeVaultPin('4321');
     }
   });
+
+  it('bootstraps migration handler lazily on cold-boot guest unlock before db.ts is imported', async () => {
+    vi.resetModules();
+    const freshVault = await import('../src/vaultSecurity');
+    const result = await freshVault.unlockVault();
+    expect(result.success).toBe(true);
+    expect(freshVault.isVaultLocked()).toBe(false);
+  });
 });

@@ -17,8 +17,22 @@ import {
   Sparkles
 } from 'lucide-react';
 import { CustomDarkSelect, CustomSelectOption } from './CustomDarkSelect';
-import { ModelDownloadProgress } from '../../webllmManager';
-import { sanitizeApiKey } from '../../geminiKeyManager';
+import {
+  checkWebGPUSupport,
+  isWebLLMModelCached,
+  isLocalLLMReady,
+  downloadAndInitWebLLM,
+  cancelWebLLMDownload,
+  purgeWebLLMCache,
+  ModelDownloadProgress,
+} from '../../webllmManager';
+import {
+  sanitizeApiKey,
+  getSecureGeminiApiKey,
+  clearSecureGeminiApiKey,
+  testGeminiApiKeyOnline,
+} from '../../geminiKeyManager';
+import { getAIEngineConfig } from '../../utils';
 import {
   BuiltInAIStatus,
   detectBuiltInAI,
@@ -27,48 +41,21 @@ import {
 } from '../../builtInAI';
 import { useI18n } from '../../i18n';
 
-export interface SettingsAITabProps {
+export interface AIEngineDraft {
   engineType: 'local' | 'byok';
-  setEngineType: (type: 'local' | 'byok') => void;
-  setProvider: (provider: 'gemini' | 'openai' | 'anthropic') => void;
+  provider: 'gemini' | 'openai' | 'anthropic';
   modelTier: string;
-  setModelTier: (tier: string) => void;
-  apiKey: string;
-  setApiKey: (key: string) => void;
-  showKey: boolean;
-  setShowKey: (show: boolean) => void;
-  handleClearKey: () => void;
-  handleTestKey: () => void;
-  isTestingKey: boolean;
-  testResult: { status: 'valid' | 'invalid' | null; message: string };
-  setTestResult: React.Dispatch<React.SetStateAction<{ status: 'valid' | 'invalid' | null; message: string }>>;
-
-  // Local AI: Sub-mode
-  localSubMode: 'ollama' | 'webllm';
-  setLocalSubMode: (mode: 'ollama' | 'webllm') => void;
-
-  // Ollama
-  ollamaEndpoint: string;
-  setOllamaEndpoint: (endpoint: string) => void;
-  ollamaModel: string;
-  setOllamaModel: (model: string) => void;
-  ollamaModelsList: string[];
-  isTestingOllama: boolean;
-  ollamaStatus: { status: 'connected' | 'error' | null; message: string };
-  handleTestOllamaConnection: () => void;
-
-  // WebLLM
   localModel: 'gemma-2b' | 'llama3-8b';
-  setLocalModel: (model: 'gemma-2b' | 'llama3-8b') => void;
-  webGpuStatus: { supported: boolean; reason?: string } | null;
-  localModelOptions: CustomSelectOption[];
-  isDownloadingModel: boolean;
-  downloadProgress: ModelDownloadProgress | null;
-  downloadError: string | null;
-  isModelDownloaded: boolean;
-  handleCancelWebLLMDownload: () => void;
-  handleStartWebLLMDownload: () => void;
-  handlePurgeWebLLMCache: () => void;
+  apiKey: string;
+  localSubMode: 'ollama' | 'webllm';
+  ollamaEndpoint: string;
+  ollamaModel: string;
+}
+
+export interface SettingsAITabProps {
+  initialDraft?: AIEngineDraft | null;
+  onDraftChange: (draft: AIEngineDraft) => void;
+  onStatusMessage?: (msg: { type: 'success' | 'error'; text: string }) => void;
 }
 
 const CLOUD_MODEL_OPTIONS: CustomSelectOption[] = [
@@ -84,53 +71,87 @@ const CLOUD_MODEL_OPTIONS: CustomSelectOption[] = [
   },
 ];
 
+const LOCAL_MODEL_OPTIONS: CustomSelectOption[] = [
+  { value: 'gemma-2b', label: 'Gemma 2B', sublabel: '초고속 경량 - 1.3GB' },
+  { value: 'llama3-8b', label: 'Llama 3 8B', sublabel: '심층 처리 - 4.5GB' },
+];
+
+function loadInitialDraft(initialDraft?: AIEngineDraft | null): AIEngineDraft {
+  if (initialDraft) return initialDraft;
+  const cfg = getAIEngineConfig();
+  return {
+    engineType: cfg.engineType || 'byok',
+    provider: cfg.provider || 'gemini',
+    modelTier: cfg.modelTier || 'gemini-3.8-flash',
+    localModel: cfg.localModel || 'gemma-2b',
+    apiKey: cfg.apiKey || getSecureGeminiApiKey() || '',
+    localSubMode: cfg.localSubMode || 'ollama',
+    ollamaEndpoint: cfg.ollamaEndpoint || 'http://localhost:11434',
+    ollamaModel: cfg.ollamaModel || 'gemma2:9b',
+  };
+}
+
 export const SettingsAITab: React.FC<SettingsAITabProps> = ({
-  engineType,
-  setEngineType,
-  setProvider,
-  modelTier,
-  setModelTier,
-  apiKey,
-  setApiKey,
-  showKey,
-  setShowKey,
-  handleClearKey,
-  handleTestKey,
-  isTestingKey,
-  testResult,
-  setTestResult,
-  localSubMode,
-  setLocalSubMode,
-  ollamaEndpoint,
-  setOllamaEndpoint,
-  ollamaModel,
-  setOllamaModel,
-  ollamaModelsList,
-  isTestingOllama,
-  ollamaStatus,
-  handleTestOllamaConnection,
-  localModel,
-  setLocalModel,
-  webGpuStatus,
-  localModelOptions,
-  isDownloadingModel,
-  downloadProgress,
-  downloadError,
-  isModelDownloaded,
-  handleCancelWebLLMDownload,
-  handleStartWebLLMDownload,
-  handlePurgeWebLLMCache,
+  initialDraft,
+  onDraftChange,
+  onStatusMessage,
 }) => {
   const { language } = useI18n();
   const isKo = language === 'ko';
+
+  const initial = loadInitialDraft(initialDraft);
+  const [engineType, setEngineType] = useState<'local' | 'byok'>(initial.engineType);
+  const [provider, setProvider] = useState<'gemini' | 'openai' | 'anthropic'>(initial.provider);
+  const [modelTier, setModelTier] = useState<string>(initial.modelTier);
+  const [localModel, setLocalModel] = useState<'gemma-2b' | 'llama3-8b'>(initial.localModel);
+  const [apiKey, setApiKey] = useState<string>(initial.apiKey);
+  const [showKey, setShowKey] = useState(false);
+  const [isTestingKey, setIsTestingKey] = useState(false);
+  const [testResult, setTestResult] = useState<{ status: 'valid' | 'invalid' | null; message: string }>({
+    status: null,
+    message: '',
+  });
+
+  const [localSubMode, setLocalSubMode] = useState<'ollama' | 'webllm'>(initial.localSubMode);
+  const [ollamaEndpoint, setOllamaEndpoint] = useState<string>(initial.ollamaEndpoint);
+  const [ollamaModel, setOllamaModel] = useState<string>(initial.ollamaModel);
+  const [ollamaModelsList, setOllamaModelsList] = useState<string[]>([]);
+  const [isTestingOllama, setIsTestingOllama] = useState(false);
+  const [ollamaStatus, setOllamaStatus] = useState<{ status: 'connected' | 'error' | null; message: string }>({
+    status: null,
+    message: '',
+  });
   const [isManualOllamaInput, setIsManualOllamaInput] = useState(false);
+
+  const [webGpuStatus, setWebGpuStatus] = useState<{ supported: boolean; reason?: string } | null>(null);
+  const [isModelDownloaded, setIsModelDownloaded] = useState<boolean>(() => isWebLLMModelCached() || isLocalLLMReady());
+  const [isDownloadingModel, setIsDownloadingModel] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<ModelDownloadProgress | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
   const [builtInStatus, setBuiltInStatus] = useState<BuiltInAIStatus | null>(() => getCachedBuiltInAIStatus());
-  const [isCheckingBuiltIn, setIsCheckingBuiltIn] = useState<boolean>(false);
-  const [isPreparingBuiltIn, setIsPreparingBuiltIn] = useState<boolean>(false);
-  const [builtInProgress, setBuiltInProgress] = useState<number>(0);
+  const [isCheckingBuiltIn, setIsCheckingBuiltIn] = useState(false);
+  const [isPreparingBuiltIn, setIsPreparingBuiltIn] = useState(false);
+  const [builtInProgress, setBuiltInProgress] = useState(0);
+
+  useEffect(() => {
+    onDraftChange({
+      engineType,
+      provider,
+      modelTier,
+      localModel,
+      apiKey,
+      localSubMode,
+      ollamaEndpoint,
+      ollamaModel,
+    });
+  }, [engineType, provider, modelTier, localModel, apiKey, localSubMode, ollamaEndpoint, ollamaModel, onDraftChange]);
 
   useEffect(() => {
     let cancelled = false;
+    checkWebGPUSupport().then((res) => {
+      if (!cancelled) setWebGpuStatus(res);
+    });
     setIsCheckingBuiltIn(true);
     detectBuiltInAI(true)
       .then((res) => {
@@ -156,8 +177,151 @@ export const SettingsAITab: React.FC<SettingsAITabProps> = ({
     }
   };
 
-  // Map fetched Ollama models to CustomSelectOption with minimalist LOCAL badge
-  const ollamaSelectOptions: CustomSelectOption[] = ollamaModelsList.map(name => ({
+  const handleClearKey = () => {
+    setApiKey('');
+    clearSecureGeminiApiKey();
+    setTestResult({ status: null, message: '' });
+    onStatusMessage?.({ type: 'success', text: 'API 키가 안전하게 완전히 삭제되었습니다.' });
+  };
+
+  const handleTestKey = async () => {
+    const cleanKey = sanitizeApiKey(apiKey);
+    if (!cleanKey) {
+      setTestResult({ status: 'invalid', message: 'API 키를 먼저 입력해 주세요' });
+      return;
+    }
+    setIsTestingKey(true);
+    setTestResult({ status: null, message: '' });
+    try {
+      if (provider === 'gemini') {
+        const testRes = await testGeminiApiKeyOnline(cleanKey);
+        setTestResult({ status: testRes.valid ? 'valid' : 'invalid', message: testRes.message });
+      } else {
+        const res = await fetch('/api/validate-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider, apiKey: cleanKey, modelTier }),
+        });
+        const data = await res.json();
+        setTestResult(
+          res.ok && data.valid
+            ? { status: 'valid', message: 'API 키가 유효합니다.' }
+            : { status: 'invalid', message: data.message || 'API 키 검증 실패' }
+        );
+      }
+    } catch (err: any) {
+      setTestResult({ status: 'invalid', message: err.message || '검증 서버 통신 실패' });
+    } finally {
+      setIsTestingKey(false);
+    }
+  };
+
+  const handleTestOllamaConnection = async () => {
+    const ep = ollamaEndpoint.trim().replace(/\/+$/, '');
+    if (!ep) {
+      setOllamaStatus({ status: 'error', message: 'Ollama 엔드포인트 URL을 입력해주세요.' });
+      return;
+    }
+
+    let safeOrigin: string;
+    try {
+      const parsed = new URL(ep);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('INVALID_PROTOCOL');
+      if (parsed.username || parsed.password) throw new Error('CREDENTIALS_NOT_ALLOWED');
+      safeOrigin = parsed.origin;
+    } catch {
+      setOllamaStatus({ status: 'error', message: '올바른 http:// 또는 https:// Ollama 서버 주소를 입력해주세요.' });
+      return;
+    }
+
+    setIsTestingOllama(true);
+    setOllamaStatus({ status: null, message: '' });
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(`${safeOrigin}/api/tags`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        const models: string[] = Array.isArray(data?.models)
+          ? data.models.map((m: any) => m.name || m.model).filter(Boolean)
+          : [];
+        setOllamaModelsList(models);
+        if (models.length > 0 && (!ollamaModel || !models.includes(ollamaModel))) {
+          setOllamaModel(models[0]);
+        }
+        setOllamaStatus({
+          status: 'connected',
+          message: models.length > 0
+            ? `Ollama 서버 연결 성공 (${models.length}개 로컬 모델 감지)`
+            : 'Ollama 서버 연결 성공 (설치된 모델 없음)',
+        });
+      } else {
+        setOllamaStatus({ status: 'error', message: `HTTP ${res.status}: Ollama 서버 응답 오류` });
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setOllamaStatus({ status: 'error', message: '연결 시간 초과 (6초). Ollama가 실행 중인지 확인해주세요.' });
+      } else {
+        const isHttpsMixedLocalhost =
+          typeof window !== 'undefined'
+          && window.location.protocol === 'https:'
+          && /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(ep);
+        setOllamaStatus({
+          status: 'error',
+          message: isHttpsMixedLocalhost
+            ? 'Ollama 서버에 연결할 수 없습니다. CORS 설정 및 HTTPS 환경에서의 HTTP localhost 차단(Mixed Content) 여부를 확인해 주세요.'
+            : 'Ollama 서버에 연결할 수 없습니다. Ollama 실행 여부 및 CORS 설정을 확인해 주세요 (OLLAMA_ORIGINS="*" ollama serve).',
+        });
+      }
+    } finally {
+      setIsTestingOllama(false);
+    }
+  };
+
+  const handleStartWebLLMDownload = async () => {
+    setIsDownloadingModel(true);
+    setDownloadError(null);
+    setDownloadProgress({ progress: 0, text: '가중치 다운로드 준비 중...', loadedMB: 0, totalMB: localModel === 'llama3-8b' ? 4500 : 1520 });
+    try {
+      await downloadAndInitWebLLM(localModel, (progress) => setDownloadProgress(progress));
+      setIsModelDownloaded(true);
+      onStatusMessage?.({ type: 'success', text: `${localModel} 모델 가중치가 로컬 캐시에 안전하게 저장되었습니다.` });
+    } catch (err: any) {
+      setDownloadError(err.message || '모델 다운로드 중 문제가 발생했습니다.');
+    } finally {
+      setIsDownloadingModel(false);
+      setDownloadProgress(null);
+    }
+  };
+
+  const handleCancelWebLLMDownload = () => {
+    cancelWebLLMDownload();
+    setIsDownloadingModel(false);
+    setDownloadProgress(null);
+    onStatusMessage?.({ type: 'error', text: '모델 다운로드가 취소되었습니다.' });
+  };
+
+  const handlePurgeWebLLMCache = async () => {
+    if (!window.confirm('로컬 저장소에 캐시된 모델 가중치를 삭제하시겠습니까? (약 1.3GB~4.5GB 저장공간 확보)')) {
+      return;
+    }
+    try {
+      await purgeWebLLMCache();
+      setIsModelDownloaded(false);
+      onStatusMessage?.({ type: 'success', text: '로컬 모델 캐시가 완전히 삭제되었습니다.' });
+    } catch (err: any) {
+      onStatusMessage?.({ type: 'error', text: '캐시 삭제 실패: ' + err.message });
+    }
+  };
+
+  const localModelOptions = LOCAL_MODEL_OPTIONS;
+  const ollamaSelectOptions: CustomSelectOption[] = ollamaModelsList.map((name) => ({
     value: name,
     label: name,
     badge: 'LOCAL',
